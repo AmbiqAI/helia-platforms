@@ -49,7 +49,7 @@ Each term has one meaning in this RFC, except `revision`, whose meaning depends 
 | operating point | A system `OperatingPoint`: one point per clock domain. `target.cpu_mhz()` and `target.npu_mhz()` read the core-0 and npu-0 domains; `cpu_mhz`/`npu_mhz` are also overlay shorthand that expands to domain points. |
 | implementation (kind) | An `Implementation`: a realization of a Soc. `kind` is `silicon`, `fpga`, `fvp` or `rtl`. It realizes the whole Soc unless it declares a validated subset. An FPGA or FVP implementation is resolvable directly and carries its own carrier facts; it needs no board. |
 | part | A `Part`: an orderable silicon device (ordering number, silicon revision, package, radio option). It references its Soc directly. |
-| board (stage, revision) | A `Board`: a PCB carrying one Part. `stage` is `eb`, `evb` or `custom`; `revision` is the board revision, which can change the population. |
+| board (category, revision) | A `Board`: a PCB carrying one Part. `category` is `engineering`, `evaluation` or `custom`, a description, not a lifecycle; `revision` is the board revision, which can change the population. |
 | revision (Soc) | `Soc.revision`: the design revision of the specification (for example a pre-silicon RTL revision). |
 | revision (Part) | `Part.silicon_revision`: the silicon revision of the fitted die. |
 | revision (Board, AddOn) | `Board.revision`, `AddOn.revision`: the board revision of the PCB. |
@@ -108,7 +108,7 @@ Soc ── cores: [CoreInstance(id, role, core, options: CoreOptions, clock_doma
  │         ordering number, silicon revision, package, radio, jlink_device,
  │         per-part image slots such as the NVM-M41 radio-core slot)
  │
- ├── Board (stage: eb | evb | custom; revision; carries one Part;
+ ├── Board (category: engineering | evaluation | custom; revision; carries one Part;
  │          memory interfaces; default population; provisioning (boot config in use);
  │          probe and trace facts; aliases)
  │
@@ -190,22 +190,22 @@ check, `classify_address()` returns `None` for it, and `placement_ranges()`
 and `flash_load_address()` raise `PlatformError` when they need its
 address. Built-in regions always carry a base.
 
-### Bring-up lifecycle
+### Pre-silicon and silicon
 
-Ambiq silicon moves through bring-up phases, and the model follows them rather than
-treating the end state as the only truth:
+The model covers both phases of a SoC's life, and does not treat the end
+state as the only truth:
 
 | Phase | What exists | Modelled as |
 |---|---|---|
-| Pre-tapeout | FPGA running a subset of the RTL: less memory, peripherals absent, lower clocks, sometimes a different address map; an Arm FVP standing in for parts of the system | `Implementation` of kind `fpga` or `fvp`, resolvable directly by its id, with no board (atomiq110_fpga_turbo; AmbiqSuite's apollo510L_fpga_turbo) |
-| First silicon | Engineering board with an early silicon revision | `Part` with a `silicon_revision`, on a `Board` of stage `eb` |
-| Release | Evaluation board with production silicon | `Part` on a `Board` of stage `evb`, with board `revision` (populations change between revisions) |
-| Customer | The customer's own board | `Board` of stage `custom`, defined in an overlay by reference to a Part, with its own interfaces, population and add-ons |
+| Pre-silicon | An FPGA running a reduced build of the RTL (less memory, peripherals absent, lower clocks); an Arm FVP standing in for parts of the system | `Implementation` of kind `fpga` or `fvp`, resolvable directly by its id, with no board (atomiq110_fpga_turbo; AmbiqSuite's apollo510L_fpga_turbo) |
+| Silicon | Parts (with a `silicon_revision`) on boards that serve different needs at the same time | `Part` on a `Board` of category `engineering` (most pins exposed, for internal engineering), `evaluation` (smaller, laid out for customers) or `custom` (a customer's own board, defined in an overlay with its own interfaces, population and add-ons) |
 
-Every phase resolves through the same API, so a tool written against an
-FPGA target keeps working as the EB and EVB arrive. Stage is a fact about
-a board; how well each tool supports a stage or an implementation kind is
-that tool's marker.
+A SoC can have engineering and evaluation boards at once; nothing orders
+boards by category, and a board `revision` (which can change the
+population) is separate from its category. Every target resolves through
+the same API, so a tool written against an FPGA target keeps working on
+silicon. How well each tool supports a category or an implementation kind
+is that tool's marker.
 
 ### Implementation and Part
 
@@ -213,9 +213,9 @@ An `Implementation` names a `soc`, a `kind` and a subset expression:
 memories removed, resized or rebased; peripherals removed from
 `Soc.peripherals`; clock caps; cores or accelerators removed. Everything not mentioned is
 inherited from the specification. The validator rejects an implementation
-that adds a memory or exceeds a clock. Rebasing is allowed because FPGA
-builds move regions (the atomiq110 FPGA places SSRAM and MRAM at different
-bases from silicon).
+that adds a memory or exceeds a clock. Rebasing stays available because an
+FPGA build may move a region; no built-in uses it (the atomiq110 FPGA uses
+the silicon addresses, per research/ambiqsuite.md).
 
 Clock caps act on operating points: a point whose CPU or NPU clock exceeds
 `max_cpu_mhz` or `max_npu_mhz` (the core-0 and npu-0 domains;
@@ -223,22 +223,31 @@ Clock caps act on operating points: a point whose CPU or NPU clock exceeds
 Soc's default point is dropped, `default_operating_point` is `None`, and
 `npu_clocks()` follows the remaining points. If no point survives, the
 implementation must declare its own `operating_points`, adding or
-replacing domain points through `Implementation.clock_domains`. The
-built-in `atomiq110_fpga_turbo` Implementation runs below every
-atomiq110 point (fixed 25 MHz, from helia-profiler, where it is a
-supported variant; RFC 0001 appendix J), so it declares its own 25 MHz
-domain points and an operating point over them, as in the FPGA example
-under Overlays.
+replacing domain points through `Implementation.clock_domains`.
 
 An FPGA is a reduced implementation of the specification, not a board.
 An FPGA Implementation therefore carries the facts a board would
 otherwise supply: `jlink_device`, `trace_clock_mhz`, its boot
 configurations and `provisioning`, and, where it needs external memory,
-its own `interfaces` and `population`. `atomiq110_fpga_turbo` takes its
-probe facts from neuralspotx `boards/atomiq110_fpga_turbo/debug.cmake`
-(device `Atomiq110`; the 48 MHz trace clock RFC 0001 appendix J records
-as hardware-measured), and keeps the id neuralspotx and helia-profiler
-use.
+its own `interfaces` and `population`. The built-in `atomiq110_fpga_turbo`
+(the id neuralspotx and helia-profiler use; facts from
+[research/ambiqsuite.md](../research/ambiqsuite.md)):
+
+- Clock domain points 25 MHz (default) plus 12 and 48 MHz, status `sdk`:
+  the FPGA image is built for one designated frequency and firmware
+  matches it with a build define (`mcu/atomiq110/am_mcu_apollo.h:63-64`,
+  `:86`); 50 MHz has status `unverified` (owner statement). The provenance note records the owner's
+  "about one tenth of the silicon clock"; it is not a scale factor.
+- `peripherals_removed`: IOM2 and above (`am_bsp.c:1177-1179`).
+- J-Link device in both spellings, `ATOMIQ110` (AmbiqSuite) and
+  `Atomiq110` (neuralspotx `debug.cmake`); no source says J-Link matches
+  names case-insensitively, so the spelling is to be reconciled (#19).
+- Trace clock follows the selected CPU clock unless measured; the 48 MHz
+  in `debug.cmake` is `NSX_SEGGER_CPUFREQ`, the 48 MHz clock option, and
+  RFC 0001 appendix J records 48 MHz as hardware-measured.
+- External memory as AmbiqSuite's BSP declares it, on the Implementation.
+  Whether HBLRAM (0x60000000 in the header) is on-die or external on the
+  FPGA is not documented.
 
 An FVP implementation names its `model` (corstone-320) and its
 `substitutions`, which are many-to-one: each names a region the model
@@ -282,7 +291,8 @@ BootConfig: name, reserved: [(region, offset, size, purpose)],
   conflict ([research/ambiqsuite.md](../research/ambiqsuite.md)). The SBL
   reservation on Lite and 330 Plus parts is also an SDK convention.
 - An Implementation can replace the set and the default. The atomiq110
-  FPGA declares only its no-bootloader layout at its own MRAM base.
+  FPGA declares only its no-bootloader layout; its flash addresses are the
+  silicon ones (AmbiqSuite `tools/atomiq110_scripts/jlink-ota.txt`).
 - A Board records its `provisioning`: which configuration the fitted part
   ships with. Ambiq EVBs ship SBL-provisioned; a customer board says what
   it uses; an FPGA Implementation records its own.
@@ -299,8 +309,8 @@ BootConfig: name, reserved: [(region, offset, size, purpose)],
 
 ### Board, external memory and add-ons
 
-A `Board` carries one Part, a `stage` (`eb`, `evb` or `custom`) and a
-`revision`, probe and trace facts
+A `Board` carries one Part, a `category` (`engineering`, `evaluation` or
+`custom`) and a `revision`, probe and trace facts
 (`jlink_device` override, measured trace clock), `provisioning`, and
 aliases. `tier` and `channel` are gone: support level is a per-tool
 marker keyed by id.
@@ -353,14 +363,21 @@ its part or implementation, the Soc, selected add-ons and the memory
 devices they populate). A `Composition` and a `LinkEnvironment` are not
 given a most-restrictive status: they are scrubbed and shipped, as below.
 
-Unreleased SoCs never enter this repository; they are side-loaded from
-private packages or overlay files (see Private and future silicon). The
-export filter is defence in depth behind that rule. It uses the effective
-status and never ships an embargoed
+The export filter uses the effective status and never ships an embargoed
 entry or a target whose effective status is embargoed, and it scrubs
 embargoed ids from every table and reference: shorthands, compositions,
 `fits_boards`, `default_board`, `applies_to` and aliases. A Composition or
 LinkEnvironment that references only embargoed entities is dropped.
+
+### Private and future silicon
+
+Unreleased SoCs never enter this repository, so the export filter is
+defence in depth, not the primary control. `builtin()` side-loads them
+from private packages in the entry-point group `helia_platforms.catalogues`
+and from overlays in `HELIA_PLATFORMS_PATH`; side-loaded entries have
+origin `overlay` and a source label, never shadow built-ins, and carry
+provenance and `release_status`. Rules, load order and conflict errors are
+in [0002-private-silicon.md](0002-private-silicon.md).
 
 ### Link environments
 
@@ -473,16 +490,17 @@ implementations:
       memories_removed: [hblram]
       memories_resized: {dtcm: 256K}
       max_cpu_mhz: 25
+      peripherals_removed: [iom2, iom3]     # illustrative ids
     clock_domains:                      # domain ids illustrative
-      cpu: {points: [{name: fpga, mhz: 25}]}
+      cpu: {points: [{name: fpga, mhz: 25}]}   # image-dependent: 12, 25 (default), 48 MHz
       npu: {points: [{name: fpga, mhz: 25}]}
     operating_points: [{name: fpga, domains: {cpu: fpga, npu: fpga}}]
     # shorthand for the three lines above: [{name: fpga, cpu_mhz: 25, npu_mhz: 25}]
     boot_configs:
-      nbl_fpga: {reserved: [], app_start: {region: mram, offset: 0}, requires: none}
+      nbl_fpga: {reserved: [], app_start: {region: rram, offset: 0}, requires: none}
     default_boot: nbl_fpga
     provisioning: nbl_fpga
-    jlink_device: Atomiq110              # carrier facts: an FPGA needs no board
+    jlink_device: ATOMIQ110              # carrier facts: an FPGA needs no board
 ```
 
 A MemoryDevice (an illustrative customer part):
@@ -501,7 +519,7 @@ A custom Board:
 ```yaml
 boards:
   my_product_v1:
-    stage: custom
+    category: custom
     revision: "1.0"
     part: AP510NFA-CBR
     interfaces:
@@ -726,7 +744,7 @@ one of them.
 @dataclass(frozen=True) class MemoryInterface: name, controller, modes, aperture_base, aperture_max
 @dataclass(frozen=True) class MemoryDevice: id, technology, capacity, driver_family, modes, characterization, release_status, provenance
 @dataclass(frozen=True) class AddOn:      id, fits_boards, occupies, population: Mapping[str, str], revision, aliases, release_status, extensions, provenance
-@dataclass(frozen=True) class Board:      id, stage, revision, part, interfaces, population: Mapping[str, str], provisioning, jlink_device, trace_clock_mhz, aliases, release_status, extensions, provenance
+@dataclass(frozen=True) class Board:      id, category, revision, part, interfaces, population: Mapping[str, str], provisioning, jlink_device, trace_clock_mhz, aliases, release_status, extensions, provenance
 @dataclass(frozen=True) class Composition: alias, board, addons; release_status (property, effective from what it references)
 @dataclass(frozen=True) class LinkEnvironment: owner, link_family, profile, applies_to: tuple[str, ...], regions: Mapping[str, WindowRegion], source, revision; release_status (property, effective)
 @dataclass(frozen=True) class WindowRegion: start, length, app_window, section_names
@@ -760,7 +778,7 @@ class Target:
     def operating_point(self, name: str | None = None, *, domain: str | None = None) -> OperatingPoint | DomainPoint
     default_operating_point: OperatingPoint | None
     capabilities: frozenset[str]                              # derived; stable spellings
-    stage: str | None; addons: tuple[AddOn, ...]              # stage is None without a board, including implementation targets
+    category: str | None; addons: tuple[AddOn, ...]           # None for implementation and soc targets
     # boot
     boot: BootConfig | None                                   # explicit boot=, else board, else implementation provisioning, else default
     def boot_configs(self) -> tuple[BootConfig, ...]
@@ -857,22 +875,10 @@ stand.
 | `tier`, `channel` | Board fields | Removed; support level is a per-tool marker keyed by id | Tool policy, not fact |
 | External memory | A PSRAM (and NVM) region per board | Board `interfaces` plus `population` plus add-ons, populated by `MemoryDevice`s | Board revisions and shields change what is fitted (research/datasheets.md section 7) |
 | Boot layout | `app_flash_load_addr` as an accessor over the default window's MRAM origin | Named boot configurations on the Soc, replaceable by an Implementation, with board provisioning; `flash_load_address()` derived from the selected one | Apollo510, Lite and 330 Plus, and Apollo3/4 boot layouts differ and are a choice |
-| Entity levels | Two levels (`SocDef`, `BoardDef`) plus IP blocks; an FPGA is a `BoardDef` with overrides | Four levels (Soc, Implementation, Part, Board) plus add-ons and memory devices; an FPGA is an Implementation, not a board | Bring-up stages and per-part facts (review 2.2) |
+| Entity levels | Two levels (`SocDef`, `BoardDef`) plus IP blocks; an FPGA is a `BoardDef` with overrides | Four levels (Soc, Implementation, Part, Board) plus add-ons and memory devices; an FPGA is an Implementation, not a board | Pre-silicon implementations and per-part facts (review 2.2) |
 | Publication | Public repo and 0.1.0 on PyPI before adoption ("Packaging and versions") | Deferred to ADR #5 (publication, embargo and the private-to-public path) | A public release would ship embargoed parts (review 3.1) |
 | Cores and accelerators | One core and at most one NPU per chip | Ordered `cores` and `npus` (index 0 primary), an explicit access matrix, image slots per core, system operating points over clock domains | Shipping parts already carry a radio core (Apollo510 Lite, Apollo330 Plus); single-core queries default to core 0 |
 | Soc id resolution | A Soc id resolves to its board when the Soc has exactly one ("Names") | A Soc id always resolves to the bare Soc target; `default_board` only through `resolve_board(soc_id)` | Resolution must not change when a board is added; matches #278 |
-
-## Private and future silicon
-
-Unreleased SoCs never enter this repository. `builtin()` side-loads them
-from installed packages registered in the entry-point group
-`helia_platforms.catalogues` (for example a private
-`helia-platforms-internal`) and from overlay files listed in
-`HELIA_PLATFORMS_PATH`; `load_overlay` works as before. Side-loaded
-entries have origin `overlay` and a source label, may not shadow
-built-ins, carry provenance and `release_status` like built-ins, and are
-listed by `helia-platforms show --sources`. Load order, conflict errors
-and the full rules are in [0002-private-silicon.md](0002-private-silicon.md).
 
 ## Migration and output changes
 

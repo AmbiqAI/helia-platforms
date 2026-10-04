@@ -42,8 +42,9 @@ Done:
 - Commits on `main`: repo bootstrap and design record. Branch
   `22-rfc-0002-model-and-api` carries RFC 0002 and the consumer research;
   review rounds 1 to 4 and the multicore section are committed and pushed
-  (0a63a1f). The owner decisions below on FPGA, energy, private silicon
-  and local paths are applied locally, not yet committed.
+  (0a63a1f), and the owner decisions on FPGA, energy, private silicon and
+  local paths are pushed (7925602). Board category and the atomiq110 FPGA
+  facts are applied locally, not yet committed.
 - Open PRs: #24 (RFC 0002 and research) and #25 (CLI on typer). Issues
   #22 (RFC 0002) and #23 (typer) are In review on the board.
   helia-profiler#459 filed for its typer upper cap.
@@ -79,10 +80,17 @@ auto-add and close-to-Done workflows, which only the web UI can enable.
   SDK dataset).
 - External memory is composed: board interfaces, default population per
   board revision, add-ons (shields, daughter boards) bringing devices.
-- Board stage is eb, evb or custom; Parts carry silicon revision. An FPGA
-  is a reduced Implementation of the Soc, resolvable directly (built-in
-  `atomiq110_fpga_turbo`), carrying its own probe, boot and memory
-  interface facts; heliaAOT plans against its reduced values.
+- Board `category` is engineering, evaluation or custom: descriptive, not
+  a lifecycle (a SoC can have EBs and EVBs at once). Phases are only
+  pre-silicon (FPGA, FVP implementations) and silicon. Parts carry silicon
+  revision. An FPGA is a reduced Implementation of the Soc, resolvable
+  directly (built-in `atomiq110_fpga_turbo`), carrying its own probe, boot
+  and memory interface facts; heliaAOT plans against its reduced values.
+- atomiq110 FPGA facts are from AmbiqSuite (research/ambiqsuite.md):
+  clock points 25 (default), 12, 48 MHz set by the loaded FPGA image, plus 50 MHz unverified (owner);
+  only IOM0 and IOM1; silicon addresses (the earlier claim that it rebases
+  SSRAM or MRAM was wrong and is removed); J-Link spelling `ATOMIQ110`
+  vs `Atomiq110` to reconcile (#19); HBLRAM placement open.
 - Licence: the Ambiq Apollo SDK License, as heliaAOT.
 - CLI uses typer (as heliaAOT does), not argparse; typer stays a core
   dependency.
@@ -103,7 +111,7 @@ auto-add and close-to-Done workflows, which only the web UI can enable.
 
 ## Next steps
 
-1. Commit and push the owner-decision edits to PR #24; owner approval,
+1. Commit and push the board-category and FPGA-fact edits to PR #24; owner approval,
    then merge (it absorbs #3, #8, #9, #10). Merge PR #25 after its review.
    Implement #26 (local-path check).
 2. After RFC 0002 merges: ADRs #5 (publication and embargo), #6
