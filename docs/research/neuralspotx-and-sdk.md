@@ -4,11 +4,11 @@
 
   | Location | GitHub | Role |
   | --- | --- | --- |
-  | `/Users/adam.page/Ambiq/neuralspotx/neuralspotx` | `AmbiqAI/neuralspotx` | Board descriptors, module registry lock, CMake tooling |
-  | `/Users/adam.page/Ambiq/neuralspotx/nsx-modules/nsx-ambiq-sdk` | `AmbiqAI/nsx-ambiq-sdk` | SoC facts, linker scripts, vendored AmbiqSuite HAL |
-  | `/Users/adam.page/Ambiq/helia/neuralspotx-v5.2.24` | `AmbiqAI/neuralspotx` (tag snapshot) | Reference snapshot |
-  | `/Users/adam.page/Ambiq/helia/nsx-ambiq-sdk-audit` | mirror of `AmbiqAI/nsx-ambiq-sdk` | Intake and qualification records: `docs/platform-coverage.md`, `release/nsx-ambiq-sdk-5.2.24.yaml`, `release/qualification-5.2.24.md` |
-  | `/Users/adam.page/Ambiq/neuralspot` | none (not a git repo) | Legacy neuralSPOT |
+  | neuralspotx checkout | `AmbiqAI/neuralspotx` | Board descriptors, module registry lock, CMake tooling |
+  | nsx-ambiq-sdk checkout | `AmbiqAI/nsx-ambiq-sdk` | SoC facts, linker scripts, vendored AmbiqSuite HAL |
+  | v5.2.24 snapshot checkout | `AmbiqAI/neuralspotx` (tag snapshot) | Reference snapshot |
+  | SDK audit mirror checkout | mirror of `AmbiqAI/nsx-ambiq-sdk` | Intake and qualification records: `docs/platform-coverage.md`, `release/nsx-ambiq-sdk-5.2.24.yaml`, `release/qualification-5.2.24.md` |
+  | legacy neuralSPOT checkout | none (not a git repo) | Legacy neuralSPOT |
 
 - **Revision:** neuralspotx `main` at `6afb7d2`; nsx-ambiq-sdk `main` at `9d4463a`; neuralspotx-v5.2.24 tag snapshot `a07f152`; nsx-ambiq-sdk-audit `a9f4ec2`; neuralspot unversioned
 - **Read on:** 2026-10-04

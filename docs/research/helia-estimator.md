@@ -1,6 +1,8 @@
 # helia-estimator platform model: source inventory
 
-- **Source:** `/Users/adam.page/Ambiq/helia/helia-estimator` (GitHub `AmbiqAI/helia-estimator`)
+> Superseded by [queries-helia-estimator.md](queries-helia-estimator.md), read against `origin/main`, where the two conflict.
+
+- **Source:** helia-estimator checkout (GitHub `AmbiqAI/helia-estimator`)
 - **Revision:** local branch `s14-fvp-in-docker` at `8cab17d` (a feature branch, not `main`)
 - **Read on:** 2026-10-04
 - **Method:** Inventory from a read of the feature-branch checkout; eight citations re-checked against `8cab17d` on 2026-10-04 (results under Open questions, "Citation checks").
@@ -28,7 +30,7 @@ helia-estimator compiles LiteRT models for Arm Ethos-U85, runs them on the Corst
 | --- | --- | --- | --- |
 | `soc` | `str \| None` | Packaged helia-npu SoC id, or a path | `platform_schema.py:177` |
 | `soc_overrides` | `SocOverridesModel \| None` | Per-platform overrides of SoC values | `platform_schema.py:179` |
-| `energy` | `EnergyModel` | Core scaling per mode plus memory pJ/bit read and write | `platform_schema.py:181`, `EnergyModel` at `:68`, `CoreEnergyModel` at `:42` |
+| `energy` | `EnergyModel` | Per-mode core scaling and per-memory read and write energy coefficients (values not reproduced here) | `platform_schema.py:181`, `EnergyModel` at `:68`, `CoreEnergyModel` at `:42` |
 | `revisions` | `list[RevisionModel]` | Revision history | `platform_schema.py:184`, `RevisionModel` at `:31` |
 | Inline SoC fields | `name`, `id`, `origin` (`golden` / `derived` / `custom`), `revision`, `npu`, `macs`, `axi_bus_width_bits`, more | Used when the SoC is written inline instead of referenced; `golden` is reserved for helia-npu packaged SoCs | `platform_schema.py:187-199` |
 
@@ -53,21 +55,9 @@ helia-estimator compiles LiteRT models for Arm Ethos-U85, runs them on the Corst
 
 `helia-npu` also provides `SocDefinition`, `soc_schema`, `vela.system_config`, and `npu_reference`. Its targets: `atomiq110-fvp-corstone-320`, `atomiq110-rtl`, `atomiq110-fpga-turbo-npu`, `atomiq110-silicon`.
 
-### Energy values in `platforms/at110.yaml`
+### Energy model in `platforms/at110.yaml`
 
-These are the estimator's current model values with `helia_estimator/platforms/at110.yaml` as the source. They are not silicon facts.
-
-| Item | Value | Source |
-| --- | --- | --- |
-| Core scaling `ULP` | 0.311 of an Arm pJ/cycle reference | `at110.yaml:81` |
-| Core scaling `HP` | 0.554 of an Arm pJ/cycle reference | `at110.yaml:82` |
-
-| Memory | Read pJ/bit | Write pJ/bit | Source |
-| --- | --- | --- | --- |
-| `ssram` | 0.282 | 0.253 | `at110.yaml:91-93` |
-| `hblram` | 1.0 | 1.0 | `at110.yaml:100-102` |
-| `psram` | 12.7 | 12.7 | `at110.yaml:107-109`; file note: write assumed equal to read |
-| `rram` | 5.0 | 5.0 | `at110.yaml:114-116`; file provenance: placeholder, no Ambiq RRAM figure exists yet |
+The estimator holds per-memory energy coefficients and per-mode scaling in its own platform files (`helia_estimator/platforms/at110.yaml:81-116`); the values are not reproduced here. They are estimator model values, not silicon facts, and helia-platforms carries no energy data.
 
 | Revisions | Value | Source |
 | --- | --- | --- |
@@ -117,7 +107,7 @@ These are the estimator's current model values with `helia_estimator/platforms/a
 | Per-memory AXI port, latency, outstanding transactions, burst length | `atomiq110.yaml` |
 | HBLRAM as a modelled memory (heliaAOT has no type for it) | `atomiq110.yaml`, `at110.yaml` |
 | Per-field provenance with status, source, reviewer, review date | `atomiq110.yaml` |
-| Energy model (core scaling, pJ/bit per memory) with revision history | `at110.yaml` |
+| Energy model (per-mode scaling, per-memory coefficients) with revision history; values not reproduced here | `at110.yaml` |
 | Only repo with energy data keyed to a platform | `at110.yaml` |
 
 ## Tooling to mirror
@@ -177,5 +167,5 @@ These are the estimator's current model values with `helia_estimator/platforms/a
 | `runtime/helia_aot_codegen.py:48-58` name map | Match. Mappings at 48-53; `at110` prefix rule at 56-57. |
 | `case_tools.py:24` uses `apollo510_evb` | Mismatch. Line 24 is an import. `apollo510_evb` appears at line 248. |
 | `atomiq110.yaml` fields `id`, `npu`, `macs`, `axi_bus_width_bits`, modes | Match (lines 11-25). |
-| `at110.yaml` core scaling and memory pJ/bit values | Match (lines 81-82, 91-116). |
+| `at110.yaml` core scaling and per-memory energy coefficients (values not reproduced) | Match (lines 81-82, 91-116). |
 | Nine revision entries | Match (`v1` to `v9`, lines 25-63). |
