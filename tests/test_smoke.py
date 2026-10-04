@@ -1,20 +1,22 @@
-import pytest
+from typer.testing import CliRunner
 
 import helia_platforms
-from helia_platforms.cli import main
+from helia_platforms.cli import app
+
+runner = CliRunner()
 
 
 def test_version_is_string() -> None:
     assert isinstance(helia_platforms.__version__, str)
 
 
-def test_main_no_args_prints_version(capsys: pytest.CaptureFixture[str]) -> None:
-    assert main([]) == 0
-    assert capsys.readouterr().out.strip() == helia_platforms.__version__
+def test_no_args_prints_version() -> None:
+    result = runner.invoke(app, [])
+    assert result.exit_code == 0
+    assert helia_platforms.__version__ in result.output
 
 
-def test_main_version_flag(capsys: pytest.CaptureFixture[str]) -> None:
-    with pytest.raises(SystemExit) as excinfo:
-        main(["--version"])
-    assert excinfo.value.code == 0
-    assert capsys.readouterr().out.strip() == helia_platforms.__version__
+def test_version_flag() -> None:
+    result = runner.invoke(app, ["--version"])
+    assert result.exit_code == 0
+    assert helia_platforms.__version__ in result.output
