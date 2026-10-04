@@ -44,6 +44,7 @@ ignore = ["PLR2004", "PLR0913"]
 
 [tool.ruff.format]
 quote-style = "double"
+exclude = ["docs/**"]
 
 [tool.ty.environment]
 python-version = "3.11"

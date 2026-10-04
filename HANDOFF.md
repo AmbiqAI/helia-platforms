@@ -8,8 +8,10 @@ Briefing for whoever picks this up next. Keep under ~2k tokens. Updated
 `helia-platforms`: one shared Python package holding Ambiq SoC and board
 facts for heliaAOT, helia-profiler, helia-estimator (and `helia-npu`,
 which consumes SoC definitions from here), with neuralspotx as a possible
-later consumer. Phase now: specification and planning. No catalogue code
-until the RFC revision and the blocking ADRs are accepted.
+later consumer. Phase now: specification and planning. The architecture deliverable is
+RFC 0002 (the model and the API the package exposes), built on
+helia-aot#278 with the owner's changes. No catalogue code until RFC 0002
+and the blocking ADRs are accepted.
 
 ## Current state
 
@@ -24,7 +26,12 @@ Done, verified locally (nothing pushed, no commits yet):
   (imported from the teammate's heliaAOT "RFC 0005" draft, renumbered,
   unedited), `docs/rfcs/0001-platform-catalogue-review.md` (weaknesses,
   proposed changes, owner direction, ranking), `docs/adr/` (template,
-  0001 docs layout), `docs/research/` (dated source inventories per repo).
+  0001 docs layout), `docs/research/` (dated source inventories per repo,
+  issue 278 verbatim, and `queries-*.md` question-surface inventories).
+- `docs/rfcs/0002-model-and-api.md` (uncommitted draft): principles,
+  entity model (Core, Npu, Soc, Implementation, Part, Board, LinkWindow),
+  derived capabilities, resolver, overlay format, per-consumer question
+  surface tables, API signatures, adapters, #278 phase mapping.
 - GitHub: project heliaPLATFORMS (#49, sibling layout: Status Backlog,
   Ready, In progress, In review, Done; Priority P0-P2; Size XS-XL), labels,
   repo settings, and issues #1-#21 created from the review's items, each on
@@ -49,15 +56,28 @@ auto-add and close-to-Done workflows, which only the web UI can enable.
 - No tool opinions (preferred memory order, alignment policy) in the
   package.
 - Docs layout per ADR 0001; RFC numbering restarts at 0001 in this repo.
+- Boot layout is named boot configurations (sbl, nbl, custom) with a
+  default per Soc, replaceable by an Implementation, with board
+  provisioning recorded; flash address derived. Documented reservations
+  (SBL partition, radio firmware) are facts; link windows are not in the
+  core model (optional generated SDK dataset).
+- External memory is composed: board interfaces, default population per
+  board revision, add-ons (shields, daughter boards) bringing devices.
+- Board stage follows bring-up: fpga, eb, evb, custom; Parts carry silicon
+  revision.
 - Licence: the Ambiq Apollo SDK License, as heliaAOT.
+- CLI uses typer (as heliaAOT does), not argparse.
 
 ## Next steps
 
-1. Enable the project's auto-add and item-closed workflows in the web UI.
-2. RFC revision PRs in the ranked order in the review (section 5), each
-   on a `<issue#>-slug` branch closing its issue; P0 first: #3, #4, #5,
-   #9, #10, then #6, #7, #8.
-3. Profiler and estimator maintainer review (#15) before any schema code.
+1. Owner approves issue draft 22 (RFC 0002); create it, branch
+   `22-rfc-0002-model-and-api`, open the PR with the RFC and the
+   `queries-*.md` notes; it absorbs #3, #8, #9, #10.
+2. Enable the project's auto-add and item-closed workflows in the web UI.
+3. After RFC 0002 merges: ADRs #5 (publication), #6 (provenance), #7
+   (schema format), #12 (versions); then #11 drift snapshots and #13
+   parity tests.
+4. Profiler and estimator maintainer review (#15) before any schema code.
 
 ## Gotchas
 
@@ -74,6 +94,20 @@ auto-add and close-to-Done workflows, which only the web UI can enable.
   extra-file or lock refresh step is added.
 - `scripts/check_todo_markers.py` is the only file a raw grep for bare
   markers will hit, by design.
+
+- Datasheets (source of record; see `docs/research/datasheets.md` and the
+  `ambiq-datasheets-location` memory) contradict current catalogue data:
+  no PSRAM on the base apollo4p_evb (Display Kit only); PSRAM unpopulated
+  on apollo330mP_evb and apollo510dL_evb rev 2.0; Apollo510B has a BLE
+  controller. Board revision changes what is populated. apollo510_evb and
+  apollo510b_evb PSRAM is 64 MB, hardware-validated 2026-07-05 (nsx-psram
+  CMakeLists.txt:60-125); BSP macro names are driver families, not sizes.
+- Boot layout is not one fact: Apollo510/510B datasheets partition a 64 KB
+  SBL region; Lite and 330 Plus datasheets do not, yet their EVB parts ship
+  SBL-provisioned; Apollo3/4 secure boot is OTP-enabled with app addresses
+  only in the SDK. Lite/330 Plus reserve the top of MRAM for radio
+  firmware (16/288/432 KB by variant), which the SDK's default apollo510L
+  and apollo330P windows appear to overlap. Modelling decided (see Decisions).
 
 ## References
 
