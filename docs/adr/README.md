@@ -1,0 +1,16 @@
+# Architecture decision records
+
+One file per decision, numbered in order of acceptance, never renumbered.
+A record states the context, the decision, and the consequences, in that
+order, and is immutable once accepted; a later record supersedes it.
+
+Design proposals that are still being argued live in `docs/rfcs/`. When an
+RFC section is decided, the decision gets a record here and the RFC links
+to it. Source inventories that decisions cite live in `docs/research/`.
+
+Use `0000-template.md`. Status values: Proposed, Accepted, Superseded by
+NNNN, Rejected.
+
+| ADR | Title | Status |
+|---|---|---|
+| 0001 | Design documents live in this repository | Accepted |

@@ -1,0 +1,61 @@
+# Rev bumps go through `pre-commit autoupdate` in a reviewed PR, not ad hoc.
+#
+# Setup: `uv sync --group dev && uv run pre-commit install`
+
+default_install_hook_types: [pre-commit]
+default_stages: [pre-commit]
+
+exclude: |
+  (?x)^(
+    CHANGELOG\.md
+    |\.release-please-manifest\.json
+  )$
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: [--maxkb=500]
+      - id: check-yaml
+      - id: check-json
+      - id: check-toml
+
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      - id: gitleaks
+
+  # Pinned to the ruff version uv.lock resolves for the `dev` group so local
+  # hooks and CI agree on formatting and lint rules.
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.10
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: https://github.com/astral-sh/uv-pre-commit
+    rev: 0.11.26
+    hooks:
+      - id: uv-lock
+
+  - repo: local
+    hooks:
+      # A change in one module can move diagnostics in another, so check the
+      # whole project rather than the staged subset.
+      - id: ty
+        name: ty (type check)
+        entry: uv run ty check
+        language: system
+        pass_filenames: false
+        always_run: true
+        require_serial: true
+      - id: todo-markers
+        name: reject untagged deferred-work markers
+        entry: scripts/check_todo_markers.py
+        language: script
+        types: [text]
