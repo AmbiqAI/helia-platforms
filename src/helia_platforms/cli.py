@@ -2,35 +2,48 @@
 
 from __future__ import annotations
 
-import argparse
-from collections.abc import Sequence
+from typing import Annotated
+
+import typer
 
 from helia_platforms import __version__
 
-
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        prog="helia-platforms",
-        description="Shared catalogue of Ambiq SoC and board facts.",
-    )
-    parser.add_argument("--version", action="version", version=__version__)
-    return parser
+app = typer.Typer(
+    name="helia-platforms",
+    help="Shared catalogue of Ambiq SoC and board facts.",
+    no_args_is_help=False,
+    add_completion=False,
+)
 
 
-def main(argv: Sequence[str] | None = None) -> int:
-    """Run the CLI.
+def _version_callback(value: bool) -> None:
+    if value:
+        typer.echo(__version__)
+        raise typer.Exit()
 
-    Args:
-        argv: Command-line arguments; defaults to ``sys.argv[1:]``.
 
-    Returns:
-        Process exit code. ``--version`` prints the version and exits 0 via
-        ``SystemExit``.
-    """
-    build_parser().parse_args(argv)
-    print(__version__)
-    return 0
+@app.callback(invoke_without_command=True)
+def root(
+    ctx: typer.Context,
+    version: Annotated[
+        bool,
+        typer.Option(
+            "--version",
+            help="Print the version and exit.",
+            callback=_version_callback,
+            is_eager=True,
+        ),
+    ] = False,
+) -> None:
+    """Shared catalogue of Ambiq SoC and board facts."""
+    if ctx.invoked_subcommand is None:
+        typer.echo(__version__)
+
+
+def main() -> None:
+    """Run the CLI; exits the process with the command's status code."""
+    app()
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    main()
