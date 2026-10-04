@@ -51,24 +51,25 @@ either a catalogue id or an alias; an alias resolves to a target whose
 | `apollo3_blue_evb` | Board id carried from heliaAOT; no neuralspotx board | `apollo3_blue_evb` | Unchanged |
 | `apollo3_blue_thin_evb` | Board id carried from heliaAOT; no neuralspotx board | `apollo3_blue_thin_evb` | Unchanged |
 | `apollo3p_evb` | Board id | `apollo3p_evb` | Unchanged |
-| `apollo3_blue_plus_evb` | Alias of `apollo3p_evb` (a byte-identical copy today, RFC 0001 Architecture; #278 phase 4 retires it by alias) | `apollo3p_evb` | Changes unless the proposal below is adopted |
+| `apollo3_blue_plus_evb` | Alias of `apollo3p_evb` (a byte-identical copy today, RFC 0001 Architecture; #278 phase 4 retires it by alias) | `apollo3p_evb` | Unchanged: heliaAOT keeps the passed name (decided, below) |
 | `apollo4p_evb`, `apollo4l_evb`, `apollo4p_blue_kbr_evb`, `apollo4p_blue_kxr_evb`, `apollo4l_blue_evb` | Board ids | same | Unchanged |
 | `apollo330mp_evb` | Board id `apollo330mP_evb` (case differs only) | `apollo330mP_evb` | Unchanged after lowercasing |
 | `apollo510_evb`, `apollo510b_evb` | Board ids | same | Unchanged |
-| `apollo510l_evb` | Alias of `apollo510dL_evb` (one Lite EVB, the AP510DLEVB, RFC 0001 Architecture) | `apollo510dL_evb` | Changes (`apollo510dl_evb`) unless the proposal below is adopted |
+| `apollo510l_evb` | Alias of `apollo510dL_evb` (one Lite EVB, the AP510DLEVB, RFC 0001 Architecture) | `apollo510dL_evb` | Unchanged: heliaAOT keeps the passed name (decided, below) |
 | `atomiq110` | Soc id; bare Soc target | `atomiq110` | Unchanged |
 
-Proposal: when the user passes an alias, heliaAOT keeps printing and
+Decided: when the user passes an alias, heliaAOT keeps printing and
 keying artefacts by the name the user passed (lowercased), and records
-`target.id` alongside it in `plan.json`. This avoids artefact renames for
-the two aliases above. Composition aliases are not covered: they key
+`target.id` alongside it in `plan.json`. `apollo510l_evb` and
+`apollo3_blue_plus_evb` stay accepted aliases of `apollo510dL_evb` and
+`apollo3p_evb`, and their artefacts are not renamed. Composition aliases are not covered: they key
 artefacts by `target.id` as RFC 0002 states, and no heliaAOT target today
 is a composition.
 
 Parity (#13, target names): every registered name resolves; either
 `target.id.lower()` equals the name, or the name is in `target.aliases`
 (case-insensitive) and is listed in the table above; artefact names equal
-today's for every name, under the proposal.
+today's for every name.
 
 ### Budgets, capabilities and policy
 
@@ -96,7 +97,7 @@ today's for every name, under the proposal.
 | Output that changes | Parity test (#13) |
 |---|---|
 | PSRAM removed from `apollo4p_evb`, `apollo4p_blue_kbr_evb` and `apollo330mP_evb`, and from `apollo3p_evb`, once verified (Pending data corrections) | Memory parity: per board, regions equal today's `MemoryLayout` except the allow-listed rows |
-| `_BOARD_TO_AOT_PLATFORM` is deleted. `apollo510b_evb`, `apollo510dL_evb`, `apollo5b_evb` and `apollo330mP_evb`, proxied to `apollo510_evb` today (research/helia-profiler.md), plan against their own targets. `atomiq110_fpga_turbo` resolves to an FPGA board target whose implementation differs from the bare Soc, so hpx must choose explicitly which one heliaAOT plans against; the default is the board target, a deliberate change from today's mapping to bare `atomiq110`. `apollo3p_evb_cygnus`, absent from the map today, gains a mapping to its own board target | heliaAOT-name parity: per board, the target hpx passes to heliaAOT, with these re-pointings allow-listed |
+| `_BOARD_TO_AOT_PLATFORM` is deleted. `apollo510b_evb`, `apollo510dL_evb`, `apollo5b_evb` and `apollo330mP_evb`, proxied to `apollo510_evb` today (research/helia-profiler.md), plan against their own targets. `atomiq110_fpga_turbo` resolves to the built-in FPGA implementation target of that id, and heliaAOT plans against its reduced values (decided; a deliberate output change for that one target, replacing today's mapping to bare `atomiq110`). `apollo3p_evb_cygnus`, absent from the map today, gains a mapping to its own board target | heliaAOT-name parity: per board, the target hpx passes to heliaAOT, with these re-pointings allow-listed |
 | The windows table is deleted; windows come from the optional dataset or the build's own script | Window parity: dataset windows equal today's `_MAPS` rows per SoC, toolchain and profile |
 | `app_flash_load_addr` is replaced by `flash_load_address()` from the selected boot configuration | Boot parity: per board, the derived address equals today's value for the board's provisioning |
 | `custom_socs` and `custom_boards` translate to overlays through a one-release shim | Custom-format parity: the shim's output resolves to the same facts as today's loader for the documented examples |
@@ -114,7 +115,7 @@ today's for every name, under the proposal.
 
 | Output that changes | Parity test (#13) |
 |---|---|
-| Shield board ids (`apollo4p_evb_disp_shield_rev2` and the others) become compositions and keep resolving, to a board target whose `id` is the base board and whose `aliases` keep the shield id | Board-id parity: every neuralspotx board id resolves to a target whose `id` equals it, except compositions, which resolve to board plus add-ons |
+| Shield board ids (`apollo4p_evb_disp_shield_rev2` and the others) become compositions and keep resolving, to a board target whose `id` is the base board and whose `aliases` keep the shield id | Board-id parity: every neuralspotx board id resolves to a target whose `id` equals it, except compositions, which resolve to board plus add-ons; `atomiq110_fpga_turbo` resolves to an implementation target, not a board |
 | Exact-case Soc and board ids are unchanged | Id parity: every non-composition neuralspotx board id and every SoC fact-file id is a catalogue id, exact case; the catalogue may also hold ids neuralspotx lacks (`apollo3_blue_evb`, `apollo3_blue_thin_evb`) |
 
 ## Custom definitions in every tool
@@ -126,3 +127,26 @@ one-release shim in each tool that reads the old key and warns:
 `extensions` entry (proposal). If open question 4 rejects `extensions`,
 each tool keeps a sidecar file keyed by catalogue id instead. Covered by
 each tool's custom-format parity test in #13.
+
+## Relationship to helia-aot#278
+
+| #278 phase | Where it lands |
+|---|---|
+| 0: `resolve_platform` stops mutating the registry (#331) | heliaAOT, unchanged; the package's immutable catalogue removes the class of bug for adopters. |
+| 1: Soc/Board split, `NpuSpec`, ISA derivation | This package. `SocPlatform` stays heliaAOT's flattened view, built by an adapter. |
+| 2: `platform.soc:` config surface | heliaAOT accepts the overlay format (`platform.overlay`) and a `platform.soc:` shorthand that builds a one-entry overlay. |
+| 3: NPU variant cross-check | heliaAOT, reading `NpuInstance.npu.accelerator_config` from here. |
+| 4: aliases and family shorthands | This package's resolver. |
+
+Changes relative to #278's model: an implementation layer between Soc and
+Board (bring-up FPGA and FVP as implementations, not boards, and the J-Link
+device per part), capabilities
+derived from `CoreOptions` rather than a cpu-string table,
+`preferred_memory_order` and `min_alignment` removed from the shared
+model, memory regions with technology, attachment and characterization,
+operating points instead of a speeds list, ordered cores and accelerators
+with an explicit access matrix instead of one cpu string, provenance on
+every fact, an
+immutable catalogue with overlays instead of registration, and overlays
+may add aliases (#278 allowed built-in aliases only), still never
+shadowing a built-in id or alias.

@@ -48,12 +48,13 @@ that it is populated.
 | apollo4l_evb_disp_shield, apollo4l_blue_evb_disp_shield, apollo4b_evb_disp_shield | APS25616N / APS12808L | varies | no |
 | apollo3p_evb | none | none | no |
 | apollo5b_eb_revb | APS25616N | TC58CYG0 (NAND) | yes |
-| apollo510L_fpga_turbo and one further FPGA board | APS25616N | IS25WX064 / ATXP032 | yes |
+| apollo510L_fpga_turbo and one further FPGA BSP | APS25616N | IS25WX064 / ATXP032 | yes |
 
 - Shields are separate board directories ({evb}_disp_shield_rev{N}), each
   with a full BSP. There is no add-on or daughter-board mechanism.
-- FPGA realizations exist as boards for apollo510L and one further unreleased SoC in
-  addition to atomiq110.
+- FPGA realizations have board directories (BSPs) for apollo510L and one
+  further unreleased SoC in addition to atomiq110. RFC 0002 models each as
+  an Implementation of kind `fpga`, not as a board.
 
 ## Conflicts to resolve
 

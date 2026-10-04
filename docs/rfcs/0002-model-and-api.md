@@ -47,9 +47,9 @@ Each term has one meaning in this RFC, except `revision`, whose meaning depends 
 | image slot | An `ImageSlot`: a range of NVM owned by one core for its image, supplied by the vendor or the customer. |
 | clock domain | A `ClockDomain`: cores or accelerators clocked together, with the domain's own named points. |
 | operating point | A system `OperatingPoint`: one point per clock domain. `target.cpu_mhz()` and `target.npu_mhz()` read the core-0 and npu-0 domains; `cpu_mhz`/`npu_mhz` are also overlay shorthand that expands to domain points. |
-| implementation (kind) | An `Implementation`: a realization of a Soc. `kind` is `silicon`, `fpga`, `fvp` or `rtl`. It realizes the whole Soc unless it declares a validated subset. |
+| implementation (kind) | An `Implementation`: a realization of a Soc. `kind` is `silicon`, `fpga`, `fvp` or `rtl`. It realizes the whole Soc unless it declares a validated subset. An FPGA or FVP implementation is resolvable directly and carries its own carrier facts; it needs no board. |
 | part | A `Part`: an orderable silicon device (ordering number, silicon revision, package, radio option). It references its Soc directly. |
-| board (stage, revision) | A `Board`: a PCB carrying one Part or Implementation. `stage` is `fpga`, `eb`, `evb` or `custom`; `revision` is the board revision, which can change the population. |
+| board (stage, revision) | A `Board`: a PCB carrying one Part. `stage` is `eb`, `evb` or `custom`; `revision` is the board revision, which can change the population. |
 | revision (Soc) | `Soc.revision`: the design revision of the specification (for example a pre-silicon RTL revision). |
 | revision (Part) | `Part.silicon_revision`: the silicon revision of the fitted die. |
 | revision (Board, AddOn) | `Board.revision`, `AddOn.revision`: the board revision of the PCB. |
@@ -58,7 +58,8 @@ Each term has one meaning in this RFC, except `revision`, whose meaning depends 
 | memory device | A `MemoryDevice`: an external memory part with technology, capacity, driver family and modes. |
 | interface | A `MemoryInterface` on a board: controller, modes and XIP aperture. |
 | population | Which memory device sits on which interface, as a board ships or as an add-on brings it. A mapping from interface name to device id. |
-| provisioning | `Board.provisioning`: the name of the boot configuration the board's fitted part ships with. |
+| provisioning | `Board.provisioning` (or `Implementation.provisioning` for an FPGA): the name of the boot configuration the fitted part or build ships with. |
+| source label | Where a catalogue entry came from: `builtin`, `entry_point:<distribution>`, `env:<path>` or `overlay:<path>`; see `Catalogue.sources`. |
 | boot configuration | A `BootConfig`: a named boot layout (sbl, nbl, or a custom layout) with its reservations, one application start per programmable core (`app_start`, core 0 by default) and what it `requires`. |
 | reservation | A documented range of memory no core's image may use: boot ROM, an SBL partition. Radio firmware is an image slot, not a reservation. |
 | link environment | A `LinkEnvironment`: the linker windows one piece of software (an SDK, Zephyr, a customer script) gives a set of targets. Not part of the core model. |
@@ -100,13 +101,14 @@ Soc ── cores: [CoreInstance(id, role, core, options: CoreOptions, clock_doma
  │     sdk: SdkFacts (c_define, cmsis_header, ...)   default_board   aliases, release_status, provenance
  │
  ├── Implementation (kind: silicon | fpga | fvp | rtl; model; subset of the Soc; default = all;
- │                   may replace boot_configs, operating_points and clock domain points (FPGA)
+ │                   may replace boot_configs, operating_points, clock domain points; an FPGA
+ │                   carries jlink_device, trace clock, provisioning, interfaces; no board needed)
  │
  ├── Part (silicon: references its Soc, and an Implementation only when a non-default one exists;
  │         ordering number, silicon revision, package, radio, jlink_device,
  │         per-part image slots such as the NVM-M41 radio-core slot)
  │
- ├── Board (stage: fpga | eb | evb | custom; revision; carries one Part or Implementation;
+ ├── Board (stage: eb | evb | custom; revision; carries one Part;
  │          memory interfaces; default population; provisioning (boot config in use);
  │          probe and trace facts; aliases)
  │
@@ -145,27 +147,13 @@ rules) stays in `helia-npu`, which reads the instance facts from here.
 
 ### Cores, accelerators and reachability
 
-Ambiq parts already ship with more than one core: the Apollo510 Lite and
-Apollo330 Plus pair the Cortex-M55 application core with a Cortex-M4
-radio core that has its own TCM and its own NVM region (DS-A510LS p33,
-DS-A330PS p33, as recorded in research/datasheets.md). The model
-therefore holds ordered lists, so the same API describes a SoC with an
-application core, a DSP core and an NPU, or one with two application cores
-and two NPUs:
-
-- `Soc.cores` and `Soc.npus` are ordered; index 0 is the primary
-  application core and the primary NPU. Every single-core query defaults
-  to core 0 and npu 0, so today's consumers change nothing.
-- Regions keep one global address by default; reachability is an
-  explicit access matrix keyed by (master, target), where the target is a
-  region or a memory controller, never inferred from the address space.
-- Per-part NVM reservations for other cores become image slots owned by a
-  core; a boot configuration gives one application start per programmable
-  core.
-- Operating points are system points that couple clock domains.
-
-The full definitions, queries, validation rules and an example are in
-[0002-multicore.md](0002-multicore.md).
+Ambiq parts already ship with more than one core (the Apollo510 Lite and
+Apollo330 Plus Cortex-M4 radio core, DS-A510LS p33, DS-A330PS p33). `Soc.cores`
+and `Soc.npus` are ordered, index 0 primary, and every single-core query
+defaults to core 0 and npu 0. Reachability is an explicit access matrix
+keyed by (master, target), never inferred from the address space; other
+cores' NVM is held in image slots; operating points couple clock domains.
+Definitions, queries and an example are in [0002-multicore.md](0002-multicore.md).
 
 ### Soc (the specification)
 
@@ -192,8 +180,9 @@ The full definitions, queries, validation rules and an example are in
 `size`, `base`, optional `alternate_bases` where the silicon aliases the
 region, `executable`, `writeable`, `cacheable`, optional
 `characterization` (read and write latency, ports, max outstanding,
-burst, bandwidth) each value with provenance. The estimator's memory
-timing lands here; its energy coefficients stay in the estimator.
+burst, bandwidth) each value with provenance: latency, bandwidth and
+ports only. The package carries no energy data; the estimator's energy
+coefficients stay in helia-estimator.
 
 An overlay region may omit `base` (size only, no `based_on`, as RFC 0001
 appendix E allowed). Such a region is excluded from the bounds and overlap
@@ -208,14 +197,15 @@ treating the end state as the only truth:
 
 | Phase | What exists | Modelled as |
 |---|---|---|
-| Pre-tapeout | FPGA running a subset of the RTL: less memory, peripherals absent, lower clocks, sometimes a different address map; an Arm FVP standing in for parts of the system | `Implementation` of kind `fpga` or `fvp`, carried by a `Board` of stage `fpga` (atomiq110_fpga_turbo, apollo510L_fpga_turbo) |
+| Pre-tapeout | FPGA running a subset of the RTL: less memory, peripherals absent, lower clocks, sometimes a different address map; an Arm FVP standing in for parts of the system | `Implementation` of kind `fpga` or `fvp`, resolvable directly by its id, with no board (atomiq110_fpga_turbo; AmbiqSuite's apollo510L_fpga_turbo) |
 | First silicon | Engineering board with an early silicon revision | `Part` with a `silicon_revision`, on a `Board` of stage `eb` |
 | Release | Evaluation board with production silicon | `Part` on a `Board` of stage `evb`, with board `revision` (populations change between revisions) |
 | Customer | The customer's own board | `Board` of stage `custom`, defined in an overlay by reference to a Part, with its own interfaces, population and add-ons |
 
 Every phase resolves through the same API, so a tool written against an
 FPGA target keeps working as the EB and EVB arrive. Stage is a fact about
-the board; how well each tool supports a stage is that tool's marker.
+a board; how well each tool supports a stage or an implementation kind is
+that tool's marker.
 
 ### Implementation and Part
 
@@ -234,10 +224,21 @@ Soc's default point is dropped, `default_operating_point` is `None`, and
 `npu_clocks()` follows the remaining points. If no point survives, the
 implementation must declare its own `operating_points`, adding or
 replacing domain points through `Implementation.clock_domains`. The
-atomiq110 FPGA carried by `atomiq110_fpga_turbo` runs below every
-atomiq110 point (25 MHz, RFC 0001 appendix J), so its Implementation
-declares its own 25 MHz domain points and an operating point over them,
-as in the FPGA example under Overlays.
+built-in `atomiq110_fpga_turbo` Implementation runs below every
+atomiq110 point (fixed 25 MHz, from helia-profiler, where it is a
+supported variant; RFC 0001 appendix J), so it declares its own 25 MHz
+domain points and an operating point over them, as in the FPGA example
+under Overlays.
+
+An FPGA is a reduced implementation of the specification, not a board.
+An FPGA Implementation therefore carries the facts a board would
+otherwise supply: `jlink_device`, `trace_clock_mhz`, its boot
+configurations and `provisioning`, and, where it needs external memory,
+its own `interfaces` and `population`. `atomiq110_fpga_turbo` takes its
+probe facts from neuralspotx `boards/atomiq110_fpga_turbo/debug.cmake`
+(device `Atomiq110`; the 48 MHz trace clock RFC 0001 appendix J records
+as hardware-measured), and keeps the id neuralspotx and helia-profiler
+use.
 
 An FVP implementation names its `model` (corstone-320) and its
 `substitutions`, which are many-to-one: each names a region the model
@@ -284,13 +285,13 @@ BootConfig: name, reserved: [(region, offset, size, purpose)],
   FPGA declares only its no-bootloader layout at its own MRAM base.
 - A Board records its `provisioning`: which configuration the fitted part
   ships with. Ambiq EVBs ship SBL-provisioned; a customer board says what
-  it uses.
+  it uses; an FPGA Implementation records its own.
 - The flash load address has one derivation:
   `Target.flash_load_address(core=0)` is the base of that core's
   `app_start` region in the selected configuration (after any
   implementation rebase) plus its offset. The selected configuration
   is the explicit `boot=` argument, else the board's provisioning, else
-  the default. `usable_nvm()` derives from the same selection. The package
+  the implementation's, else the default. `usable_nvm()` derives from the same selection. The package
   warns when an explicit selection differs from the board's provisioning.
 - Documented reservations (boot ROM, SBL partition) and other cores'
   image slots are always subtracted. Stack, heap and toolchain carve-outs are not: they
@@ -298,8 +299,8 @@ BootConfig: name, reserved: [(region, offset, size, purpose)],
 
 ### Board, external memory and add-ons
 
-A `Board` carries one Part (`eb`, `evb`, `custom`) or Implementation
-(`fpga`), a `stage` and a `revision`, probe and trace facts
+A `Board` carries one Part, a `stage` (`eb`, `evb` or `custom`) and a
+`revision`, probe and trace facts
 (`jlink_device` override, measured trace clock), `provisioning`, and
 aliases. `tier` and `channel` are gone: support level is a per-tool
 marker keyed by id.
@@ -339,8 +340,9 @@ and neuralspotx's matching board id become entries in the catalogue's
 `resolve("apollo4p_evb_disp_shield_rev2")` returns the `apollo4p_evb`
 board target with the rev 2 display shield in `Target.addons`;
 `Target.id` is the board id, and the legacy id is kept in
-`Target.aliases`. heliaAOT artefact names use `Target.id` (for plain
-aliases, see the proposal in [0002-migration.md](0002-migration.md)).
+`Target.aliases`. heliaAOT artefact names use `Target.id`, except that
+for a plain alias heliaAOT keeps the name the user passed and records the
+canonical id alongside (decided; see [0002-migration.md](0002-migration.md)).
 
 ### Release status
 
@@ -351,7 +353,10 @@ its part or implementation, the Soc, selected add-ons and the memory
 devices they populate). A `Composition` and a `LinkEnvironment` are not
 given a most-restrictive status: they are scrubbed and shipped, as below.
 
-The export filter uses the effective status. It never ships an embargoed
+Unreleased SoCs never enter this repository; they are side-loaded from
+private packages or overlay files (see Private and future silicon). The
+export filter is defence in depth behind that rule. It uses the effective
+status and never ships an embargoed
 entry or a target whose effective status is embargoed, and it scrubs
 embargoed ids from every table and reference: shorthands, compositions,
 `fits_boards`, `default_board`, `applies_to` and aliases. A Composition or
@@ -405,7 +410,8 @@ resolved target. A Soc id always resolves to the bare Soc target, never to
 a board (heliaAOT's bare `atomiq110` target stays valid, as #278
 resolved). Resolution never depends on how many boards a catalogue holds.
 A Soc may name a `default_board`, which only the explicit
-`resolve_board(soc_id)` uses.
+`resolve_board(soc_id)` uses. An FPGA or FVP implementation id
+(`atomiq110_fpga_turbo`) resolves directly to an implementation target.
 
 The catalogue holds two name tables besides ids and aliases:
 
@@ -475,6 +481,8 @@ implementations:
     boot_configs:
       nbl_fpga: {reserved: [], app_start: {region: mram, offset: 0}, requires: none}
     default_boot: nbl_fpga
+    provisioning: nbl_fpga
+    jlink_device: Atomiq110              # carrier facts: an FPGA needs no board
 ```
 
 A MemoryDevice (an illustrative customer part):
@@ -564,7 +572,7 @@ below is the resolved object returned by `resolve()`.
 | Minimum alignment | heliaAOT table keyed by `target.soc.id` (16 with MVE is a placement rule) | heliaAOT |
 | Order to try memories | heliaAOT policy; inputs available as `region.attachment` and `region.characterization` | heliaAOT |
 | CPU string for compiler flags | `target.core.id`, `target.core_options.fpu`, `.mve` | package |
-| Name to print and to key artefacts | `target.id` (canonical) and `target.aliases`; heliaAOT lowercases, and for an alias keeps the name passed (proposal, see the migration document) | package |
+| Name to print and to key artefacts | `target.id` (canonical) and `target.aliases`; heliaAOT lowercases, and for an alias keeps the name passed and records the canonical id (decided) | package |
 | Zephyr section names for TCM | Zephyr `LinkEnvironment` from the optional dataset; heliaAOT template reads its section names | dataset, heliaAOT |
 | SoC list for the nsx manifest | `catalogue.socs()` ids in neuralspotx spelling | package |
 | Which link family for a module type | heliaAOT policy (`zephyr` for the zephyr module type, `gnu` otherwise) | heliaAOT |
@@ -579,15 +587,15 @@ below is the resolved object returned by `resolve()`.
 | Region sizes and capacities | `target.memories()`, `target.usable_nvm()`; `target.budget(env)` with a link environment | package; environment is profiler choice |
 | Linker windows per toolchain and profile | `LinkEnvironment` from the optional SDK dataset or the build's own script | dataset or profiler |
 | Which region holds address X | `target.classify_address(addr)` over physical regions, as seen by core 0 (`master=` for another) | package |
-| J-Link device name | `target.jlink_device` (board override, else part) | package |
+| J-Link device name | `target.jlink_device` (board, else implementation, else part) | package |
 | App flash load address | `target.flash_load_address()` from the selected boot configuration (explicit `boot=`, else board provisioning, else default) | package |
 | Placement base addresses | `target.region(name).base` | package |
 | Is PSRAM fitted | `target.has_external_memory("psram")` | package |
 | D-cache present | `target.core_options.dcache_kb` | package |
 | Shared SSRAM power domain, HAL enum names, C define, CMSIS header | `target.sdk` | package |
 | Radio present | `target.part.radio` (`target.part` is `None` on Soc and implementation targets) | package |
-| Trace clock | `target.trace_clock_mhz` (board measured value, else SDK default; `None` means core-clocked) | package |
-| Is this an FPGA carrier | `target.stage == "fpga"` (`target.stage` is `None` on targets without a board) | package |
+| Trace clock | `target.trace_clock_mhz` (board, else implementation, else SDK default; `None` means core-clocked) | package |
+| Is this an FPGA | `target.implementation.kind == "fpga"` (`target.implementation` is `None` on Soc targets and on parts with no non-default implementation) | package |
 | RTT scan ranges | profiler rule over `target.region("dtcm")` or the M4 aperture | profiler |
 | Reset strategy, clean-window timer, debug-domain gating, probe-attached cycle reads | profiler policy keyed by `target.soc.series` or id | profiler |
 | USB transport support | profiler driver-support table | profiler |
@@ -630,14 +638,13 @@ revision; the core package does not carry them.
 Stdlib dataclasses, frozen. No I/O at import. Runtime dependencies are
 PyYAML, used only by `load_overlay`, and typer for the CLI. The typer
 range must overlap every consumer's own typer pin (helia-profiler caps
-it, see research/queries-helia-profiler.md); whether typer moves to a
-`cli` optional extra so library consumers do not inherit it is decided
-with ADR #7.
+it, see research/queries-helia-profiler.md and helia-profiler#459); typer
+stays a core dependency (decided).
 
 ### `helia_platforms.catalogue`
 
 ```python
-def builtin() -> Catalogue                      # cached, immutable
+def builtin(include_plugins: bool = True) -> Catalogue   # cached, immutable; plugins: entry points, then HELIA_PLATFORMS_PATH
 def load_overlay(source: str | Path | Mapping, *, base: Catalogue | None = None) -> Catalogue
 
 class Catalogue:
@@ -645,6 +652,7 @@ class Catalogue:
     catalogue_version: str                      # data release, independent of the package version
     compositions: Mapping[str, Composition]     # alias -> board id and add-on ids
     shorthands: Mapping[str, tuple[str, ...]]   # built-in only; the only source of AmbiguousPlatform
+    sources: Mapping[str, str]                  # entry id -> source label
     def socs(self) -> tuple[Soc, ...]
     def implementations(self, soc: str | None = None) -> tuple[Implementation, ...]
     def parts(self, soc: str | None = None) -> tuple[Part, ...]
@@ -708,7 +716,7 @@ one of them.
 @dataclass(frozen=True) class SdkFacts:   c_define, cmsis_header, trace_clock_mhz, hal_enums: Mapping[str, str], build: BuildFacts
 @dataclass(frozen=True) class BuildFacts: abi, float_abi, toolchains
 @dataclass(frozen=True) class Soc:        id, series, aliases, cores, npus, accelerators, memories, access, default_access: DefaultAccess | None, peripherals, clock_domains, operating_points, default_operating_point: str | None, boot_configs, default_boot, sdk, derives_from, default_board: str | None, revision, release_status, extensions, provenance
-@dataclass(frozen=True) class Implementation: id, soc, kind, model: str | None, subset: Subset, clock_domains: tuple | None, operating_points: tuple | None, boot_configs: Mapping | None, default_boot: str | None, aliases, release_status, extensions, provenance   # None: inherit the Soc's (after clock caps)
+@dataclass(frozen=True) class Implementation: id, soc, kind, model: str | None, subset: Subset, clock_domains: tuple | None, operating_points: tuple | None, boot_configs: Mapping | None, default_boot: str | None, provisioning: str | None, jlink_device, trace_clock_mhz, interfaces, population, aliases, release_status, extensions, provenance   # None: inherit the Soc's (after clock caps)
 @dataclass(frozen=True) class Subset:     memories_removed, memories_resized, memories_rebased, substitutions: Mapping[str, Substitution], peripherals_removed, cores_removed, npus_removed, max_cpu_mhz, max_npu_mhz, max_domain_mhz   # substitutions: kind fvp only
 @dataclass(frozen=True) class Substitution: replaces: tuple[str, ...], size, base, characterization, provenance   # keyed by the FVP region name; many-to-one
 @dataclass(frozen=True) class BootConfig: name, reserved: tuple[Reservation, ...], app_start: Mapping[str, AppStart], requires, provenance   # AppStart: region, offset
@@ -718,7 +726,7 @@ one of them.
 @dataclass(frozen=True) class MemoryInterface: name, controller, modes, aperture_base, aperture_max
 @dataclass(frozen=True) class MemoryDevice: id, technology, capacity, driver_family, modes, characterization, release_status, provenance
 @dataclass(frozen=True) class AddOn:      id, fits_boards, occupies, population: Mapping[str, str], revision, aliases, release_status, extensions, provenance
-@dataclass(frozen=True) class Board:      id, stage, revision, part | implementation, interfaces, population: Mapping[str, str], provisioning, jlink_device, trace_clock_mhz, aliases, release_status, extensions, provenance
+@dataclass(frozen=True) class Board:      id, stage, revision, part, interfaces, population: Mapping[str, str], provisioning, jlink_device, trace_clock_mhz, aliases, release_status, extensions, provenance
 @dataclass(frozen=True) class Composition: alias, board, addons; release_status (property, effective from what it references)
 @dataclass(frozen=True) class LinkEnvironment: owner, link_family, profile, applies_to: tuple[str, ...], regions: Mapping[str, WindowRegion], source, revision; release_status (property, effective)
 @dataclass(frozen=True) class WindowRegion: start, length, app_window, section_names
@@ -752,9 +760,9 @@ class Target:
     def operating_point(self, name: str | None = None, *, domain: str | None = None) -> OperatingPoint | DomainPoint
     default_operating_point: OperatingPoint | None
     capabilities: frozenset[str]                              # derived; stable spellings
-    stage: str | None; addons: tuple[AddOn, ...]              # stage is None without a board
+    stage: str | None; addons: tuple[AddOn, ...]              # stage is None without a board, including implementation targets
     # boot
-    boot: BootConfig | None                                   # explicit boot=, else board provisioning, else default
+    boot: BootConfig | None                                   # explicit boot=, else board, else implementation provisioning, else default
     def boot_configs(self) -> tuple[BootConfig, ...]
     def flash_load_address(self, core: int | str = 0) -> int   # from boot; raises if there is none
     def usable_nvm(self, core: int | str = 0) -> Mapping[str, int]   # after reservations and other cores' slots
@@ -764,7 +772,7 @@ class Target:
     def budget(self, environment: LinkEnvironment, core: int | str = 0) -> Mapping[str, int]   # reachable regions only (external ones through their interface's entry); raises if no id on the reference chain is in applies_to
     def classify_address(self, address: int, master: int | str = 0) -> str | None   # alternate_bases classify to the same region; per-master Access addresses resolved for master
     # debug and SDK
-    jlink_device: str | None; trace_clock_mhz: int | None; sdk: SdkFacts
+    jlink_device: str | None; trace_clock_mhz: int | None; sdk: SdkFacts   # board, else implementation, else part / SDK
     aliases: tuple[str, ...]
     def provenance(self) -> ProvenanceSummary                 # worst status per group, for reports
 ```
@@ -793,7 +801,7 @@ those domains; every `Access` master is a core, NPU or accelerator id and
 every `Access` target is a region or memory controller of the Soc; after
 `default_access` expansion every region and every memory controller a
 built-in interface names has at least one entry (which may be
-`access: none`); a Board or AddOn interface whose controller has no
+`access: none`); a Board, AddOn or Implementation interface whose controller has no
 Soc-level entries draws a warning that its devices are unreachable,
 and is an error when an Implementation removed that controller; a
 `default_access` expansion that would grant core 0 a region another core
@@ -804,7 +812,7 @@ reservations. `helia_platforms.export` writes the JSON catalogue,
 filtered and scrubbed by effective release status, the JSON Schema and
 Markdown pages.
 `helia-platforms` CLI: `list [socs|boards|parts|implementations]`,
-`show <id>`, `windows <id> [--family --profile --environment <file>]`
+`show <id> [--sources]`, `windows <id> [--family --profile --environment <file>]`
 (reads the optional link-environment dataset or a supplied environment),
 `validate <overlay>`, `check-sources` (compare against the committed SDK
 and Zephyr snapshots), `export`.
@@ -832,25 +840,8 @@ and Zephyr snapshots), `export`.
 
 ## Relationship to helia-aot#278
 
-| #278 phase | Where it lands |
-|---|---|
-| 0: `resolve_platform` stops mutating the registry (#331) | heliaAOT, unchanged; the package's immutable catalogue removes the class of bug for adopters. |
-| 1: Soc/Board split, `NpuSpec`, ISA derivation | This package. `SocPlatform` stays heliaAOT's flattened view, built by an adapter. |
-| 2: `platform.soc:` config surface | heliaAOT accepts the overlay format (`platform.overlay`) and a `platform.soc:` shorthand that builds a one-entry overlay. |
-| 3: NPU variant cross-check | heliaAOT, reading `NpuInstance.npu.accelerator_config` from here. |
-| 4: aliases and family shorthands | This package's resolver. |
-
-Changes relative to #278's model: an implementation layer between Soc and
-Board (bring-up FPGA, FVP, and the J-Link device per part), capabilities
-derived from `CoreOptions` rather than a cpu-string table,
-`preferred_memory_order` and `min_alignment` removed from the shared
-model, memory regions with technology, attachment and characterization,
-operating points instead of a speeds list, ordered cores and accelerators
-with an explicit access matrix instead of one cpu string, provenance on
-every fact, an
-immutable catalogue with overlays instead of registration, and overlays
-may add aliases (#278 allowed built-in aliases only), still never
-shadowing a built-in id or alias.
+How each #278 phase lands, and the changes relative to #278's model, are
+in [0002-migration.md](0002-migration.md#relationship-to-helia-aot278).
 
 ## Changes relative to RFC 0001
 
@@ -866,10 +857,22 @@ stand.
 | `tier`, `channel` | Board fields | Removed; support level is a per-tool marker keyed by id | Tool policy, not fact |
 | External memory | A PSRAM (and NVM) region per board | Board `interfaces` plus `population` plus add-ons, populated by `MemoryDevice`s | Board revisions and shields change what is fitted (research/datasheets.md section 7) |
 | Boot layout | `app_flash_load_addr` as an accessor over the default window's MRAM origin | Named boot configurations on the Soc, replaceable by an Implementation, with board provisioning; `flash_load_address()` derived from the selected one | Apollo510, Lite and 330 Plus, and Apollo3/4 boot layouts differ and are a choice |
-| Entity levels | Two levels (`SocDef`, `BoardDef`) plus IP blocks | Four levels (Soc, Implementation, Part, Board) plus add-ons and memory devices | Bring-up stages and per-part facts (review 2.2) |
+| Entity levels | Two levels (`SocDef`, `BoardDef`) plus IP blocks; an FPGA is a `BoardDef` with overrides | Four levels (Soc, Implementation, Part, Board) plus add-ons and memory devices; an FPGA is an Implementation, not a board | Bring-up stages and per-part facts (review 2.2) |
 | Publication | Public repo and 0.1.0 on PyPI before adoption ("Packaging and versions") | Deferred to ADR #5 (publication, embargo and the private-to-public path) | A public release would ship embargoed parts (review 3.1) |
 | Cores and accelerators | One core and at most one NPU per chip | Ordered `cores` and `npus` (index 0 primary), an explicit access matrix, image slots per core, system operating points over clock domains | Shipping parts already carry a radio core (Apollo510 Lite, Apollo330 Plus); single-core queries default to core 0 |
 | Soc id resolution | A Soc id resolves to its board when the Soc has exactly one ("Names") | A Soc id always resolves to the bare Soc target; `default_board` only through `resolve_board(soc_id)` | Resolution must not change when a board is added; matches #278 |
+
+## Private and future silicon
+
+Unreleased SoCs never enter this repository. `builtin()` side-loads them
+from installed packages registered in the entry-point group
+`helia_platforms.catalogues` (for example a private
+`helia-platforms-internal`) and from overlay files listed in
+`HELIA_PLATFORMS_PATH`; `load_overlay` works as before. Side-loaded
+entries have origin `overlay` and a source label, may not shadow
+built-ins, carry provenance and `release_status` like built-ins, and are
+listed by `helia-platforms show --sources`. Load order, conflict errors
+and the full rules are in [0002-private-silicon.md](0002-private-silicon.md).
 
 ## Migration and output changes
 
@@ -895,3 +898,6 @@ parity test (issue #13) that covers each are in
 5. How power-domain names (used in `Access.requires_awake`) are spelled
    and sourced: the SDK HAL's power-control enums, a catalogue vocabulary
    mapped to them, or both.
+6. Whether private catalogue packages are signed or version-pinned, and
+   how a consumer records which private catalogue it ran against
+   ([0002-private-silicon.md](0002-private-silicon.md)).

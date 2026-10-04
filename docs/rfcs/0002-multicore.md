@@ -74,7 +74,7 @@ as `mspi0`):
 | `guidance` | `preferred`, `allowed` or `discouraged`, with `reason` |
 | `address` | Optional per-master address, for a part where a master sees the region at a different address |
 | `port` | Optional NPU AXI port class: `0` (Vela `Sram`, Arm `AXI_SRAM`) or `1` (Vela `Dram`, `AXI_EXT`), the estimator's vocabulary per [research/queries-helia-estimator.md](../research/queries-helia-estimator.md); replaces `NpuInstance.memory_ports` |
-| `characterization` | Optional, each value with provenance; for this master it overrides the region's characterization |
+| `characterization` | Optional latency, bandwidth and port facts, each with provenance (no energy data); for this master it overrides the region's characterization |
 | `provenance` | Required on built-ins |
 
 No entry means not reachable or not known; the package never infers one.
@@ -82,10 +82,11 @@ A region private to one core has one entry.
 
 External memory is reached through its interface. An entry whose target is
 a memory controller applies, for the master it names, to every device a
-Board or AddOn populates on an interface using that controller; the
+Board, AddOn or FPGA Implementation populates on an interface using that
+controller; the
 devices inherit the entry explicitly, not by address. `memories(core=)`
 and `budget(env, core=)` include an external region when that core has an
-entry for its interface's controller. A Board or AddOn interface whose
+entry for its interface's controller. An interface whose
 controller has no Soc-level entries draws a validation warning that its
 devices are unreachable.
 
@@ -108,7 +109,7 @@ reason: "keeps the application core domain awake"}`.
 
 An Implementation that removes a region, controller, core or accelerator
 removes the access entries that name it. Removing a memory controller makes
-any Board or AddOn population on that controller's interfaces a validation
+any Board, AddOn or Implementation population on that controller's interfaces a validation
 error, not a warning: the hardware to attach the device does not exist.
 
 ## Image slots and boot

@@ -45,7 +45,7 @@ Only `atomiq110` is defined. `apollo510_evb` appears only as a heliaAOT codegen 
 
 | Item | Value | Source |
 | --- | --- | --- |
-| NPU reference energy | One row: (`ethos-u85`, 256) gives 116.749 pJ/cycle, Arm reference, status confirmed | `packages/helia-npu/src/helia_npu/npu_reference.py` (see Citation checks) |
+| NPU reference energy | One row keyed by (`ethos-u85`, 256), an Arm reference figure the estimator uses for its energy model; value not reproduced here | `packages/helia-npu/src/helia_npu/npu_reference.py` (see Citation checks) |
 | Python | `requires-python ==3.12.*` | `pyproject.toml` |
 | heliaAOT | Pinned to git rev `d2c26db0` pending PyPI | `pyproject.toml` |
 | Vela | `ethos-u-vela>=5.2.0` | `pyproject.toml` |
@@ -133,6 +133,6 @@ Run on 2026-10-04 against `origin/main` `5991d9f1`.
 | `platform.py:504` | Match | `resolved_memory = platform.soc.resolve_memory(str(memory_name))` |
 | `pipeline/case.py:60` | Match | `fvp_memory_mode = platform.definition.soc.fvp_memory_mode(placement) if placement else memory_mode` |
 | `cli/platform_cmd.py:40` | Match | `resolve_mode(mode or sorted(platform.soc.modes)[0]).name` |
-| `npu_reference.py` 116.749 pJ/cycle | Match | `("ethos-u85", 256)` at 25, `pj_per_cycle=116.749` at 28 |
+| `npu_reference.py` reference row | Match | `("ethos-u85", 256)` at 25, the `pj_per_cycle` value at 28 (not reproduced) |
 | `requires-python`, Vela, heliaAOT pin | Match | `pyproject.toml:7` `==3.12.*`; `:14` `ethos-u-vela>=5.2.0`; `:92` rev `d2c26db0a0ab71738832d40e201a06a767193d0b`. Also `:39` `helia-aot>=0.17.1,<0.18` |
 | `runtime/helia_aot_codegen.py` map | Match | `ap510` at 49, `apollo510_eb` at 51, `startswith("at110")` to `at110` at 56-57 |

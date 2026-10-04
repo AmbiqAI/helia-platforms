@@ -34,15 +34,19 @@ Done:
   model), derived capabilities, resolver (compositions, shorthands; a Soc
   id always resolves to the bare Soc), overlay semantics (syntax deferred
   to ADR #7), release status, question surface, API, changes relative to
-  RFC 0001 and to #278. `docs/rfcs/0002-multicore.md` holds the multicore
-  model. `docs/rfcs/0002-migration.md` holds the
+  RFC 0001. Companion docs: `0002-multicore.md` (multicore model),
+  `0002-private-silicon.md` (side-loading), `0002-migration.md` (#278
+  mapping and the
   per-consumer migration and output changes, pending data corrections
   (#14) and parity tests (#13). `docs/rfcs/README.md` indexes the RFCs.
 - Commits on `main`: repo bootstrap and design record. Branch
-  `22-rfc-0002-model-and-api` carries RFC 0002 and the consumer research.
-- Open PRs: #24 (RFC 0002 and research; review rounds 1 to 4 and the multicore section applied on
-  the branch, not yet committed) and #25 (CLI on typer). Issues
+  `22-rfc-0002-model-and-api` carries RFC 0002 and the consumer research;
+  review rounds 1 to 4 and the multicore section are committed and pushed
+  (0a63a1f). The owner decisions below on FPGA, energy, private silicon
+  and local paths are applied locally, not yet committed.
+- Open PRs: #24 (RFC 0002 and research) and #25 (CLI on typer). Issues
   #22 (RFC 0002) and #23 (typer) are In review on the board.
+  helia-profiler#459 filed for its typer upper cap.
 - GitHub: project heliaPLATFORMS (#49, sibling layout: Status Backlog,
   Ready, In progress, In review, Done; Priority P0-P2; Size XS-XL), labels,
   repo settings, and issues #1-#21 created from the review's items, each on
@@ -75,10 +79,22 @@ auto-add and close-to-Done workflows, which only the web UI can enable.
   SDK dataset).
 - External memory is composed: board interfaces, default population per
   board revision, add-ons (shields, daughter boards) bringing devices.
-- Board stage follows bring-up: fpga, eb, evb, custom; Parts carry silicon
-  revision.
+- Board stage is eb, evb or custom; Parts carry silicon revision. An FPGA
+  is a reduced Implementation of the Soc, resolvable directly (built-in
+  `atomiq110_fpga_turbo`), carrying its own probe, boot and memory
+  interface facts; heliaAOT plans against its reduced values.
 - Licence: the Ambiq Apollo SDK License, as heliaAOT.
-- CLI uses typer (as heliaAOT does), not argparse.
+- CLI uses typer (as heliaAOT does), not argparse; typer stays a core
+  dependency.
+- heliaAOT keeps the name the user passed for aliases (`apollo510l_evb`,
+  `apollo3_blue_plus_evb`) and records the canonical id alongside.
+- No energy data in the package or its notes; energy coefficients stay in
+  helia-estimator.
+- Unreleased SoCs never enter this repo: side-loaded from private packages
+  (entry points) or `HELIA_PLATFORMS_PATH`; the embargo filter is defence
+  in depth.
+- Notes cite repositories by name and revision, never local filesystem
+  paths; a pre-commit check enforces it (see #26).
 - Multicore and heterogeneous SoCs: ordered `cores` and `npus` (index 0
   primary), an explicit access matrix (never inferred), NVM image slots
   owned by cores, system operating points over clock domains; every query
@@ -87,8 +103,9 @@ auto-add and close-to-Done workflows, which only the web UI can enable.
 
 ## Next steps
 
-1. Review rounds 1 to 4 and the multicore section on PR #24 are applied locally; push them, owner approval, then merge (it absorbs
-   #3, #8, #9, #10). Merge PR #25 after its review.
+1. Commit and push the owner-decision edits to PR #24; owner approval,
+   then merge (it absorbs #3, #8, #9, #10). Merge PR #25 after its review.
+   Implement #26 (local-path check).
 2. After RFC 0002 merges: ADRs #5 (publication and embargo), #6
    (provenance), #7 (schema format, including the full overlay syntax),
    #12 (schema version vs catalogue version); then #11 drift snapshots and

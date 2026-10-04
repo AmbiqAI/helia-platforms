@@ -10,7 +10,8 @@ repository (ADR 0001).
 | [0001-platform-catalogue-review.md](0001-platform-catalogue-review.md): weaknesses of RFC 0001 and proposed revisions, with the owner direction | Review | 2 |
 | [0002-model-and-api.md](0002-model-and-api.md): the platform model and the API the package exposes | Draft | 3 |
 | [0002-multicore.md](0002-multicore.md): multiple cores and accelerators, the access matrix, image slots and clock domains (part of RFC 0002) | Draft | 4 |
-| [0002-migration.md](0002-migration.md): RFC 0002's migration and output changes per consumer, pending data corrections and parity tests | Draft | 5 |
+| [0002-private-silicon.md](0002-private-silicon.md): side-loading private and future silicon from private packages and overlay files (part of RFC 0002) | Draft | 5 |
+| [0002-migration.md](0002-migration.md): RFC 0002's migration and output changes per consumer, pending data corrections, parity tests and the helia-aot#278 mapping | Draft | 6 |
 
 RFC 0001 proposed the catalogue and was imported from a heliaAOT draft.
 The review lists its weaknesses and records the owner direction. RFC 0002
