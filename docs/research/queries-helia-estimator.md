@@ -1,6 +1,6 @@
 # helia-estimator: question surface
 
-- **Source:** `/Users/adam.page/Ambiq/helia/helia-estimator` (GitHub `AmbiqAI/helia-estimator`, with workspace package `packages/helia-npu`)
+- **Source:** helia-estimator checkout (GitHub `AmbiqAI/helia-estimator`, with workspace package `packages/helia-npu`)
 - **Revision:** `origin/main` `5991d9f1`. The local feature branch differs from it only in `docs/reference/platform.md`.
 - **Read on:** 2026-10-04
 - **Method:** query-surface read by a gatherer against `origin/main` (`5991d9f1`). Spot checks at the end were run with `git show origin/main:<path> | sed -n 'N,Mp'`.
@@ -37,7 +37,7 @@ Schema in `packages/helia-npu/src/helia_npu/soc_schema.py`.
 
 | SoC | Origin | Content |
 | --- | --- | --- |
-| `atomiq110` | golden | Port 0: SSRAM 3 MB. Port 1: HBLRAM (default), PSRAM, RRAM, selectable by `memory_placement`. Revision v9 (RTL, 2026-09-25); no silicon |
+| `atomiq110` | golden | Port 0: SSRAM 3 MB. Port 1: HBLRAM (default), PSRAM, RRAM, selectable by `memory_placement`. Pre-silicon (RTL) revision; no silicon |
 
 Only `atomiq110` is defined. `apollo510_evb` appears only as a heliaAOT codegen proxy.
 
@@ -49,6 +49,8 @@ Only `atomiq110` is defined. `apollo510_evb` appears only as a heliaAOT codegen 
 | Python | `requires-python ==3.12.*` | `pyproject.toml` |
 | heliaAOT | Pinned to git rev `d2c26db0` pending PyPI | `pyproject.toml` |
 | Vela | `ethos-u-vela>=5.2.0` | `pyproject.toml` |
+| PyYAML | `pyyaml>=6.0.2` in the root project and in `helia-npu` | `pyproject.toml:18`; `packages/helia-npu/pyproject.toml:25` (read with `git show 5991d9f1:<path>`) |
+| typer | `typer>=0.16,<1` | `pyproject.toml:25` |
 
 ## Question table
 

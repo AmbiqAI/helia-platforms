@@ -1,6 +1,6 @@
 # AmbiqAI conventions: source inventory
 
-- **Source:** `/Users/adam.page/Ambiq/helia/aitg-handbook` (GitHub `AmbiqAI/aitg-handbook`); `/Users/adam.page/Ambiq/helia/helia-sdlc` (local directory, not a git repo); GitHub org `AmbiqAI` via `gh`
+- **Source:** aitg-handbook checkout (GitHub `AmbiqAI/aitg-handbook`); helia-sdlc checkout (local directory, not a git repo); GitHub org `AmbiqAI` via `gh`
 - **Revision:** aitg-handbook `main` at `8ceb2a2`; helia-sdlc unversioned (not a git repository); GitHub state as of 2026-10-04
 - **Read on:** 2026-10-04
 - **Method:** Inventory from a read of the handbook and helia-sdlc plus `gh` queries; eight citations and two GitHub facts re-checked on 2026-10-04 (results under Open questions, "Citation checks").

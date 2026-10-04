@@ -1,6 +1,6 @@
 # helia-profiler: question surface
 
-- **Source:** `/Users/adam.page/Ambiq/helia/helia-profiler` (GitHub `AmbiqAI/helia-profiler`)
+- **Source:** helia-profiler checkout (GitHub `AmbiqAI/helia-profiler`)
 - **Revision:** `origin/main` `b195e29f`
 - **Read on:** 2026-10-04
 - **Method:** query-surface read by a gatherer against `origin/main` (`b195e29f`). Spot checks at the end were run with `git show origin/main:<path> | sed -n 'N,Mp'`.
@@ -24,6 +24,8 @@ All under `src/helia_profiler/platform/`.
 Built-in SoCs (9): `apollo3p`, `apollo4p`, `apollo4l`, `apollo510`, `apollo510b`, `apollo5b`, `apollo330P`, `apollo510L`, `atomiq110`.
 
 Example provenance comment in `memory_map.py`: `apollo4p/gcc/linker_script.ld:10-12`, `apollo4p/armclang/linker_script.sct:8-34`; MRAM is 1952 KB from `0x18000`, not the 2000 KB figure in `MemoryLayout` (source: the comment itself, see Citation checks).
+
+Runtime dependencies relevant to helia-platforms: `pyproject.toml` declares `PyYAML>=6.0` (line 28) and `typer>=0.16,<0.28` (line 41; the upper cap is there because the CLI imports a private typer symbol), read with `git show b195e29f:pyproject.toml`.
 
 ## Question table
 

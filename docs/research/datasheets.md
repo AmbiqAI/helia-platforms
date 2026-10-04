@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Source | OneDrive "sws/datasheets": `/Users/adam.page/Library/CloudStorage/OneDrive-AmbiqMicroInc 2 2/Ambiq/sws/datasheets/` (`soc/ap2` to `soc/ap5`, `evb/`) |
+| Source | Ambiq internal datasheet library (`soc/ap2` to `soc/ap5`, `evb/`) |
 | Read on | 2026-10-04 |
 | Method | pypdf text extraction with decryption of the permissions wrapper; layout extraction used for one table (the Cortex-M55 memory map and ordering table of the Apollo510 Lite and Apollo330 Plus datasheets) |
 | Atomiq110 | No atomiq110 datasheet is present in the folder |
@@ -353,3 +353,10 @@ carry provenance status "owner statement" until a document confirms them.
 | Fact | Evidence | Provenance status |
 |---|---|---|
 | apollo510_evb and apollo510b_evb PSRAM is 64 MB (APS512-class, hex DDR on MSPI0, BA driver) | BA driver reports 65536 KB; XIP aliasing shows distinct data at +32 MB and a live address near +64 MB; validated 2026-07-05; nsx-ambiq-sdk `modules/nsx-psram/CMakeLists.txt:60-125` (last changed in a1a0df1) | measured |
+
+## Additional datasheet facts cited by RFC 0002
+
+| Fact | Source | Provenance status |
+|---|---|---|
+| Apollo510 MSPI0 XIP aperture is 0x60000000-0x6FFFFFFF (256 MB) | DS-A510 p36 (system memory map) and p98 (MSPI section) | datasheet |
+| Apollo4 Blue Lite BLE controller incorporates a dedicated Arm Cortex-M0 | DS-A4BL p84 | datasheet |

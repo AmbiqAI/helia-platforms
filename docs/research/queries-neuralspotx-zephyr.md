@@ -1,11 +1,13 @@
 # neuralspotx, nsx-ambiq-sdk, and Zephyr: question surface
 
-- **Source:** `/Users/adam.page/Ambiq/neuralspotx/neuralspotx` (GitHub `AmbiqAI/neuralspotx`); `nsx-ambiq-sdk` (local checkout at `/Users/adam.page/Ambiq/neuralspotx/nsx-modules/nsx-ambiq-sdk`); `/Users/adam.page/Ambiq/helia/helia-aot` for its nsx and Zephyr templates. No local Zephyr tree.
+- **Source:** neuralspotx checkout (GitHub `AmbiqAI/neuralspotx`); `nsx-ambiq-sdk` (GitHub `AmbiqAI/nsx-ambiq-sdk`, local checkout); helia-aot checkout for its nsx and Zephyr templates. No local Zephyr tree.
 - **Revision:** neuralspotx `main` `6afb7d2`; nsx-ambiq-sdk `9d4463a`; heliaAOT `origin/main` `ea5cd6c0`.
 - **Read on:** 2026-10-04
 - **Method:** query-surface read by a gatherer against the revisions named. Spot checks at the end were run with `git -C <repo> show <rev>:<path> | sed -n 'N,Mp'`.
 
 This note records what the neuralspotx build system and the Zephyr path ask of a platform today. It complements [neuralspotx-and-sdk.md](neuralspotx-and-sdk.md). Two first-pass readings conflicted with RFC 0001 and were resolved by a direct read recorded in the Citation checks table; the body states the verified reading.
+
+Role on 2026-10-04: neuralspotx is a source of facts for helia-platforms, not a consumer. Its own questions (which SoC is this board, which toolchains build it, is module M compatible with SoC S) are answered by its `board.yaml` files and registry. Its runtime dependencies were not checked in this pass.
 
 ## Public surface
 
@@ -72,7 +74,7 @@ Default profile: `sbl` for `apollo510` (`cmake/socs/apollo510.cmake:28` gcc, `:2
 
 ### HAL headers
 
-The gatherer located AmbiqSuite under `/Users/adam.page/Ambiq/sws/ambiqsuite/`. Values were not read in this pass.
+The headers live in AmbiqSuite (internal SWS repository). Values were not read in this pass; see datasheets.md and ambiqsuite.md for later reads.
 
 | Header | SoCs located |
 | --- | --- |

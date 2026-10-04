@@ -15,7 +15,7 @@ and the blocking ADRs are accepted.
 
 ## Current state
 
-Done, verified locally (nothing pushed, no commits yet):
+Done:
 
 - Repo skeleton: uv project (`uv_build`), `src/helia_platforms/` version
   stub and CLI, ruff + ty, pre-commit (gitleaks, ruff, uv-lock, ty,
@@ -28,10 +28,21 @@ Done, verified locally (nothing pushed, no commits yet):
   proposed changes, owner direction, ranking), `docs/adr/` (template,
   0001 docs layout), `docs/research/` (dated source inventories per repo,
   issue 278 verbatim, and `queries-*.md` question-surface inventories).
-- `docs/rfcs/0002-model-and-api.md` (uncommitted draft): principles,
-  entity model (Core, Npu, Soc, Implementation, Part, Board, LinkWindow),
-  derived capabilities, resolver, overlay format, per-consumer question
-  surface tables, API signatures, adapters, #278 phase mapping.
+- `docs/rfcs/0002-model-and-api.md` (Draft): glossary, principles,
+  entity model (Core, Npu, Soc, Implementation, Part, Board, AddOn,
+  MemoryDevice, BootConfig; LinkEnvironment optional, outside the core
+  model), derived capabilities, resolver (compositions, shorthands; a Soc
+  id always resolves to the bare Soc), overlay semantics (syntax deferred
+  to ADR #7), release status, question surface, API, changes relative to
+  RFC 0001 and to #278. `docs/rfcs/0002-multicore.md` holds the multicore
+  model. `docs/rfcs/0002-migration.md` holds the
+  per-consumer migration and output changes, pending data corrections
+  (#14) and parity tests (#13). `docs/rfcs/README.md` indexes the RFCs.
+- Commits on `main`: repo bootstrap and design record. Branch
+  `22-rfc-0002-model-and-api` carries RFC 0002 and the consumer research.
+- Open PRs: #24 (RFC 0002 and research; review rounds 1 to 4 and the multicore section applied on
+  the branch, not yet committed) and #25 (CLI on typer). Issues
+  #22 (RFC 0002) and #23 (typer) are In review on the board.
 - GitHub: project heliaPLATFORMS (#49, sibling layout: Status Backlog,
   Ready, In progress, In review, Done; Priority P0-P2; Size XS-XL), labels,
   repo settings, and issues #1-#21 created from the review's items, each on
@@ -59,25 +70,31 @@ auto-add and close-to-Done workflows, which only the web UI can enable.
 - Boot layout is named boot configurations (sbl, nbl, custom) with a
   default per Soc, replaceable by an Implementation, with board
   provisioning recorded; flash address derived. Documented reservations
-  (SBL partition, radio firmware) are facts; link windows are not in the
-  core model (optional generated SDK dataset).
+  (SBL partition) are facts; radio firmware is a core's image slot, not a
+  reservation; link windows are not in the core model (optional generated
+  SDK dataset).
 - External memory is composed: board interfaces, default population per
   board revision, add-ons (shields, daughter boards) bringing devices.
 - Board stage follows bring-up: fpga, eb, evb, custom; Parts carry silicon
   revision.
 - Licence: the Ambiq Apollo SDK License, as heliaAOT.
 - CLI uses typer (as heliaAOT does), not argparse.
+- Multicore and heterogeneous SoCs: ordered `cores` and `npus` (index 0
+  primary), an explicit access matrix (never inferred), NVM image slots
+  owned by cores, system operating points over clock domains; every query
+  defaults to core 0 and npu 0. No unreleased parts named in the docs.
+  Detail in `docs/rfcs/0002-multicore.md`.
 
 ## Next steps
 
-1. Owner approves issue draft 22 (RFC 0002); create it, branch
-   `22-rfc-0002-model-and-api`, open the PR with the RFC and the
-   `queries-*.md` notes; it absorbs #3, #8, #9, #10.
-2. Enable the project's auto-add and item-closed workflows in the web UI.
-3. After RFC 0002 merges: ADRs #5 (publication), #6 (provenance), #7
-   (schema format), #12 (versions); then #11 drift snapshots and #13
-   parity tests.
-4. Profiler and estimator maintainer review (#15) before any schema code.
+1. Review rounds 1 to 4 and the multicore section on PR #24 are applied locally; push them, owner approval, then merge (it absorbs
+   #3, #8, #9, #10). Merge PR #25 after its review.
+2. After RFC 0002 merges: ADRs #5 (publication and embargo), #6
+   (provenance), #7 (schema format, including the full overlay syntax),
+   #12 (schema version vs catalogue version); then #11 drift snapshots and
+   #13 parity tests, using RFC 0002's migration tables as the change list.
+3. Profiler and estimator maintainer review (#15) before any schema code.
+4. Enable the project's auto-add and item-closed workflows in the web UI.
 
 ## Gotchas
 
@@ -85,7 +102,7 @@ auto-add and close-to-Done workflows, which only the web UI can enable.
   origin; helia-profiler local was a feature branch several hundred commits
   behind origin/main and lacked `memory_map.py`, atomiq110 and apollo510L. Always
   check against `origin/main`. Authoritative neuralspotx and SDK checkouts
-  are under `/Users/adam.page/Ambiq/neuralspotx/`, not the helia folder.
+  are under the neuralspotx workspace checkout, not the helia folder.
 - The RFC appendix's line references are to moving branches; re-verify
   before citing. `docs/research/` notes mark what was and was not read.
 - Repo is private; a public PyPI release before it is public would ship
@@ -95,8 +112,8 @@ auto-add and close-to-Done workflows, which only the web UI can enable.
 - `scripts/check_todo_markers.py` is the only file a raw grep for bare
   markers will hit, by design.
 
-- Datasheets (source of record; see `docs/research/datasheets.md` and the
-  `ambiq-datasheets-location` memory) contradict current catalogue data:
+- Datasheets (source of record; see `docs/research/datasheets.md`)
+  contradict current catalogue data:
   no PSRAM on the base apollo4p_evb (Display Kit only); PSRAM unpopulated
   on apollo330mP_evb and apollo510dL_evb rev 2.0; Apollo510B has a BLE
   controller. Board revision changes what is populated. apollo510_evb and
@@ -105,9 +122,11 @@ auto-add and close-to-Done workflows, which only the web UI can enable.
 - Boot layout is not one fact: Apollo510/510B datasheets partition a 64 KB
   SBL region; Lite and 330 Plus datasheets do not, yet their EVB parts ship
   SBL-provisioned; Apollo3/4 secure boot is OTP-enabled with app addresses
-  only in the SDK. Lite/330 Plus reserve the top of MRAM for radio
-  firmware (16/288/432 KB by variant), which the SDK's default apollo510L
-  and apollo330P windows appear to overlap. Modelling decided (see Decisions).
+  only in the SDK (and AmbiqSuite's Apollo4 `am_defines.py` disagrees with
+  its linker scripts). Lite/330 Plus reserve the top of NVM (NVM-M41,
+  Cortex-M4 radio firmware; 16/288/432 KB by variant), which the SDK's
+  default apollo510L and apollo330P windows appear to overlap. Modelling
+  decided (see Decisions).
 
 ## References
 
@@ -121,6 +140,9 @@ auto-add and close-to-Done workflows, which only the web UI can enable.
 
 ## Open questions
 
-- Whether overlays carry an opaque per-tool `extensions:` map.
+- Whether to adopt the proposed `extensions:` map (RFC 0002 open
+  question 4).
+- Which environments the optional link-environment dataset covers and how
+  it is versioned (RFC 0002 open question 2).
 - neuralspotx direction: generator from this package, or upstream source.
-- Hardware checks listed in issue draft 18.
+- Hardware checks: issue #19 (Hardware questions needing an owner).

@@ -1,8 +1,10 @@
 # helia-platforms
 
 `helia-platforms` is the shared catalogue of Ambiq SoC and board facts (cores,
-memories, clocks, NPU, linker windows, debug-probe identifiers) consumed by
-heliaAOT, helia-profiler and helia-estimator.
+memories, clocks, NPU, debug-probe identifiers) consumed by heliaAOT,
+helia-profiler and helia-estimator. Linker windows are not catalogue content:
+the design ([RFC 0002](docs/rfcs/0002-model-and-api.md)) places them in an
+optional generated dataset of link environments that ships separately.
 
 - Import name: `helia_platforms`
 - CLI entry point: `helia-platforms`

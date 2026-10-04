@@ -1,6 +1,8 @@
 # helia-profiler platform model: source inventory
 
-- **Source:** `/Users/adam.page/Ambiq/helia/helia-profiler` (GitHub `AmbiqAI/helia-profiler`)
+> Superseded by [queries-helia-profiler.md](queries-helia-profiler.md) where the two conflict.
+
+- **Source:** helia-profiler checkout (GitHub `AmbiqAI/helia-profiler`)
 - **Revision:** `origin/main` at `b195e29f` (2026-10-03, "feat(runtimes): prepare the heliaRT runtime archive from its record (#453)"), read with `git show origin/main:<path>`
 - **Read on:** 2026-10-04
 - **Method:** Every file below was read from the `origin/main b195e29f` blob, not the working tree; citations are to that revision unless marked otherwise.

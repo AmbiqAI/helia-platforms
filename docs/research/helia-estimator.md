@@ -1,6 +1,8 @@
 # helia-estimator platform model: source inventory
 
-- **Source:** `/Users/adam.page/Ambiq/helia/helia-estimator` (GitHub `AmbiqAI/helia-estimator`)
+> Superseded by [queries-helia-estimator.md](queries-helia-estimator.md), read against `origin/main`, where the two conflict.
+
+- **Source:** helia-estimator checkout (GitHub `AmbiqAI/helia-estimator`)
 - **Revision:** local branch `s14-fvp-in-docker` at `8cab17d` (a feature branch, not `main`)
 - **Read on:** 2026-10-04
 - **Method:** Inventory from a read of the feature-branch checkout; eight citations re-checked against `8cab17d` on 2026-10-04 (results under Open questions, "Citation checks").

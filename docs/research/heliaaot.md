@@ -1,6 +1,8 @@
 # heliaAOT platform model: source inventory
 
-- **Source:** `/Users/adam.page/Ambiq/helia/helia-aot` (GitHub `AmbiqAI/helia-aot`)
+> Superseded for consumer facts by [queries-heliaaot.md](queries-heliaaot.md), read against `origin/main`; this note was read from a stale checkout.
+
+- **Source:** helia-aot checkout (GitHub `AmbiqAI/helia-aot`)
 - **Revision:** local `main` at `e537d293`
 - **Read on:** 2026-10-04
 - **Method:** Inventory from a read of the local checkout; ten citations re-checked against `e537d293` on 2026-10-04 (results under Open questions, "Citation checks").

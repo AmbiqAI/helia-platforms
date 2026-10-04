@@ -5,6 +5,7 @@ Renumbered 0001 as the founding RFC of this repository. Text is unchanged
 except this header and the appendix link. The review that lists the open
 weaknesses and proposed revisions is 0001-platform-catalogue-review.md.
 Status here: Draft, under revision. Not yet accepted.
+Superseded in part by RFC 0002 once accepted; see its Changes relative to RFC 0001 table.
 -->
 
 # RFC: `helia-platforms`, a single source of truth for SoC and board facts

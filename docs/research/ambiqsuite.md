@@ -1,6 +1,6 @@
 # AmbiqSuite: boot layout and board external memories
 
-Source: /Users/adam.page/Ambiq/sws/ambiqsuite (SWS AmbiqSuite)
+Source: AmbiqSuite (internal SWS repository) (SWS AmbiqSuite)
 Revision: stable b015b860da
 Read on: 2026-10-04
 Method: gatherer read of linker scripts, tools/ and boards/*/bsp. File:line
@@ -48,11 +48,11 @@ that it is populated.
 | apollo4l_evb_disp_shield, apollo4l_blue_evb_disp_shield, apollo4b_evb_disp_shield | APS25616N / APS12808L | varies | no |
 | apollo3p_evb | none | none | no |
 | apollo5b_eb_revb | APS25616N | TC58CYG0 (NAND) | yes |
-| apollo510L_fpga_turbo, apollo340_fpga_turbo | APS25616N | IS25WX064 / ATXP032 | yes |
+| apollo510L_fpga_turbo and one further FPGA board | APS25616N | IS25WX064 / ATXP032 | yes |
 
 - Shields are separate board directories ({evb}_disp_shield_rev{N}), each
   with a full BSP. There is no add-on or daughter-board mechanism.
-- FPGA realizations exist as boards for apollo510L and an apollo340 in
+- FPGA realizations exist as boards for apollo510L and one further unreleased SoC in
   addition to atomiq110.
 
 ## Conflicts to resolve

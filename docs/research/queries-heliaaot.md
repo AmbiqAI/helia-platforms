@@ -1,6 +1,6 @@
 # heliaAOT: question surface
 
-- **Source:** `/Users/adam.page/Ambiq/helia/helia-aot` (GitHub `AmbiqAI/helia-aot`)
+- **Source:** helia-aot checkout (GitHub `AmbiqAI/helia-aot`)
 - **Revision:** `origin/main` `ea5cd6c0`
 - **Read on:** 2026-10-04
 - **Method:** query-surface read by a gatherer against `origin/main` (`ea5cd6c0`). Spot checks at the end were run with `git show origin/main:<path> | sed -n 'N,Mp'`.
@@ -25,9 +25,9 @@ All under `helia_aot/platforms/`.
 | `_canonical_platform_name` | private function | `casefold` |
 | `PLATFORM_REGISTRY`, `_BUILTIN_PLATFORM_NAMES` | module state | Registry and built-in name set |
 
-### Registered names on `origin/main` (17)
+### Registered names on `origin/main` (15)
 
-`apollo3_blue_evb`, `apollo3p_evb`, `apollo3_evb`, `apollo3_blue_plus_evb`, `apollo3_blue_thin_evb`, `apollo4p_evb`, `apollo4l_evb`, `apollo4p_blue_kbr_evb`, `apollo4p_blue_kxr_evb`, `apollo4l_blue_evb`, `apollo330mp_evb`, `apollo510_evb`, `apollo510b_evb`, `apollo510l_evb`, `apollo330p_evb`, `apollo330l_evb`, `atomiq110`.
+`apollo3_blue_evb`, `apollo3p_evb`, `apollo3_evb`, `apollo3_blue_plus_evb`, `apollo3_blue_thin_evb`, `apollo4p_evb`, `apollo4l_evb`, `apollo4p_blue_kbr_evb`, `apollo4p_blue_kxr_evb`, `apollo4l_blue_evb`, `apollo330mp_evb`, `apollo510_evb`, `apollo510b_evb`, `apollo510l_evb`, `atomiq110`.
 
 ### State of related work
 
@@ -38,6 +38,7 @@ All under `helia_aot/platforms/`.
 | Memory sizes in `platforms.py` | Carry linker-window figures with linker-script comments (example: `245760` with comment `MCU_TCM`) |
 | `targets.json` example for `apollo330mp_evb` | MRAM 2031616, SRAM 1835008, DTCM 245760 bytes; speeds 96/192/250; capabilities MCU, DSP, MVE, FP16, BLE, USB; `min_alignment` 16; `supports_fp16` true (source: `targets.json` export as reported by the gatherer) |
 | Docs export schema | `export_schema_version` 1 at `repo_tools/docs_export.py:81` (see Citation checks) |
+| Runtime dependencies relevant to helia-platforms | `pyproject.toml:50-51` declares `typer>=0.16.0` and `pyyaml>=6.0.0` (read with `git show ea5cd6c0:pyproject.toml`) |
 
 ## Question table
 
@@ -131,3 +132,4 @@ Run on 2026-10-04 against `origin/main` `ea5cd6c0`.
 | `nsx/nsx-module.yaml.j2` `compatibility.socs` | Match | List at 45-53; `apollo510l` at 49 |
 | `nsx/nsx-module.yaml.j2` toolchains | Partial | 55-57 list `arm-none-eabi-gcc`, `armclang`, and also `atfe` |
 | Zephyr v4.3.0, `3568e1b6`, sdk 0.17.4 | Match | `tests/e2e_zephyr/tools/zephyr_deps.py:193-194,228` |
+| Registered-name count (first given as 17, including `apollo330p_evb` and `apollo330l_evb`) | Corrected | `git show ea5cd6c0:helia_aot/platforms/platforms.py` registers 15 platforms (15 `= register_platform(` assignments besides the function definition); neither `apollo330p_evb` nor `apollo330l_evb` is registered. List and count above corrected |
