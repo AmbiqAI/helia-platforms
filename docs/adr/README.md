@@ -14,3 +14,4 @@ NNNN, Rejected.
 | ADR | Title | Status |
 |---|---|---|
 | 0001 | Design documents live in this repository | Accepted |
+| 0003 | Record provenance per fact with a closed status vocabulary | Proposed |
