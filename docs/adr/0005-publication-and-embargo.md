@@ -32,7 +32,9 @@ Facts this record rests on, read on 2026-10-05:
 | AmbiqAI is on the Team plan, where environment required reviewers exist only for public repositories | `gh api orgs/AmbiqAI`; GitHub docs, "Deployments and environments" |
 | The only rule on this repository's `main` is the organization's Copilot review ruleset. helia-aot's and helia-profiler's `main` rulesets add `pull_request` (1 and 0 required approvals, no code-owner review), `non_fast_forward` and `deletion` | `gh api repos/AmbiqAI/<repo>/rules/branches/main`; rulesets 6476665 and 17572183 |
 | `uv build` at `c3d3e78` puts only `PKG-INFO`, `pyproject.toml`, `README.md`, `LICENSE.md` and `src/` in the sdist | `tar tzf` of the built sdist |
-| Commits `f7b2f533` and `c0c29a44` on `main` contain maintainers' home-directory paths in `HANDOFF.md` and five research notes; the current tree has none | `git grep` over `git rev-list --all` |
+| Maintainers' local home-directory paths are in `HANDOFF.md` and research notes in `f7b2f533` and `c0c29a44` on `main`, and in `6201f4de` and `3f966f3d`, reached only from `refs/pull/24/head` and `refs/pull/25/head` respectively; `6201f4de` also names an internal source location. The atomiq110 energy coefficients from helia-estimator are in `docs/research/helia-estimator.md` (`f7b2f533:56-70`) in those four commits and in `0a63a1f2`. The branches of #24 and #25 are deleted; their heads are those two pull request refs. `c3d3e78` contains neither the paths nor the coefficients | `git grep` over `git rev-list --all` after fetching `refs/pull/*/head`; `gh pr view <n> --json headRefOid` |
+| A repository variable overrides an organization variable of the same name, but an organization variable shared with the repository applies when no repository variable exists. Neither a repository variable nor a shared organization variable exists here | GitHub docs, "Variables reference", configuration variable precedence; `gh api repos/AmbiqAI/helia-platforms/actions/variables` and `.../actions/organization-variables` |
+| A pending publisher is invalidated if someone else creates the project first | PyPI docs, "Creating a PyPI project with a Trusted Publisher" |
 | Making a repository public makes its Actions history and logs visible to everyone; commits stay reachable through pull request refs after a force-push, and GitHub Support removes those only for sensitive data; anyone with read access can see a comment's edit history | GitHub docs, "Setting repository visibility", "Removing sensitive data from a repository", "Tracking changes in a comment" |
 
 Release PR #27 is open. Merging it makes `release_created` true, and the
@@ -41,6 +43,13 @@ auto-created, unprotected `pypi` environment. It fails as long as no
 trusted publisher on PyPI names this repository. Anyone can register a
 pending publisher naming this repository, `release.yml` and `pypi`, so an
 ungated merge could publish into a PyPI project someone else owns.
+
+While the name is unclaimed, anyone can also upload `helia-platforms` at
+a high version such as 99.0. A consumer's wheel carries only
+`Requires-Dist: helia-platforms>=...`, and an installer that does not read
+`[tool.uv.sources]`, such as pip installing a consumer's wheel or git URL,
+would then install that upload. `uv sync` in the consumer's own
+repository reads `[tool.uv.sources]` and installs the pinned tag.
 
 ## Decision
 
@@ -106,11 +115,11 @@ Either way, until the package is on PyPI:
   record. Its `$id` is a `tag:` URI that need not resolve (ADR 0002 (#7)), so
   after the cutover the copy at each release tag is enough.
 
-On either path, the first PyPI upload waits for an audit of
-`src/helia_platforms/data/`: the source register's document ids and
-SHA256s, provenance notes and `verified_by` logins. These ship in the
-wheel, so the audit cannot wait for the repository audit in point 3 (see
-ADR 0003 (#6), open question 1).
+On either path, the first PyPI upload with catalogue content waits for
+an audit of `src/helia_platforms/data/`: the source register's document
+ids and SHA256s, provenance notes and `verified_by` logins. These ship in
+the wheel, so the audit cannot wait for the repository audit in point 3
+(see ADR 0003 (#6), open question 1).
 
 This deviates from review 3.1, which proposed adjusting consumers'
 PyPI-dependent smoke tests for the interim; keeping the dependency off
@@ -122,71 +131,113 @@ install from it, and helia-estimator, the consumer that already pins a
 private dependency, uses PyPI as its index); vendoring the data into
 consumers (restores the copies this package exists to remove).
 
-**3. Before the repository goes public.** If the owner chooses to make the
-repository public, all of the following hold first, each recorded in one
+The name is not claimed on PyPI yet: nothing is uploaded, not even a
+placeholder, until the owner chooses a path. Until then a consumer
+installs this package only through `uv sync --locked` with a tag pinned in
+`[tool.uv.sources]`, and no consumer release or documented `pip install`
+depends on it. That keeps the 99.0 risk in Context from reaching anyone,
+because pip never resolves `helia-platforms` from PyPI. The cost is that
+someone else can take the name first; claiming it is part of the first
+publication (point 4).
+
+**3. Going public.** If the owner chooses to make the code public, it
+goes public as a fresh repository built from a squashed, audited snapshot
+of this repository's `main`, and this repository stays private. A
+force-push leaves commits reachable through pull request refs (Context),
+so rewriting this repository's history in place cannot remove them. The
+fresh repository starts with no issues, pull requests or Actions logs.
+Before it is created, all of the following hold, each recorded in one
 tracking issue:
 
-- #31 (closes #26) is merged and the local-path check passes on the tree.
-- A full-history gitleaks scan is clean; today only the pre-commit hook
-  runs gitleaks, and it does not scan history.
-- An audit of `docs/research/`, `docs/rfcs/`, `HANDOFF.md`, the Actions
-  logs, and every issue and PR body, comment and comment edit history
-  decides keep, reduce or remove for: material from the internal
-  datasheet library,
-  including preliminary revisions (`docs/research/datasheets.md:5`,
-  `:338`); the internal AmbiqSuite repository
-  (`docs/research/ambiqsuite.md:3`); the internal handbook and helia-sdlc
-  (`docs/research/ambiqai-conventions.md:3-6`); verbatim text from private
-  helia-aot (`docs/research/helia-aot-278.md`).
-- Anything that must not be public is removed from history. A force-push
-  does not remove commits reachable through pull request refs, so the
-  alternative is a fresh public repository created from a clean snapshot.
-- The home-directory paths in `f7b2f533` and `c0c29a44` are accepted.
-  Recommendation: accept; they show user names and directory layout, not
-  credentials, GitHub Support would not remove the pull-request copies of
-  non-sensitive data, and a rewrite breaks the commit links in #27.
+- #31 (closes #26) is merged and the local-path check passes on the
+  snapshot.
+- The inventory runs over every commit in `git rev-list --all` after
+  fetching `refs/pull/*/head`, so it covers pull request heads and the
+  commits of deleted branches as well as `main`. It names at least the
+  local home-directory paths in `f7b2f533`, `c0c29a44`, `6201f4de` and
+  `3f966f3d`, the internal source location in `6201f4de`, and the
+  atomiq110 energy coefficients from helia-estimator in
+  `docs/research/helia-estimator.md` (`f7b2f533:56-70` and the other
+  commits listed in Context), and confirms that the snapshot contains
+  none of them.
+- gitleaks finds nothing in the snapshot, and every secret it finds in
+  the inventory's commits has been revoked; today only the pre-commit
+  hook runs gitleaks, and it does not scan history.
+- An audit of the snapshot's `docs/research/`, `docs/rfcs/` and
+  `HANDOFF.md` decides keep, reduce or remove for: material from the
+  internal datasheet library, including preliminary revisions
+  (`docs/research/datasheets.md:5`, `:338`); the internal AmbiqSuite
+  repository (`docs/research/ambiqsuite.md:3`); the internal handbook and
+  helia-sdlc (`docs/research/ambiqai-conventions.md:3-6`); verbatim text
+  from private helia-aot (`docs/research/helia-aot-278.md`). Issues, pull
+  requests, comments and Actions logs stay in this private repository.
+- Issue references such as `(#7)` in the snapshot become links to this
+  repository or are removed, because the fresh repository numbers its
+  issues from 1.
 - The owner confirms that every SoC, Part, Board and Implementation named
-  in the tree is announced, and confirms `LICENSE.md` for public
+  in the snapshot is announced, and confirms `LICENSE.md` for public
   distribution.
-- `main` has a repository ruleset with `pull_request` (one required
-  approval and code-owner review), `non_fast_forward` and `deletion`.
-  helia-aot and helia-profiler have the same three rules, but neither
-  requires code-owner review and helia-profiler requires no approval.
+- The fresh repository's `main` has a repository ruleset with
+  `pull_request` (one required approval and code-owner review),
+  `non_fast_forward` and `deletion`. helia-aot and helia-profiler have the
+  same three rules, but neither requires code-owner review and
+  helia-profiler requires no approval.
+- The `pypi` environment, its deployment policy and the
+  `HELIA_PLATFORMS_PYPI_PUBLISH` variable from point 4 exist on the fresh
+  repository, since creating a repository copies none of them, and the
+  PyPI trusted publisher names the fresh repository.
 
 The repository owner (`@apage224`, the sole entry in
-`.github/CODEOWNERS:1`) signs off the checklist and decides the
-visibility; an organization admin changes it.
+`.github/CODEOWNERS:1`) signs off the checklist and decides whether to go
+public; an organization admin creates the fresh repository.
 
-**4. Release workflow.** The publish gate (#36) lands now,
-before #27 merges: the `publish` job runs only when the repository
-variable `HELIA_PLATFORMS_PYPI_PUBLISH` is `true`. The name is specific to
-this repository so that an organization-level variable cannot open it. The
-gate lands first because of the pending-publisher risk in Context. #27 can
-then merge whenever a private 0.1.0 tag is wanted; it uses no PyPI
-version. Also now: pin every action by commit SHA, as the siblings do, and
-move `uv build` and the test from point 1 into a `build` job whose
-distributions `publish` downloads rather than rebuilds, as helia-profiler
-does. The `unverified` gate of ADR 0003 (#6), section 4, runs as a
-required check on pull requests to `main`, the release-please PR
-included, because a job in `release.yml` can block only the upload, not
-the tag.
+**4. Release workflow.** The publish gate (#36) lands now, before #27
+merges: the `publish` job runs only when the variable
+`HELIA_PLATFORMS_PYPI_PUBLISH` is `true`. The name is specific to this
+repository so that an organization variable meant for another repository
+does not open the gate. An organization variable with this exact name
+that is shared with this repository would still open it when no
+repository variable exists (Context), so the repository variable is
+created now with value `false`, which overrides any organization value
+(tracked in #45).
+The gate lands first because of the pending-publisher risk in Context.
 
-Before the first publish: create the `pypi` environment with a "selected
-branches and tags" deployment policy naming `main` (the siblings'
-protected-branches policy depends on `main`'s rules, which here are only
-the Copilot review ruleset), plus a required reviewer once the repository
-is public; finish the data audit in point 2; register the pending trusted
-publisher from the `AITG` PyPI organization (project `helia-platforms`,
-owner `AmbiqAI`, repository `helia-platforms`, workflow `release.yml`,
-environment `pypi`) immediately before the first publish, or transfer the
-project to `AITG` right after it; then set the variable.
+Also now, tracked in #45: create the `pypi` environment with a "selected
+branches and tags" deployment policy naming only `main`, so that a job on
+another branch cannot deploy to it and the trusted publisher, which names
+`pypi`, accepts uploads only from `main`. Until then the gate exists only
+in workflow content. The siblings' protected-branches policy is not
+enough here, because that policy depends on the rules on `main`, and this
+repository's `main` has only the Copilot review ruleset.
+
+#27 can then merge whenever a private 0.1.0 tag is wanted; it uses no
+PyPI version. Also now: pin every action by commit SHA, as the siblings
+do, and move `uv build` and the test from point 1 into a `build` job
+whose distributions `publish` downloads rather than rebuilds, as
+helia-profiler does. The `unverified` gate of ADR 0003 (#6), section 4,
+runs as a required check on pull requests to `main`, because a job in
+`release.yml` can block only the upload, not the tag. Release-please's
+pull requests run no workflows, so a maintainer merges them by bypass
+(ADR 0003 (#6), section 4).
+
+Before the first publish with catalogue content: add a required reviewer
+to `pypi` once a public repository exists; finish the data audit in point
+2; add the trusted publisher (owner `AmbiqAI`, repository
+`helia-platforms`, workflow `release.yml`, environment `pypi`) from the
+`AITG` PyPI organization, which creates the project under `AITG` if the
+name is still free; then set the variable to `true`.
 
 ## Consequences
 
 - Under either path, helia-aot and helia-profiler ship no release that
   depends on this package until it is on PyPI.
 - Private consumers' CI needs a token with read access to this repository.
-- The first PyPI version will be later than the first git tag.
+- The first PyPI version with catalogue content will be later than the
+  first git tag.
+- Until the first publish, the name `helia-platforms` can be taken by
+  someone else on PyPI.
+- Going public creates a new repository. This repository's issues, pull
+  requests and commit links stay private.
 - Every overlay author who wants an entry exported must declare `public`.
 - On acceptance, RFC 0002 needs three edits: the private-silicon rule
   widened to every entity kind (if open question 4 agrees), the
@@ -197,11 +248,12 @@ project to `AITG` right after it; then set the variable.
 
 1. Must product or legal review datasheet-derived and AmbiqSuite-derived
    content before the repository goes public, in addition to the owner?
-2. Which token or GitHub App gives private consumers' CI read access to
-   this repository while it is private?
+2. Which token gives private consumers' CI read access to this
+   repository while it is private, without an organization-level GitHub
+   App?
 3. Public first, or PyPI from the private repository (point 2)? The owner
    decides.
 4. Does the owner confirm the widened rule in point 1 (no unreleased
    board, add-on or memory device for a released SoC in this repository)?
-5. Who in the `AITG` PyPI organization registers the pending publisher?
-   Whether an `AITG` member can do so for this project is unverified.
+5. Who in the `AITG` PyPI organization adds the trusted publisher at the
+   first publish?
