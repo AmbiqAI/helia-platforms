@@ -48,16 +48,17 @@ names `apollo4p_evb_disp_shield_rev2` as the only supported Apollo4 board.
 Both Apollo3 Plus PSRAM decisions follow one rule: a board's `population`
 records a part only where the board is wired for one, until a hardware
 check (#19) confirms what is fitted. In nsx-ambiq-sdk
-`v5.2.24`, the `apollo3p_evb_cygnus` BSP defines dedicated PSRAM
-chip-select, data and clock pins on MSPI1
-(`modules/nsx-ambiqsuite/sdk/boards/apollo3p_evb_cygnus/bsp/am_bsp_pins.h:966-1011`)
-and sets `AM_BSP_MSPI_PSRAM_INST 1` (`bsp/am_bsp.h:118`). The `apollo3p_evb`
+`v5.2.24`, the `apollo3p_evb_cygnus` BSP defines PSRAM pins on MSPI1
+(`modules/nsx-ambiqsuite/sdk/boards/apollo3p_evb_cygnus/bsp/am_bsp_pins.h:966-1011`):
+a PSRAM-only chip-select on pad 69, and data pins D0-D3 and a clock pin
+that the BSP marks as shared with FLASH1. It also sets
+`AM_BSP_MSPI_PSRAM_INST 1` (`bsp/am_bsp.h:118`). The `apollo3p_evb`
 BSP names MSPI0 as the PSRAM instance but defines no PSRAM pins.
 
 `apollo3p_evb_cygnus` therefore keeps its 8 MB (helia-profiler line 78)
-and is not a pending correction. Dedicated pins show that the board is
-wired for PSRAM, not that the part is fitted, so whether it is fitted is a
-hardware question (#19).
+and is not a pending correction. The PSRAM pin definitions show that the
+board is wired for PSRAM, not that the part is fitted, so whether it is
+fitted is a hardware question (#19).
 
 An inference, not proof, supports treating `apollo3p_evb`'s MSPI0 as an
 add-on interface. Its generic MSPI0 pins use pads 22 (D0) and 23 (D3)
