@@ -38,18 +38,14 @@ Facts that constrain the choice:
   `COMMIT_OR_PR_TITLE` (GitHub repository settings, read 2026-10-05).
 - The catalogue data ships only inside the wheel, so every data change
   reaches users as a package release.
-- `AmbiqAI/helia-profiler` at `ed2f0a15` caps the heliaAOT range in its
-  `aot` extra at `helia-aot>=0.23.0,<0.26.0` (`pyproject.toml:47`). Four
-  `feat:` commits between 2026-09-03 and 2026-09-28 (`02671b67`,
-  `560665d3`, `8f74f66f`, `bbd217c8`) each set the range to a single
-  heliaAOT minor (0.19, 0.20, 0.22, 0.23); on 2026-09-30 `e944de4c`
-  (AmbiqAI/helia-profiler#406) widened it to three minors. heliaAOT
-  `v0.26.0`, tagged 2026-10-04, is outside it. The cap also encodes
-  hardware qualification: `e944de4c` admits 0.25.x "but not yet verified".
-  The profiler pins `neuralspotx==0.8.1` exactly (`pyproject.toml:32`); its
-  0.1.5 and 0.1.3 releases each shipped one neuralspotx promotion as a fix
-  (`CHANGELOG.md:149`, `CHANGELOG.md:175`). It has not released since 0.1.6
-  (2026-08-19), so the heliaAOT range changes are unreleased.
+- `AmbiqAI/helia-profiler` at `ed2f0a15` pins `neuralspotx==0.8.1`
+  exactly (`pyproject.toml:32`) and caps its `aot` extra at
+  `helia-aot>=0.23.0,<0.26.0` (`pyproject.toml:47`). The heliaAOT cap
+  records hardware qualification: five `feat:` commits between 2026-09-03
+  (`02671b67`) and 2026-09-30 (`e944de4c`) moved it with heliaAOT's
+  minors, and `e944de4c` admits 0.25.x "but not yet verified". Its 0.1.3
+  and 0.1.5 releases each shipped one neuralspotx promotion as a fix
+  (`CHANGELOG.md:175`, `:149`).
 - `AmbiqAI/helia-aot` at `1fd91daf` declares only lower bounds on its
   runtime dependencies (`pyproject.toml:46-60`) and depends on no AmbiqAI
   package. Its release-please config sets `bump-minor-pre-major` without
@@ -68,8 +64,11 @@ Facts that constrain the choice:
 |---|---|---|
 | Package version | semver, set by release-please | One wheel: the Python API, the overlay format and JSON Schema it reads, and the built-in data it ships. Its compatibility promise covers the API and the schema, not fact values. |
 | `schema_version` | integer, starting at 1 | The overlay format and the JSON export shape. Carried in every overlay file and export, and in the JSON Schema. Increments only on a schema break. |
-| `catalogue_version` | string, equal to the package version | The data release: the built-in catalogue as shipped in that wheel. |
 | `catalogue_digest` | `sha256:<hex>` | The built-in data, without provenance, as defined below. |
+
+RFC 0002's `catalogue_version` is dropped. It would equal the package
+version, which `helia_platforms.__version__` and `Catalogue.identity()`
+(point 4) already report, so it would add no information.
 
 `schema_version` promises backward compatibility only. An overlay that
 uses an optional field needs a package at least as new as the release that
@@ -82,19 +81,33 @@ ids, aliases and `release_status`, and the `compositions` and `shorthands`
 tables, with every `provenance` and `field_provenance` value (ADR 0002
 (#7) section 4; records per ADR 0003 (#6)) removed. The projection is
 built from the model, not from `to_dict()`, so a field added only to the
-export does not change it. The bytes hashed are:
+export does not change it. Each collection is projected according to its
+kind in ADR 0002 (#7) section 2.4, whatever its runtime type, so that an
+order that is not a fact does not reach the hash:
+
+- A collection keyed by name or id becomes a JSON object keyed by that
+  name or id, which `sort_keys` orders. This includes collections the
+  model holds as tuples, such as `clock_domains` (and each domain's
+  points) and `operating_points` (RFC 0002 at `c3d3e78`, `:167`,
+  `:169`), and `reserved`, keyed by `purpose`.
+- `access` is a list sorted by (`master`, `target`).
+- Lists keyed by value (`peripherals`, `aliases`, `modes`,
+  `fits_boards`, `occupies`, `alternate_bases`, `Substitution.replaces`)
+  are sorted.
+- `cores`, `npus` and `accelerators`, whose order is a fact (ADR 0002
+  (#7) section 2.4), keep declaration order.
+
+The bytes hashed are:
 
 ```python
 json.dumps(projection, sort_keys=True, separators=(",", ":"),
            ensure_ascii=False, allow_nan=False).encode("utf-8")
 ```
 
-Keys are strings only. The lists ADR 0002 (#7) keys by value (section 2.4:
-`peripherals`, `aliases`, `modes`, `fits_boards`, `occupies`) are sorted;
-`cores` and `npus`, whose order is a fact, keep model order. Equal digests
-mean the same data. A different digest means a fact value or an identity
-or governance field changed, or the model gained a field; never a
-provenance-only or export-only change.
+Keys are strings only. Equal digests mean the same data. A different
+digest means a fact value or an identity or governance field changed,
+`cores` or `npus` were reordered, or the model gained a field; never a
+provenance-only or export-only change, or a reordering of anything else.
 
 Reason: the data reaches users only in the wheel, so a separate data
 number would only have to be mapped back to a wheel. The digest answers
@@ -116,41 +129,53 @@ spans several rows takes the row with the largest bump.
 | Python API break (public name removed or renamed, signature or return type changed) | `feat!:` | unchanged | minor | major |
 | Schema break (an overlay valid before is rejected or means something else; an export field removed or renamed) | `feat!:` | +1 | minor | major |
 | Built-in id or alias removed | `feat(data)!:` | unchanged | minor | major |
+| Data correction that removes a member of a collection (a region a board does not have, a peripheral, core, clock domain or point, boot configuration, operating point or `access` pair) | `fix(data)!:` | unchanged | minor | major |
 | Schema or API addition (new optional overlay field, export field, function) | `feat:` | unchanged | patch | minor |
 | New Soc, Implementation, Part, Board, AddOn or MemoryDevice; built-in id renamed with the old id kept as an alias | `feat(data):` | unchanged | patch | minor |
-| Data correction (a wrong value, a region a board does not have) | `fix(data):` | unchanged | patch | patch |
+| Data correction that changes a value (a wrong size, base or clock) | `fix(data):` | unchanged | patch | patch |
 | Provenance-only change (citation, source revision, verification status; no value changes) | `chore(data):` | unchanged | no release | no release |
 | Source register or allow-list change (ADR 0003 (#6)) | `chore(data):` | unchanged | no release | no release |
 | Snapshot refresh with no fact change (ADR 0006 (#11)), including the provenance revisions that cite the snapshots | `chore(data):` | unchanged | no release | no release |
 | Link-environment dataset change | as the addition or correction rows if the dataset ships in the wheel, otherwise `chore(data):`; it is outside the digest (open question 2) | unchanged | patch or none | minor, patch or none |
 | Documentation only | `docs:` | unchanged | no release | no release |
 
-Reason: a correction changes no contract, so semver gives it a patch even
-though consumer outputs such as placement budgets change; that change is
-the purpose of a correction. A provenance-only change leaves
+Reason: a correction that changes a value changes no contract, so semver
+gives it a patch even though consumer outputs such as placement budgets
+change; that change is the purpose of a correction. A correction that
+removes a member breaks overlays, because ADR 0002 (#7) section 2.5 makes
+a delta that names a key the base lacks an error, and a reference to the
+removed name no longer resolves. If 0.3.5 removed `psram` from
+`apollo510_evb`, an overlay with `based_on: apollo510_evb` and
+`memories_resized: {psram: 32M}` that loads on 0.3.4 would raise on
+0.3.5, inside the `<0.4` range of point 4; as `fix(data)!:` the removal
+ships as 0.4.0 instead. A provenance-only change leaves
 `catalogue_digest` unchanged and ships with the next release. Rejected:
 RFC 0001's `feat:` for corrections (it would make every correction a minor
 from 1.0 and invite consumers to cap below it).
 
-**3. How `catalogue_version` is produced.** It is
-`helia_platforms.__version__`, read from the installed distribution's
-metadata, including that attribute's fallback literal when no metadata
-exists, which release-please rewrites to the last release (#27); the digest
-still identifies the data in that case. `catalogue_digest` is computed at
-load. Nothing is stored, so nothing can drift. release-please keeps setting
-the package version and keeps both pre-1.0 settings until 1.0, after which
-they have no effect. It needs one change: `changelog-sections` in
+**3. How the versions are produced.** The package version that
+`identity()` records is `helia_platforms.__version__`, read from the
+installed distribution's metadata, including that attribute's fallback
+literal when no metadata exists, which release-please rewrites to the last
+release (#27); the digest still identifies the data in that case.
+`catalogue_digest` is computed at load. Nothing is stored, so nothing can
+drift. release-please keeps setting the package version and keeps both
+pre-1.0 settings until 1.0, after which they have no effect. It needs one
+change, which this PR makes: `changelog-sections` in
 `release-please-config.json` repeats the Python strategy's list with `docs`
-hidden, so a documentation-only merge cuts no release and does not move
-`catalogue_version`. Rejected: stamping the version into a data file
+hidden, so a documentation-only merge cuts no release and does not move the
+package version. The `data` scope needs no configuration: the changelog
+groups by type and prints the scope in bold before the subject, as in
+helia-profiler's `**compatibility:**` entries (`CHANGELOG.md:149` at
+`ed2f0a15`). Rejected: stamping the version into a data file
 through `extra-files`, as heliaAOT does for its docs exports (it duplicates
 the metadata and still reports the last release in a development checkout).
 
 **4. How consumers pin and record.** A consumer pins the schema and API
 major: `helia-platforms>=0.y.z,<0.(y+1)` before 1.0 and `>=1.y.z,<2` after,
 with the floor at the release whose API or schema it uses. Within that
-range, a data correction or a new Soc reaches the consumer's users when
-they install or upgrade, with no consumer release. The consumer pays a lock
+range, a correction that changes a value or a new Soc reaches the
+consumer's users when they install or upgrade, with no consumer release. The consumer pays a lock
 refresh and regenerates any committed export derived from the catalogue,
 such as heliaAOT's `targets.json`. A consumer that qualifies each
 dependency release, as the profiler does for heliaAOT, may pin tighter;
@@ -160,17 +185,20 @@ policy by id (RFC 0002, "Adapters, in the consumers").
 
 Every consumer output that depends on catalogue facts records
 `Catalogue.identity()`, a new frozen record with `to_dict()`:
-`catalogue_version`, `schema_version`, `catalogue_digest`, and one entry
+`package_version`, `schema_version`, `catalogue_digest`, and one entry
 per source applied on top of the built-in data, both side-loaded sources
 and explicit `load_overlay` sources (heliaAOT's `platform.overlay:` is the
 latter). Each entry holds the source label with any directory removed
 (`env:board.yaml`, not the full path that `Catalogue.sources` keeps, so a
 shared report carries no local path), the distribution version for an entry
 point, the declared `schema_version`, and a sha256 of the source's parsed
-overlay mapping, computed with the same provenance removal (which also
-unwraps each `{value, provenance}` form to its value) and canonical JSON
-as `catalogue_digest`, so a file and the same mapping passed in memory
-hash alike. heliaAOT writes the record next to the tool version it already
+overlay mapping in `catalogue_digest`'s canonical JSON, so a file and the
+same mapping passed in memory hash alike. Before hashing, each
+`provenance` key is removed and each `{value, provenance}` form is
+unwrapped to its value, but only on keys the format declaration defines
+(ADR 0002 (#7) section 2.7). `extensions` values are opaque tool data and
+are hashed unchanged, including any key in them named `provenance`.
+heliaAOT writes the record next to the tool version it already
 stamps; the profiler writes it into run metadata. Reason: the version names
 the release, the digest shows whether two runs used the same data, and the
 source entries cover data that has no version. Rejected: recording only the
@@ -201,24 +229,26 @@ dependency metadata and is meaningless for a loose file).
 
 - Before 1.0, only a breaking release forces consumers to re-release. This
   replaces RFC 0001's lockstep risk and its "data corrections are `feat:`
-  PRs" rule.
+  PRs" rule. A correction that removes a wrongly listed region or other
+  member is breaking, so consumers must widen their range to receive it;
+  a correction that changes a value needs no consumer change.
 - A data patch can change a consumer's behaviour with no consumer release:
   a correction that shrinks a memory can turn a passing heliaAOT
   conversion into one that no longer fits. The recorded identity explains
   the difference; exact reproduction needs the consumer's lock file or an
   exact pin.
-- On acceptance, `release-please-config.json` gains the
-  `changelog-sections` list from point 3, and RFC 0002 changes: the
-  `catalogue_version` comment ("independent of the package version"),
-  `catalogue_digest` and `identity()` added to the `Catalogue` API, and
-  open question 6 and the private-silicon open question narrowed to
-  signing.
+- This PR adds the `changelog-sections` list of point 3 to
+  `release-please-config.json`. On acceptance, RFC 0002 changes: the
+  `Catalogue` API loses `catalogue_version` and gains `catalogue_digest`
+  and `identity()`, and open question 6 and the private-silicon open
+  question are narrowed to signing.
 - Each schema break carries a converter from the previous version, and the
   wheel ships the JSON Schema for every `schema_version` it reads. ADR 0005
   (#5) decides how the schema is published: `helia-platforms export
   --schema` writes it, with no public URL until the repository is public.
 - Tests must cover: the digest ignores provenance-only and export-only
-  changes; an overlay at N-1 loads with a warning and at N-2 fails with the
+  changes and the order of every collection other than `cores` and
+  `npus`, and changes when `cores` are reordered; a source hash keeps `extensions` unchanged; an overlay at N-1 loads with a warning and at N-2 fails with the
   named error; an unknown key names the upgrade; side-loaded and explicit
   overlays appear in `identity()` without directories.
 - CONTRIBUTING gains the `data` scope, the PR-title rule and the table in
