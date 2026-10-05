@@ -38,7 +38,7 @@ inventory table.
 | `source` | One or more source references in the canonical spellings of section 2. | Every status except `unverified`, where it is optional |
 | `verified_on` | ISO date (`YYYY-MM-DD`) on which `verified_by` last compared the value with its source. Not the source's own date. | Every status except `unverified`, where it is forbidden: a date would read as a verification |
 | `verified_by` | GitHub login of the person who checked, or an organisation team (`@AmbiqAI/<team>`). | As `verified_on`; who made an estimate goes in `notes` |
-| `notes` | Free text: the arithmetic of a derived value, what a fitted value stands in for, why a value is unverified. Never parsed and never used by a gate. | Optional |
+| `notes` | Free text: the arithmetic of a derived value, what a fitted value stands in for, why a value is unverified. Never parsed; the changed-record check of section 4 compares it only between two `unverified` records. | Optional |
 
 | Status | Meaning | Example |
 |---|---|---|
@@ -77,10 +77,10 @@ presence only; it never opens a document or a repository:
 | Kind | Canonical spelling | The validator checks |
 |---|---|---|
 | Document | `doc:<key>@<revision>:p<page>[-<page>]` | The key and revision are in the source register; the pages are within the document. A page is the 1-based PDF page index, as in `docs/research/datasheets.md`. |
-| Repository | `repo:<repository>@<revision>:<path>[:<line>[-<line>]][#<symbol>]` | The repository is in the source register; the revision is a tag, by name, or a full 40-hex commit SHA, never a branch or an abbreviated SHA; the path is repository-relative and contains no `:` or `#`. `#<symbol>` names the single definition of that symbol in the file (a CMake `set`, a C `#define`, an enumerator). For a snapshotted repository, ADR 0006 (#11)'s extract jobs check that the definition exists exactly once; the validator does not. |
+| Repository | `repo:<repository>@<revision>:<path>[:<line>[-<line>]][#<symbol>]` | The repository is in the source register; the revision is a full 40-hex commit SHA, or a tag that the register lists for that repository with the SHA it resolved to. Any other name, a branch or an abbreviated SHA included, is rejected. The path is repository-relative and contains no `:` or `#`. `#<symbol>` names the single definition of that symbol in the file (a CMake `set`, a C `#define`, an enumerator). For a snapshotted repository, ADR 0006 (#11)'s extract jobs check that the definition exists exactly once; the validator does not. |
 | Measurement | `meas:<target id>/<method>/<YYYY-MM-DD>` | The target id resolves; the method is a lowercase slug; the date is not after `verified_on`. A `measured` or `fitted` record also carries at least one `repo:` or `url:` reference to a record of the method and result (a script, log, capture or written account). |
 | URL | `url:https://<host>/<path>` | The scheme is https and the URL carries no credentials. Use it for public pages only; an internal document is cited with `doc:`. |
-| Catalogue fact | `fact:<entity kind>:<id>:<field path>` | The fact exists. The entity kind is the singular of an ADR 0002 (#7) top-level key (`core`, `soc`, `implementation`, `part`, `board`, `addon`, `memory_device`). The field path is dot-separated; a keyed collection is addressed by its key (`fact:soc:atomiq110:memories.hblram.characterization.read_latency_ns`), and a collection keyed by a pair by `<first>@<second>` (`access.<master>@<target>`). A `derived` record uses it for inputs that are catalogue facts; an `unverified_allowed` entry may name a group path, which covers every value in the group. |
+| Catalogue fact | `fact:<entity kind>:<id>:<field path>` | The fact exists. The entity kind is the singular of an ADR 0002 (#7) top-level key (`core`, `soc`, `implementation`, `part`, `board`, `addon`, `memory_device`). The field path is dot-separated, and the segment after a collection is the item's key, by the collection kinds of ADR 0002 (#7) section 2.4: a mapping's key (`fact:soc:atomiq110:memories.hblram.characterization.read_latency_ns`, `boot_configs.sbl.reserved.sbl.size`); the item's `id` in `cores`, `npus` and `accelerators` (`npus.<id>.npu.macs_per_cycle`); `<master>@<target>` in `access`; and in a list of names or values, the value itself, which ends the path (`peripherals.<name>`, `memories.<name>.alternate_bases.<address>`, an address compared as an integer). An Npu IP block has no id and is written inside its `NpuInstance` (ADR 0002 (#7) section 2.1), so its facts are addressed through the Soc, as above. A `derived` record uses it for inputs that are catalogue facts; an `unverified_allowed` entry may name a group path, which covers every value in the group. |
 
 Each status needs at least these kinds: `datasheet` a `doc:`; `sdk` a
 `repo:`; `measured` a `meas:` and its evidence; `fitted` the `meas:`
@@ -90,7 +90,8 @@ reference to the fit procedure; `derived` one reference per input.
 The source register is one committed data file with two top-level keys:
 `documents` (key, document id, revision, date, page count, SHA256), which
 is the inventory of `docs/research/datasheets.md` as data, and
-`repositories` (name, URL). A GitHub repository is named `owner/name`; any
+`repositories` (name, URL, and each tag that a `repo:` reference cites,
+with its 40-hex commit SHA). A GitHub repository is named `owner/name`; any
 other repository gets a bare registered name and the register records the
 system that hosts it (AmbiqSuite in SWS: `repo:AmbiqSuite@<40-hex SHA>:<path>`;
 `docs/research/ambiqsuite.md` records only the abbreviated `b015b860da`).
@@ -132,36 +133,51 @@ record it resolved to in the entry that declared it.
 
 ### 4. Release and change rules
 
-- **`unverified` gate.** A required check on every pull request to
-  `main`, release-please's release pull request included, rejects any
-  value in a built-in entry that resolves to `unverified`, and any
-  `derived` value with a `fact:` input that resolves to `unverified`,
+- **`unverified` gate.** A required check on every pull request to `main`
+  rejects any value in a built-in entry that resolves to `unverified`, and
+  any `derived` value with a `fact:` input that resolves to `unverified`,
   unless the value is on the release allow-list `unverified_allowed`. It
   runs there because a job in `release.yml` could block only the upload,
-  not the tag. No tag, private or public, is exempt: the allow-list
-  records known gaps, and deferring the gate would move the whole backlog
-  to the public cutover. `unverified_allowed` is one committed file, owned
-  through CODEOWNERS (#17), at the location ADR 0002 (#7) gives. Each
-  entry is a `fact:` reference, a reason and an issue (`#N`). The
-  validator also rejects an entry whose fact is gone or no longer
-  `unverified`, so the list cannot go stale.
-- **A changed value needs a changed record (#17).** CI loads the built-in
-  catalogue at the pull request's merge base and at its head and compares
-  the declared facts, keyed by fact path. A value that differs must
-  resolve to a record that differs from the base's in `status`, `source`
-  (compared as a set) or `verified_on`; a `verified_on` equal to the date
-  of the CI run (UTC) also passes. A change to `notes` or `verified_by`
-  alone does not count. When the record covers a group, changing one value
-  in it requires changing the group record or adding a record for that
-  value. New fact paths are exempt, so a rename combined with a value
-  change escapes this check. Changing a record without changing a value
-  is allowed: that is a re-verification.
+  not the tag. Release-please's release pull requests run no workflows,
+  because release-please opens them with the default `GITHUB_TOKEN` (#27
+  reports no checks). They change only version files and the changelog, so
+  every value a release ships passed the check on the pull request that
+  changed it. A branch rule that requires the check therefore holds
+  every release pull request, and a maintainer merges it by bypass;
+  running release-please with an organization-level GitHub App token is
+  not adopted. No tag, private or public, is exempt:
+  the allow-list records known gaps, and deferring the gate would move the
+  whole backlog to the public cutover. `unverified_allowed` is one
+  committed file, owned through CODEOWNERS (#17), at the location ADR 0002
+  (#7) gives. Each entry is a `fact:` reference, a reason and an issue
+  (`#N`). The validator also rejects an entry whose fact is gone or no
+  longer `unverified`, so the list cannot go stale.
+- **A value changed at the same fact path needs a changed record (#17).**
+  CI loads the built-in catalogue at the pull request's merge base and at
+  its head and compares the declared facts, keyed by fact path. A value
+  that differs must resolve to a record that differs from the base's in
+  `status`, `source` (compared as a set) or `verified_on`. Between two
+  `unverified` records, which carry no `verified_on` and may carry no
+  `source`, a change to `notes` also counts. A change to `verified_by`
+  alone never counts, nor does a change to `notes` alone on any other
+  status. The check compares head with the merge base only, so it gives
+  the same result on every run. A value corrected on the date its record
+  was last verified, with the same `status` and `source`, therefore cannot
+  pass until a later `verified_on` is true. When the record covers a
+  group, changing one value in it requires changing the group record or
+  adding a record for that value. New fact paths are exempt, so the check
+  does not cover a rename combined with a value change; review has to
+  catch that case. Changing a record without changing a value is allowed:
+  that is a re-verification.
 - **`derived` inputs.** A `derived` record lists every input in `source`:
   a `fact:` reference for an input that is a catalogue fact, any other
-  kind for an input that is not. `notes` states the computation. As a
-  separate check, a pull request that changes a fact named by a `fact:`
-  input must also change the record of every `derived` value that names
-  it, even when the derived value itself is unchanged.
+  kind for an input that is not. `notes` states the computation. The
+  validator rejects a cycle in the graph of `fact:` inputs, a value that
+  names itself included, because a `derived` value's rank (section 1) is
+  undefined on a cycle. As a separate check, a pull request that changes a
+  fact named by a `fact:` input must also change the record of every
+  `derived` value that names it, even when the derived value itself is
+  unchanged.
 
 ### 5. helia-estimator mapping
 
@@ -207,11 +223,11 @@ revision.
 
 ## Consequences
 
-- The validator checks each reference's form and that its document or
-  repository is in the register; it cannot check that the source states
-  the value. ADR 0006 (#11) compares `sdk` values, and `datasheet` values
-  such as region bases against register defines, with snapshots taken at
-  its own pinned revisions.
+- The validator checks each reference's form and that its document,
+  repository and any cited tag are in the register; it cannot check that
+  the source states the value. ADR 0006 (#11) compares `sdk` values, and
+  `datasheet` values such as region bases against register defines, with
+  snapshots taken at its own pinned revisions.
 - A record over a large group is cheap to write but makes every change
   inside the group touch it, and a re-verification of the group sets
   `verified_on` for every value in it. Authors are pushed toward records
@@ -225,11 +241,14 @@ revision.
   next release, and `catalogue_digest` excludes provenance (ADR 0004
   (#12)).
 - The source register is new data to maintain; a datasheet revision means
-  a new register row and re-verified records.
+  a new register row and re-verified records, and a newly cited tag means
+  a register entry with its commit SHA.
 - On acceptance, RFC 0002's glossary entry "provenance status" and P4
   (at `c3d3e78`, :70 and :82) drop "proposal pending ADR #6" and link
   here; the
-  fact-change pull request template (#17) asks for the record.
+  fact-change pull request template (#17) asks for the record. Issue #6's
+  other acceptance criterion, an updated schema section in RFC 0002, is
+  deferred to acceptance as well and tracked in #46.
 
 ## Open questions
 
