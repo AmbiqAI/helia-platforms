@@ -242,10 +242,11 @@ its own `interfaces` and `population`. The built-in `atomiq110_fpga_turbo`
 - J-Link device in both spellings, `ATOMIQ110` (AmbiqSuite) and
   `Atomiq110` (neuralspotx `debug.cmake`); no source says J-Link matches
   names case-insensitively, so the spelling is to be reconciled (#19).
-- `trace_clock_mhz: 48`, status `measured`. The trace clock is fixed at
-  the TPIU reset default, so it does not follow the CPU operating point;
-  it was measured once, and the source does not name the FPGA image
-  loaded. Source: neuralspotx `b930d59`,
+- `trace_clock_mhz: 48`, status `measured`. The 48 MHz was measured once,
+  on one FPGA image that the source does not name; whether the trace
+  clock varies by FPGA image is open (#19). The 48 MHz reference with
+  helia-profiler's 1 MHz SWO rate is untested (helia-profiler#465).
+  Source: neuralspotx `b930d59`,
   `src/neuralspotx/boards/atomiq110_fpga_turbo/debug.cmake:6-18`. The
   TPIU trace clock stays at its hardware reset default, which firmware
   cannot change and which measures 48 MHz. The firmware programs the SWO
