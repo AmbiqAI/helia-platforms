@@ -39,8 +39,7 @@ A fact read from a working tree cannot be reproduced. RFC 0001 appendix D's
 committed revision: zephyr `d8be6be`, the revision appendix G names, and
 `8f62a4ab` both give a 64 KB `tcm` and a 2752 KB `sram0` at `0x10010000`
 (`dts/arm/ambiq/ambiq_apollo4p.dtsi:64-73`, which the board does not
-override). The tree that row was read from has uncommitted edits to that
-file.
+override).
 
 The pins chain. neuralspotx `neuralspotx-v0.8.1` pins `nsx-ambiq-sdk` per
 SoC family: `v5.2.24` for the apollo2, apollo3, apollo4 and apollo5
@@ -88,7 +87,7 @@ revisions, checked out or archived at the commit SHA, never a working tree.
 | When | Job | Network |
 |---|---|---|
 | Every PR and push to `main` | `check-sources` compares the catalogue with the snapshots; the link-environment dataset is regenerated from them and must equal the committed dataset | none |
-| PRs that change the snapshots, the extractor or the built-in data | The extractor re-runs at each recorded `commit`; its output must equal the committed files byte for byte, and each `#<symbol>` reference in a snapshotted repository must name a single definition (section 3); built-in data changes run only this reference check. A job-level condition on the changed paths, not a workflow path filter, skips it otherwise, so it can be a required check | public checkouts, no token |
+| PRs that change the snapshots, the extractor, `uv.lock` (which pins the extractor's dependencies, `pcpp` among them) or the built-in data | The extractor re-runs at each recorded `commit`; its output must equal the committed files byte for byte, and each `#<symbol>` reference in a snapshotted repository must name a single definition (section 3); built-in data changes run only this reference check. A job-level condition on the changed paths, not a workflow path filter, skips it otherwise, so it can be a required check | public checkouts, no token |
 | Weekly | Step 1 re-extracts at each recorded `revision` and fails if a tag now resolves to another commit or the extractor breaks. Step 2 extracts neuralspotx `main`, the SDK tags that revision's lock names, and Zephyr `main`, and diffs the result against the snapshots | public checkouts, no token |
 
 The weekly job reports to one tracking issue. A step 1 failure, or a
@@ -236,7 +235,7 @@ and dataset rows.
 | `SdkFacts.build.abi`, `float_abi` | `NSX_ABI_FLAGS`, `NSX_FLOAT_ABI` | equal |
 | `SdkFacts.build.toolchains` | `toolchains` of each neuralspotx board of the SoC | equal for every board |
 | the Soc a board resolves to | `board.soc` | equal |
-| `SdkFacts.trace_clock_mhz`; a board's or implementation's `trace_clock_mhz` | `NSX_SEGGER_CPUFREQ` of the facts file; of the board's `debug.cmake` where it sets one | equal, in Hz |
+| `SdkFacts.trace_clock_mhz`; a board's or implementation's `trace_clock_mhz` | `NSX_SEGGER_CPUFREQ` of the facts file; of the board's `debug.cmake` where it sets one | equal after the snapshot's value, a string in Hz, is converted to MHz (`"48000000"` is 48) |
 | `flash_load_address()` per neuralspotx board, under its provisioning | `NSX_SEGGER_PF_ADDR` | equal |
 | `MemoryRegion.base`, `size` | register defines, through a per-SoC map of region to define expression | equal where a define exists |
 | every extracted linker and devicetree region | the catalogue's physical regions | lies inside one contiguous, gap-free run of them |
