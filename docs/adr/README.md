@@ -14,3 +14,4 @@ NNNN, Rejected.
 | ADR | Title | Status |
 |---|---|---|
 | 0001 | Design documents live in this repository | Accepted |
+| 0005 | Gate PyPI publication and choose the path to public | Proposed |
