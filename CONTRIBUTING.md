@@ -28,8 +28,8 @@ uv run pre-commit install
 ```
 
 Pre-commit hooks are required. They run ruff, ty, gitleaks, the uv lock
-check, and the deferred-work marker check on every commit. Run them across the
-whole tree with:
+check, the deferred-work marker check, and the local-path check on every
+commit. Run them across the whole tree with:
 
 ```sh
 uv run pre-commit run --all-files
@@ -40,6 +40,22 @@ uv run pre-commit run --all-files
 Deferred-work markers must be traceable. Write `TODO(#123): <one line>` with a
 real issue number, or `TODO(verify)` for a claim that still needs a source of
 record. Untagged markers are rejected by the `todo-markers` hook.
+
+## Local paths
+
+The repository is meant to be public, so committed text must not contain
+local filesystem paths: home directories (`/Users/<name>`, `/home/<name>`,
+and their Windows, WSL, Cygwin and Git Bash forms), macOS temporary
+directories, and cloud-sync folders such as iCloud Drive or OneDrive. Such a
+path resolves on one machine only. Cite other repositories by name and revision instead, for
+example `AmbiqAI/helia-aot` at `57a80e7c`. The `local-paths` hook rejects
+these paths, including symlink targets; `scripts/check_local_paths.py` holds
+the exact forms. A path inside a remote URL (`http`, `https`, `ftp`, `sftp`,
+`ssh`, `git` or `s3`, optionally prefixed with `git+`) is fine; under any
+other scheme, `file://` and editor URLs included, it is not.
+
+For the rare line where the path is itself the subject, add a
+`local-paths: ignore` comment to that line; it silences the whole line.
 
 ## Checks
 
