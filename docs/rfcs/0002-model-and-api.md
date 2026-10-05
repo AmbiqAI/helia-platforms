@@ -585,15 +585,14 @@ below is the resolved object returned by `resolve()`.
 | Native FP16 | `target.isa().supports_fp16` | package |
 | Is there an NPU, and which | `target.npu` (npu 0: `None` or `NpuInstance` with `.npu.model`, `.npu.macs_per_cycle`, `.npu.accelerator_config`); `target.npus()` for all | package |
 | Which core and NPU to compile for | core 0 and npu 0 implicitly; `platform.core` and `platform.npu` are future additive options | package default; choice is heliaAOT's |
-| Memories and byte sizes to budget | `target.budget(env)` with the link environment heliaAOT picks; `target.memories()` for physical regions | package; environment is heliaAOT's choice |
+| Memories and byte sizes to budget | On-chip RAM (DTCM, ITCM, SRAM) from `target.memories()`, NVM from `target.usable_nvm()` and external memories from `target.external_memories()`, for every module type. NVM leaves out the boot reservations and other cores' image slots, because planning into them would overwrite the bootloader or radio firmware. heliaAOT does not budget from a link environment (decided 2026-10-05, see #28) | package |
 | Is ITCM present | `target.has_region("itcm")` | package |
 | Minimum alignment | heliaAOT table keyed by `target.soc.id` (16 with MVE is a placement rule) | heliaAOT |
 | Order to try memories | heliaAOT policy; inputs available as `region.attachment` and `region.characterization` | heliaAOT |
 | CPU string for compiler flags | `target.core.id`, `target.core_options.fpu`, `.mve` | package |
 | Name to print and to key artefacts | `target.id` (canonical) and `target.aliases`; heliaAOT lowercases, and for an alias keeps the name passed and records the canonical id (decided) | package |
-| Zephyr section names for TCM | Zephyr `LinkEnvironment` from the optional dataset; heliaAOT template reads its section names | dataset, heliaAOT |
+| Zephyr section names for TCM | Zephyr `LinkEnvironment` from the optional dataset, for the zephyr module type only; heliaAOT template reads its section names. No module type uses a link environment or link family for budgets | dataset, heliaAOT |
 | SoC list for the nsx manifest | `catalogue.socs()` ids in neuralspotx spelling | package |
-| Which link family for a module type | heliaAOT policy (`zephyr` for the zephyr module type, `gnu` otherwise) | heliaAOT |
 
 ### helia-profiler
 
@@ -837,11 +836,14 @@ and Zephyr snapshots), `export`.
 
 ### Adapters, in the consumers
 
-- heliaAOT: `SocPlatform.from_target(t, module_type)` builds the flattened
-  view (name lowercased, `memories` from `t.budget(env)` with the
-  environment heliaAOT picks per module type, falling back to the
-  generated nsx-ambiq-sdk default environment for the board with a warning
-  if absent, plus `t.external_memories()`, `capabilities` from
+- heliaAOT: `SocPlatform.from_target(t)` builds the flattened view (name
+  lowercased, `memories` from the physical on-chip RAM regions in
+  `t.memories()`, NVM from `t.usable_nvm()` without the boot reservations
+  and other cores' image slots, and external memories from
+  `t.external_memories()`, the same for every module type; heliaAOT
+  passes no `boot=`, so the board's provisioning, else the
+  implementation's, else `default_boot` selects the boot configuration;
+  `capabilities` from
   `t.capabilities` mapped onto its enum plus its own policy tags (`MCU`), `min_alignment` and `preferred_memory_order`
   from heliaAOT tables keyed by `t.soc.id`). `platform.overlay:` and
   `platform.soc:` feed `load_overlay`.
