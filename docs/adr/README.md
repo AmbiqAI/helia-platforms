@@ -14,3 +14,4 @@ NNNN, Rejected.
 | ADR | Title | Status |
 |---|---|---|
 | 0001 | Design documents live in this repository | Accepted |
+| 0004 | Version the schema separately and ship data corrections as patches | Proposed |
