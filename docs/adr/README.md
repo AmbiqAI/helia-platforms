@@ -14,3 +14,4 @@ NNNN, Rejected.
 | ADR | Title | Status |
 |---|---|---|
 | 0001 | Design documents live in this repository | Accepted |
+| 0006 | Check the catalogue against committed source snapshots | Proposed |
