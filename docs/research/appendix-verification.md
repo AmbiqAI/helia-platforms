@@ -13,7 +13,7 @@
 
 - **Revision:** as in the table
 - **Read on:** 2026-10-05
-- **Method:** every file was read at the named revision (`git show <rev>:<path>` for the git repositories, checkouts of the two SDK tags with clean working trees). C expressions and hex sizes were evaluated with a throwaway script. Datasheet facts are recorded in [datasheets.md](datasheets.md) and are not sources here.
+- **Method:** every file was read at its named revision. C expressions and hex sizes were evaluated with a throwaway script. Datasheet facts are recorded in [datasheets.md](datasheets.md) and are not sources here.
 
 This note verifies the appendix rather than replacing it. Of 163 rows, 146 match, 11 differ and 6 cannot be checked from these sources. Four of the eleven differing rows (J1, J5, J21, J25) record heliaAOT sizes that helia-aot has since changed to linker-window sizes. Under the #28 decision, J1, J21 and J25 are parity allow-list rows that the adoption changes, and J5's 4128768 B is the value #28 keeps. Five are errors in the appendix: the Apollo4 board PSRAM, the explanation of the Apollo5 gcc TCM gap, and the Zephyr `apollo4p_evb` TCM and SRAM split. The other two are PSRAM rows where the SDK and the board guides disagree. For `apollo510dL_evb` the appendix agrees with the board guide, and the SDK claims a PSRAM that is not fitted on revision 2.0 boards. For `apollo330mP_evb` the appendix agrees with the SDK's 32 MB, and the board guide says the PSRAM is not fitted on revision 2.0 boards. All are listed under [Disagreements](#disagreements), together with the places where helia-aot or helia-profiler today carry a value the sources contradict.
 
