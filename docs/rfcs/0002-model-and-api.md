@@ -290,6 +290,11 @@ BootConfig: name, reserved: [(region, offset, size, purpose)],
   `tools/apollo4_scripts/am_defines.py` sets 0xC000 and is recorded as a
   conflict ([research/ambiqsuite.md](../research/ambiqsuite.md)). The SBL
   reservation on Lite and 330 Plus parts is also an SDK convention.
+- The atomiq110 Soc's `default_boot` is the no-bootloader layout, because
+  the FPGA is the only atomiq110 hardware today (decided 2026-10-05, see
+  #28). nsx-ambiq-sdk makes the same choice and keeps its sbl scripts for
+  future silicon (`v5.2.24` `cmake/socs/atomiq110.cmake:20-23`). Revisit
+  this default when atomiq110 silicon ships with an SBL.
 - An Implementation can replace the set and the default. The atomiq110
   FPGA declares only its no-bootloader layout; its flash addresses are the
   silicon ones (AmbiqSuite `tools/atomiq110_scripts/jlink-ota.txt`).
@@ -585,7 +590,7 @@ below is the resolved object returned by `resolve()`.
 | Native FP16 | `target.isa().supports_fp16` | package |
 | Is there an NPU, and which | `target.npu` (npu 0: `None` or `NpuInstance` with `.npu.model`, `.npu.macs_per_cycle`, `.npu.accelerator_config`); `target.npus()` for all | package |
 | Which core and NPU to compile for | core 0 and npu 0 implicitly; `platform.core` and `platform.npu` are future additive options | package default; choice is heliaAOT's |
-| Memories and byte sizes to budget | On-chip RAM (DTCM, ITCM, SRAM) from `target.memories()`, NVM from `target.usable_nvm()` and external memories from `target.external_memories()`, for every module type. NVM leaves out the boot reservations and other cores' image slots, because planning into them would overwrite the bootloader or radio firmware. heliaAOT does not budget from a link environment (decided 2026-10-05, see #28) | package |
+| Memories and byte sizes to budget | On-chip RAM (DTCM, ITCM, SRAM) from `target.memories()`, except atomiq110's HBLRAM until its FPGA placement is confirmed (#19), NVM from `target.usable_nvm()` and external memories from `target.external_memories()`, for every module type. NVM leaves out the boot reservations and other cores' image slots, because planning into them would overwrite the bootloader or radio firmware. heliaAOT does not budget from a link environment (decided 2026-10-05, see #28) | package |
 | Is ITCM present | `target.has_region("itcm")` | package |
 | Minimum alignment | heliaAOT table keyed by `target.soc.id` (16 with MVE is a placement rule) | heliaAOT |
 | Order to try memories | heliaAOT policy; inputs available as `region.attachment` and `region.characterization` | heliaAOT |
@@ -838,8 +843,10 @@ and Zephyr snapshots), `export`.
 
 - heliaAOT: `SocPlatform.from_target(t)` builds the flattened view (name
   lowercased, `memories` from the physical on-chip RAM regions in
-  `t.memories()`, NVM from `t.usable_nvm()` without the boot reservations
-  and other cores' image slots, and external memories from
+  `t.memories()`, leaving out atomiq110's `hblram` region until its
+  placement on the FPGA is confirmed (#19), NVM from `t.usable_nvm()`
+  without the boot reservations and other cores' image slots, and
+  external memories from
   `t.external_memories()`, the same for every module type; heliaAOT
   passes no `boot=`, so the board's provisioning, else the
   implementation's, else `default_boot` selects the boot configuration;

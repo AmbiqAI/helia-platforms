@@ -75,7 +75,7 @@ today's for every name.
 
 | Output that changes | Parity test (#13) |
 |---|---|
-| Memory budgets come from the catalogue for every module type: on-chip RAM is the physical region size from `target.memories()`, NVM is `target.usable_nvm()`, and external memories come from `target.external_memories()`; no link environment is a budget source (decided 2026-10-05, see #28). `usable_nvm()` subtracts the boot reservations and other cores' image slots of the selected boot configuration, because planning into them would overwrite the bootloader or radio firmware; it does not subtract stack and heap carve-outs. A plan within a physical RAM size can therefore exceed what a linker script or devicetree gives the program, for example the nsx default script's 496 KB of DTCM on Apollo510 or Zephyr's 2 MB `sram0` on `apollo510_evb` against 3 MB of SSRAM; heliaAOT does not check that (accepted, decided 2026-10-05, see #28) | Budget parity: per target and module type, budgets equal today's `platforms.py` figures at `ea5cd6c0` except the rows in Pending data corrections and in this table |
+| Memory budgets come from the catalogue for every module type: on-chip RAM is the physical region size from `target.memories()`, except `atomiq110`'s HBLRAM (see below the table), NVM is `target.usable_nvm()`, and external memories come from `target.external_memories()`; no link environment is a budget source (decided 2026-10-05, see #28). `usable_nvm()` subtracts the boot reservations and other cores' image slots of the selected boot configuration, because planning into them would overwrite the bootloader or radio firmware; it does not subtract stack and heap carve-outs. A plan within a physical RAM size can therefore exceed what a linker script or devicetree gives the program, for example the nsx default script's 496 KB of DTCM on Apollo510 or Zephyr's 2 MB `sram0` on `apollo510_evb` against 3 MB of SSRAM. The largest case is apollo4p: the nsx scripts link SSRAM0 only (`SHARED_SRAM`, 1048576 bytes, at nsx-ambiq-sdk `v5.2.24` `modules/nsx-core/src/apollo4p/gcc/linker_script.ld:12`; RFC 0001 appendix D) against a 2432 KB SRAM budget. The budgets stay physical (accepted, decided 2026-10-05, see #28); heliaAOT should instead warn when a plan exceeds the SDK window of the selected link environment, using the optional link-environment dataset where it covers the target (#28) | Budget parity: per target and module type, budgets equal today's `platforms.py` figures at `ea5cd6c0` except the rows in Pending data corrections and in this table |
 | `apollo510_evb` and `apollo510b_evb` DTCM changes from 507904 bytes (`platforms.py:498` and `:547`, `ea5cd6c0`; `MCU_TCM` in nsx-ambiq-sdk `v5.2.24` `modules/nsx-core/src/apollo510/gcc/linker_script_sbl.ld:12` and `apollo510b/gcc/linker_script_sbl.ld:12`) to the physical 524288 (DTCM 512 KB, RFC 0001 appendix D) | Budget parity, allow-listed: RAM budgets are physical sizes (decided 2026-10-05, see #28) |
 | `apollo330mp_evb` and `apollo510l_evb` DTCM changes from 245760 bytes (`platforms.py:458` and `:525`; `MCU_TCM` in nsx-ambiq-sdk `v5.2.24` `modules/nsx-core/src/apollo330P/gcc/linker_script_sbl.ld:11` and `apollo510L/gcc/linker_script_sbl.ld:11`) to the physical 262144 (DTCM 256 KB, RFC 0001 appendix D) | Budget parity, allow-listed: RAM budgets are physical sizes (decided 2026-10-05, see #28) |
 | `atomiq110` DTCM changes from 507904 bytes (`496 * 1024` at `platforms.py:593`; `MCU_TCM` in nsx-ambiq-sdk `v5.2.24` `modules/nsx-core/src/atomiq110/gcc/linker_script_nbl.ld:19`) to the physical 524288 (DTCM 512 KB, RFC 0001 appendix D) | Budget parity, allow-listed: RAM budgets are physical sizes (decided 2026-10-05, see #28) |
@@ -94,10 +94,21 @@ Two MRAM budgets do not change under `usable_nvm()`. `apollo510_evb` and
 `apollo510b_evb` keep 4128768: 4 MB of NVM less the 64 KB NVM-SBL
 partition (DS-A510 p35, DS-A510B p34), equal to `platforms.py:496` and
 `:545` at `ea5cd6c0`. `atomiq110` keeps 4194304: its Soc `default_boot` is
-the no-bootloader layout (decided 2026-10-05, see #28), and it has no
-radio-core slot. The SDK defaults to nbl because its only atomiq110 board is
-the FPGA, and keeps sbl scripts for future silicon (nsx-ambiq-sdk
-`v5.2.24` `cmake/socs/atomiq110.cmake:20-23`).
+the no-bootloader layout (RFC 0002 Boot configurations; decided 2026-10-05,
+see #28), and it has no radio-core slot. The SDK defaults to nbl because its
+only atomiq110 board is the FPGA, and keeps sbl scripts for future silicon
+(nsx-ambiq-sdk `v5.2.24` `cmake/socs/atomiq110.cmake:20-23`).
+
+`atomiq110` SRAM does not change either: it stays 3145728 (3072 KB of
+SSRAM, `platforms.py:592` at `ea5cd6c0`). The catalogue records HBLRAM on
+atomiq110 as a physical region of 13312 KB at 0x60000000 (nsx-ambiq-sdk
+`v5.2.24`
+`modules/nsx-ambiqsuite/sdk/mcu/atomiq110/regs/am_reg_base_addresses.h:41-42`),
+but the heliaAOT adapter leaves it out of the default budget (the
+`memories` of `SocPlatform`) until its placement on the FPGA is confirmed
+(#19).
+Counting it as SRAM would raise the budget from 3 MB to 16 MB, which this
+table does not allow-list.
 
 ### Custom definitions (`platform.*`)
 
