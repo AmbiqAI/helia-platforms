@@ -45,7 +45,7 @@ record. Untagged markers are rejected by the `todo-markers` hook.
 
 The repository is meant to be public, so committed text must not contain
 local filesystem paths: home directories (`/Users/<name>`, `/home/<name>`,
-and their Windows, WSL, Cygwin and Git Bash forms), macOS temporary
+and their Windows, WSL `/mnt/<drive>`, Cygwin and Git Bash forms), macOS temporary
 directories, and cloud-sync folders such as iCloud Drive or OneDrive. Such a
 path resolves on one machine only. Cite other repositories by name and revision instead, for
 example `AmbiqAI/helia-aot` at `57a80e7c`. The `local-paths` hook rejects
@@ -56,6 +56,9 @@ other scheme, `file://` and editor URLs included, it is not.
 
 For the rare line where the path is itself the subject, add a
 `local-paths: ignore` comment to that line; it silences the whole line.
+The hook skips `tests/test_check_local_paths.py` entirely, because that
+file is made of local-path examples, so review changes to it by hand.
+Known gaps in what the hook catches are tracked in #44.
 
 ## Checks
 
