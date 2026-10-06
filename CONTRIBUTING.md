@@ -27,9 +27,10 @@ built-in catalogue, the source register `sources.yaml` or the release
 allow-list `unverified.yaml`) or under `snapshots/` uses the fact-change
 template, `.github/PULL_REQUEST_TEMPLATE/fact-change.md`, instead of the
 default one. The template asks for the provenance record of each changed
-fact, as ADR 0003 defines it, and for the checks of ADR 0003 section 4.
-Select it with `gh pr create --template fact-change.md`, or by adding
-`?quick_pull=1&template=fact-change.md` to the GitHub compare URL.
+fact, as ADR 0003 defines it, for the checks of ADR 0003 section 4, and
+for confirmation that the change adds no unreleased hardware, tool policy or
+energy data. Select it with `gh pr create --template fact-change.md`, or by
+adding `?quick_pull=1&template=fact-change.md` to the GitHub compare URL.
 
 `.github/CODEOWNERS` gives each data file and directory, the schema
 directory and the snapshot directory its own entry.

@@ -5,12 +5,12 @@ revision, a measurement, a snapshot refresh, an issue. -->
 
 Closes #
 
-<!-- The PR title carries the commit type (ADR 0004 section 2):
-`fix(data):` for a corrected value, `fix(data)!:` for a removed collection
-member, `feat(data)!:` for a removed built-in id or alias, `feat(data):` for
-a new entry, and `chore(data):` for a change to provenance only, to the
-source register or allow-list, or for a snapshot refresh that changes no
-fact. A PR that spans several of these takes the one with the largest bump. -->
+<!-- The PR title carries the commit type (ADR 0004 section 2). `fix(data):`
+corrects a value; `fix(data)!:` removes a collection member; `feat(data)!:`
+removes a built-in id or alias; `feat(data):` adds an entry, or renames a
+built-in id and keeps the old id as an alias; `chore(data):` changes only
+provenance, the source register or allow-list, or refreshes snapshots with no
+fact change. A PR that spans several takes the type with the largest bump. -->
 
 ## Changed facts
 
@@ -75,6 +75,24 @@ each box and the reviewer checks it again. -->
 - [ ] Each `sdk` record that cites a snapshotted repository (nsx-ambiq-sdk,
       neuralspotx, zephyr, hal_ambiq) cites a `revision` that the committed
       snapshots hold (ADR 0006).
+
+## Catalogue scope
+
+<!-- No check can tell whether hardware is released, and no CI job checks
+the other two rules yet. The author confirms each box and the reviewer
+checks it again. -->
+
+- [ ] No entry this PR adds describes unreleased hardware. The rule covers
+      every entity kind, including a new board or add-on for a released SoC
+      (ADR 0005 point 1), and `release_status: public` does not satisfy it
+      on its own.
+- [ ] No built-in entry carries tool policy: no tool section, no
+      `extensions` map and no setting such as `preferred_memory_order`
+      (RFC 0002 principle P1). Each tool keeps its policy, keyed by
+      canonical id.
+- [ ] No entry carries energy data, such as energy per cycle or per bit;
+      the estimator's energy coefficients stay in helia-estimator (RFC 0002,
+      the `MemoryRegion` paragraph of the Soc section).
 
 ## Snapshot refresh (ADR 0006)
 
