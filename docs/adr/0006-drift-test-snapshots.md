@@ -284,8 +284,8 @@ and, in the same PR, the catalogue, provenance and dataset changes that
 Snapshots are never edited by hand.
 
 Review: one approving review from a code owner of the snapshot directory
-(per-directory owners are #17; until then `.github/CODEOWNERS` names one
-owner for every path). When a changed value is one a consumer reads (a
+(`.github/CODEOWNERS` has an entry for `/snapshots/`, which today names the
+same owner as every other path). When a changed value is one a consumer reads (a
 window, a flash load address, a trace clock), a maintainer of that consumer
 also reviews. A fact sourced from a snapshot carries an `sdk` provenance
 record, as ADR 0003 (#6) defines it, citing the upstream repository at the snapshot's
@@ -326,8 +326,7 @@ are decimal.
 To follow: the extractor, the snapshots, `check-sources` and the three CI
 jobs, under #11; a `.gitattributes` line `snapshots/*.json text eol=lf`, so
 a checkout with CRLF conversion keeps the bytes regeneration compares; the
-exceptions list, starting with the apollo330P and apollo510L scripts; the
-snapshot directory's CODEOWNERS entry (#17). On acceptance this record
+exceptions list, starting with the apollo330P and apollo510L scripts. On acceptance this record
 replaces RFC 0001 appendix G's table and review item 3.2's sentence "The
 Zephyr comparison can stay live", and RFC 0002 links here from `check-sources` and Link
 environments.

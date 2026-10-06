@@ -7,9 +7,10 @@ Closes #
 
 <!-- The PR title carries the commit type (ADR 0004 section 2):
 `fix(data):` for a corrected value, `fix(data)!:` for a removed collection
-member, `feat(data):` for a new entry, and `chore(data):` for a change to
-provenance only, to the source register or allow-list, or for a snapshot
-refresh that changes no fact. -->
+member, `feat(data)!:` for a removed built-in id or alias, `feat(data):` for
+a new entry, and `chore(data):` for a change to provenance only, to the
+source register or allow-list, or for a snapshot refresh that changes no
+fact. A PR that spans several of these takes the one with the largest bump. -->
 
 ## Changed facts
 
