@@ -26,16 +26,48 @@ consumer's current data and what the sources of record say. None is
 applied until verified; each parity allow-list must carry the row with its
 reason.
 
+helia-profiler citations are at `ed2f0a15`; line numbers are in
+`src/helia_profiler/platform/board.py` unless the row names another file.
+"nsx-psram" is `modules/nsx-psram/` in nsx-ambiq-sdk
+`v5.2.24`. Its `CMakeLists.txt:31-37` states that the plain and Blue
+apollo4l and apollo4p EVBs do not populate PSRAM, and its `README.md:90-95`
+names `apollo4p_evb_disp_shield_rev2` as the only supported Apollo4 board.
+
 | Fact | Current data | Source says | Consumers affected | Source |
 |---|---|---|---|---|
-| `apollo4p_evb` PSRAM | helia-profiler 32 MB | No PSRAM on the base board; the Display Kit is the only PSRAM source and fits only the non-Blue EVB | helia-profiler | research/datasheets.md section 7 (QS-A4P p10; QS-A4PDK p10, p12) |
-| `apollo4p_blue_kbr_evb` PSRAM | helia-profiler 32 MB | None listed, and the Display Kit is not compatible with the Blue EVB | helia-profiler | section 7 (QS-A4BP p10; QS-A4PDK p10) |
-| `apollo330mP_evb` PSRAM | helia-profiler 32 MB, inherited from `apollo330P` | Not populated on revision 2.0 | helia-profiler | section 7 (QS-A330MP p8, p10, p30) |
-| `apollo3p_evb`, `apollo3p_evb_cygnus` PSRAM | helia-profiler 8 MB | Not declared in the AmbiqSuite BSP and not mentioned in the guide | helia-profiler | research/ambiqsuite.md; section 7 (QS-A3BP p7) |
-| apollo4p SSRAM | heliaAOT `apollo4p_evb` SRAM 1 MB; helia-profiler `sram_kb=1024` | 2048 kB SSRAM plus 384 kB extended SRAM plus 384 kB TCM | heliaAOT, helia-profiler | section 7 (DS-A4P p52, p58) |
+| `apollo4p_evb` PSRAM | helia-profiler 32 MB (line 93) | No PSRAM on the base board; the Display Kit is the only PSRAM source and fits only the non-Blue EVB. nsx-psram agrees | helia-profiler | research/datasheets.md section 7 (QS-A4P p10; QS-A4PDK p10, p12); nsx-psram |
+| `apollo4p_blue_kbr_evb` PSRAM | helia-profiler 32 MB (line 128) | None listed, and the Display Kit is not compatible with the Blue EVB. nsx-psram agrees | helia-profiler | section 7 (QS-A4BP p10; QS-A4PDK p10); nsx-psram |
+| `apollo4l_evb`, `apollo4l_blue_evb`, `apollo4p_blue_kxr_evb` PSRAM | helia-profiler 32 MB (lines 104, 115, 141) | Not populated, per nsx-psram. research/datasheets.md has no quick-start guide for these three boards | helia-profiler | nsx-psram |
+| `apollo330mP_evb` PSRAM | helia-profiler 32 MB, inherited from `apollo330P` (`src/helia_profiler/platform/soc.py:583`) | The revision 2.0 guide and the owner statement say the part is not fitted. nsx-psram assumes it is fitted (`CMakeLists.txt:60-64`) and maps the board to the "BA" driver as unvalidated, with a conservative 32 MB default; that is the same figure as helia-profiler's, which does not state its own source. helia-profiler's `apollo330P` memory comment describes a "Rev1 EVB" (`src/helia_profiler/platform/soc.py:565`), so the difference is a board-revision question | helia-profiler | section 7 (QS-A330MP p8, p10, p30) and Owner statements in research/datasheets.md; nsx-psram `README.md:25`, `CMakeLists.txt:60-64, 130-137, 150-152` |
+| `apollo3p_evb` PSRAM | helia-profiler 8 MB (line 67) | Not mentioned in the guide. The nsx-ambiq-sdk `v5.2.24` BSP sets `AM_BSP_MSPI_PSRAM_INST 0` but defines no PSRAM pins, only generic MSPI0, MSPI1 and MSPI2 pins; nsx-psram still builds its 8 MB APS6404L driver for the board. Under the rule below, the board's `population` carries no PSRAM, and the 8 MB moves to an add-on (an APS6404L on MSPI0) under RFC 0002's composed external memory ([0002-model-and-api.md](0002-model-and-api.md), "Board, external memory and add-ons") | helia-profiler | section 7 (QS-A3BP p7); nsx-ambiq-sdk `v5.2.24` `modules/nsx-ambiqsuite/sdk/boards/apollo3p_evb/bsp/am_bsp.h:118`, `bsp/am_bsp_pins.h:469-679`; nsx-psram `CMakeLists.txt:21-29` |
+| apollo4p SSRAM | heliaAOT `apollo4p_evb`, `apollo4p_blue_kbr_evb` and `apollo4p_blue_kxr_evb` SRAM 1 MB; helia-profiler `sram_kb=1024` | 2048 kB SSRAM plus 384 kB extended SRAM plus 384 kB TCM | heliaAOT, helia-profiler | section 7 (DS-A4P p52, p58) |
 | apollo3p MRAM and SRAM | helia-profiler `mram_kb=2000`, `sram_kb=700` | 2 MB flash; 704 KB main SRAM plus 64 KB TCM | helia-profiler | section 7 (DS-A3P p2, p82) |
-| apollo510L and apollo330P NVM | helia-profiler `mram_kb=1984` (the SDK window from 0x00410000); heliaAOT `apollo330mp_evb` and `apollo510l_evb` budgets from the same window | NVM-APPL on the fitted 510D Lite and 330M Plus ends at 0x00593FFF; NVM-M41 is reserved per part | heliaAOT, helia-profiler | section 7 and section 3 (DS-A510LS p33; DS-A330PS p33) |
+| apollo510L and apollo330P NVM | helia-profiler `mram_kb=1984` (the SDK window from 0x00410000); heliaAOT `apollo330mp_evb` and `apollo510l_evb` MRAM 2031616 (`platforms.py:456` and `:523`, `ea5cd6c0`) | NVM-APPL on the fitted 510D Lite and 330M Plus ends at 0x00593FFF; NVM-M41 is reserved per part | heliaAOT, helia-profiler | section 7 and section 3 (DS-A510LS p33; DS-A330PS p33) |
 | apollo510L and apollo330P clocks | helia-profiler lp 96, hp 250 | Two HP modes: HP1 192 MHz and HP2 250 MHz | helia-profiler | section 7 (DS-A510LS p46; DS-A330PS p46) |
+
+Both Apollo3 Plus PSRAM decisions follow one rule: a board's `population`
+records a part only where the board is wired for one, until a hardware
+check (#19) confirms what is fitted. In nsx-ambiq-sdk
+`v5.2.24`, the `apollo3p_evb_cygnus` BSP defines PSRAM pins on MSPI1
+(`modules/nsx-ambiqsuite/sdk/boards/apollo3p_evb_cygnus/bsp/am_bsp_pins.h:966-1011`):
+a PSRAM-only chip-select on pad 69, and data pins D0-D3 and a clock pin
+that the BSP marks as shared with FLASH1. It also sets
+`AM_BSP_MSPI_PSRAM_INST 1` (`bsp/am_bsp.h:118`). The `apollo3p_evb`
+BSP names MSPI0 as the PSRAM instance but defines no PSRAM pins.
+
+`apollo3p_evb_cygnus` therefore keeps its 8 MB (helia-profiler line 78)
+and is not a pending correction. The PSRAM pin definitions show that the
+board is wired for PSRAM, not that the part is fitted, so whether it is
+fitted is a hardware question (#19).
+
+An inference, not proof, supports treating `apollo3p_evb`'s MSPI0 as an
+add-on interface. Its generic MSPI0 pins use pads 22 (D0) and 23 (D3)
+(`am_bsp_pins.h:490, 514`), which the BSP also assigns to COM_UART TX and
+RX (`am_bsp_pins.h:105, 113`). helia-profiler records that pads 22 and 23
+are the J-Link virtual-COM UART that carries its `uart` transport
+(`board.py:57-61`). A part on MSPI0 would therefore share the console UART
+pads. The cygnus PSRAM pins are pads 51 to 54, 59 and 69, which do not
+clash with its COM_UART pads 22 and 23 (the same lines in the cygnus BSP).
 
 ## heliaAOT
 
@@ -75,12 +107,40 @@ today's for every name.
 
 | Output that changes | Parity test (#13) |
 |---|---|
-| Memory budgets come from a link environment chosen per module type; the fallback is the generated nsx-ambiq-sdk default environment for the board, warning if absent. External memories, which the SDK scripts do not link, come from `target.external_memories()` | Budget parity: per target and module type, budgets equal today's `platforms.py` figures except the rows in Pending data corrections and in this table |
+| Memory budgets come from the catalogue for every module type: on-chip RAM is the physical region size from `target.memories()`, except `atomiq110`'s HBLRAM (see below the table), NVM is `target.usable_nvm()`, and external memories come from `target.external_memories()`; no link environment is a budget source (decided 2026-10-05, see #28). `usable_nvm()` subtracts the boot reservations and other cores' image slots of the selected boot configuration, because planning into them would overwrite the bootloader or radio firmware; it does not subtract stack and heap carve-outs. A plan within a physical RAM size can therefore exceed what a linker script or devicetree gives the program, for example the nsx default script's 496 KB of DTCM on Apollo510 or Zephyr's 2 MB `sram0` on `apollo510_evb` against 3 MB of SSRAM. The largest case is apollo4p: the nsx scripts link SSRAM0 only (`SHARED_SRAM`, 1048576 bytes, at nsx-ambiq-sdk `v5.2.24` `modules/nsx-core/src/apollo4p/gcc/linker_script.ld:12`; RFC 0001 appendix D) against a 2432 KB SRAM budget. The budgets stay physical (accepted, decided 2026-10-05, see #28); heliaAOT should instead warn when a plan exceeds the SDK window of the selected link environment, using the optional link-environment dataset where it covers the target (#28) | Budget parity: per target and module type, budgets equal today's `platforms.py` figures at `ea5cd6c0` except the rows in Pending data corrections and in this table |
+| `apollo510_evb` and `apollo510b_evb` DTCM changes from 507904 bytes (`platforms.py:498` and `:547`, `ea5cd6c0`; `MCU_TCM` in nsx-ambiq-sdk `v5.2.24` `modules/nsx-core/src/apollo510/gcc/linker_script_sbl.ld:12` and `apollo510b/gcc/linker_script_sbl.ld:12`) to the physical 524288 (DTCM 512 KB, RFC 0001 appendix D) | Budget parity, allow-listed: RAM budgets are physical sizes (decided 2026-10-05, see #28) |
+| `apollo330mp_evb` and `apollo510l_evb` DTCM changes from 245760 bytes (`platforms.py:458` and `:525`; `MCU_TCM` in nsx-ambiq-sdk `v5.2.24` `modules/nsx-core/src/apollo330P/gcc/linker_script_sbl.ld:11` and `apollo510L/gcc/linker_script_sbl.ld:11`) to the physical 262144 (DTCM 256 KB, RFC 0001 appendix D) | Budget parity, allow-listed: RAM budgets are physical sizes (decided 2026-10-05, see #28) |
+| `atomiq110` DTCM changes from 507904 bytes (`496 * 1024` at `platforms.py:593`; `MCU_TCM` in nsx-ambiq-sdk `v5.2.24` `modules/nsx-core/src/atomiq110/gcc/linker_script_nbl.ld:19`) to the physical 524288 (DTCM 512 KB, RFC 0001 appendix D) | Budget parity, allow-listed: RAM budgets are physical sizes (decided 2026-10-05, see #28) |
+| `apollo330mp_evb` and `apollo510l_evb` MRAM changes from 2031616 bytes (`platforms.py:456` and `:523`; the nsx window, which runs into NVM-M41) to 1589248 (1552 KB) | Budget parity, allow-listed: `usable_nvm()` with the `sbl` configuration the EVBs ship with (QS-A510DL p7, QS-A330MP p7), so the application starts at 0x00410000. NVM-APPL on the fitted 510D Lite and 330M Plus (AP510DLA-CBR, QS-A510DL p10; AP330MPA-CBR, QS-A330MP p10) ends at 0x00593FFF, above which is the 432 KB NVM-M41 radio slot (DS-A510LS p33; DS-A330PS p33). 0x00594000 - 0x00410000 = 1589248. Depends on the apollo510L and apollo330P NVM row in Pending data corrections (#14) |
+| `apollo4p_evb`, `apollo4p_blue_kbr_evb`, `apollo4p_blue_kxr_evb`, `apollo4l_evb` and `apollo4l_blue_evb` MRAM changes from 2048000 bytes (`2000 * 1024` at `platforms.py:385`, `:397`, `:409`, `:421`, `:433`) to 1998848 (1952 KB) | Budget parity, allow-listed: `usable_nvm()` with the `sbl` configuration. `apollo4p_evb` and `apollo4p_blue_kbr_evb` ship SBL-provisioned (QS-A4P p10-11, QS-A4BP p10-11, research/datasheets.md section 2); the other three boards have no guide in the inventory and rest on RFC 0002's statement that Ambiq EVBs ship SBL-provisioned. The application starts at 0x18000 (AmbiqSuite Apollo4 linker scripts; nsx-ambiq-sdk `v5.2.24` `modules/nsx-core/src/apollo4p/gcc/linker_script.ld:10`; RFC 0002 Boot configurations records the 0xC000 in `am_defines.py` as a conflict). 2048 KB of MRAM less 96 KB: 2097152 - 98304 = 1998848 |
+| `apollo3_blue_plus_evb` and `apollo3p_evb` MRAM changes from 2097152 bytes (`2048 * 1024` at `platforms.py:348` and `:365`) to 2048000 (2000 KB) | Budget parity, allow-listed: `usable_nvm()` with the `sbl` configuration the Apollo3 Blue Plus EVB ships with (QS-A3BP p8, research/datasheets.md section 2). The application starts at 0xC000 (RFC 0002 Boot configurations; nsx-ambiq-sdk `v5.2.24` `modules/nsx-core/src/apollo3p/gcc/linker_script.ld:10`). 2048 KB of flash less 48 KB: 2097152 - 49152 = 2048000 |
+| `apollo3_evb`, `apollo3_blue_evb` and `apollo3_blue_thin_evb` MRAM changes from 1048576 bytes (`1024 * 1024` at `platforms.py:300`, `:316`, `:332`) to 999424 (976 KB) | Budget parity, allow-listed: `usable_nvm()` with the `sbl` configuration. These boards have no guide in the inventory and rest on RFC 0002's statement that Ambiq EVBs ship SBL-provisioned. The application starts at 0xC000 (nsx-ambiq-sdk `v5.2.24` `modules/nsx-core/src/apollo3/gcc/linker_script.ld:10`). 1024 KB of flash less 48 KB: 1048576 - 49152 = 999424 |
+| `apollo4p_evb`, `apollo4p_blue_kbr_evb` and `apollo4p_blue_kxr_evb` SRAM changes from 1048576 bytes (`platforms.py:385`, `:397`, `:409`) to 2490368 (2432 KB), the sum of the physical SRAM-kind regions SSRAM0 1024 KB, SSRAM1 1024 KB and EXTRAM 384 KB (RFC 0001 appendix D); pending verification in the apollo4p SSRAM row of Pending data corrections (#14) | Budget parity, allow-listed: RAM budgets are physical sizes (decided 2026-10-05, see #28) |
 | `apollo510_evb` PSRAM changes from 32168 KB (the literal `32168 * 1024` at `platforms.py:500`, `ea5cd6c0`) to 64 MB, hardware-measured (research/datasheets.md, Hardware-validated facts) | Budget parity, allow-listed with that reason |
 | `apollo510b_evb` gains a PSRAM region and the `PSRAM` capability (64 MB, same measurement) | Budget and capability parity, allow-listed |
 | Capabilities are derived; `BLE` and `USB` leave built-in lists. `MCU` is a heliaAOT policy tag its adapter adds, not a derived capability. `PSRAM` follows `target.has_external_memory("psram")` | Capability parity: per target, the adapter's set equals today's list minus `BLE` and `USB`, plus the `apollo510b_evb` `PSRAM` row |
 | `min_alignment` and `preferred_memory_order` come from heliaAOT tables keyed by `target.soc.id` | Policy-table parity: values per target unchanged |
 | The nsx manifest SoC list uses neuralspotx spelling (`apollo510L`, not `apollo510l`) | Manifest parity: `compatibility.socs` equals `catalogue.socs()` ids for the listed SoCs |
+
+Two MRAM budgets do not change under `usable_nvm()`. `apollo510_evb` and
+`apollo510b_evb` keep 4128768: 4 MB of NVM less the 64 KB NVM-SBL
+partition (DS-A510 p35, DS-A510B p34), equal to `platforms.py:496` and
+`:545` at `ea5cd6c0`. `atomiq110` keeps 4194304: its Soc `default_boot` is
+the no-bootloader layout (RFC 0002 Boot configurations; decided 2026-10-05,
+see #28), and it has no radio-core slot. The SDK defaults to nbl because its
+only atomiq110 board is the FPGA, and keeps sbl scripts for future silicon
+(nsx-ambiq-sdk `v5.2.24` `cmake/socs/atomiq110.cmake:20-23`).
+
+`atomiq110` SRAM does not change either: it stays 3145728 (3072 KB of
+SSRAM, `platforms.py:592` at `ea5cd6c0`). The catalogue records HBLRAM on
+atomiq110 as a physical region of 13312 KB at 0x60000000 (nsx-ambiq-sdk
+`v5.2.24`
+`modules/nsx-ambiqsuite/sdk/mcu/atomiq110/regs/am_reg_base_addresses.h:41-42`),
+but the heliaAOT adapter leaves it out of the default budget (the
+`memories` of `SocPlatform`) until its placement on the FPGA is confirmed
+(#19).
+Counting it as SRAM would raise the budget from 3 MB to 16 MB, which this
+table does not allow-list.
 
 ### Custom definitions (`platform.*`)
 
@@ -96,8 +156,9 @@ today's for every name.
 
 | Output that changes | Parity test (#13) |
 |---|---|
-| PSRAM removed from `apollo4p_evb`, `apollo4p_blue_kbr_evb` and `apollo330mP_evb`, and from `apollo3p_evb`, once verified (Pending data corrections) | Memory parity: per board, regions equal today's `MemoryLayout` except the allow-listed rows |
+| PSRAM removed from the five Apollo4 boards (`apollo4p_evb`, `apollo4l_evb`, `apollo4l_blue_evb`, `apollo4p_blue_kbr_evb` and `apollo4p_blue_kxr_evb`) and from `apollo330mP_evb`, once verified (Pending data corrections). On `apollo3p_evb` the 8 MB moves from the board to an add-on (an APS6404L on MSPI0) under RFC 0002's composed external memory, so it appears only when that add-on is selected. `apollo3p_evb_cygnus` keeps its 8 MB; #19 asks whether the part is fitted | Memory parity: per board, regions equal today's `MemoryLayout` except the allow-listed rows |
 | `_BOARD_TO_AOT_PLATFORM` is deleted. `apollo510b_evb`, `apollo510dL_evb`, `apollo5b_evb` and `apollo330mP_evb`, proxied to `apollo510_evb` today (research/helia-profiler.md), plan against their own targets. `atomiq110_fpga_turbo` resolves to the built-in FPGA implementation target of that id, and heliaAOT plans against its reduced values (decided; a deliberate output change for that one target, replacing today's mapping to bare `atomiq110`). `apollo3p_evb_cygnus`, absent from the map today, gains a mapping to its own board target | heliaAOT-name parity: per board, the target hpx passes to heliaAOT, with these re-pointings allow-listed |
+| `atomiq110_fpga_turbo` SWO is programmed against the 48 MHz trace clock instead of the 25 MHz core clock (AmbiqAI/helia-profiler#465). Today the `atomiq110` `SocDef` sets no `swo_trace_clock_mhz` (`platform/soc.py:691-750`, `ed2f0a15`), so `swo_reference_clock_hz` falls back to the selected CPU clock, 25 MHz (`transport/swo.py:70-92`). The core-clock hint on an SWO capture missing `HPX_START` (`capture/__init__.py:126-134`) no longer appears for this board. Under RFC 0002 the implementation carries a measured `trace_clock_mhz: 48` (0002-model-and-api.md; neuralspotx `b930d59`, `src/neuralspotx/boards/atomiq110_fpga_turbo/debug.cmake:6-18`) | Trace-clock parity: per board, the SWO reference clock equals today's, with `atomiq110_fpga_turbo` (25 to 48 MHz) allow-listed |
 | The windows table is deleted; windows come from the optional dataset or the build's own script | Window parity: dataset windows equal today's `_MAPS` rows per SoC, toolchain and profile |
 | `app_flash_load_addr` is replaced by `flash_load_address()` from the selected boot configuration | Boot parity: per board, the derived address equals today's value for the board's provisioning |
 | `custom_socs` and `custom_boards` translate to overlays through a one-release shim | Custom-format parity: the shim's output resolves to the same facts as today's loader for the documented examples |
