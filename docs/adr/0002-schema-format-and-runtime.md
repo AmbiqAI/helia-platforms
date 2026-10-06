@@ -1,7 +1,7 @@
 # 0002. Ship the catalogue as YAML data with a generated JSON Schema and a stdlib dataclass runtime
 
 Date: 2026-10-05
-Status: Proposed
+Status: Accepted
 
 ## Context
 

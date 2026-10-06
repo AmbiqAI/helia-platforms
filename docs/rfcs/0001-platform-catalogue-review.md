@@ -256,7 +256,8 @@ this repo that reads the SDK and writes a committed snapshot (`facts.cmake`
 values, linker `MEMORY` blocks, header defines) with the SDK tag in the
 file; and a CI test that compares the catalogue with the snapshot. Refreshing
 the snapshot is a reviewed PR. The Zephyr comparison can stay live because
-Zephyr is public.
+Zephyr is public. (Superseded: [ADR 0006](../adr/0006-drift-test-snapshots.md)
+snapshots Zephyr as well.)
 
 ### 3.3 Schema version and data version are one number
 

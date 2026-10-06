@@ -1,7 +1,7 @@
 # 0005. Gate PyPI publication and choose the path to public
 
 Date: 2026-10-05
-Status: Proposed
+Status: Accepted
 
 ## Context
 

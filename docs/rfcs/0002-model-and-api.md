@@ -67,7 +67,7 @@ Each term has one meaning in this RFC, except `revision`, whose meaning depends 
 | profile | A named linker variant within an owner and link family (for example `default`). Not the profiler's clock profile (an operating point) and not a neuralspotx starter profile. |
 | series | The SDK product line (`apollo5`, `atomiq`). Not the profiler's AP3/AP4/AP5 tier, which is profiler policy. |
 | origin | Catalogue origin only: `builtin` or `overlay`, where an entry came from. The address an application links at is `BootConfig.app_start`; the start of a linker window is `WindowRegion.start`. |
-| provenance status | One of `datasheet`, `sdk`, `measured`, `fitted`, `derived`, `unverified` (proposal pending ADR #6). The status `derived` marks a value computed from other sourced values, such as a size computed from two addresses. |
+| provenance status | One of `datasheet`, `sdk`, `measured`, `fitted`, `derived`, `unverified` ([ADR 0003](../adr/0003-provenance-record.md)). The status `derived` marks a value computed from other sourced values, such as a size computed from two addresses. |
 | derived capability | A query computed from structural facts (`isa().supports_fp16`). Not the same as `derives_from` or `based_on`; see [Inheritance and derivation](#inheritance-and-derivation). |
 | target | The resolved, flattened view `resolve()` returns. Its `kind` is `board`, `part`, `implementation` or `soc`. |
 | owner direction | Decisions recorded by the repository owner on 2026-10-04 and folded into the [review of RFC 0001](0001-platform-catalogue-review.md). |
@@ -79,7 +79,7 @@ Each term has one meaning in this RFC, except `revision`, whose meaning depends 
 | P1 | Facts, not opinions | No `preferred_memory_order`, no tool sections on built-ins. Tools derive policy from facts the package exposes (attachment, latency, ports). |
 | P2 | Specification and implementations | A SoC is the full specification. An implementation realizes all of it by default or a validated subset (bring-up FPGA with less memory and lower clocks, an FVP with substituted memories). Production silicon is the full set and says nothing extra. |
 | P3 | Declared structure, derived capability | Only structural facts are declared. "Supports FP16" is a function of the core's MVE option; "has NPU" is a function of an NPU instance being present; "which NPU" is a structured record. |
-| P4 | Every fact has provenance | Status (datasheet, sdk, measured, fitted, derived, unverified), source, date, reviewer. Releases reject `unverified` unless allow-listed. Proposal pending ADR #6. |
+| P4 | Every fact has provenance | Status (datasheet, sdk, measured, fitted, derived, unverified), source, date, reviewer. Releases reject `unverified` unless allow-listed. Record and rules per [ADR 0003](../adr/0003-provenance-record.md). |
 | P5 | Overlays compose by reference | `based_on`, `soc:`, `part:`; deltas and removals; unknown keys rejected with a suggestion; built-in ids cannot be shadowed. |
 | P6 | One resolver | Canonical ids are the neuralspotx/SDK spellings, matched case-insensitively. Exact aliases and composition aliases resolve. Family shorthands (`AP5`, `AP510`) from the built-in shorthands table raise with candidates. Near misses suggest. |
 | P7 | Immutable catalogue, no global state | Loading an overlay returns a new catalogue. Nothing registers into a process-global table (the class of bug in helia-aot#331). No I/O at import. |
@@ -374,7 +374,11 @@ canonical id alongside (decided; see [0002-migration.md](0002-migration.md)).
 ### Release status
 
 Every entity (Soc, Implementation, Part, Board, AddOn, MemoryDevice)
-carries a `release_status`: public or embargoed. A target's effective
+carries a `release_status`: public or embargoed. It defaults to
+`embargoed` when omitted, for built-in and overlay entries alike, and the
+loader rejects a built-in entry that is not `public`
+([ADR 0005](../adr/0005-publication-and-embargo.md)). Core and Npu IP
+blocks carry no status. A target's effective
 status is the most restrictive status along its reference chain (board,
 its part or implementation, the Soc, selected add-ons and the memory
 devices they populate). A `Composition` and a `LinkEnvironment` are not
@@ -384,7 +388,8 @@ The export filter uses the effective status and never ships an embargoed
 entry or a target whose effective status is embargoed, and it scrubs
 embargoed ids from every table and reference: shorthands, compositions,
 `fits_boards`, `default_board`, `applies_to` and aliases. A Composition or
-LinkEnvironment that references only embargoed entities is dropped.
+LinkEnvironment that references only embargoed entities is dropped, and so
+is a Core or Npu that no exported Soc references (ADR 0005).
 
 ### Private and future silicon
 
@@ -412,7 +417,9 @@ a silicon environment never covers a rebased FPGA build.
 optional dataset of environments generated from nsx-ambiq-sdk and Zephyr
 at pinned revisions ships separately for consumers that want a
 conservative default; the profiler's windows table seeds it, and an
-extractor script regenerates it rather than hand-copying.
+extractor script regenerates it rather than hand-copying, from the
+committed source snapshots of
+[ADR 0006](../adr/0006-drift-test-snapshots.md).
 
 ## Derived capabilities
 
@@ -682,8 +689,8 @@ def builtin(include_plugins: bool = True) -> Catalogue   # cached, immutable; pl
 def load_overlay(source: str | Path | Mapping, *, base: Catalogue | None = None) -> Catalogue
 
 class Catalogue:
-    schema_version: int                         # split from catalogue_version: proposal pending ADR #12
-    catalogue_version: str                      # data release, independent of the package version
+    schema_version: int                         # the file format and export shape (ADR 0004)
+    catalogue_digest: str                       # sha256 of the data without provenance (ADR 0004)
     compositions: Mapping[str, Composition]     # alias -> board id and add-on ids
     shorthands: Mapping[str, tuple[str, ...]]   # built-in only; the only source of AmbiguousPlatform
     sources: Mapping[str, str]                  # entry id -> source label
@@ -696,6 +703,7 @@ class Catalogue:
     def find(self, **predicates) -> tuple[Target, ...]   # core="cortex-m55", npu_model="u85", has_region="psram"
     def resolve(self, name: str) -> Target
     def suggest(self, name: str) -> tuple[str, ...]
+    def identity(self) -> CatalogueIdentity     # package and schema versions, digest, sources (ADR 0004)
     def to_dict(self) -> dict                   # the JSON export
 ```
 
@@ -849,7 +857,8 @@ Markdown pages.
 `show <id> [--sources]`, `windows <id> [--family --profile --environment <file>]`
 (reads the optional link-environment dataset or a supplied environment),
 `validate <overlay>`, `check-sources` (compare against the committed SDK
-and Zephyr snapshots), `export`.
+and Zephyr snapshots; [ADR 0006](../adr/0006-drift-test-snapshots.md)),
+`export`.
 
 ### Adapters, in the consumers
 
@@ -897,7 +906,7 @@ stand.
 | External memory | A PSRAM (and NVM) region per board | Board `interfaces` plus `population` plus add-ons, populated by `MemoryDevice`s | Board revisions and shields change what is fitted (research/datasheets.md section 7) |
 | Boot layout | `app_flash_load_addr` as an accessor over the default window's MRAM origin | Named boot configurations on the Soc, replaceable by an Implementation, with board provisioning; `flash_load_address()` derived from the selected one | Apollo510, Lite and 330 Plus, and Apollo3/4 boot layouts differ and are a choice |
 | Entity levels | Two levels (`SocDef`, `BoardDef`) plus IP blocks; an FPGA is a `BoardDef` with overrides | Four levels (Soc, Implementation, Part, Board) plus add-ons and memory devices; an FPGA is an Implementation, not a board | Pre-silicon implementations and per-part facts (review 2.2) |
-| Publication | Public repo and 0.1.0 on PyPI before adoption ("Packaging and versions") | Deferred to ADR #5 (publication, embargo and the private-to-public path) | A public release would ship embargoed parts (review 3.1) |
+| Publication | Public repo and 0.1.0 on PyPI before adoption ("Packaging and versions") | Decided in [ADR 0005](../adr/0005-publication-and-embargo.md) (publication, embargo and the private-to-public path) | A public release would ship embargoed parts (review 3.1) |
 | Cores and accelerators | One core and at most one NPU per chip | Ordered `cores` and `npus` (index 0 primary), an explicit access matrix, image slots per core, system operating points over clock domains | Shipping parts already carry a radio core (Apollo510 Lite, Apollo330 Plus); single-core queries default to core 0 |
 | Soc id resolution | A Soc id resolves to its board when the Soc has exactly one ("Names") | A Soc id always resolves to the bare Soc target; `default_board` only through `resolve_board(soc_id)` | Resolution must not change when a board is added; matches #278 |
 
@@ -925,6 +934,7 @@ parity test (issue #13) that covers each are in
 5. How power-domain names (used in `Access.requires_awake`) are spelled
    and sourced: the SDK HAL's power-control enums, a catalogue vocabulary
    mapped to them, or both.
-6. Whether private catalogue packages are signed or version-pinned, and
-   how a consumer records which private catalogue it ran against
-   ([0002-private-silicon.md](0002-private-silicon.md)).
+6. Whether private catalogue packages are signed
+   ([0002-private-silicon.md](0002-private-silicon.md)). A consumer records
+   which private catalogue it ran against through `Catalogue.identity()`
+   ([ADR 0004](../adr/0004-schema-and-catalogue-versions.md)).

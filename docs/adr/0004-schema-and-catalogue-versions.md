@@ -1,7 +1,7 @@
 # 0004. Version the schema separately and ship data corrections as patches
 
 Date: 2026-10-05
-Status: Proposed
+Status: Accepted
 
 ## Context
 
