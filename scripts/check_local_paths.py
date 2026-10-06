@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Reject local filesystem paths in committed text files.
 
-The repository is meant to be public, so CONTRIBUTING.md asks contributors
-to cite repositories by name and revision. Paths inside remote URLs (http,
-https, ssh, ...) are exempt, and ``local-paths: ignore`` skips a line.
+The repository is meant to be public (see CONTRIBUTING.md). A path in a
+remote URL (http, https, ssh, ...) is exempt unless it is in the query string
+or the host is this machine, and ``local-paths: ignore`` skips a line.
 """
 
 from __future__ import annotations
@@ -23,37 +23,74 @@ IGNORE_DIRECTIVE = "local-paths: ignore"
 _NAME = r"[\w\ufffd](?:[\w\ufffd.-]*[\w\ufffd])?"
 _SEPARATOR = r"(?:\\\\|[\\/])"  # "/", "\" or a JSON-escaped "\\"
 
+
+def _posix(regex: str) -> str:
+    """Let each "/" in a POSIX form also match the JSON escape "\\/"."""
+    return regex.replace("/", r"(?:\\?/)")
+
+
 LOCAL_PATH_FORMS: tuple[tuple[str, str], ...] = (
-    ("macos_home", rf"(?:/System/Volumes/Data)?/Users/{_NAME}/?"),
-    ("linux_home", rf"(?:/var|/usr|/export)?/home/{_NAME}/?"),
-    ("windows_home", rf"(?<![A-Za-z0-9])[A-Za-z]:{_SEPARATOR}(?i:users){_SEPARATOR}"),
-    ("windows_shell_home", r"(?:/mnt|/cygdrive)?/[A-Za-z]/(?i:users)/"),
-    ("macos_private_tmp", r"/private/tmp/"),  # local-paths: ignore
-    ("macos_var_folders", r"/var/folders/"),  # local-paths: ignore
-    ("cloud_storage", r"Library/CloudStorage/"),  # local-paths: ignore
+    ("macos_home", _posix(rf"(?:/System/Volumes/Data)?/Users/{_NAME}/?")),
+    ("linux_home", _posix(rf"(?:/var|/usr|/export)?/home/{_NAME}/?")),
+    ("windows_home", rf"[A-Za-z]:{_SEPARATOR}(?i:users){_SEPARATOR}"),
+    ("windows_shell_home", _posix(r"(?:/mnt|/cygdrive)?/[A-Za-z]/(?i:users)/")),
+    (
+        "wsl_unc_home",
+        rf"{_SEPARATOR}{{2}}(?i:wsl\$|wsl\.localhost){_SEPARATOR}{_NAME}"
+        rf"{_SEPARATOR}home{_SEPARATOR}{_NAME}(?:{_SEPARATOR})?",
+    ),
+    ("macos_private_tmp", _posix(r"/private/tmp/")),  # local-paths: ignore
+    ("macos_var_folders", _posix(r"/var/folders/")),  # local-paths: ignore
+    ("cloud_storage", _posix(r"Library/CloudStorage/")),  # local-paths: ignore
     ("icloud_drive", r"com~apple~CloudDocs"),  # local-paths: ignore
     ("onedrive_hyphen", r"OneDrive-[^\s/\\:]{1,64}[/\\]"),  # local-paths: ignore
     ("onedrive_spaced", r"OneDrive - [^/\\:\n]{1,64}[/\\]"),  # local-paths: ignore
 )
 LOCAL_PATH_RE = re.compile("|".join(f"(?P<{name}>{regex})" for name, regex in LOCAL_PATH_FORMS))
 
-# These forms must not follow a word character, "." or "-" (so api/Users/x is
-# not a home); the check is in code because non-remote URLs waive it.
+# These forms must not follow a word character, ".", "-" or "\" (so api/Users/x
+# is not a home); the check is in code because the start of a URL path and any
+# URL under a non-remote scheme waive it.
 BOUNDED_FORMS = frozenset({"macos_home", "linux_home", "windows_shell_home"})
-_BOUNDARY_CHAR_RE = re.compile(r"[\w.-]")
+_BOUNDARY_CHAR_RE = re.compile(r"[\w.\\-]")
+# A drive letter must not follow a letter or digit, even inside a URL.
+_DRIVE_BOUNDARY_CHAR_RE = re.compile(r"[A-Za-z0-9]")
+# A path glued to a single-dash compiler or linker option, as in -I/Users/<name>,
+# is still checked. The options are listed, so -Isrc/home/x is not one.
+_OPTION_RE = re.compile(
+    r"(?<![\w.-])-(?:isystem|isysroot|iquote|idirafter|iframework|imacros|include|I|L|F|B|o)"
+)
 
 HINT = "Cite repositories by name and revision instead (see CONTRIBUTING.md)."
 
-_URL_RE = re.compile(r"""(?<![A-Za-z0-9+.-])([A-Za-z][A-Za-z0-9+.-]*)://[^\s"'()<>\[\]{}|,`]*""")
+# Group 1 is the scheme and group 2 the authority, which may hold an IPv6 host.
+_URL_RE = re.compile(
+    r"(?<![A-Za-z0-9+.-])([A-Za-z][A-Za-z0-9+.-]*)://"
+    r"((?:\[[0-9A-Fa-f:.]*\]|[^\s\"'()<>\[\]{}|,`/?#])*)"
+    r"[^\s\"'()<>\[\]{}|,`]*"
+)
 _REMOTE_SCHEMES = frozenset({"http", "https", "ftp", "sftp", "ssh", "git", "s3"})
+_LOCAL_HOSTS = frozenset({"localhost", "127.0.0.1", "[::1]", "0.0.0.0"})
 
 
 class _Url(NamedTuple):
-    """Span of one URL in a line, and whether its scheme names a remote host."""
+    """Span of one URL in a line, where its path and query lie, and whether it is remote."""
 
     start: int
     end: int
+    path_start: int
+    query_start: int
+    query_end: int
+    has_remote_scheme: bool
     is_remote: bool
+
+
+def _host(authority: str) -> str:
+    """Return the lowercased host of a URL authority, without user or port."""
+    host = authority.rpartition("@")[2].lower()
+    if host.startswith("["):
+        return host[: host.find("]") + 1]
+    return host.partition(":")[0]
 
 
 def _find_urls(line: str) -> list[_Url]:
@@ -61,7 +98,8 @@ def _find_urls(line: str) -> list[_Url]:
 
     A scheme starts at the beginning of a run of scheme characters, so
     ``myhttps://`` is the scheme ``myhttps``, not ``https``. The remote schemes
-    may also carry a ``git+`` prefix.
+    may also carry a ``git+`` prefix. A URL to this machine is not remote. A
+    URL without a query has an empty query span at its fragment or its end.
 
     Args:
         line: Line to scan.
@@ -69,20 +107,43 @@ def _find_urls(line: str) -> list[_Url]:
     Returns:
         One span per URL, in line order.
     """
-    return [
-        _Url(
-            match.start(),
-            match.end(),
-            match.group(1).lower().removeprefix("git+") in _REMOTE_SCHEMES,
+    urls: list[_Url] = []
+    for match in _URL_RE.finditer(line):
+        start, end = match.span()
+        path_start = match.end(2)
+        fragment = line.find("#", path_start, end)
+        query_end = end if fragment == -1 else fragment
+        query = line.find("?", path_start, query_end)
+        has_remote_scheme = match.group(1).lower().removeprefix("git+") in _REMOTE_SCHEMES
+        is_remote = has_remote_scheme and _host(match.group(2)) not in _LOCAL_HOSTS
+        query_start = query_end if query == -1 else query
+        urls.append(
+            _Url(start, end, path_start, query_start, query_end, has_remote_scheme, is_remote)
         )
-        for match in _URL_RE.finditer(line)
-    ]
+    return urls
+
+
+def _is_glued(
+    form: str | None, line: str, start: int, url: _Url | None, option_ends: set[int]
+) -> bool:
+    """Whether the match at ``start`` continues a longer token instead of starting a path."""
+    if start == 0:
+        return False
+    previous = line[start - 1]
+    if form == "windows_home":
+        return start not in option_ends and _DRIVE_BOUNDARY_CHAR_RE.match(previous) is not None
+    return (
+        start not in option_ends
+        and form in BOUNDED_FORMS
+        and (url is None or (url.has_remote_scheme and start != url.path_start))
+        and _BOUNDARY_CHAR_RE.match(previous) is not None
+    )
 
 
 def _find_local_paths(line: str) -> list[str]:
     """Find the local paths in one line, leftmost first and never overlapping.
 
-    A match lying entirely inside a remote URL is exempt.
+    A match in a remote URL is exempt unless it overlaps the query string.
 
     Args:
         line: Line to scan, without its line terminator.
@@ -91,6 +152,7 @@ def _find_local_paths(line: str) -> list[str]:
         The matched text of each finding, in line order.
     """
     urls = _find_urls(line)
+    option_ends = {match.end() for match in _OPTION_RE.finditer(line)}
     url_index = 0
     findings: list[str] = []
     position = 0
@@ -100,15 +162,10 @@ def _find_local_paths(line: str) -> list[str]:
             url_index += 1
         in_url = url_index < len(urls) and urls[url_index].start <= start
         url = urls[url_index] if in_url else None
-        if url is not None and url.is_remote and end <= url.end:
+        if url is not None and url.is_remote and (end <= url.query_start or start >= url.query_end):
             position = end
             continue
-        if (
-            match.lastgroup in BOUNDED_FORMS
-            and (url is None or url.is_remote)
-            and start > 0
-            and _BOUNDARY_CHAR_RE.match(line[start - 1])
-        ):
+        if _is_glued(match.lastgroup, line, start, url, option_ends):
             # No two forms can match at the same start, so skip just this one.
             position = start + 1
             continue
