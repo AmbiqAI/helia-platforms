@@ -26,16 +26,48 @@ consumer's current data and what the sources of record say. None is
 applied until verified; each parity allow-list must carry the row with its
 reason.
 
+helia-profiler citations are at `ed2f0a15`; line numbers are in
+`src/helia_profiler/platform/board.py` unless the row names another file.
+"nsx-psram" is `modules/nsx-psram/` in nsx-ambiq-sdk
+`v5.2.24`. Its `CMakeLists.txt:31-37` states that the plain and Blue
+apollo4l and apollo4p EVBs do not populate PSRAM, and its `README.md:90-95`
+names `apollo4p_evb_disp_shield_rev2` as the only supported Apollo4 board.
+
 | Fact | Current data | Source says | Consumers affected | Source |
 |---|---|---|---|---|
-| `apollo4p_evb` PSRAM | helia-profiler 32 MB | No PSRAM on the base board; the Display Kit is the only PSRAM source and fits only the non-Blue EVB | helia-profiler | research/datasheets.md section 7 (QS-A4P p10; QS-A4PDK p10, p12) |
-| `apollo4p_blue_kbr_evb` PSRAM | helia-profiler 32 MB | None listed, and the Display Kit is not compatible with the Blue EVB | helia-profiler | section 7 (QS-A4BP p10; QS-A4PDK p10) |
-| `apollo330mP_evb` PSRAM | helia-profiler 32 MB, inherited from `apollo330P` | Not populated on revision 2.0 | helia-profiler | section 7 (QS-A330MP p8, p10, p30) |
-| `apollo3p_evb`, `apollo3p_evb_cygnus` PSRAM | helia-profiler 8 MB | Not declared in the AmbiqSuite BSP and not mentioned in the guide | helia-profiler | research/ambiqsuite.md; section 7 (QS-A3BP p7) |
+| `apollo4p_evb` PSRAM | helia-profiler 32 MB (line 93) | No PSRAM on the base board; the Display Kit is the only PSRAM source and fits only the non-Blue EVB. nsx-psram agrees | helia-profiler | research/datasheets.md section 7 (QS-A4P p10; QS-A4PDK p10, p12); nsx-psram |
+| `apollo4p_blue_kbr_evb` PSRAM | helia-profiler 32 MB (line 128) | None listed, and the Display Kit is not compatible with the Blue EVB. nsx-psram agrees | helia-profiler | section 7 (QS-A4BP p10; QS-A4PDK p10); nsx-psram |
+| `apollo4l_evb`, `apollo4l_blue_evb`, `apollo4p_blue_kxr_evb` PSRAM | helia-profiler 32 MB (lines 104, 115, 141) | Not populated, per nsx-psram. research/datasheets.md has no quick-start guide for these three boards | helia-profiler | nsx-psram |
+| `apollo330mP_evb` PSRAM | helia-profiler 32 MB, inherited from `apollo330P` (`src/helia_profiler/platform/soc.py:583`) | The revision 2.0 guide and the owner statement say the part is not fitted. nsx-psram assumes it is fitted (`CMakeLists.txt:60-64`) and maps the board to the "BA" driver as unvalidated, with a conservative 32 MB default; that is the same figure as helia-profiler's, which does not state its own source. helia-profiler's `apollo330P` memory comment describes a "Rev1 EVB" (`src/helia_profiler/platform/soc.py:565`), so the difference is a board-revision question | helia-profiler | section 7 (QS-A330MP p8, p10, p30) and Owner statements in research/datasheets.md; nsx-psram `README.md:25`, `CMakeLists.txt:60-64, 130-137, 150-152` |
+| `apollo3p_evb` PSRAM | helia-profiler 8 MB (line 67) | Not mentioned in the guide. The nsx-ambiq-sdk `v5.2.24` BSP sets `AM_BSP_MSPI_PSRAM_INST 0` but defines no PSRAM pins, only generic MSPI0, MSPI1 and MSPI2 pins; nsx-psram still builds its 8 MB APS6404L driver for the board. Under the rule below, the board's `population` carries no PSRAM, and the 8 MB moves to an add-on (an APS6404L on MSPI0) under RFC 0002's composed external memory ([0002-model-and-api.md](0002-model-and-api.md), "Board, external memory and add-ons") | helia-profiler | section 7 (QS-A3BP p7); nsx-ambiq-sdk `v5.2.24` `modules/nsx-ambiqsuite/sdk/boards/apollo3p_evb/bsp/am_bsp.h:118`, `bsp/am_bsp_pins.h:469-679`; nsx-psram `CMakeLists.txt:21-29` |
 | apollo4p SSRAM | heliaAOT `apollo4p_evb` SRAM 1 MB; helia-profiler `sram_kb=1024` | 2048 kB SSRAM plus 384 kB extended SRAM plus 384 kB TCM | heliaAOT, helia-profiler | section 7 (DS-A4P p52, p58) |
 | apollo3p MRAM and SRAM | helia-profiler `mram_kb=2000`, `sram_kb=700` | 2 MB flash; 704 KB main SRAM plus 64 KB TCM | helia-profiler | section 7 (DS-A3P p2, p82) |
 | apollo510L and apollo330P NVM | helia-profiler `mram_kb=1984` (the SDK window from 0x00410000); heliaAOT `apollo330mp_evb` and `apollo510l_evb` budgets from the same window | NVM-APPL on the fitted 510D Lite and 330M Plus ends at 0x00593FFF; NVM-M41 is reserved per part | heliaAOT, helia-profiler | section 7 and section 3 (DS-A510LS p33; DS-A330PS p33) |
 | apollo510L and apollo330P clocks | helia-profiler lp 96, hp 250 | Two HP modes: HP1 192 MHz and HP2 250 MHz | helia-profiler | section 7 (DS-A510LS p46; DS-A330PS p46) |
+
+Both Apollo3 Plus PSRAM decisions follow one rule: a board's `population`
+records a part only where the board is wired for one, until a hardware
+check (#19) confirms what is fitted. In nsx-ambiq-sdk
+`v5.2.24`, the `apollo3p_evb_cygnus` BSP defines PSRAM pins on MSPI1
+(`modules/nsx-ambiqsuite/sdk/boards/apollo3p_evb_cygnus/bsp/am_bsp_pins.h:966-1011`):
+a PSRAM-only chip-select on pad 69, and data pins D0-D3 and a clock pin
+that the BSP marks as shared with FLASH1. It also sets
+`AM_BSP_MSPI_PSRAM_INST 1` (`bsp/am_bsp.h:118`). The `apollo3p_evb`
+BSP names MSPI0 as the PSRAM instance but defines no PSRAM pins.
+
+`apollo3p_evb_cygnus` therefore keeps its 8 MB (helia-profiler line 78)
+and is not a pending correction. The PSRAM pin definitions show that the
+board is wired for PSRAM, not that the part is fitted, so whether it is
+fitted is a hardware question (#19).
+
+An inference, not proof, supports treating `apollo3p_evb`'s MSPI0 as an
+add-on interface. Its generic MSPI0 pins use pads 22 (D0) and 23 (D3)
+(`am_bsp_pins.h:490, 514`), which the BSP also assigns to COM_UART TX and
+RX (`am_bsp_pins.h:105, 113`). helia-profiler records that pads 22 and 23
+are the J-Link virtual-COM UART that carries its `uart` transport
+(`board.py:57-61`). A part on MSPI0 would therefore share the console UART
+pads. The cygnus PSRAM pins are pads 51 to 54, 59 and 69, which do not
+clash with its COM_UART pads 22 and 23 (the same lines in the cygnus BSP).
 
 ## heliaAOT
 
@@ -96,7 +128,7 @@ today's for every name.
 
 | Output that changes | Parity test (#13) |
 |---|---|
-| PSRAM removed from `apollo4p_evb`, `apollo4p_blue_kbr_evb` and `apollo330mP_evb`, and from `apollo3p_evb`, once verified (Pending data corrections) | Memory parity: per board, regions equal today's `MemoryLayout` except the allow-listed rows |
+| PSRAM removed from the five Apollo4 boards (`apollo4p_evb`, `apollo4l_evb`, `apollo4l_blue_evb`, `apollo4p_blue_kbr_evb` and `apollo4p_blue_kxr_evb`) and from `apollo330mP_evb`, once verified (Pending data corrections). On `apollo3p_evb` the 8 MB moves from the board to an add-on (an APS6404L on MSPI0) under RFC 0002's composed external memory, so it appears only when that add-on is selected. `apollo3p_evb_cygnus` keeps its 8 MB; #19 asks whether the part is fitted | Memory parity: per board, regions equal today's `MemoryLayout` except the allow-listed rows |
 | `_BOARD_TO_AOT_PLATFORM` is deleted. `apollo510b_evb`, `apollo510dL_evb`, `apollo5b_evb` and `apollo330mP_evb`, proxied to `apollo510_evb` today (research/helia-profiler.md), plan against their own targets. `atomiq110_fpga_turbo` resolves to the built-in FPGA implementation target of that id, and heliaAOT plans against its reduced values (decided; a deliberate output change for that one target, replacing today's mapping to bare `atomiq110`). `apollo3p_evb_cygnus`, absent from the map today, gains a mapping to its own board target | heliaAOT-name parity: per board, the target hpx passes to heliaAOT, with these re-pointings allow-listed |
 | `atomiq110_fpga_turbo` SWO is programmed against the 48 MHz trace clock instead of the 25 MHz core clock (AmbiqAI/helia-profiler#465). Today the `atomiq110` `SocDef` sets no `swo_trace_clock_mhz` (`platform/soc.py:691-750`, `ed2f0a15`), so `swo_reference_clock_hz` falls back to the selected CPU clock, 25 MHz (`transport/swo.py:70-92`). The core-clock hint on an SWO capture missing `HPX_START` (`capture/__init__.py:126-134`) no longer appears for this board. Under RFC 0002 the implementation carries a measured `trace_clock_mhz: 48` (0002-model-and-api.md; neuralspotx `b930d59`, `src/neuralspotx/boards/atomiq110_fpga_turbo/debug.cmake:6-18`) | Trace-clock parity: per board, the SWO reference clock equals today's, with `atomiq110_fpga_turbo` (25 to 48 MHz) allow-listed |
 | The windows table is deleted; windows come from the optional dataset or the build's own script | Window parity: dataset windows equal today's `_MAPS` rows per SoC, toolchain and profile |
