@@ -301,7 +301,8 @@ ADVERSARIAL_INPUTS: dict[str, str] = {
 
 # A regex call holds the GIL, so a runaway scan is bounded by running it in a child process.
 _TIMED_SCAN = """
-import importlib.util, sys, time
+import importlib.util, os, sys, time
+sys.path.insert(0, os.path.dirname(sys.argv[1]))
 spec = importlib.util.spec_from_file_location("check_local_paths", sys.argv[1])
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)

@@ -8,13 +8,13 @@ https, ssh, ...) are exempt, and ``local-paths: ignore`` skips a line.
 
 from __future__ import annotations
 
-import argparse
-import os
 import re
 import sys
 from collections.abc import Sequence
 from pathlib import Path
 from typing import NamedTuple
+
+import hook_common
 
 IGNORE_DIRECTIVE = "local-paths: ignore"
 
@@ -130,8 +130,7 @@ def check_text(text: str, path: str) -> list[str]:
         One message per local path, in line order; empty when the text is clean.
     """
     messages: list[str] = []
-    for lineno, raw_line in enumerate(text.split("\n"), start=1):
-        line = raw_line.removesuffix("\r")
+    for lineno, line in hook_common.split_lines(text):
         if IGNORE_DIRECTIVE in line:
             continue
         messages.extend(
@@ -142,45 +141,13 @@ def check_text(text: str, path: str) -> list[str]:
 
 
 def check_file(path: Path) -> list[str]:
-    """Scan one file, or a symlink's target string, reporting unreadable files.
-
-    A symlink is never followed. Text that is not valid UTF-8 is still
-    scanned, with each undecodable byte read as U+FFFD.
-
-    Args:
-        path: File or symlink to scan.
-
-    Returns:
-        One message per local path; empty for clean or unreadable files.
-    """
-    try:
-        if path.is_symlink():
-            text = os.readlink(path)
-        else:
-            text = path.read_bytes().decode("utf-8", errors="replace")
-    except OSError as exc:
-        print(f"{path}: skipped ({exc.strerror})", file=sys.stderr)
-        return []
-    return check_text(text, str(path))
+    """Scan one file, or a symlink's target string; see ``hook_common.check_file``."""
+    return hook_common.check_file(path, check_text)
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    """Scan the given files and report local filesystem paths.
-
-    Args:
-        argv: Command-line arguments; defaults to ``sys.argv[1:]``.
-
-    Returns:
-        1 when any local path was found, 0 otherwise.
-    """
-    parser = argparse.ArgumentParser(description="Reject local filesystem paths.")
-    parser.add_argument("filenames", nargs="*", help="files to scan")
-    args = parser.parse_args(argv)
-
-    messages = [message for name in args.filenames for message in check_file(Path(name))]
-    for message in messages:
-        print(message)
-    return 1 if messages else 0
+    """Scan the given files; return 1 when any local path was found, 0 otherwise."""
+    return hook_common.main(argv, check_text, "Reject local filesystem paths.")
 
 
 if __name__ == "__main__":
