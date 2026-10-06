@@ -116,7 +116,7 @@ class _Checker:
             self.check(item, item_tp, f"{path}[{index}]", facts)
         if fmt.BY_VALUE in markers:
             seen: list[Any] = []
-            for item in value:
+            for item in map(_plain, value):
                 if _contains(seen, item):
                     self.fail(path, f"{item!r} is listed twice")
                 seen.append(item)
@@ -236,7 +236,11 @@ def _plain(value: Any) -> Any:
 
 
 def _contains(seen: list[Any], item: Any) -> bool:
-    return any(type(s) is type(item) and s == item for s in seen)
+    """Equality as JSON Schema's ``uniqueItems`` reads it: 4096 equals 4096.0, not true."""
+    return any(
+        s == item if _is_number(s) and _is_number(item) else type(s) is type(item) and s == item
+        for s in seen
+    )
 
 
 def _describe(value: Any) -> str:

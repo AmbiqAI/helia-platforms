@@ -259,6 +259,7 @@ class _Loader:
             for name in raw:
                 if name.endswith(("_removed", "_resized", "_rebased")):
                     self.fail(origin, f"{where}.{name}", "a delta needs a based_on entry")
+            self.expand(kind, own, own, origin, where)
         elif self.builtin:
             self.fail(origin, f"{where}.based_on", "built-in entries may not use based_on")
             result = None
@@ -272,6 +273,7 @@ class _Loader:
                 result = None
             else:
                 try:
+                    self.expand(kind, own, merge(base_tree, own, decl), origin, where)
                     result = merge(base_tree, own, decl)
                 except MergeError as exc:
                     for problem in exc.problems:
@@ -279,6 +281,17 @@ class _Loader:
                     result = None
         self.resolved[key] = result
         return result
+
+    def expand(self, kind: str, own: Tree, merged: Tree, origin: str, where: str) -> None:
+        """Expand ``own``'s shorthands before any merge, as if it wrote the long forms.
+
+        ``merged`` is the entry over its base, which supplies core 0, npu 0 and the
+        Soc of an Implementation when ``own`` does not write them.
+        """
+        soc_values = self.soc_values(kind, merged)
+        if soc_values is not None:
+            for problem in expand_shorthands(own, soc_values):
+                self.fail(origin, where, problem)
 
     def finish(self, kind: str, entry_id: str, tree: Tree, origin: str) -> None:
         where = f"{kind}.{entry_id}"
@@ -288,10 +301,6 @@ class _Loader:
             self.fail(origin, where, f"missing required key {name!r} after based_on")
         if missing:
             return
-        soc_values = self.soc_values(kind, tree)
-        if soc_values is not None:
-            for problem in expand_shorthands(tree, soc_values):
-                self.fail(origin, where, problem)
         if self.builtin:
             self.check_builtin(kind, where, tree, origin)
         try:

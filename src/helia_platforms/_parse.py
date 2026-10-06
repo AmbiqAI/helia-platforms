@@ -30,6 +30,10 @@ def _loader_class() -> type:
 
         def construct_yaml_int(self, node: Any) -> int:
             text = self.construct_scalar(node)
+            if not _INT.fullmatch(text):  # an explicit !!int skips the resolver's check
+                raise ConstructorError(
+                    None, None, f"{text!r} is not a YAML 1.2 integer", node.start_mark
+                )
             sign = -1 if text.startswith("-") else 1
             digits = text.lstrip("+-")
             if digits.startswith("0x"):
@@ -89,6 +93,10 @@ def parse_yaml(text: str, origin: str) -> Any:
         return yaml.load(text, Loader=_LOADER)
     except yaml.YAMLError as exc:
         raise FormatError(f"{origin}: {exc}") from None
+    except (ValueError, KeyError) as exc:  # explicit tags such as `!!float abc` or `!!bool x`
+        raise FormatError(f"{origin}: a tagged value cannot be read: {exc}") from None
+    except RecursionError:
+        raise FormatError(f"{origin}: the document nests too deeply") from None
 
 
 def _reject_duplicates(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
@@ -110,7 +118,10 @@ def parse_json(text: str, origin: str) -> Any:
 
 def parse_file(path: Path) -> Any:
     """Parse a ``.json`` file as JSON and anything else as YAML."""
-    text = path.read_text(encoding="utf-8")
+    try:
+        text = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as exc:
+        raise FormatError(f"{path}: cannot be read: {exc}") from None
     if path.suffix == ".json":
         return parse_json(text, str(path))
     return parse_yaml(text, str(path))

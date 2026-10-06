@@ -139,6 +139,11 @@ CORPUS = {
     "bad status": (_edit(f"{SOC}.provenance", {"status": "confirmed"}), False),
     "bad date": (_edit(f"{SOC}.provenance", {"status": "sdk", "verified_on": "5 Oct 2026"}), False),
     "duplicate value": (_edit(f"{SOC}.peripherals", ["iom0", "iom0"]), False),
+    "duplicate number": (_edit(f"{SOC}.memories.tcm.alternate_bases", [4096, 4096.0]), False),
+    "wrapper on list item": (
+        _edit(f"{SOC}.peripherals", ["mspi0", {"value": "iom0", "provenance": {"status": "sdk"}}]),
+        True,
+    ),
     "per-core app_start": (
         _edit(f"{SOC}.boot_configs.sbl.app_start", {"cm55_0": {"region": "nvm", "offset": 0}}),
         True,

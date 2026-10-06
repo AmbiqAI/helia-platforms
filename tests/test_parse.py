@@ -37,6 +37,28 @@ def test_plain_scalars_follow_the_yaml_1_2_core_schema(text, expected):
     assert type(value) is type(expected)
 
 
+@pytest.mark.parametrize(
+    "text",
+    [
+        "v: !!int abc",
+        "v: !!int 0x",
+        "v: !!int ''",
+        "v: !!int 1_000",
+        "v: !!int ' 7 '",
+        "v: !!bool abc",
+        "v: !!float abc",
+        pytest.param("v: " + "[" * 3000 + "]" * 3000, id="deep nesting"),
+    ],
+)
+def test_unreadable_tagged_or_nested_values_are_format_errors(text):
+    with pytest.raises(FormatError):
+        load(text)
+
+
+def test_an_explicit_int_tag_reads_a_core_schema_integer():
+    assert load("v: !!int 0x10") == {"v": 16}
+
+
 def test_duplicate_keys_are_rejected():
     with pytest.raises(FormatError, match="duplicate key 'a'"):
         load("a: 1\na: 2\n")
@@ -72,3 +94,12 @@ def test_parse_file_reads_json_by_suffix(tmp_path):
     path = tmp_path / "x.json"
     path.write_text('{"schema_version": 1}')
     assert _parse.parse_file(path) == {"schema_version": 1}
+
+
+def test_parse_file_reports_unreadable_files(tmp_path):
+    path = tmp_path / "latin1.yaml"
+    path.write_bytes(b"v: caf\xe9\n")
+    with pytest.raises(FormatError, match=r"latin1\.yaml: cannot be read"):
+        _parse.parse_file(path)
+    with pytest.raises(FormatError, match="cannot be read"):
+        _parse.parse_file(tmp_path)

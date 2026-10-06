@@ -35,13 +35,23 @@ def provenance(record: Record) -> model.Provenance | None:
     )
 
 
-def freeze(value: Any) -> Any:
-    """Deep-freeze JSON-compatible data: mappings to read-only views, lists to tuples."""
+def freeze(value: Any, memo: dict[int, Any] | None = None) -> Any:
+    """Deep-freeze JSON-compatible data: mappings to read-only views, lists to tuples.
+
+    ``memo`` maps ``id()`` of each container already frozen to its result, so a
+    sub-object that YAML aliases share is frozen once and stays shared.
+    """
+    memo = {} if memo is None else memo
+    if id(value) in memo:
+        return memo[id(value)]
     if isinstance(value, dict):
-        return MappingProxyType({k: freeze(v) for k, v in value.items()})
-    if isinstance(value, list):
-        return tuple(freeze(v) for v in value)
-    return value
+        frozen: Any = MappingProxyType({k: freeze(v, memo) for k, v in value.items()})
+    elif isinstance(value, list):
+        frozen = tuple(freeze(v, memo) for v in value)
+    else:
+        return value
+    memo[id(value)] = frozen
+    return frozen
 
 
 class _Builder:

@@ -14,6 +14,7 @@ from typing import Any, get_args
 
 from helia_platforms import _format as fmt
 from helia_platforms import _walk
+from helia_platforms.errors import PlatformError
 
 Path = tuple[str, ...]
 Record = dict[str, Any] | None
@@ -101,13 +102,12 @@ def _normalize(  # noqa: PLR0911, PLR0912 (one branch per declared kind)
         keyed = _walk.marker(markers, fmt.Keyed)
         result = []
         for item in value:
-            if keyed is not None:
-                seg = item_key(item, keyed)
-                result.append(_normalize(item, item_tp, (*path, seg), record, out=out, facts=facts))
-            else:
-                if facts:
-                    out[(*path, segment(item))] = record
-                result.append(item)
+            # Normalize first, so the item's key is read from its plain values.
+            found: dict[Path, Record] = {}
+            plain = _normalize(item, item_tp, (), record, out=found, facts=facts)
+            seg = item_key(plain, keyed) if keyed is not None else segment(plain)
+            out.update({(*path, seg, *sub): rec for sub, rec in found.items()})
+            result.append(plain)
         return result
     if isinstance(value, float) and value.is_integer() and bare is int:
         return int(value)
@@ -126,7 +126,7 @@ def _pick_alternative(value: dict, union: Any) -> Any:
 # ---- the merge (ADR 0002 section 2.5) -----------------------------------------------
 
 
-class MergeError(Exception):
+class MergeError(PlatformError):
     """A delta names a key the base lacks; ``problems`` lists each one."""
 
     def __init__(self, problems: list[str]) -> None:
@@ -181,7 +181,8 @@ def merge(base: Tree, delta: Tree, obj: type, *, inherit_all: bool = False) -> T
     }
     moved: dict[Path, Path] = {}  # result path -> the delta path whose record it takes
     deltas: dict[str, Any] = {}
-    for key, item in delta.values.items():
+    # Copied, because the deltas below edit the result in place and both inputs are stored.
+    for key, item in copy.deepcopy(delta.values).items():
         if key == "based_on":
             continue
         if _is_delta_key(key, declared):
@@ -191,7 +192,7 @@ def merge(base: Tree, delta: Tree, obj: type, *, inherit_all: bool = False) -> T
         elif key in values and _collection(declared[key].type)[0] is not None:
             values[key] = _merge_collection(values[key], item, declared[key].type)
         else:
-            values[key] = copy.deepcopy(item)
+            values[key] = item
     problems = _apply_deltas(values, deltas, moved, declared)
     if problems:
         raise MergeError(problems)

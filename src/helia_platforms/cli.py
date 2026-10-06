@@ -46,7 +46,9 @@ def root(
 
 @app.command()
 def validate(
-    files: Annotated[list[Path], typer.Argument(help="Overlay files to check.", exists=True)],
+    files: Annotated[
+        list[Path], typer.Argument(help="Overlay files to check.", exists=True, dir_okay=False)
+    ],
 ) -> None:
     """Check overlay files against the file format and the semantic rules."""
     failed = False

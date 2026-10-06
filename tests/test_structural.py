@@ -72,6 +72,18 @@ def test_repeated_values_are_rejected(document):
     assert "'iom0' is listed twice" in found
 
 
+def test_repeated_values_are_compared_unwrapped(document):
+    soc(document)["peripherals"].append({"value": "iom0", "provenance": {"status": "sdk"}})
+    (found,) = problems(document)
+    assert "'iom0' is listed twice" in found
+
+
+def test_repeated_numbers_are_compared_by_value(document):
+    soc(document)["memories"]["tcm"]["alternate_bases"] = [4096, 4096.0]
+    (found,) = problems(document)
+    assert "4096.0 is listed twice" in found
+
+
 def test_value_provenance_form_is_accepted_on_facts(document):
     soc(document)["memories"]["tcm"]["size"] = {"value": "512K", "provenance": {"status": "sdk"}}
     assert problems(document) == []

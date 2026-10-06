@@ -1,3 +1,4 @@
+import copy
 import dataclasses
 import datetime
 from types import MappingProxyType
@@ -7,9 +8,11 @@ from typer.testing import CliRunner
 
 from conftest import RECORD
 from helia_platforms import model
+from helia_platforms._build import freeze
+from helia_platforms._tree import MergeError
 from helia_platforms.catalogue import load_documents, load_overlay
 from helia_platforms.cli import app
-from helia_platforms.errors import FormatError
+from helia_platforms.errors import FormatError, PlatformError
 
 
 def soc(document):
@@ -82,6 +85,34 @@ def test_provenance_records(document):
     assert tcm.field_provenance["size"].status == "measured"
     assert "memories.tcm.size" not in a.field_provenance  # held by the region
     assert dict(a.memories[1].field_provenance) == {}
+
+
+def test_a_value_list_item_may_carry_its_own_record(document):
+    record = {"status": "sdk", "source": ["repo:x@v1:a.h"]}
+    soc(document)["peripherals"] = ["mspi0", {"value": "iom0", "provenance": record}]
+    a = load_overlay(document).entry("socs", "soc_a")
+    assert a.peripherals == ("mspi0", "iom0")
+    assert a.field_provenance["peripherals.iom0"].status == "sdk"
+    assert "peripherals.mspi0" not in a.field_provenance
+
+
+def test_a_keyed_item_whose_key_carries_a_record(document):
+    soc(document)["access"][0]["master"] = {"value": "npu_0", "provenance": {"status": "sdk"}}
+    first = load_overlay(document).entry("socs", "soc_a").access[0]
+    assert first.master == "npu_0"
+    assert first.field_provenance["master"].status == "sdk"
+
+
+def test_integer_valued_floats_in_address_lists_become_integers(document):
+    soc(document)["memories"]["tcm"]["alternate_bases"] = [4096.0]
+    (base,) = load_overlay(document).entry("socs", "soc_a").memories[0].alternate_bases
+    assert type(base) is int
+
+
+def test_freeze_keeps_shared_sub_objects_shared():
+    shared = [1]
+    frozen = freeze([shared, shared])
+    assert frozen[0] is frozen[1]
 
 
 def test_values_without_a_record_are_unverified_in_overlays(document):
@@ -168,6 +199,18 @@ def test_based_on_must_resolve_and_not_cycle(document):
     assert "cycle" in found
 
 
+def test_shorthands_expand_the_same_with_the_base_in_either_place(document):
+    del soc(document)["clock_domains"]["cpu"]["hp"]  # hp comes only from the shorthand
+    child = {"based_on": "soc_a", "operating_points": {"hp": {"cpu_mhz": 250, "npu_mhz": 250}}}
+    together = copy.deepcopy(document)
+    together["socs"]["soc_b"] = copy.deepcopy(child)
+    same_load = load_overlay(together).entry("socs", "soc_b")
+    over_base = load_overlay({"socs": {"soc_b": child}}, base=load_overlay(document))
+    assert over_base.entry("socs", "soc_b") == same_load
+    cpu = next(d for d in same_load.clock_domains if d.id == "cpu")
+    assert [(p.name, p.mhz) for p in cpu.points] == [("lp", 96.0), ("hp", 250.0)]
+
+
 def test_removing_a_core_or_region_drops_its_access(document):
     document["socs"]["soc_b"] = {"based_on": "soc_a", "memories_removed": ["ssram"]}
     b = load_overlay(document).entry("socs", "soc_b")
@@ -202,6 +245,22 @@ def test_implementation_realizes_the_soc(document):
     assert [(p.name, p.mhz) for p in cpu.points] == [("lp", 24.0), ("fpga", 25.0)]
     assert list(realized.boot_configs) == ["nbl"]
     assert realized.default_boot == "nbl"
+
+
+def test_realizing_does_not_change_the_stored_trees(document):
+    document["implementations"] = {
+        "impl": {
+            "soc": "soc_a",
+            "kind": "fpga",
+            "clock_domains": {"x": {"p": {"mhz": 10}, "q": {"mhz": 20}}},
+            "subset": {"clock_domains_removed": ["x.p"]},
+        }
+    }
+    cat = load_overlay(document)
+    stored = copy.deepcopy(cat._trees[("implementations", "impl")].values)
+    assert cat.realized("impl") == cat.realized("impl")
+    assert cat._trees[("implementations", "impl")].values == stored
+    assert issubclass(MergeError, PlatformError)
 
 
 def test_implementation_references_are_checked_after_the_merge(document):
@@ -308,6 +367,23 @@ def test_cli_validate(tmp_path):
     result = runner.invoke(app, ["validate", str(bad)])
     assert result.exit_code == 1
     assert "capacity" in result.output
+
+
+def test_cli_validate_reports_each_unreadable_file_and_continues(tmp_path):
+    bad = tmp_path / "bad.yaml"
+    bad.write_bytes(b"v: caf\xe9\n")
+    good = tmp_path / "good.yaml"
+    good.write_text("schema_version: 1\n")
+    result = runner.invoke(app, ["validate", str(bad), str(good)])
+    assert result.exit_code == 1
+    assert "bad.yaml: cannot be read" in result.output
+    assert f"{good}: ok" in result.output
+
+
+def test_cli_validate_rejects_a_directory(tmp_path):
+    result = runner.invoke(app, ["validate", str(tmp_path)])
+    assert result.exit_code == 2
+    assert result.exception is None or isinstance(result.exception, SystemExit)
 
 
 def test_cli_export_schema():
