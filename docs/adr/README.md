@@ -15,3 +15,4 @@ NNNN, Rejected.
 |---|---|---|
 | 0001 | Design documents live in this repository | Accepted |
 | 0002 | Ship the catalogue as YAML data with a generated JSON Schema and a stdlib dataclass runtime | Proposed |
+| 0003 | Record provenance per fact with a closed status vocabulary | Proposed |
