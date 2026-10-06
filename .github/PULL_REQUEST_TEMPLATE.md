@@ -1,3 +1,7 @@
+<!-- A PR that changes built-in data, the source register, the unverified
+allow-list or the snapshots uses the fact-change template instead; see
+CONTRIBUTING.md. -->
+
 ## Summary
 
 <!-- What does this change and why? -->
