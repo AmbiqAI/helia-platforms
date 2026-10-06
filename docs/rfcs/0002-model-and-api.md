@@ -83,7 +83,7 @@ Each term has one meaning in this RFC, except `revision`, whose meaning depends 
 | P5 | Overlays compose by reference | `based_on`, `soc:`, `part:`; deltas and removals; unknown keys rejected with a suggestion; built-in ids cannot be shadowed. |
 | P6 | One resolver | Canonical ids are the neuralspotx/SDK spellings, matched case-insensitively. Exact aliases and composition aliases resolve. Family shorthands (`AP5`, `AP510`) from the built-in shorthands table raise with candidates. Near misses suggest. |
 | P7 | Immutable catalogue, no global state | Loading an overlay returns a new catalogue. Nothing registers into a process-global table (the class of bug in helia-aot#331). No I/O at import. |
-| P8 | Stdlib runtime, schema as contract | Frozen dataclasses; PyYAML for overlays and typer for the CLI, nothing heavier; a published JSON Schema with `schema_version`; pydantic export as an optional extra. Proposal pending ADR #7. |
+| P8 | Stdlib runtime, schema as contract | Frozen dataclasses; PyYAML for overlays and typer for the CLI, nothing heavier; a published JSON Schema with `schema_version`; whether to offer a pydantic extra is [ADR 0002](../adr/0002-schema-format-and-runtime.md)'s open question 2. Format and runtime per ADR 0002. |
 
 ## Entity model
 
@@ -267,8 +267,9 @@ provides, the Soc regions it `replaces`, and its own size and base. The
 replaced regions are removed, and the substitute does not count as an
 added memory. Substitutions are allowed only for kind `fvp`. The
 estimator's "Corstone-320 as a subset of atomiq110" is therefore
-first-class rather than a private convention. An Implementation may also
-replace the Soc's boot configurations and operating points.
+first-class rather than a private convention. An Implementation's boot
+configurations and operating points merge with the Soc's by key, and it
+removes any it must not offer with `subset` (ADR 0002 section 2.5).
 
 Production and engineering silicon is a `Part`. A Part references its
 `soc` directly and names an `implementation` only when a non-default
@@ -287,7 +288,7 @@ Soc.
 Boot layout is a named choice, not a single fact:
 
 ```
-BootConfig: name, reserved: [(region, offset, size, purpose)],
+BootConfig: name, reserved: {purpose: (region, offset, size)},
             app_start: {core id: (region, offset)}   (a single (region, offset) means core 0),
             requires (sbl | none | custom), provenance
 ```
@@ -307,9 +308,10 @@ BootConfig: name, reserved: [(region, offset, size, purpose)],
   #28). nsx-ambiq-sdk makes the same choice and keeps its sbl scripts for
   future silicon (`v5.2.24` `cmake/socs/atomiq110.cmake:20-23`). Revisit
   this default when atomiq110 silicon ships with an SBL.
-- An Implementation can replace the set and the default. The atomiq110
-  FPGA declares only its no-bootloader layout; its flash addresses are the
-  silicon ones (AmbiqSuite `tools/atomiq110_scripts/jlink-ota.txt`).
+- An Implementation's boot configurations merge with the Soc's by key
+  (ADR 0002 section 2.5); it can remove some and replace the default. The
+  atomiq110 FPGA offers only its no-bootloader layout; its flash addresses
+  are the silicon ones (AmbiqSuite `tools/atomiq110_scripts/jlink-ota.txt`).
 - A Board records its `provisioning`: which configuration the fitted part
   ships with. Ambiq EVBs ship SBL-provisioned; a customer board says what
   it uses; an FPGA Implementation records its own.
@@ -466,14 +468,16 @@ neuralspotx spelling; both come from the same resolver.
 
 One format for every downstream party: a tool shipping extra entries, a
 customer describing a production board, a bring-up team describing an
-FPGA cut. The complete overlay syntax is specified in ADR #7 (schema
-format); this RFC fixes the semantics, not the syntax. The examples below
+FPGA cut. The complete overlay syntax is specified in
+[ADR 0002](../adr/0002-schema-format-and-runtime.md) (#7); this RFC fixes
+the semantics, not the syntax. The examples below
 show one entry per entity kind, with field names as in the model.
 
 Semantics every overlay entry shares:
 
-- `based_on` copies facts only; aliases, `default_board`, `derives_from`,
-  `release_status` and the provenance of changed values are not inherited
+- `based_on` copies facts, and `extensions` per tool key; aliases,
+  `default_board`, `derives_from`, `release_status` and the provenance of
+  changed values are not inherited
   (see [Inheritance and derivation](#inheritance-and-derivation)).
 - Defaults: `release_status` is `embargoed` unless the entry declares it,
   and a value with no declared provenance has status `unverified`.
@@ -490,6 +494,7 @@ Semantics every overlay entry shares:
 A Soc delta:
 
 ```yaml
+schema_version: 1
 socs:
   my_soc:
     based_on: apollo510
@@ -499,6 +504,7 @@ socs:
 An Implementation (an FPGA cut):
 
 ```yaml
+schema_version: 1
 implementations:
   atomiq110_fpga_rev3:
     soc: atomiq110
@@ -508,13 +514,16 @@ implementations:
       memories_resized: {dtcm: 256K}
       max_cpu_mhz: 25
       peripherals_removed: [iom2, iom3]     # illustrative ids
+      boot_configs_removed: [sbl]           # the SDK keeps sbl for future silicon
     clock_domains:                      # domain ids illustrative
-      cpu: {points: [{name: fpga, mhz: 25}]}   # image-dependent: 12, 25 (default), 48 MHz
-      npu: {points: [{name: fpga, mhz: 25}]}
-    operating_points: [{name: fpga, domains: {cpu: fpga, npu: fpga}}]
-    # shorthand for the three lines above: [{name: fpga, cpu_mhz: 25, npu_mhz: 25}]
+      cpu: {fpga: {mhz: 25}}            # image-dependent: 12, 25 (default), 48 MHz
+      npu: {fpga: {mhz: 25}}
+    operating_points:
+      fpga: {domains: {cpu: fpga, npu: fpga}}
+    # shorthand for clock_domains and operating_points above:
+    #   operating_points: {fpga: {cpu_mhz: 25, npu_mhz: 25}}
     boot_configs:
-      nbl_fpga: {reserved: [], app_start: {region: rram, offset: 0}, requires: none}
+      nbl_fpga: {reserved: {}, app_start: {region: rram, offset: 0}, requires: none}
     default_boot: nbl_fpga
     provisioning: nbl_fpga
     jlink_device: ATOMIQ110              # carrier facts: an FPGA needs no board
@@ -523,6 +532,7 @@ implementations:
 A MemoryDevice (an illustrative customer part):
 
 ```yaml
+schema_version: 1
 memory_devices:
   acme_psram_8m:
     technology: psram
@@ -534,6 +544,7 @@ memory_devices:
 A custom Board:
 
 ```yaml
+schema_version: 1
 boards:
   my_product_v1:
     category: custom
@@ -551,6 +562,7 @@ boards:
 An AddOn:
 
 ```yaml
+schema_version: 1
 addons:
   my_psram_daughter:
     fits_boards: [apollo4p_evb]
@@ -670,7 +682,7 @@ revision; the core package does not carry them.
 ## API
 
 Stdlib dataclasses, frozen. No I/O at import. Runtime dependencies are
-PyYAML, used only by `load_overlay`, and typer for the CLI. The typer
+PyYAML and typer for the CLI. The typer
 range must overlap every consumer's own typer pin (helia-profiler caps
 it, see research/queries-helia-profiler.md and helia-profiler#459); typer
 stays a core dependency (decided).
@@ -751,9 +763,9 @@ one of them.
 @dataclass(frozen=True) class BuildFacts: abi, float_abi, toolchains
 @dataclass(frozen=True) class Soc:        id, series, aliases, cores, npus, accelerators, memories, access, default_access: DefaultAccess | None, peripherals, clock_domains, operating_points, default_operating_point: str | None, boot_configs, default_boot, sdk, derives_from, default_board: str | None, revision, release_status, extensions, provenance
 @dataclass(frozen=True) class Implementation: id, soc, kind, model: str | None, subset: Subset, clock_domains: tuple | None, operating_points: tuple | None, boot_configs: Mapping | None, default_boot: str | None, provisioning: str | None, jlink_device, trace_clock_mhz, interfaces, population, aliases, release_status, extensions, provenance   # None: inherit the Soc's (after clock caps)
-@dataclass(frozen=True) class Subset:     memories_removed, memories_resized, memories_rebased, substitutions: Mapping[str, Substitution], peripherals_removed, cores_removed, npus_removed, max_cpu_mhz, max_npu_mhz, max_domain_mhz   # substitutions: kind fvp only
+@dataclass(frozen=True) class Subset:     memories_removed, memories_resized, memories_rebased, substitutions: Mapping[str, Substitution], peripherals_removed, cores_removed, npus_removed, accelerators_removed, clock_domains_removed, boot_configs_removed, operating_points_removed, access_removed, max_cpu_mhz, max_npu_mhz, max_domain_mhz   # substitutions: kind fvp only
 @dataclass(frozen=True) class Substitution: replaces: tuple[str, ...], size, base, characterization, provenance   # keyed by the FVP region name; many-to-one
-@dataclass(frozen=True) class BootConfig: name, reserved: tuple[Reservation, ...], app_start: Mapping[str, AppStart], requires, provenance   # AppStart: region, offset
+@dataclass(frozen=True) class BootConfig: name, reserved: tuple[Reservation, ...], app_start: Mapping[str, AppStart], requires, provenance   # AppStart: region, offset; reserved in written key order
 @dataclass(frozen=True) class Reservation: region, offset, size, purpose, provenance
 @dataclass(frozen=True) class Part:       id, soc, implementation: str | None, silicon_revision, package, radio, jlink_device, image_slots, aliases, release_status, provenance
 @dataclass(frozen=True) class ImageSlot:  core, region, offset, size, supplier, provenance
