@@ -106,8 +106,9 @@ json.dumps(projection, sort_keys=True, separators=(",", ":"),
 
 Keys are strings only. Equal digests mean the same data. A different
 digest means a fact value or an identity or governance field changed,
-`cores` or `npus` were reordered, or the model gained a field; never a
-provenance-only or export-only change, or a reordering of anything else.
+`cores`, `npus` or `accelerators` were reordered, or the model gained a
+field; never a provenance-only or export-only change, or a reordering of
+anything else.
 
 Reason: the data reaches users only in the wheel, so a separate data
 number would only have to be mapped back to a wheel. The digest answers
@@ -247,8 +248,8 @@ dependency metadata and is meaningless for a loose file).
   (#5) decides how the schema is published: `helia-platforms export
   --schema` writes it, with no public URL until the repository is public.
 - Tests must cover: the digest ignores provenance-only and export-only
-  changes and the order of every collection other than `cores` and
-  `npus`, and changes when `cores` are reordered; a source hash keeps `extensions` unchanged; an overlay at N-1 loads with a warning and at N-2 fails with the
+  changes and the order of every collection other than `cores`, `npus` and
+  `accelerators`, and changes when any of those three is reordered; a source hash keeps `extensions` unchanged; an overlay at N-1 loads with a warning and at N-2 fails with the
   named error; an unknown key names the upgrade; side-loaded and explicit
   overlays appear in `identity()` without directories.
 - CONTRIBUTING gains the `data` scope, the PR-title rule and the table in
