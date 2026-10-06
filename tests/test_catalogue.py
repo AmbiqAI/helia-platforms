@@ -1,16 +1,19 @@
 import copy
 import dataclasses
 import datetime
+import re
+from pathlib import Path
 from types import MappingProxyType
+from typing import Any
 
 import pytest
 from typer.testing import CliRunner
 
 from conftest import RECORD
-from helia_platforms import model
+from helia_platforms import cli, model
 from helia_platforms._build import freeze
 from helia_platforms._tree import MergeError
-from helia_platforms.catalogue import load_documents, load_overlay
+from helia_platforms.catalogue import _EMPTY, _load_documents, load_overlay
 from helia_platforms.cli import app
 from helia_platforms.errors import FormatError, PlatformError
 
@@ -30,7 +33,7 @@ def problems_of(document, **kwargs) -> str:
 
 def test_model_values(document):
     cat = load_overlay(document)
-    a = cat.entry("socs", "soc_a")
+    a = cat._entry("socs", "soc_a")
     assert a.memories[0] == dataclasses.replace(a.memories[0], size=524288, base=0x20000000)
     assert [r.name for r in a.memories] == ["tcm", "ssram", "nvm"]
     assert a.cores[0].options.fpu_dp is False
@@ -40,19 +43,27 @@ def test_model_values(document):
     assert a.release_status == "embargoed"  # the overlay default
     assert cat.boards("soc_a")[0].id == "board_a"
     assert cat.npus()[0].model == "u85"
-    assert cat.sources["soc_a"] == "overlay:<mapping>"
+    assert cat.sources[("socs", "soc_a")] == "overlay:<mapping>"
 
 
 def test_model_is_immutable(document):
-    a = load_overlay(document).entry("socs", "soc_a")
+    a = load_overlay(document)._entry("socs", "soc_a")
     with pytest.raises(dataclasses.FrozenInstanceError):
         a.series = "x"  # type: ignore[misc]
     assert isinstance(a.boot_configs, MappingProxyType)
     assert isinstance(a.memories, tuple)
 
 
+def test_the_catalogue_and_the_empty_base_are_read_only(document):
+    cat = load_overlay(document)
+    mappings: tuple[Any, ...] = (cat._tables, cat._tables["socs"], cat.sources, _EMPTY._tables)
+    for mapping in mappings:
+        with pytest.raises(TypeError):
+            mapping["ghost"] = None
+
+
 def test_shorthands_expand(document):
-    a = load_overlay(document).entry("socs", "soc_a")
+    a = load_overlay(document)._entry("socs", "soc_a")
     hp = next(p for p in a.operating_points if p.name == "hp")
     assert dict(hp.domains) == {"cpu": "hp", "npu": "hp"}
     npu = next(d for d in a.clock_domains if d.id == "npu")
@@ -77,7 +88,7 @@ def test_provenance_records(document):
         "value": "512K",
         "provenance": {"status": "measured", "source": ["meas:board_a/x/2026-10-01"]},
     }
-    a = load_overlay(document).entry("socs", "soc_a")
+    a = load_overlay(document)._entry("socs", "soc_a")
     assert a.provenance.status == "datasheet"
     assert a.provenance.verified_on == datetime.date(2026, 10, 5)
     tcm = a.memories[0]
@@ -90,7 +101,7 @@ def test_provenance_records(document):
 def test_a_value_list_item_may_carry_its_own_record(document):
     record = {"status": "sdk", "source": ["repo:x@v1:a.h"]}
     soc(document)["peripherals"] = ["mspi0", {"value": "iom0", "provenance": record}]
-    a = load_overlay(document).entry("socs", "soc_a")
+    a = load_overlay(document)._entry("socs", "soc_a")
     assert a.peripherals == ("mspi0", "iom0")
     assert a.field_provenance["peripherals.iom0"].status == "sdk"
     assert "peripherals.mspi0" not in a.field_provenance
@@ -98,14 +109,14 @@ def test_a_value_list_item_may_carry_its_own_record(document):
 
 def test_a_keyed_item_whose_key_carries_a_record(document):
     soc(document)["access"][0]["master"] = {"value": "npu_0", "provenance": {"status": "sdk"}}
-    first = load_overlay(document).entry("socs", "soc_a").access[0]
+    first = load_overlay(document)._entry("socs", "soc_a").access[0]
     assert first.master == "npu_0"
     assert first.field_provenance["master"].status == "sdk"
 
 
 def test_integer_valued_floats_in_address_lists_become_integers(document):
     soc(document)["memories"]["tcm"]["alternate_bases"] = [4096.0]
-    (base,) = load_overlay(document).entry("socs", "soc_a").memories[0].alternate_bases
+    (base,) = load_overlay(document)._entry("socs", "soc_a").memories[0].alternate_bases
     assert type(base) is int
 
 
@@ -116,7 +127,7 @@ def test_freeze_keeps_shared_sub_objects_shared():
 
 
 def test_values_without_a_record_are_unverified_in_overlays(document):
-    part = load_overlay(document).entry("parts", "PART-A")
+    part = load_overlay(document)._entry("parts", "PART-A")
     assert part.provenance == model.UNVERIFIED
 
 
@@ -140,7 +151,7 @@ def test_based_on_merges_and_keeps_base_records(document):
             }
         }
     }
-    b = load_overlay(overlay, base=base).entry("socs", "soc_b")
+    b = load_overlay(overlay, base=base)._entry("socs", "soc_b")
     assert [(r.name, r.size) for r in b.memories] == [
         ("tcm", 512 * 1024),
         ("ssram", 2 * 1024 * 1024),
@@ -160,7 +171,7 @@ def test_based_on_does_not_copy_aliases_or_status(document):
     soc(document)["aliases"] = ["SOC-A"]
     soc(document)["release_status"] = "public"
     base = load_overlay(document)
-    b = load_overlay({"socs": {"soc_b": {"based_on": "soc_a"}}}, base=base).entry("socs", "soc_b")
+    b = load_overlay({"socs": {"soc_b": {"based_on": "soc_a"}}}, base=base)._entry("socs", "soc_b")
     assert b.aliases == ()
     assert b.release_status == "embargoed"
 
@@ -169,14 +180,14 @@ def test_based_on_merges_extensions_per_tool(document):
     document["boards"]["board_a"]["extensions"] = {"a": {"x": 1}, "b": {"y": 2}}
     base = load_overlay(document)
     overlay = {"boards": {"board_b": {"based_on": "board_a", "extensions": {"b": {"z": 3}}}}}
-    board = load_overlay(overlay, base=base).entry("boards", "board_b")
+    board = load_overlay(overlay, base=base)._entry("boards", "board_b")
     assert board.extensions == {"a": {"x": 1}, "b": {"z": 3}}
 
 
 def test_based_on_within_one_overlay(document):
     document["socs"]["soc_b"] = {"based_on": "soc_a", "peripherals_removed": ["iom2"]}
     document["socs"]["soc_c"] = {"based_on": "soc_b", "peripherals_removed": ["iom1"]}
-    c = load_overlay(document).entry("socs", "soc_c")
+    c = load_overlay(document)._entry("socs", "soc_c")
     assert c.peripherals == ("mspi0", "iom0")
 
 
@@ -199,22 +210,50 @@ def test_based_on_must_resolve_and_not_cycle(document):
     assert "cycle" in found
 
 
+def test_a_cycle_is_reported_once(document):
+    document["socs"]["y"] = {"based_on": "z"}
+    document["socs"]["z"] = {"based_on": "y"}
+    document["socs"]["w"] = {"based_on": "y"}
+    with pytest.raises(FormatError) as exc:
+        load_overlay(document)
+    assert exc.value.problems == ("<mapping>: socs.y.based_on: based_on forms a cycle at 'z'",)
+
+
 def test_shorthands_expand_the_same_with_the_base_in_either_place(document):
     del soc(document)["clock_domains"]["cpu"]["hp"]  # hp comes only from the shorthand
     child = {"based_on": "soc_a", "operating_points": {"hp": {"cpu_mhz": 250, "npu_mhz": 250}}}
     together = copy.deepcopy(document)
     together["socs"]["soc_b"] = copy.deepcopy(child)
-    same_load = load_overlay(together).entry("socs", "soc_b")
+    same_load = load_overlay(together)._entry("socs", "soc_b")
     over_base = load_overlay({"socs": {"soc_b": child}}, base=load_overlay(document))
-    assert over_base.entry("socs", "soc_b") == same_load
+    assert over_base._entry("socs", "soc_b") == same_load
     cpu = next(d for d in same_load.clock_domains if d.id == "cpu")
     assert [(p.name, p.mhz) for p in cpu.points] == [("lp", 96.0), ("hp", 250.0)]
 
 
 def test_removing_a_core_or_region_drops_its_access(document):
     document["socs"]["soc_b"] = {"based_on": "soc_a", "memories_removed": ["ssram"]}
-    b = load_overlay(document).entry("socs", "soc_b")
+    b = load_overlay(document)._entry("socs", "soc_b")
     assert [(a.master, a.target) for a in b.access] == [("npu_0", "tcm")]
+
+
+def test_access_written_to_a_removed_region_is_an_error(document):
+    document["socs"]["soc_b"] = {
+        "based_on": "soc_a",
+        "memories_removed": ["ssram"],
+        "access": [{"master": "npu_0", "target": "ssram", "access": "direct"}],
+    }
+    assert "access npu_0@ssram: no target 'ssram'" in problems_of(document)
+
+
+def test_a_single_app_start_without_a_core_0_is_reported(document):
+    soc(document)["cores"] = []
+    del soc(document)["npus"]
+    del soc(document)["access"]
+    del soc(document)["operating_points"]["hp"]
+    found = problems_of(document)
+    assert "boot_configs.sbl.app_start needs a core 0" in found
+    assert "boot_configs.nbl.app_start needs a core 0" in found
 
 
 # ---- an Implementation over its Soc ------------------------------------------------
@@ -237,9 +276,9 @@ def test_implementation_realizes_the_soc(document):
         }
     }
     cat = load_overlay(document)
-    impl = cat.entry("implementations", "soc_a_fpga")
+    impl = cat._entry("implementations", "soc_a_fpga")
     assert impl.subset.memories_resized == {"tcm": 256 * 1024}
-    realized = cat.realized("soc_a_fpga")
+    realized = cat._realized("soc_a_fpga")
     assert (realized.memories[0].name, realized.memories[0].size) == ("tcm", 256 * 1024)
     cpu = next(d for d in realized.clock_domains if d.id == "cpu")
     assert [(p.name, p.mhz) for p in cpu.points] == [("lp", 24.0), ("fpga", 25.0)]
@@ -258,9 +297,45 @@ def test_realizing_does_not_change_the_stored_trees(document):
     }
     cat = load_overlay(document)
     stored = copy.deepcopy(cat._trees[("implementations", "impl")].values)
-    assert cat.realized("impl") == cat.realized("impl")
+    assert cat._realized("impl") == cat._realized("impl")
     assert cat._trees[("implementations", "impl")].values == stored
     assert issubclass(MergeError, PlatformError)
+
+
+def test_an_implementation_of_an_unknown_soc_is_reported(document):
+    document["implementations"] = {
+        "cut": {
+            "soc": "nope",
+            "kind": "fpga",
+            "boot_configs": {
+                "nbl": {
+                    "reserved": {},
+                    "app_start": {"region": "nvm", "offset": 0},
+                    "requires": "none",
+                }
+            },
+        }
+    }
+    with pytest.raises(FormatError) as exc:
+        load_overlay(document)
+    assert exc.value.problems == ("<mapping>: implementations.cut: no soc 'nope'",)
+
+
+def test_image_slots_are_checked_against_the_realized_soc(document):
+    document["implementations"] = {
+        "cut": {"soc": "soc_a", "kind": "fpga", "subset": {"memories_removed": ["ssram"]}}
+    }
+    document["parts"]["PART-A"]["implementation"] = "cut"
+    document["parts"]["PART-A"]["image_slots"] = {
+        "app": {
+            "core": "cm55_0",
+            "region": "ssram",
+            "offset": 0,
+            "size": "64K",
+            "supplier": "vendor",
+        }
+    }
+    assert "parts.PART-A.image_slots.app: no region 'ssram'" in problems_of(document)
 
 
 def test_implementation_references_are_checked_after_the_merge(document):
@@ -331,7 +406,7 @@ def test_builtin_rules(document):
     document["boards"]["board_a"]["extensions"] = {"tool": {}}
     document["socs"]["soc_b"] = {"based_on": "soc_a"}
     with pytest.raises(FormatError) as exc:
-        load_documents([(document, "builtin.yaml")], builtin=True)
+        _load_documents([(document, "builtin.yaml")], builtin=True)
     found = "\n".join(exc.value.problems)
     assert "memories.nvm: a built-in region needs a base" in found
     assert "built-in entries may not carry extensions" in found
@@ -346,8 +421,56 @@ def test_load_overlay_reads_files(tmp_path, document):
         "schema_version: 1\nmemory_devices:\n  dev: {technology: psram, capacity: 8M}\n"
     )
     cat = load_overlay(path)
-    assert cat.entry("memory_devices", "dev").capacity == 8 * 1024 * 1024
-    assert cat.sources["dev"] == f"overlay:{path}"
+    assert cat._entry("memory_devices", "dev").capacity == 8 * 1024 * 1024
+    assert cat.sources[("memory_devices", "dev")] == f"overlay:{path}"
+
+
+def test_sources_are_keyed_by_table(tmp_path, document):
+    path = tmp_path / "addon.yaml"
+    path.write_text(
+        "schema_version: 1\naddons:\n"
+        "  psram_8m: {fits_boards: [board_a], occupies: [], population: {}}\n"
+    )
+    cat = load_overlay(path, base=load_overlay(document))
+    assert cat.sources[("memory_devices", "psram_8m")] == "overlay:<mapping>"
+    assert cat.sources[("addons", "psram_8m")] == f"overlay:{path}"
+
+
+# ---- RFC 0002's example overlays --------------------------------------------------
+
+RFC_0002 = Path(__file__).parents[1] / "docs" / "rfcs" / "0002-model-and-api.md"
+
+
+@pytest.mark.parametrize(
+    ("index", "expected"),
+    [
+        pytest.param(0, ["socs.my_soc.based_on: no socs entry 'apollo510'"], id="soc delta"),
+        pytest.param(
+            1, ["implementations.atomiq110_fpga_rev3: no soc 'atomiq110'"], id="implementation"
+        ),
+        pytest.param(2, [], id="memory device"),
+        pytest.param(3, ["boards.my_product_v1: no part 'AP510NFA-CBR'"], id="board"),
+        pytest.param(
+            4,
+            [
+                "addons.my_psram_daughter.fits_boards: no board 'apollo4p_evb'",
+                "addons.my_psram_daughter.population: no memory device 'acme_psram_8m'",
+            ],
+            id="addon",
+        ),
+    ],
+)
+def test_rfc_0002_overlays_load_or_name_the_built_in_entries_they_need(tmp_path, index, expected):
+    overlays = re.findall(r"^```yaml\n(.*?)^```", RFC_0002.read_text(), re.MULTILINE | re.DOTALL)
+    assert len(overlays) == 5
+    path = tmp_path / "overlay.yaml"
+    path.write_text(overlays[index])
+    if not expected:
+        load_overlay(path)
+        return
+    with pytest.raises(FormatError) as exc:
+        load_overlay(path)
+    assert [p.removeprefix(f"{path}: ") for p in exc.value.problems] == expected
 
 
 # ---- CLI --------------------------------------------------------------------------
@@ -378,6 +501,34 @@ def test_cli_validate_reports_each_unreadable_file_and_continues(tmp_path):
     assert result.exit_code == 1
     assert "bad.yaml: cannot be read" in result.output
     assert f"{good}: ok" in result.output
+
+
+def test_cli_validate_reports_an_unbuildable_entry_and_continues(tmp_path):
+    fpga = tmp_path / "fpga.yaml"
+    fpga.write_text(
+        "schema_version: 1\nimplementations:\n  cut:\n    soc: nope\n    kind: fpga\n"
+        "    boot_configs:\n"
+        "      nbl: {reserved: {}, app_start: {region: nvm, offset: 0}, requires: none}\n"
+    )
+    good = tmp_path / "good.yaml"
+    good.write_text("schema_version: 1\n")
+    result = runner.invoke(app, ["validate", str(fpga), str(good)])
+    assert result.exit_code == 1
+    assert result.exception is None or isinstance(result.exception, SystemExit)
+    assert "implementations.cut: no soc 'nope'" in result.output
+    assert f"{good}: ok" in result.output
+
+
+def test_cli_validate_reports_any_platform_error(tmp_path, monkeypatch):
+    def fail(path):
+        raise PlatformError("cannot load")
+
+    monkeypatch.setattr(cli, "load_overlay", fail)
+    path = tmp_path / "x.yaml"
+    path.write_text("schema_version: 1\n")
+    result = runner.invoke(app, ["validate", str(path)])
+    assert result.exit_code == 1
+    assert f"{path}: cannot load" in result.output
 
 
 def test_cli_validate_rejects_a_directory(tmp_path):

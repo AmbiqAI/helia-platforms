@@ -76,6 +76,14 @@ def _loader_class() -> type:
     CoreSchemaLoader.add_constructor(
         "tag:yaml.org,2002:map", lambda loader, node: loader.construct_mapping(node, deep=True)
     )
+
+    def reject(loader: Any, node: Any) -> None:  # YAML 1.1 types SafeLoader would build
+        raise ConstructorError(
+            None, None, f"{node.tag!r} is not a YAML 1.2 core schema tag", node.start_mark
+        )
+
+    for name in ("timestamp", "binary", "set", "omap", "pairs"):
+        CoreSchemaLoader.add_constructor(f"tag:yaml.org,2002:{name}", reject)
     return CoreSchemaLoader
 
 

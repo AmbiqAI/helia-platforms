@@ -486,6 +486,10 @@ Semantics every overlay entry shares:
 - A Soc delta uses the same vocabulary as an implementation `Subset` where
   it applies: `memories_removed`, `memories_resized`, `memories_rebased`,
   `peripherals_removed`.
+- Removing a region, memory controller, core, NPU or accelerator, in a
+  delta or an implementation `subset`, also removes the inherited `access`
+  entries that name it. An `access` entry that the overlay entry itself
+  writes and that names a removed unit is a reference error.
 - `cpu_mhz` and `npu_mhz` in an overlay operating point are shorthand: they
   expand to a point of that name in the core-0 and npu-0 clock domains. A
   single `app_start` means core 0. The multicore forms are in
@@ -698,7 +702,7 @@ class Catalogue:
     catalogue_version: str                      # data release, independent of the package version
     compositions: Mapping[str, Composition]     # alias -> board id and add-on ids
     shorthands: Mapping[str, tuple[str, ...]]   # built-in only; the only source of AmbiguousPlatform
-    sources: Mapping[str, str]                  # entry id -> source label
+    sources: Mapping[tuple[str, str], str]      # (table, entry id) -> source label
     def socs(self) -> tuple[Soc, ...]
     def implementations(self, soc: str | None = None) -> tuple[Implementation, ...]
     def parts(self, soc: str | None = None) -> tuple[Part, ...]
@@ -710,6 +714,9 @@ class Catalogue:
     def suggest(self, name: str) -> tuple[str, ...]
     def to_dict(self) -> dict                   # the JSON export
 ```
+
+`sources` is keyed by table and id because cores, add-ons and memory
+devices each have their own namespace, so an id can recur across tables.
 
 ### `helia_platforms.resolve`
 

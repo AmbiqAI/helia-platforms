@@ -29,38 +29,42 @@ _KINDS: dict[str, type] = {
 _RESOLVABLE = ("socs", "implementations", "parts", "boards")
 
 
+def _empty() -> Mapping[Any, Any]:
+    return MappingProxyType({})
+
+
 @dataclass(frozen=True)
 class Catalogue:
     """An immutable catalogue. ``load_overlay`` returns a new one; nothing is mutated."""
 
     schema_version: int = fmt.SCHEMA_VERSION
-    tables: Mapping[str, Mapping[str, Any]] = field(default_factory=dict)
-    compositions: Mapping[str, model.Composition] = field(default_factory=dict)
-    shorthands: Mapping[str, tuple[str, ...]] = field(default_factory=dict)
-    sources: Mapping[str, str] = field(default_factory=dict)
-    _trees: Mapping[tuple[str, str], Tree] = field(default_factory=dict, repr=False)
+    compositions: Mapping[str, model.Composition] = field(default_factory=_empty)
+    shorthands: Mapping[str, tuple[str, ...]] = field(default_factory=_empty)
+    sources: Mapping[tuple[str, str], str] = field(default_factory=_empty)
+    _tables: Mapping[str, Mapping[str, Any]] = field(default_factory=_empty, repr=False)
+    _trees: Mapping[tuple[str, str], Tree] = field(default_factory=_empty, repr=False)
 
     def socs(self) -> tuple[model.Soc, ...]:
-        return tuple(self.tables.get("socs", {}).values())
+        return tuple(self._tables.get("socs", {}).values())
 
     def implementations(self, soc: str | None = None) -> tuple[model.Implementation, ...]:
         return tuple(
-            i for i in self.tables.get("implementations", {}).values() if soc in (None, i.soc)
+            i for i in self._tables.get("implementations", {}).values() if soc in (None, i.soc)
         )
 
     def parts(self, soc: str | None = None) -> tuple[model.Part, ...]:
-        return tuple(p for p in self.tables.get("parts", {}).values() if soc in (None, p.soc))
+        return tuple(p for p in self._tables.get("parts", {}).values() if soc in (None, p.soc))
 
     def boards(self, soc: str | None = None) -> tuple[model.Board, ...]:
-        parts = self.tables.get("parts", {})
+        parts = self._tables.get("parts", {})
         return tuple(
             b
-            for b in self.tables.get("boards", {}).values()
+            for b in self._tables.get("boards", {}).values()
             if soc is None or (b.part in parts and parts[b.part].soc == soc)
         )
 
     def cores(self) -> tuple[model.Core, ...]:
-        return tuple(self.tables.get("cores", {}).values())
+        return tuple(self._tables.get("cores", {}).values())
 
     def npus(self) -> tuple[model.Npu, ...]:
         """The distinct Npu IP blocks the Socs instantiate."""
@@ -72,23 +76,23 @@ class Catalogue:
         return tuple(seen)
 
     def addons(self) -> tuple[model.AddOn, ...]:
-        return tuple(self.tables.get("addons", {}).values())
+        return tuple(self._tables.get("addons", {}).values())
 
     def memory_devices(self) -> tuple[model.MemoryDevice, ...]:
-        return tuple(self.tables.get("memory_devices", {}).values())
+        return tuple(self._tables.get("memory_devices", {}).values())
 
-    def entry(self, kind: str, entry_id: str) -> Any:
+    def _entry(self, kind: str, entry_id: str) -> Any:
         """One entry by table name and exact id; raises KeyError when absent."""
-        return self.tables[kind][entry_id]
+        return self._tables[kind][entry_id]
 
-    def realized(self, implementation: str) -> model.Soc:
-        """The Soc as an Implementation realizes it (merge only; no clock caps yet)."""
-        impl = self.tables["implementations"][implementation]
+    def _realized(self, implementation: str) -> model.Soc:
+        """The Soc as an Implementation realizes it by the merge alone, without clock caps."""
+        impl = self._tables["implementations"][implementation]
         tree = realize(self._trees[("socs", impl.soc)], self._trees[("implementations", impl.id)])
         return build_entity(model.Soc, fmt.Soc, tree, impl.soc)
 
 
-EMPTY = Catalogue()
+_EMPTY = Catalogue()
 
 
 def load_overlay(
@@ -104,10 +108,10 @@ def load_overlay(
     else:
         path = Path(source)
         data, origin, require = _parse.parse_file(path), str(path), True
-    return load_documents([(data, origin)], base=base, builtin=False, require_version=require)
+    return _load_documents([(data, origin)], base=base, builtin=False, require_version=require)
 
 
-def load_documents(
+def _load_documents(
     documents: Iterable[tuple[Any, str]],
     *,
     base: Catalogue | None = None,
@@ -115,7 +119,7 @@ def load_documents(
     require_version: bool = True,
 ) -> Catalogue:
     """Load parsed documents as one source over ``base``."""
-    base = base or EMPTY
+    base = base or _EMPTY
     problems: list[str] = []
     merged: dict[str, dict[str, tuple[Any, str]]] = {}
     compositions: dict[str, tuple[Any, str]] = {}
@@ -156,8 +160,8 @@ class _Loader:
         self.builtin = builtin
         self.problems: list[str] = []
         self.trees: dict[tuple[str, str], Tree] = dict(base._trees)
-        self.tables: dict[str, dict[str, Any]] = {k: dict(v) for k, v in base.tables.items()}
-        self.sources: dict[str, str] = dict(base.sources)
+        self.tables: dict[str, dict[str, Any]] = {k: dict(v) for k, v in base._tables.items()}
+        self.sources: dict[tuple[str, str], str] = dict(base.sources)
         self.resolved: dict[tuple[str, str], Tree | None] = {}
 
     def fail(self, origin: str, where: str, message: str) -> None:
@@ -181,15 +185,15 @@ class _Loader:
             built_compositions[alias] = model.Composition(
                 alias=alias, board=raw["board"], addons=tuple(raw.get("addons", ()))
             )
-            self.sources[alias] = self.label(origin)
+            self.sources[("compositions", alias)] = self.label(origin)
         built_shorthands = dict(self.base.shorthands)
         for name, (members, _) in shorthands.items():
             built_shorthands[name] = tuple(members)
         catalogue = Catalogue(
-            tables={k: MappingProxyType(v) for k, v in self.tables.items()},
             compositions=MappingProxyType(built_compositions),
             shorthands=MappingProxyType(built_shorthands),
             sources=MappingProxyType(self.sources),
+            _tables=MappingProxyType({k: MappingProxyType(v) for k, v in self.tables.items()}),
             _trees=MappingProxyType(self.trees),
         )
         self.check_references(catalogue, entries, compositions, shorthands)
@@ -229,7 +233,7 @@ class _Loader:
 
     def base_names(self) -> dict[str, dict[str, str]]:
         spaces: dict[str, dict[str, str]] = {}
-        for kind, table in self.base.tables.items():
+        for kind, table in self.base._tables.items():
             space = "resolvable" if kind in _RESOLVABLE else kind
             for entry_id, entry in table.items():
                 for name in (entry_id, *getattr(entry, "aliases", ())):
@@ -256,10 +260,11 @@ class _Loader:
         based_on = raw.get("based_on")
         result: Tree | None = own
         if based_on is None:
-            for name in raw:
-                if name.endswith(("_removed", "_resized", "_rebased")):
-                    self.fail(origin, f"{where}.{name}", "a delta needs a based_on entry")
-            self.expand(kind, own, own, origin, where)
+            deltas = [n for n in raw if n.endswith(("_removed", "_resized", "_rebased"))]
+            for name in deltas:
+                self.fail(origin, f"{where}.{name}", "a delta needs a based_on entry")
+            expanded = self.expand(kind, own, own, origin, where)
+            result = own if expanded and not deltas else None
         elif self.builtin:
             self.fail(origin, f"{where}.based_on", "built-in entries may not use based_on")
             result = None
@@ -269,12 +274,13 @@ class _Loader:
         else:
             base_tree = self.tree(kind, based_on, entries, (*chain, key))
             if base_tree is None:
-                self.fail(origin, f"{where}.based_on", f"no {kind} entry {based_on!r}")
+                if not self.failed((kind, based_on)):
+                    self.fail(origin, f"{where}.based_on", f"no {kind} entry {based_on!r}")
                 result = None
             else:
                 try:
-                    self.expand(kind, own, merge(base_tree, own, decl), origin, where)
-                    result = merge(base_tree, own, decl)
+                    expanded = self.expand(kind, own, merge(base_tree, own, decl), origin, where)
+                    result = merge(base_tree, own, decl) if expanded else None
                 except MergeError as exc:
                     for problem in exc.problems:
                         self.fail(origin, where, problem)
@@ -282,16 +288,33 @@ class _Loader:
         self.resolved[key] = result
         return result
 
-    def expand(self, kind: str, own: Tree, merged: Tree, origin: str, where: str) -> None:
+    def failed(self, key: tuple[str, str]) -> bool:
+        """True for an entry of this load whose tree failed; its problems are reported."""
+        return key in self.resolved and self.resolved[key] is None
+
+    def expand(self, kind: str, own: Tree, merged: Tree, origin: str, where: str) -> bool:
         """Expand ``own``'s shorthands before any merge, as if it wrote the long forms.
 
         ``merged`` is the entry over its base, which supplies core 0, npu 0 and the
-        Soc of an Implementation when ``own`` does not write them.
+        Soc of an Implementation when ``own`` does not write them. Returns False
+        when the shorthands cannot be expanded, so the entry must not be built.
         """
-        soc_values = self.soc_values(kind, merged)
-        if soc_values is not None:
-            for problem in expand_shorthands(own, soc_values):
-                self.fail(origin, where, problem)
+        if kind == "socs":
+            soc_values = merged.values
+        elif kind == "implementations":
+            soc = merged.values["soc"]
+            soc_tree = self.trees.get(("socs", soc))
+            if soc_tree is None:
+                if not self.failed(("socs", soc)):
+                    self.fail(origin, where, f"no soc {soc!r}")
+                return False
+            soc_values = soc_tree.values
+        else:
+            return True
+        problems = expand_shorthands(own, soc_values)
+        for problem in problems:
+            self.fail(origin, where, problem)
+        return not problems
 
     def finish(self, kind: str, entry_id: str, tree: Tree, origin: str) -> None:
         where = f"{kind}.{entry_id}"
@@ -309,15 +332,7 @@ class _Loader:
             self.fail(origin, where, str(exc))
             return
         self.tables.setdefault(kind, {})[entry_id] = entity
-        self.sources[entry_id] = self.label(origin)
-
-    def soc_values(self, kind: str, tree: Tree) -> dict | None:
-        if kind == "socs":
-            return tree.values
-        if kind == "implementations":
-            soc = self.trees.get(("socs", tree.values.get("soc")))
-            return soc.values if soc is not None else None
-        return None
+        self.sources[(kind, entry_id)] = self.label(origin)
 
     def check_builtin(self, kind: str, where: str, tree: Tree, origin: str) -> None:
         values = tree.values
@@ -346,18 +361,18 @@ class _Loader:
         }
         for kind, check in checks.items():
             for entry_id, (_, origin) in entries.get(kind, {}).items():
-                entity = catalogue.tables.get(kind, {}).get(entry_id)
+                entity = catalogue._tables.get(kind, {}).get(entry_id)
                 if entity is not None:
                     check(catalogue, entity, origin)
-        boards = catalogue.tables.get("boards", {})
-        addons = catalogue.tables.get("addons", {})
+        boards = catalogue._tables.get("boards", {})
+        addons = catalogue._tables.get("addons", {})
         for alias, (raw, origin) in compositions.items():
             if raw["board"] not in boards:
                 self.fail(origin, f"compositions.{alias}", f"no board {raw['board']!r}")
             for addon in raw.get("addons", []):
                 if addon not in addons:
                     self.fail(origin, f"compositions.{alias}", f"no add-on {addon!r}")
-        resolvable = {name for kind in _RESOLVABLE for name in catalogue.tables.get(kind, {})}
+        resolvable = {name for kind in _RESOLVABLE for name in catalogue._tables.get(kind, {})}
         for name, (members, origin) in shorthands.items():
             for member in members:
                 if member not in resolvable:
@@ -365,23 +380,23 @@ class _Loader:
 
     def check_soc(self, catalogue: Catalogue, soc: model.Soc, origin: str) -> None:
         where = f"socs.{soc.id}"
-        for problem in soc_reference_problems(soc, catalogue):
+        for problem in _soc_reference_problems(soc, catalogue):
             self.fail(origin, where, problem)
 
     def check_implementation(
         self, catalogue: Catalogue, impl: model.Implementation, origin: str
     ) -> None:
         where = f"implementations.{impl.id}"
-        if impl.soc not in catalogue.tables.get("socs", {}):
+        if impl.soc not in catalogue._tables.get("socs", {}):
             self.fail(origin, where, f"no soc {impl.soc!r}")
             return
         try:
-            realized = catalogue.realized(impl.id)
+            realized = catalogue._realized(impl.id)
         except MergeError as exc:
             for problem in exc.problems:
                 self.fail(origin, f"{where}.subset", problem)
             return
-        for problem in soc_reference_problems(realized, catalogue):
+        for problem in _soc_reference_problems(realized, catalogue):
             self.fail(origin, where, f"as realized: {problem}")
         if impl.provisioning is not None and impl.provisioning not in realized.boot_configs:
             self.fail(origin, where, f"provisioning {impl.provisioning!r} is not a boot config")
@@ -389,15 +404,20 @@ class _Loader:
 
     def check_part(self, catalogue: Catalogue, part: model.Part, origin: str) -> None:
         where = f"parts.{part.id}"
-        socs = catalogue.tables.get("socs", {})
+        socs = catalogue._tables.get("socs", {})
         if part.soc not in socs:
             self.fail(origin, where, f"no soc {part.soc!r}")
             return
         soc = socs[part.soc]
         if part.implementation is not None:
-            impl = catalogue.tables.get("implementations", {}).get(part.implementation)
+            impl = catalogue._tables.get("implementations", {}).get(part.implementation)
             if impl is None or impl.soc != part.soc:
                 self.fail(origin, where, f"no implementation {part.implementation!r} of {soc.id}")
+            else:
+                try:
+                    soc = catalogue._realized(impl.id)  # slots name what the Implementation keeps
+                except MergeError:
+                    return  # reported against the implementation
         cores = {c.id for c in soc.cores}
         regions = {r.name for r in soc.memories}
         for name, slot in part.image_slots.items():
@@ -408,16 +428,16 @@ class _Loader:
 
     def check_board(self, catalogue: Catalogue, board: model.Board, origin: str) -> None:
         where = f"boards.{board.id}"
-        part = catalogue.tables.get("parts", {}).get(board.part)
+        part = catalogue._tables.get("parts", {}).get(board.part)
         if part is None:
             self.fail(origin, where, f"no part {board.part!r}")
             return
-        if board.provisioning is not None and part.soc in catalogue.tables.get("socs", {}):
+        if board.provisioning is not None and part.soc in catalogue._tables.get("socs", {}):
             try:
                 soc = (
-                    catalogue.realized(part.implementation)
+                    catalogue._realized(part.implementation)
                     if part.implementation
-                    else catalogue.tables["socs"][part.soc]
+                    else catalogue._tables["socs"][part.soc]
                 )
             except (KeyError, MergeError):
                 return  # reported against the part or the implementation
@@ -429,7 +449,7 @@ class _Loader:
 
     def check_addon(self, catalogue: Catalogue, addon: model.AddOn, origin: str) -> None:
         where = f"addons.{addon.id}"
-        boards = catalogue.tables.get("boards", {})
+        boards = catalogue._tables.get("boards", {})
         for board in addon.fits_boards:
             if board not in boards:
                 self.fail(origin, f"{where}.fits_boards", f"no board {board!r}")
@@ -446,7 +466,7 @@ class _Loader:
         where: str,
         origin: str,
     ) -> None:
-        devices = catalogue.tables.get("memory_devices", {})
+        devices = catalogue._tables.get("memory_devices", {})
         for interface, device in population.items():
             if interfaces is not None and interface not in interfaces:
                 self.fail(origin, f"{where}.population", f"no interface {interface!r}")
@@ -454,7 +474,7 @@ class _Loader:
                 self.fail(origin, f"{where}.population", f"no memory device {device!r}")
 
 
-def soc_reference_problems(soc: model.Soc, catalogue: Catalogue) -> list[str]:
+def _soc_reference_problems(soc: model.Soc, catalogue: Catalogue) -> list[str]:
     """References inside one Soc that do not resolve (ADR 0002 section 2.5; RFC 0002)."""
     return [
         *_unit_problems(soc, catalogue),
@@ -469,7 +489,7 @@ def _unit_problems(soc: model.Soc, catalogue: Catalogue) -> list[str]:
     problems: list[str] = []
     domains = {d.id for d in soc.clock_domains}
     cores = {c.id for c in soc.cores}
-    known_cores = catalogue.tables.get("cores", {})
+    known_cores = catalogue._tables.get("cores", {})
     if soc.cores and soc.cores[0].role != "application":
         problems.append(f"core 0 ({soc.cores[0].id}) must have role application")
     for core in soc.cores:
@@ -539,9 +559,9 @@ def _access_problems(soc: model.Soc) -> list[str]:
 
 def _relation_problems(soc: model.Soc, catalogue: Catalogue) -> list[str]:
     problems: list[str] = []
-    if soc.derives_from is not None and soc.derives_from not in catalogue.tables.get("socs", {}):
+    if soc.derives_from is not None and soc.derives_from not in catalogue._tables.get("socs", {}):
         problems.append(f"derives_from: no soc {soc.derives_from!r}")
-    boards = catalogue.tables.get("boards", {})
+    boards = catalogue._tables.get("boards", {})
     if soc.default_board is not None and soc.default_board not in boards:
         problems.append(f"default_board: no board {soc.default_board!r}")
     return problems

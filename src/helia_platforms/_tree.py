@@ -193,7 +193,8 @@ def merge(base: Tree, delta: Tree, obj: type, *, inherit_all: bool = False) -> T
             values[key] = _merge_collection(values[key], item, declared[key].type)
         else:
             values[key] = item
-    problems = _apply_deltas(values, deltas, moved, declared)
+    written = {(a["master"], a["target"]) for a in delta.values.get("access", [])}
+    problems = _apply_deltas(values, deltas, moved, declared, written)
     if problems:
         raise MergeError(problems)
     records: dict[Path, Record] = {}
@@ -212,7 +213,9 @@ def _is_delta_key(key: str, declared: dict) -> bool:
     return field_ is not None and fmt.FILE_ONLY in _walk.unwrap(field_.type)[1]
 
 
-def _apply_deltas(values: dict, deltas: dict, moved: dict, declared: dict) -> list[str]:
+def _apply_deltas(
+    values: dict, deltas: dict, moved: dict, declared: dict, written: set
+) -> list[str]:
     problems: list[str] = []
     for key, change in deltas.items():
         if key.endswith("_removed"):
@@ -227,7 +230,7 @@ def _apply_deltas(values: dict, deltas: dict, moved: dict, declared: dict) -> li
                     continue
                 regions[name] = {**regions[name], field_name: new}
                 moved[("memories", name, field_name)] = (key, name)
-    _drop_dangling_access(values, deltas)
+    _drop_dangling_access(values, deltas, written)
     return problems
 
 
@@ -265,14 +268,21 @@ def _remove(values: dict, target: str, names: list, declared: dict) -> list[str]
     return problems
 
 
-def _drop_dangling_access(values: dict, deltas: dict) -> None:
-    """Removing a region, controller, core, NPU or accelerator removes access naming it."""
+def _drop_dangling_access(values: dict, deltas: dict, written: set) -> None:
+    """Removing a region, controller, core, NPU or accelerator removes inherited access naming it.
+
+    Entries in ``written`` (the delta's own ``(master, target)`` pairs) stay, so
+    the reference check reports them.
+    """
     gone = set()
     for key in ("memories", "peripherals", "cores", "npus", "accelerators"):
         gone.update(deltas.get(f"{key}_removed", []))
     if gone and "access" in values:
         values["access"] = [
-            a for a in values["access"] if a["master"] not in gone and a["target"] not in gone
+            a
+            for a in values["access"]
+            if (a["master"], a["target"]) in written
+            or (a["master"] not in gone and a["target"] not in gone)
         ]
 
 

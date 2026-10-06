@@ -9,7 +9,7 @@ import typer
 
 from helia_platforms import __version__
 from helia_platforms.catalogue import load_overlay
-from helia_platforms.errors import FormatError
+from helia_platforms.errors import FormatError, PlatformError
 from helia_platforms.schema import render
 
 app = typer.Typer(
@@ -59,6 +59,9 @@ def validate(
             failed = True
             for problem in exc.problems:
                 typer.echo(problem, err=True)
+        except PlatformError as exc:
+            failed = True
+            typer.echo(f"{path}: {exc}", err=True)
         else:
             typer.echo(f"{path}: ok")
     if failed:

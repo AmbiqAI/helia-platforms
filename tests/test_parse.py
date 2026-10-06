@@ -47,6 +47,13 @@ def test_plain_scalars_follow_the_yaml_1_2_core_schema(text, expected):
         "v: !!int ' 7 '",
         "v: !!bool abc",
         "v: !!float abc",
+        "v: !!timestamp 2026-10-05",
+        "v: !!timestamp abc",
+        "v: !!binary aGk=",
+        "v: !!set {a, b}",
+        "v: !!omap [{a: 1}]",
+        "v: !!pairs [{a: 1}]",
+        "v: &x [1, *x]",
         pytest.param("v: " + "[" * 3000 + "]" * 3000, id="deep nesting"),
     ],
 )

@@ -132,6 +132,36 @@ def test_extensions_hold_any_json(document):
     assert problems(document) == []
 
 
+@pytest.mark.parametrize(
+    ("value", "message"),
+    [
+        ({"a", "b"}, "expected JSON data, got a set value"),
+        ({"x": b"hi"}, "expected JSON data, got a bytes value"),
+        ({"x": (1, 2)}, "expected JSON data, got a tuple value"),
+        ({1: "a"}, "key 1 must be a string"),
+    ],
+)
+def test_extensions_reject_values_json_cannot_hold(document, value, message):
+    document["boards"]["board_a"]["extensions"] = {"tool": value}
+    (found,) = problems(document)
+    assert "boards.board_a.extensions.tool" in found
+    assert message in found
+
+
+def test_extensions_reject_a_value_that_contains_itself(document):
+    loop: list = [1]
+    loop.append({"again": loop})
+    document["boards"]["board_a"]["extensions"] = {"tool": loop}
+    (found,) = problems(document)
+    assert "the value contains itself" in found
+
+
+def test_extensions_may_share_a_value(document):
+    shared = {"x": 1}
+    document["boards"]["board_a"]["extensions"] = {"tool": [shared, shared]}
+    assert problems(document) == []
+
+
 def test_app_start_accepts_the_per_core_form(document):
     config = soc(document)["boot_configs"]["sbl"]
     config["app_start"] = {"cm55_0": {"region": "nvm", "offset": "64K"}}

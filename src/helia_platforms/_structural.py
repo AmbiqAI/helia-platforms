@@ -36,6 +36,7 @@ class _Checker:
         if fmt.NOT_FACT in markers:
             facts = False
         if fmt.OPAQUE in markers:
+            self.check_json(value, path, ())
             return
         if (
             facts
@@ -132,6 +133,25 @@ class _Checker:
                 if key in seen_keys:
                     self.fail(path, f"two items have the same {'/'.join(keyed.fields)} {key}")
                 seen_keys.add(key)
+
+    def check_json(self, value: Any, path: str, enclosing: tuple[int, ...]) -> None:
+        """An opaque value must be JSON data: no other types, string keys, no cycles."""
+        if isinstance(value, dict | list):
+            if id(value) in enclosing:
+                self.fail(path, "the value contains itself")
+                return
+            enclosing = (*enclosing, id(value))
+        if isinstance(value, dict):
+            for key, item in value.items():
+                if isinstance(key, str):
+                    self.check_json(item, _join(path, key), enclosing)
+                else:
+                    self.fail(path, f"key {key!r} must be a string; quote it")
+        elif isinstance(value, list):
+            for index, item in enumerate(value):
+                self.check_json(item, f"{path}[{index}]", enclosing)
+        elif not (value is None or isinstance(value, str | int | float)):
+            self.fail(path, f"expected JSON data, got {_describe(value)}")
 
     def check_union(self, value: Any, tp: Any, path: str, facts: bool) -> None:
         best: list[str] | None = None
@@ -243,7 +263,7 @@ def _contains(seen: list[Any], item: Any) -> bool:
     )
 
 
-def _describe(value: Any) -> str:
+def _describe(value: Any) -> str:  # noqa: PLR0911 (one return per kind of value)
     if value is None:
         return "nothing (null)"
     if isinstance(value, bool):
@@ -254,7 +274,9 @@ def _describe(value: Any) -> str:
         return "a list"
     if isinstance(value, str):
         return f"the string {value!r}"
-    return f"the number {value!r}"
+    if _is_number(value):
+        return f"the number {value!r}"
+    return f"a {type(value).__name__} value"
 
 
 def _unknown_key(key: str, declared: dict) -> str:
