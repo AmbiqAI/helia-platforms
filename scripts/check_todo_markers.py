@@ -5,18 +5,20 @@ CONTRIBUTING.md requires ``TODO(#123)`` for tracked work and ``TODO(verify)``
 for unverified claims, so a marker can never outlive the context that
 explains it.
 
-A line carrying ``todo-markers: ignore`` (in whatever comment syntax the file
-uses) silences the whole line, not just the marker on it, for the rare case
-where the word is the subject rather than a marker.
+A ``todo-markers: ignore`` comment (in whatever syntax the file uses)
+silences its whole segment of the line, not just the marker on it, for the
+rare case where the word is the subject rather than a marker. A segment ends
+at any ``str.splitlines`` break; see ``hook_common.split_segments``.
 """
 
 from __future__ import annotations
 
-import argparse
 import re
 import sys
 from collections.abc import Sequence
 from pathlib import Path
+
+import hook_common
 
 ALLOWED_TAGS: tuple[str, ...] = ("verify",)
 MARKERS: tuple[str, ...] = ("TODO", "FIXME", "HACK", "XXX")  # todo-markers: ignore
@@ -81,9 +83,7 @@ def check_text(text: str, path: str) -> list[str]:
         One message per untagged marker; empty when the text is clean.
     """
     messages: list[str] = []
-    for lineno, line in enumerate(text.splitlines(), start=1):
-        if IGNORE_DIRECTIVE in line:
-            continue
+    for lineno, line in hook_common.split_segments(text, IGNORE_DIRECTIVE):
         for match in MARKER_RE.finditer(line):
             if _is_path_segment(line, match.start(), match.end()):
                 continue
@@ -92,42 +92,13 @@ def check_text(text: str, path: str) -> list[str]:
 
 
 def check_file(path: Path) -> list[str]:
-    """Scan one file, reporting rather than hiding files it cannot read.
-
-    Args:
-        path: File to scan.
-
-    Returns:
-        One message per untagged marker; empty for clean or unscannable files.
-    """
-    try:
-        text = path.read_text(encoding="utf-8")
-    except UnicodeDecodeError:
-        print(f"{path}: skipped (not UTF-8)", file=sys.stderr)
-        return []
-    except OSError as exc:
-        print(f"{path}: skipped ({exc.strerror})", file=sys.stderr)
-        return []
-    return check_text(text, str(path))
+    """Scan one file, or a symlink's target string; see ``hook_common.check_file``."""
+    return hook_common.check_file(path, check_text)
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    """Scan the given files and report untagged markers.
-
-    Args:
-        argv: Command-line arguments; defaults to ``sys.argv[1:]``.
-
-    Returns:
-        1 when any untagged marker was found, 0 otherwise.
-    """
-    parser = argparse.ArgumentParser(description="Reject untagged deferred-work markers.")
-    parser.add_argument("filenames", nargs="*", help="files to scan")
-    args = parser.parse_args(argv)
-
-    messages = [message for name in args.filenames for message in check_file(Path(name))]
-    for message in messages:
-        print(message)
-    return 1 if messages else 0
+    """Scan the given files; return 1 when any untagged marker was found, 0 otherwise."""
+    return hook_common.main(argv, check_text, "Reject untagged deferred-work markers.")
 
 
 if __name__ == "__main__":

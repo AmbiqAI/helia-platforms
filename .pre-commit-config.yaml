@@ -19,7 +19,7 @@ repos:
       - id: end-of-file-fixer
       - id: check-merge-conflict
       - id: check-added-large-files
-        args: [--maxkb=500]
+        args: [--maxkb=500, --enforce-all]
       - id: check-yaml
       - id: check-json
       - id: check-toml
@@ -59,6 +59,7 @@ repos:
         entry: scripts/check_todo_markers.py
         language: script
         types: [text]
+        exclude: ^tests/test_check_todo_markers\.py$  # this test file is made of marker examples
       - id: local-paths
         name: reject local filesystem paths
         entry: scripts/check_local_paths.py

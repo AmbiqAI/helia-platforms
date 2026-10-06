@@ -35,11 +35,19 @@ commit. Run them across the whole tree with:
 uv run pre-commit run --all-files
 ```
 
+CI runs the same command. The gitleaks hook scans only staged changes, so
+that command, in CI or locally with nothing staged, gives it nothing to scan.
+The check-merge-conflict hook looks for conflict markers only while a merge or
+rebase is in progress, which is never the case in CI, so it checks nothing there
+either.
+
 ## Deferred work
 
 Deferred-work markers must be traceable. Write `TODO(#123): <one line>` with a
 real issue number, or `TODO(verify)` for a claim that still needs a source of
-record. Untagged markers are rejected by the `todo-markers` hook.
+record. Untagged markers are rejected by the `todo-markers` hook. The hook
+skips `tests/test_check_todo_markers.py`, because that file is made of marker
+examples.
 
 ## Local paths
 

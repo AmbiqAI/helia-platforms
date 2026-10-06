@@ -205,6 +205,20 @@ def test_directive_silences_only_its_own_line() -> None:
 
 
 @pytest.mark.parametrize(
+    "separator",
+    ["\r", "\f", "\u2028", "\x85"],
+    ids=["lone-cr", "form-feed", "line-separator", "next-line"],
+)
+def test_directive_silences_only_its_own_segment(separator: str) -> None:
+    text = f"x  # local-paths: ignore{separator}/Users/b/\n"
+    assert checker.check_text(text, "f.py") == [_message("f.py", 1, "/Users/b/")]
+
+
+def test_directive_silences_a_path_in_its_own_segment() -> None:
+    assert checker.check_text("a\f/Users/b/  # local-paths: ignore\n", "f.py") == []
+
+
+@pytest.mark.parametrize(
     "text",
     ["", "\n", "plain prose\nwith two lines\n"],
     ids=["empty", "blank-line", "prose"],
@@ -301,7 +315,8 @@ ADVERSARIAL_INPUTS: dict[str, str] = {
 
 # A regex call holds the GIL, so a runaway scan is bounded by running it in a child process.
 _TIMED_SCAN = """
-import importlib.util, sys, time
+import importlib.util, os, sys, time
+sys.path.insert(0, os.path.dirname(sys.argv[1]))
 spec = importlib.util.spec_from_file_location("check_local_paths", sys.argv[1])
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)

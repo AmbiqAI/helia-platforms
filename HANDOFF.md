@@ -134,7 +134,8 @@ auto-add and close-to-Done workflows, which only the web UI can enable.
   embargoed parts. See review item 3.1.
 - release-please will not bump `uv.lock`; expect drift until an
   extra-file or lock refresh step is added.
-- `scripts/check_todo_markers.py` is the only file a raw grep for bare
+- `scripts/check_todo_markers.py` and its tests in
+  `tests/test_check_todo_markers.py` are the only files a raw grep for bare
   markers will hit, by design.
 
 - Datasheets (source of record; see `docs/research/datasheets.md`)
