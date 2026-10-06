@@ -86,14 +86,17 @@ One JSON document, built from a `Catalogue`, with four top-level keys:
 |---|---|
 | `schema_version` | ADR 0004's integer. |
 | `identity` | `Catalogue.identity().to_dict()` (ADR 0004 point 4): package version, `schema_version`, `catalogue_digest`, and one entry per source applied on top of the built-in data. |
-| `catalogue` | The entities, written as a complete document in ADR 0002's file format: `cores`, `socs`, `implementations`, `parts`, `boards`, `addons`, `memory_devices`, `compositions`, `shorthands`. Every entry is fully expanded: no `based_on`, no delta keys. |
+| `catalogue` | The entities, written as a complete document in ADR 0002's file format: `schema_version`, equal to the export's top-level `schema_version`, then `cores`, `socs`, `implementations`, `parts`, `boards`, `addons`, `memory_devices`, `compositions`, `shorthands`. Every entry is written after the `based_on` merge, so no entry carries `based_on` or a file-only delta key that applies over a base (a Soc's `memories_removed` and the like, a Part's `image_slots_removed`; #49's `_format.py:286-301`, `:369`). An Implementation entry keeps its `subset` as in the file format, because its removals, resizes, rebases and clock caps live only there (ADR 0002 `:211-216`); a reader that wants the realized Implementation reads its `targets` record. |
 | `targets` | One resolved record per board, part, implementation and Soc id, and per composition alias, keyed by that id or alias. |
 
 `catalogue` and `targets` serve different readers. `catalogue` is the raw data: a
 tool can rebuild any view from it, and because it is in the file format,
 the file-format JSON Schema of the same `schema_version` validates it (in
 the draft schema of #49, `provenance` is not a required key of an entry,
-so an entry without it validates). `targets` carries what the package
+so an entry without it validates). The member carries its own
+`schema_version` because that schema requires the key at the top level
+of a document and allows no top-level key it does not list
+(`helia-platforms-v1.schema.json:110-113`). `targets` carries what the package
 computes, so that a reader that cannot run Python, such as an Astro
 docs site, does not reimplement derivation (RFC 0002 principle P3). A
 `targets` record holds, per group:
@@ -103,14 +106,26 @@ docs site, does not reimplement derivation (RFC 0002 principle P3). A
 - structure: cores with their `isa()` features, NPUs with
   `accelerator_config`, accelerators;
 - memory: per programmable core, the regions it reaches after the
-  implementation subset, `usable_nvm()` and `flash_load_address()`; the
-  external memories;
+  implementation subset, `usable_nvm()` and `flash_load_address()`, each
+  of which may be `null` as described below; the external memories;
 - clocks: operating points, the default, and `cpu_mhz` and `npu_mhz` per
   point;
 - boot: the selected boot configuration and the names of the others;
 - debug and SDK: `jlink_device`, `trace_clock_mhz`, `sdk`;
 - `capabilities`, sorted;
 - `provenance`: `Target.provenance()`, the worst status per group.
+
+A per-core value is `null` when the Target method that computes it raises
+`PlatformError` because no boot configuration is selected or because the
+`app_start` region has no `base`; RFC 0002 says `flash_load_address()`
+raises in both cases (`:187-191`, `:801`). The `targets` schema allows
+`null` for these values. Entries from `--overlay` files and plugins can
+produce them: #49's file format lets a Soc omit `boot_configs` and
+`default_boot` (`_format.py:280-281`) and lets an overlay region omit
+`base` (`_format.py:125`). Built-in regions always carry a base (RFC 0002
+`:191`; #49's `catalogue.py:319-321`), but no rule requires a built-in
+Soc to carry a boot configuration, so in built-in data only a missing
+boot configuration produces `null`.
 
 A record carries no tool policy and no budgets: no alignment, placement
 order or linker windows. The optional link-environment dataset stays
@@ -127,7 +142,13 @@ The export is always filtered by RFC 0002's rule ("Release status",
 `:374-387`) with ADR 0005's additions: no embargoed entry and no target
 whose effective status is embargoed; embargoed ids scrubbed from
 shorthands, compositions, `fits_boards`, `default_board`, `applies_to` and
-aliases; a Core or Npu dropped when no exported Soc references it.
+aliases; a Core or Npu dropped when no exported Soc references it. The
+export also drops a composition whose `board` is scrubbed, because a
+composition without a board is not a valid entry: #49's schema requires
+`board` (`helia-platforms-v1.schema.json:1345-1364`). This tightens RFC
+0002's rule, which drops a composition only when it references only
+embargoed entities (`:383-387`) and so would keep a composition of an
+embargoed board and a public add-on with its `board` removed.
 `Catalogue.to_dict()` returns this filtered document. The unfiltered form
 exists only for ADR 0005's distribution test, which asserts the two are
 equal for the built-in catalogue. No public call returns an unfiltered
@@ -163,7 +184,7 @@ export shape" and bumps it on a schema break, including "an export field
 removed or renamed". This note follows that:
 
 - The export declares `schema_version: N`, and its `catalogue` member is
-  a file-format document at the same N.
+  a file-format document that declares the same `schema_version: N`.
 - The `targets` member gets its own JSON Schema, generated from a
   `TypedDict` declaration as ADR 0002 section 3 does for the file format:
   `src/helia_platforms/schema/helia-platforms-export-v<N>.schema.json`,
@@ -249,7 +270,7 @@ PR #49's `export` command writes only `--schema`. This note adds:
 | `--export-schema` | The `targets` JSON Schema |
 | `--pages DIR` | The Markdown pages |
 | `--provenance` | Full provenance records in `catalogue` |
-| `--overlay FILE` (repeatable), `--include-plugins` | Adds sources; the filter still applies |
+| `--overlay FILE` (repeatable), `--include-plugins` | Adds sources; the filter still applies, and their entries can give `null` per-core values in `targets` |
 | `--check` | Compares with the existing outputs and fails on any difference |
 
 ### Where outputs are published
@@ -303,5 +324,6 @@ content.
 
 - RFC 0002: the `to_dict()` comment (`:699`) and the
   `helia_platforms.export` sentence (`:845-847`) link here; the CLI line
-  (`:848-852`) lists the new `export` options.
+  (`:848-852`) lists the new `export` options; the release status rule
+  (`:383-387`) also drops a composition whose `board` is scrubbed.
 - ADR 0002: open question 3 is answered as above.
