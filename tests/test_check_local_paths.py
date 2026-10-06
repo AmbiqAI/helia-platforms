@@ -158,6 +158,19 @@ SINGLE_LINE_CASES: dict[str, tuple[str, list[str]]] = {
     ),
     "https-query-relative-route-not-matched": ("https://example.com/?q=api/Users/bob", []),
     "https-fragment-exempt": ("https://example.com/app#/home/settings", []),
+    "https-fragment-after-query-exempt": ("https://example.com/?q=1#/home/settings", []),
+    "https-question-mark-in-fragment-not-query": (
+        "https://example.com/#/settings?next=/home/dashboard",
+        [],
+    ),
+    "https-query-before-fragment-not-exempt": (
+        "https://example.com/?a=/home/bob#/home/x",
+        ["/home/bob"],
+    ),
+    "localhost-relative-route-not-matched": ("http://localhost:8000/api/Users/42", []),
+    "loopback-relative-route-not-matched": ("curl http://127.0.0.1:8080/api/home/status", []),
+    "localhost-query-relative-route-not-matched": ("http://localhost/?q=api/Users/bob", []),
+    "localhost-query-not-exempt": ("http://localhost/?q=/Users/bob", ["/Users/bob"]),
     # Single-dash compiler and linker options
     "option-include-macos": ("-I/Users/alice/sdk/include", ["/Users/alice/"]),
     "option-library-linux": ("-L/home/bob/lib", ["/home/bob/"]),
@@ -169,6 +182,9 @@ SINGLE_LINE_CASES: dict[str, tuple[str, list[str]]] = {
     "option-placeholder-not-matched": ("-I/Users/<name>/x", []),
     "option-after-word-char-not-matched": ("x-I/Users/alice/x", []),
     "option-double-dash-not-matched": ("--I/Users/alice/x", []),
+    "option-glued-relative-path-not-matched": ("cc -Isrc/home/widgets/include x.c", []),
+    "option-glued-relative-users-not-matched": ("-Ithird_party/Users/include", []),
+    "option-library-glued-relative-path-not-matched": ("-Lbuild/home/lib", []),
     # Windows-side WSL UNC paths
     "wsl-dollar-unc": (r"\\wsl$\Ubuntu\home\alice\x", ["\\\\wsl$\\Ubuntu\\home\\alice\\"]),
     "wsl-localhost-unc": (
