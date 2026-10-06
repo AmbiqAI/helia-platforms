@@ -59,3 +59,11 @@ repos:
         entry: scripts/check_todo_markers.py
         language: script
         types: [text]
+      - id: local-paths
+        name: reject local filesystem paths
+        entry: scripts/check_local_paths.py
+        language: script
+        # types: [] replaces the default [file], which would drop symlinks.
+        types: []
+        types_or: [text, symlink]
+        exclude: ^tests/test_check_local_paths\.py$  # this test file is made of local-path examples
