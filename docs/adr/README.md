@@ -18,3 +18,4 @@ NNNN, Rejected.
 | 0003 | Record provenance per fact with a closed status vocabulary | Proposed |
 | 0004 | Version the schema separately and ship data corrections as patches | Proposed |
 | 0005 | Gate PyPI publication and choose the path to public | Proposed |
+| 0006 | Check the catalogue against committed source snapshots | Proposed |
