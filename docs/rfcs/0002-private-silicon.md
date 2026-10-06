@@ -58,6 +58,6 @@ Discovery reads the environment and entry points once, at the first
 
 ## Open question
 
-Whether private packages are signed or version-pinned, and how a consumer
-asserts which private catalogue version it ran against (RFC 0002 open
-question 6).
+Whether private packages are signed (RFC 0002 open question 6). A
+consumer records which private catalogue it ran against through
+`Catalogue.identity()` ([ADR 0004](../adr/0004-schema-and-catalogue-versions.md)).

@@ -284,6 +284,10 @@ CLI: `helia-platforms list [socs|boards|cores|npus]`, `show <id>`,
 
 ## G. The SDK drift test
 
+Superseded by [ADR 0006](../adr/0006-drift-test-snapshots.md), which
+compares the catalogue with committed snapshots of the SDK, neuralspotx
+and Zephyr. The table below is kept as imported.
+
 The package's CI checks out `nsx-ambiq-sdk` at the tags neuralspotx pins
 (`registry.lock.yaml`: `v5.2.24`, and `v5.2.25` for atomiq110) and compares:
 

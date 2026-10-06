@@ -1,7 +1,7 @@
 # 0006. Check the catalogue against committed source snapshots
 
 Date: 2026-10-05
-Status: Proposed
+Status: Accepted
 
 ## Context
 

@@ -1,7 +1,7 @@
 # 0003. Record provenance per fact with a closed status vocabulary
 
 Date: 2026-10-05
-Status: Proposed
+Status: Accepted
 
 ## Context
 
