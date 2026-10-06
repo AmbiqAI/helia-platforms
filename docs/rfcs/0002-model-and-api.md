@@ -242,9 +242,21 @@ its own `interfaces` and `population`. The built-in `atomiq110_fpga_turbo`
 - J-Link device in both spellings, `ATOMIQ110` (AmbiqSuite) and
   `Atomiq110` (neuralspotx `debug.cmake`); no source says J-Link matches
   names case-insensitively, so the spelling is to be reconciled (#19).
-- Trace clock follows the selected CPU clock unless measured; the 48 MHz
-  in `debug.cmake` is `NSX_SEGGER_CPUFREQ`, the 48 MHz clock option, and
-  RFC 0001 appendix J records 48 MHz as hardware-measured.
+- `trace_clock_mhz: 48`, status `measured`. The 48 MHz was measured once,
+  on one FPGA image that the source does not name; whether the trace
+  clock varies by FPGA image is open (#19). The 48 MHz reference with
+  helia-profiler's 1 MHz SWO rate is untested (helia-profiler#465).
+  Source: neuralspotx `b930d59`,
+  `src/neuralspotx/boards/atomiq110_fpga_turbo/debug.cmake:6-18`. The
+  TPIU trace clock stays at its hardware reset default, which firmware
+  cannot change and which measures 48 MHz. The firmware programs the SWO
+  prescaler (ACPR) for 25 MHz, so SWO runs at 1.92 MHz. The file records
+  a hardware check (J-Link Compact PLUS, 2026-08): 25 MHz with 1 MHz SWO
+  decodes as gibberish, and 48 MHz with 1.92 MHz decodes cleanly.
+  `NSX_SEGGER_CPUFREQ` in that file is this trace clock, not the 48 MHz
+  CPU clock point above. The SDK's 25 MHz SoC default (nsx-ambiq-sdk
+  `v5.2.25`, `cmake/socs/facts/atomiq110.cmake:69`) does not apply.
+  RFC 0001 appendix J records the same value.
 - External memory as AmbiqSuite's BSP declares it, on the Implementation.
   Whether HBLRAM (0x60000000 in the header) is on-die or external on the
   FPGA is not documented.
