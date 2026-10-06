@@ -120,7 +120,8 @@ def _find_local_paths(line: str) -> list[str]:
 def check_text(text: str, path: str) -> list[str]:
     """Scan text for local filesystem paths.
 
-    Lines split on ``\\n`` only, and a trailing ``\\r`` is ignored.
+    Line numbers count ``\\n`` only, and a trailing ``\\r`` is ignored. The
+    ignore directive covers only its own segment; see ``hook_common.split_segments``.
 
     Args:
         text: File contents to scan.
@@ -130,9 +131,7 @@ def check_text(text: str, path: str) -> list[str]:
         One message per local path, in line order; empty when the text is clean.
     """
     messages: list[str] = []
-    for lineno, line in hook_common.split_lines(text):
-        if IGNORE_DIRECTIVE in line:
-            continue
+    for lineno, line in hook_common.split_segments(text, IGNORE_DIRECTIVE):
         messages.extend(
             f"{path}:{lineno}: local filesystem path '{found}'. {HINT}"
             for found in _find_local_paths(line)

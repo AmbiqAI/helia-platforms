@@ -60,6 +60,20 @@ def test_directive_silences_only_its_own_line() -> None:
 
 
 @pytest.mark.parametrize(
+    "separator",
+    ["\r", "\f", "\u2028", "\x85"],
+    ids=["lone-cr", "form-feed", "line-separator", "next-line"],
+)
+def test_directive_silences_only_its_own_segment(separator: str) -> None:
+    text = f"x  # todo-markers: ignore{separator}TODO later\n"
+    assert checker.check_text(text, "f.py") == [_message("f.py", 1, "TODO")]
+
+
+def test_directive_silences_a_marker_in_its_own_segment() -> None:
+    assert checker.check_text("a\fTODO  # todo-markers: ignore\n", "f.py") == []
+
+
+@pytest.mark.parametrize(
     ("text", "lineno"),
     [
         ("a\nb\nTODO\n", 3),
@@ -77,6 +91,11 @@ def test_lines_split_on_newline_only(text: str, lineno: int) -> None:
 
 def test_split_lines_drops_only_a_trailing_cr() -> None:
     assert list(hook_common.split_lines("a\r\r\nb\r\n")) == [(1, "a\r"), (2, "b"), (3, "")]
+
+
+def test_split_segments_numbers_by_newline_and_drops_ignored_segments() -> None:
+    text = "a\fb # skip\r\nc\u2028d\n"
+    assert list(hook_common.split_segments(text, "# skip")) == [(1, "a"), (2, "c"), (2, "d")]
 
 
 def test_check_file_scans_non_utf8_text(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:

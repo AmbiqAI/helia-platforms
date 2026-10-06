@@ -5,9 +5,10 @@ CONTRIBUTING.md requires ``TODO(#123)`` for tracked work and ``TODO(verify)``
 for unverified claims, so a marker can never outlive the context that
 explains it.
 
-A line carrying ``todo-markers: ignore`` (in whatever comment syntax the file
-uses) silences the whole line, not just the marker on it, for the rare case
-where the word is the subject rather than a marker.
+A ``todo-markers: ignore`` comment (in whatever syntax the file uses)
+silences its whole segment of the line, not just the marker on it, for the
+rare case where the word is the subject rather than a marker. A segment ends
+at any ``str.splitlines`` break; see ``hook_common.split_segments``.
 """
 
 from __future__ import annotations
@@ -82,9 +83,7 @@ def check_text(text: str, path: str) -> list[str]:
         One message per untagged marker; empty when the text is clean.
     """
     messages: list[str] = []
-    for lineno, line in hook_common.split_lines(text):
-        if IGNORE_DIRECTIVE in line:
-            continue
+    for lineno, line in hook_common.split_segments(text, IGNORE_DIRECTIVE):
         for match in MARKER_RE.finditer(line):
             if _is_path_segment(line, match.start(), match.end()):
                 continue

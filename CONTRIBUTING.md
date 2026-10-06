@@ -37,6 +37,9 @@ uv run pre-commit run --all-files
 
 CI runs the same command. The gitleaks hook scans only staged changes, so
 that command, in CI or locally with nothing staged, gives it nothing to scan.
+The check-merge-conflict hook looks for conflict markers only while a merge or
+rebase is in progress, which is never the case in CI, so it checks nothing there
+either.
 
 ## Deferred work
 

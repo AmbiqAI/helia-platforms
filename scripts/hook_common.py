@@ -25,6 +25,19 @@ def split_lines(text: str) -> Iterator[tuple[int, str]]:
         yield lineno, line.removesuffix("\r")
 
 
+def split_segments(text: str, ignore_directive: str) -> Iterator[tuple[int, str]]:
+    """Yield ``(line number, segment)`` for each segment without ``ignore_directive``.
+
+    Numbering follows ``split_lines``; each line is then cut at every break
+    ``str.splitlines`` knows (``\\r``, ``\\f``, U+2028, ...), which some
+    editors render as a new line, so a directive silences only its own segment.
+    """
+    for lineno, line in split_lines(text):
+        for segment in line.splitlines():
+            if ignore_directive not in segment:
+                yield lineno, segment
+
+
 def check_file(path: Path, check_text: CheckText) -> list[str]:
     """Run ``check_text`` on one file, or on a symlink's target string.
 

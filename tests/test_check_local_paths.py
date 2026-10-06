@@ -205,6 +205,20 @@ def test_directive_silences_only_its_own_line() -> None:
 
 
 @pytest.mark.parametrize(
+    "separator",
+    ["\r", "\f", "\u2028", "\x85"],
+    ids=["lone-cr", "form-feed", "line-separator", "next-line"],
+)
+def test_directive_silences_only_its_own_segment(separator: str) -> None:
+    text = f"x  # local-paths: ignore{separator}/Users/b/\n"
+    assert checker.check_text(text, "f.py") == [_message("f.py", 1, "/Users/b/")]
+
+
+def test_directive_silences_a_path_in_its_own_segment() -> None:
+    assert checker.check_text("a\f/Users/b/  # local-paths: ignore\n", "f.py") == []
+
+
+@pytest.mark.parametrize(
     "text",
     ["", "\n", "plain prose\nwith two lines\n"],
     ids=["empty", "blank-line", "prose"],
