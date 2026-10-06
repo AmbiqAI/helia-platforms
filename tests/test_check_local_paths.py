@@ -143,6 +143,54 @@ SINGLE_LINE_CASES: dict[str, tuple[str, list[str]]] = {
     "file-url-not-exempt": ("file:///Users/alice/x", ["/Users/alice/"]),
     "file-url-uppercase-scheme-not-exempt": ("FILE:///home/bob/x", ["/home/bob/"]),
     "url-scheme-after-match-not-exempt": ("/Users/alice/https://x", ["/Users/alice/"]),
+    # A loopback host or a query string removes the remote-URL exemption
+    "http-localhost-not-exempt": ("http://localhost:8000/Users/alice/x", ["/Users/alice/"]),
+    "https-loopback-ipv4-not-exempt": ("https://127.0.0.1/home/bob/x", ["/home/bob/"]),
+    "http-loopback-ipv6-not-exempt": ("http://[::1]:8080/home/bob/x", ["/home/bob/"]),
+    "http-any-address-not-exempt": ("http://0.0.0.0/Users/a/", ["/Users/a/"]),
+    "http-localhost-uppercase-with-user": ("HTTP://me@LOCALHOST/home/bob", ["/home/bob"]),
+    "ssh-localhost-not-exempt": ("ssh://git@localhost/home/git/r.git", ["/home/git/"]),
+    "https-localhost-named-remote-host-exempt": ("https://localhost.example.com/home/a/", []),
+    "https-ipv6-remote-host-exempt": ("https://[2001:db8::1]/home/a/x", []),
+    "https-query-not-exempt": (
+        "https://example.com/view?file=/Users/alice/x",
+        ["/Users/alice/"],
+    ),
+    "https-query-relative-route-not-matched": ("https://example.com/?q=api/Users/bob", []),
+    "https-fragment-exempt": ("https://example.com/app#/home/settings", []),
+    # Single-dash compiler and linker options
+    "option-include-macos": ("-I/Users/alice/sdk/include", ["/Users/alice/"]),
+    "option-library-linux": ("-L/home/bob/lib", ["/home/bob/"]),
+    "option-isystem-macos": ("cc -isystem/Users/alice/sdk", ["/Users/alice/"]),
+    "option-quoted-linux-root": ('"-I/var/home/alice/x"', ["/var/home/alice/"]),
+    "option-shell-drive": ("-I/mnt/c/Users/x", ["/mnt/c/Users/"]),
+    "option-windows-drive": (r"-IC:\Users\carol\x", ["C:\\Users\\"]),
+    "option-json-escaped": (r'"-I\/Users\/alice\/x"', [r"\/Users\/alice\/"]),
+    "option-placeholder-not-matched": ("-I/Users/<name>/x", []),
+    "option-after-word-char-not-matched": ("x-I/Users/alice/x", []),
+    "option-double-dash-not-matched": ("--I/Users/alice/x", []),
+    # Windows-side WSL UNC paths
+    "wsl-dollar-unc": (r"\\wsl$\Ubuntu\home\alice\x", ["\\\\wsl$\\Ubuntu\\home\\alice\\"]),
+    "wsl-localhost-unc": (
+        r"\\wsl.localhost\Ubuntu-22.04\home\alice\x",
+        ["\\\\wsl.localhost\\Ubuntu-22.04\\home\\alice\\"],
+    ),
+    "wsl-unc-json-escaped": (
+        r"\\\\wsl$\\Ubuntu\\home\\alice\\x",
+        [r"\\\\wsl$\\Ubuntu\\home\\alice\\"],
+    ),
+    "wsl-unc-forward-slashes": ("//wsl$/Ubuntu/home/alice/x", ["//wsl$/Ubuntu/home/alice/"]),
+    "wsl-unc-uppercase-host-at-eol": (r"\\WSL$\Ubuntu\home\alice", [r"\\WSL$\Ubuntu\home\alice"]),
+    "wsl-unc-placeholders-not-matched": (r"\\wsl$\<distro>\home\<name>\x", []),
+    "wsl-unc-outside-home-not-matched": (r"\\wsl$\Ubuntu\opt\x", []),
+    # JSON-escaped POSIX paths
+    "json-escaped-macos-home": (r'"\/Users\/alice\/repo"', [r"\/Users\/alice\/"]),
+    "json-escaped-linux-home": (r'"\/home\/bob\/x"', [r"\/home\/bob\/"]),
+    "json-escaped-private-tmp": (r'"\/private\/tmp\/x"', [r"\/private\/tmp\/"]),
+    "json-escaped-shell-drive": (r'"\/mnt\/c\/Users\/x"', [r"\/mnt\/c\/Users\/"]),
+    "json-escaped-placeholder-not-matched": (r'"\/Users\/<name>\/x"', []),
+    "json-escaped-relative-route-not-matched": (r'"\/api\/Users\/bob"', []),
+    "json-escaped-after-word-char-not-matched": (r"x\/Users\/alice", []),
     # Several findings: left to right, never overlapping
     "multiple-ordered-by-position": (
         "/home/bob/ and /Users/alice/ and OneDrive-X/",
@@ -296,6 +344,13 @@ ADVERSARIAL_INPUTS: dict[str, str] = {
     "repeated-spaced-onedrive": "OneDrive - x " * (PERF_LINE_LENGTH // 13),
     "repeated-exempt-https-home": "https://x/Users/a/ " * (PERF_LINE_LENGTH // 19),
     "quoted-hex-string": '"' + "0123456789abcdef" * (PERF_LINE_LENGTH // 16) + '"',
+    "repeated-single-dash-options": "-I " * (PERF_LINE_LENGTH // 3),
+    "repeated-json-escaped-slashes": "\\/" * (PERF_LINE_LENGTH // 2),
+    "run-of-backslashes": "\\" * PERF_LINE_LENGTH,
+    "repeated-wsl-prefix": "\\\\wsl$\\x" * (PERF_LINE_LENGTH // 8),
+    "wsl-prefix-then-long-dotted-name": "\\\\wsl$\\a" + "." * PERF_LINE_LENGTH,
+    "unclosed-ipv6-host": "http://[" + "0:" * (PERF_LINE_LENGTH // 2),
+    "repeated-localhost-query-urls": "http://localhost/?q " * (PERF_LINE_LENGTH // 20),
 }
 
 

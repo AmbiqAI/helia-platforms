@@ -45,20 +45,23 @@ record. Untagged markers are rejected by the `todo-markers` hook.
 
 The repository is meant to be public, so committed text must not contain
 local filesystem paths: home directories (`/Users/<name>`, `/home/<name>`,
-and their Windows, WSL `/mnt/<drive>`, Cygwin and Git Bash forms), macOS temporary
-directories, and cloud-sync folders such as iCloud Drive or OneDrive. Such a
-path resolves on one machine only. Cite other repositories by name and revision instead, for
-example `AmbiqAI/helia-aot` at `57a80e7c`. The `local-paths` hook rejects
-these paths, including symlink targets; `scripts/check_local_paths.py` holds
-the exact forms. A path inside a remote URL (`http`, `https`, `ftp`, `sftp`,
-`ssh`, `git` or `s3`, optionally prefixed with `git+`) is fine; under any
-other scheme, `file://` and editor URLs included, it is not.
+and their Windows, WSL `/mnt/<drive>` and `\\wsl$\<distro>`, Cygwin and Git
+Bash forms), macOS temporary directories, and cloud-sync folders such as
+iCloud Drive or OneDrive. Such a path resolves on one machine only. Cite other
+repositories by name and revision instead, for example `AmbiqAI/helia-aot` at
+`57a80e7c`. The `local-paths` hook rejects these paths, including symlink
+targets, paths glued to a single-dash option such as `-I` or `-isystem`, and
+JSON-escaped forms such as `\/Users\/<name>`; `scripts/check_local_paths.py`
+holds the exact forms. A path inside a remote URL (`http`, `https`, `ftp`,
+`sftp`, `ssh`, `git` or `s3`, optionally prefixed with `git+`) is fine, unless
+it is in the query string or the host is `localhost`, `127.0.0.1`, `[::1]` or
+`0.0.0.0`. Under any other scheme, `file://` and editor URLs included, the
+path is rejected.
 
 For the rare line where the path is itself the subject, add a
 `local-paths: ignore` comment to that line; it silences the whole line.
 The hook skips `tests/test_check_local_paths.py` entirely, because that
 file is made of local-path examples, so review changes to it by hand.
-Known gaps in what the hook catches are tracked in #44.
 
 ## Checks
 
