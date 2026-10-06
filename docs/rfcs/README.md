@@ -12,7 +12,7 @@ repository (ADR 0001).
 | [0002-multicore.md](0002-multicore.md): multiple cores and accelerators, the access matrix, image slots and clock domains (part of RFC 0002) | Draft | 4 |
 | [0002-private-silicon.md](0002-private-silicon.md): side-loading private and future silicon from private packages and overlay files (part of RFC 0002) | Draft | 5 |
 | [0002-migration.md](0002-migration.md): RFC 0002's migration and output changes per consumer, pending data corrections, parity tests and the helia-aot#278 mapping | Draft | 6 |
-| [0003-export-and-pages.md](0003-export-and-pages.md): the JSON export that succeeds heliaAOT's `targets.json`, its schema and release-status filter, and the generated per-SoC and per-board pages | Draft | 7 |
+| [0003-export-and-pages.md](0003-export-and-pages.md): the JSON export of the filtered catalogue, its schema, the one publishable path and the generated per-SoC and per-board pages; resolved per-target records are deferred | Draft | 7 |
 
 RFC 0001 proposed the catalogue and was imported from a heliaAOT draft.
 The review lists its weaknesses and records the owner direction. RFC 0002
