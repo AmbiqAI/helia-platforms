@@ -1,19 +1,23 @@
 import copy
 import dataclasses
 import datetime
+import json
+import os
 import re
+import subprocess
+import sys
 from pathlib import Path
-from types import MappingProxyType
+from types import MappingProxyType, SimpleNamespace
 from typing import Any
 
 import pytest
 from typer.testing import CliRunner
 
-from conftest import RECORD
-from helia_platforms import cli, model
+from conftest import BASE_DOCUMENT, RECORD
+from helia_platforms import catalogue, cli, model
 from helia_platforms._build import freeze
 from helia_platforms._tree import MergeError
-from helia_platforms.catalogue import _EMPTY, _load_documents, load_overlay
+from helia_platforms.catalogue import _EMPTY, _load_documents, builtin, load_overlay
 from helia_platforms.cli import app
 from helia_platforms.errors import FormatError, PlatformError
 
@@ -434,6 +438,222 @@ def test_sources_are_keyed_by_table(tmp_path, document):
     cat = load_overlay(path, base=load_overlay(document))
     assert cat.sources[("memory_devices", "psram_8m")] == "overlay:<mapping>"
     assert cat.sources[("addons", "psram_8m")] == f"overlay:{path}"
+
+
+# ---- builtin() and side-loaded catalogues (RFC 0002 private silicon) ---------------
+
+
+def write(path: Path, data: dict[str, Any]) -> Path:
+    """Write ``data`` as a catalogue file (JSON is YAML 1.2) and return its path."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps({"schema_version": 1, **data}))
+    return path
+
+
+@dataclasses.dataclass
+class FakeEntryPoint:
+    name: str
+    distribution: str
+    result: Any
+
+    @property
+    def dist(self) -> SimpleNamespace:
+        return SimpleNamespace(name=self.distribution)
+
+    def load(self) -> Any:
+        if isinstance(self.result, Exception):
+            raise self.result
+        return lambda: self.result
+
+
+@pytest.fixture
+def plugins(tmp_path, monkeypatch) -> list[FakeEntryPoint]:
+    """Point builtin() at a test data directory; returns the entry points it will find."""
+    cores = {k: {**v, "provenance": RECORD} for k, v in BASE_DOCUMENT["cores"].items()}
+    soc_a = {**BASE_DOCUMENT["socs"]["soc_a"], "release_status": "public"}
+    device = {"technology": "psram", "capacity": "8M", "release_status": "public"}
+    data = tmp_path / "data"
+    write(data / "ip.yaml", {"cores": cores})
+    write(data / "socs" / "soc_a.yaml", {"socs": {"soc_a": soc_a}})
+    write(
+        data / "memory_devices.yaml",
+        {"memory_devices": {"psram_8m": device | {"provenance": RECORD}}},
+    )
+    found: list[FakeEntryPoint] = []
+    monkeypatch.setattr(catalogue, "_CACHE", {})
+    monkeypatch.setattr(catalogue, "_data_root", lambda: data)
+    monkeypatch.setattr(catalogue, "entry_points", lambda *, group: list(found))
+    monkeypatch.delenv("HELIA_PLATFORMS_PATH", raising=False)
+    return found
+
+
+def test_builtin_merges_the_data_files_into_one_source(plugins):
+    cat = builtin(include_plugins=False)
+    assert cat.socs()[0].cores[0].core == "cortex-m55"  # a reference across data files
+    assert set(cat.sources) == {
+        ("cores", "cortex-m55"),
+        ("cores", "cortex-m4"),
+        ("socs", "soc_a"),
+        ("memory_devices", "psram_8m"),
+    }
+    assert set(cat.sources.values()) == {"builtin"}
+
+
+def test_builtin_data_rejects_an_id_defined_twice(plugins, tmp_path):
+    core = {**BASE_DOCUMENT["cores"]["cortex-m4"], "provenance": RECORD}
+    write(tmp_path / "data" / "more.yaml", {"cores": {"cortex-m4": core}})
+    with pytest.raises(FormatError) as exc:
+        builtin(include_plugins=False)
+    assert "helia_platforms/data/more.yaml: cores.cortex-m4: defined twice" in exc.value.problems
+
+
+def test_builtin_data_follows_the_built_in_rules(plugins, tmp_path):
+    write(tmp_path / "data" / "parts.yaml", {"parts": {"PART-A": {"soc": "soc_a"}}})
+    with pytest.raises(FormatError, match="a built-in entry must write release_status"):
+        builtin(include_plugins=False)
+
+
+def test_without_plugins_nothing_is_side_loaded(plugins, tmp_path, monkeypatch):
+    plugins.append(FakeEntryPoint("a", "private", RuntimeError("must not load")))
+    monkeypatch.setenv("HELIA_PLATFORMS_PATH", str(tmp_path / "missing.yaml"))
+    assert set(builtin(include_plugins=False).sources.values()) == {"builtin"}
+
+
+def test_side_loaded_sources_load_in_order_over_the_earlier_ones(plugins, tmp_path, monkeypatch):
+    board_a = {**BASE_DOCUMENT["boards"]["board_a"], "part": "PART-B"}
+    part_b = {"PART-B": {"based_on": "PART-A", "silicon_revision": "C0"}}
+    part_b_file = str(write(tmp_path / "ep" / "part_b.yaml", {"parts": part_b}))
+    plugins += [  # listed out of order: distribution name, then entry name, decides
+        FakeEntryPoint("a", "b-private", {"boards": {"board_a": board_a}}),
+        FakeEntryPoint("b", "a-private", part_b_file),
+        FakeEntryPoint("a", "a-private", {"parts": {"PART-A": {"soc": "soc_a"}}}),
+    ]
+    env = tmp_path / "env"
+    board_b = write(env / "a.yaml", {"boards": {"board_b": {"based_on": "board_a"}}})
+    shield = {"fits_boards": ["board_b"], "occupies": [], "population": {}}
+    addon = write(env / "b.yaml", {"addons": {"shield": shield}})
+    composition = {"board": "board_b", "addons": ["shield"]}
+    last = write(tmp_path / "last.yaml", {"compositions": {"b_shield": composition}})
+    monkeypatch.setenv("HELIA_PLATFORMS_PATH", os.pathsep.join([str(env), "", str(last)]))
+    cat = builtin()
+    assert cat.sources[("socs", "soc_a")] == "builtin"
+    assert cat.sources[("parts", "PART-A")] == "entry_point:a-private"
+    assert cat.sources[("parts", "PART-B")] == "entry_point:a-private"
+    assert cat.sources[("boards", "board_a")] == "entry_point:b-private"
+    assert cat.sources[("boards", "board_b")] == f"env:{board_b}"
+    assert cat.sources[("addons", "shield")] == f"env:{addon}"
+    assert cat.sources[("compositions", "b_shield")] == f"env:{last}"
+    assert cat._entry("parts", "PART-B").soc == "soc_a"
+
+
+@pytest.mark.parametrize(
+    ("overlay", "shadowed"),
+    [
+        pytest.param(
+            {"cores": {"CORTEX-M4": {"based_on": "cortex-m4"}}},
+            "cores.cortex-m4 from builtin",
+            id="built-in",
+        ),
+        pytest.param(
+            {"memory_devices": {"dev": {"technology": "sram", "capacity": "1K"}}},
+            "memory_devices.dev from entry_point:a-private",
+            id="earlier source",
+        ),
+    ],
+)
+def test_side_loaded_entries_may_not_shadow(plugins, tmp_path, monkeypatch, overlay, shadowed):
+    device = {"technology": "psram", "capacity": "8M"}
+    plugins.append(FakeEntryPoint("a", "a-private", {"memory_devices": {"dev": device}}))
+    path = write(tmp_path / "late.yaml", overlay)
+    monkeypatch.setenv("HELIA_PLATFORMS_PATH", str(path))
+    with pytest.raises(FormatError) as exc:
+        builtin()
+    [problem] = exc.value.problems
+    assert problem.startswith(f"env:{path}: ")
+    assert problem.endswith(f"would shadow {shadowed}")
+
+
+EP = "entry_point:a-private"
+
+
+@pytest.mark.parametrize(
+    ("result", "error", "message"),
+    [
+        (RuntimeError("boom"), PlatformError, f"{EP}: entry point 'a' raised RuntimeError('boom')"),
+        (42, PlatformError, f"{EP}: entry point 'a' returned int, not a mapping or a path"),
+        ({"parts": {"P": {"soc": "nope"}}}, FormatError, f"{EP} (a): parts.P: no soc 'nope'"),
+        (Path("missing.yaml"), FormatError, f"{EP} (missing.yaml): cannot be read"),
+    ],
+    ids=["raises", "bad return", "invalid overlay", "unreadable path"],
+)
+def test_a_failing_entry_point_names_its_source(plugins, result, error, message):
+    plugins.append(FakeEntryPoint("a", "a-private", result))
+    with pytest.raises(error) as exc:
+        builtin()
+    assert str(exc.value).startswith(message)
+    with pytest.raises(error):  # the failure is not cached as a partial catalogue
+        builtin()
+    assert set(builtin(include_plugins=False).sources.values()) == {"builtin"}
+
+
+def test_an_unreadable_environment_path_names_its_source(plugins, tmp_path, monkeypatch):
+    path = tmp_path / "missing.yaml"
+    monkeypatch.setenv("HELIA_PLATFORMS_PATH", str(path))
+    with pytest.raises(FormatError, match=re.escape(f"env:{path}: cannot be read")):
+        builtin()
+
+
+def test_builtin_is_cached_and_discovers_once(plugins, tmp_path, monkeypatch):
+    calls: list[str] = []
+
+    def found(*, group: str) -> list[FakeEntryPoint]:
+        calls.append(group)
+        return []
+
+    monkeypatch.setattr(catalogue, "entry_points", found)
+    cat = builtin()
+    monkeypatch.setenv("HELIA_PLATFORMS_PATH", str(tmp_path / "missing.yaml"))
+    assert builtin() is cat
+    assert builtin(include_plugins=True) is cat
+    assert builtin(include_plugins=False) is builtin(include_plugins=False)
+    assert calls == ["helia_platforms.catalogues"]
+
+
+def test_the_packaged_data_loads(monkeypatch):
+    monkeypatch.setattr(catalogue, "_CACHE", {})
+    assert set(builtin(include_plugins=False).sources.values()) <= {"builtin"}
+
+
+IMPORT_CHECK = """
+import importlib.metadata, sys
+seen = []
+entry_points = importlib.metadata.entry_points
+def recording(*args, **kwargs):
+    seen.append("entry_points")
+    return entry_points(*args, **kwargs)
+def hook(event, args):
+    if event in ("open", "os.listdir", "os.scandir") and args:
+        if any(watched in str(args[0]) for watched in sys.argv[1:]):
+            seen.append(f"{event} {args[0]}")
+importlib.metadata.entry_points = recording
+sys.addaudithook(hook)
+import helia_platforms, helia_platforms.catalogue, helia_platforms.cli
+assert not seen and "yaml" not in sys.modules, seen
+helia_platforms.catalogue.builtin()
+assert all(any(w in event for event in seen) for w in ["entry_points", *sys.argv[1:]]), seen
+"""
+
+
+def test_importing_the_package_reads_no_catalogue_or_entry_points(tmp_path):
+    data = Path(catalogue.__file__).parent / "data"
+    write(
+        tmp_path / "env" / "x.yaml",
+        {"memory_devices": {"dev": {"technology": "sram", "capacity": "1K"}}},
+    )
+    env = {**os.environ, "HELIA_PLATFORMS_PATH": str(tmp_path / "env")}
+    subprocess.run(
+        [sys.executable, "-c", IMPORT_CHECK, str(data), str(tmp_path / "env")], env=env, check=True
+    )
 
 
 # ---- RFC 0002's example overlays --------------------------------------------------
