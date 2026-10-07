@@ -1,0 +1,124 @@
+name: Snapshot drift
+
+# ADR 0006 section 1. Step 1 re-extracts at each recorded revision; step 2
+# extracts neuralspotx main, the SDK tags its lock names, and Zephyr main, and
+# diffs the values against the snapshots. Both report to the issue numbered by
+# the repository variable SNAPSHOT_TRACKING_ISSUE. GitHub disables a public
+# repository's scheduled workflows after 60 days without activity.
+
+on:
+  schedule:
+    - cron: "23 5 * * 1"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      ISSUE: ${{ vars.SNAPSHOT_TRACKING_ISSUE }}
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    steps:
+      - name: Require the tracking issue variable
+        run: |
+          if [ -z "$ISSUE" ]; then
+            echo "::error::Set the repository variable SNAPSHOT_TRACKING_ISSUE to the tracking issue's number."
+            exit 1
+          fi
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - run: uv sync --locked --no-dev --group extract
+      - name: Find the snapshot directory's code owners
+        id: owners
+        run: |
+          owners="$(awk '$1 == "/snapshots/" { $1 = ""; line = $0 } END { print line }' .github/CODEOWNERS)"
+          echo "mention=$(echo $owners)" >> "$GITHUB_OUTPUT"
+
+      - name: "Step 1: re-extract at each recorded revision"
+        id: step1
+        continue-on-error: true
+        run: |
+          uv run --no-sync python scripts/extract_snapshots.py extract --check --at revision \
+            > "$RUNNER_TEMP/step1.txt" 2>&1 || { cat "$RUNNER_TEMP/step1.txt"; exit 1; }
+          cat "$RUNNER_TEMP/step1.txt"
+      - name: Report the step 1 failure
+        if: steps.step1.outcome == 'failure'
+        env:
+          MENTION: ${{ steps.owners.outputs.mention }}
+        run: |
+          {
+            echo "Weekly snapshot check, step 1: re-extracting at the recorded revisions failed."
+            echo "A tag may now resolve to another commit, or the extractor no longer reads a source."
+            echo
+            echo '```'
+            head -c 60000 "$RUNNER_TEMP/step1.txt"
+            echo '```'
+            echo
+            echo "Run: $RUN_URL"
+            echo "cc $MENTION"
+          } > "$RUNNER_TEMP/step1.md"
+          gh issue comment "$ISSUE" --body-file "$RUNNER_TEMP/step1.md"
+
+      - name: "Step 2: extract upstream main and diff against the snapshots"
+        id: step2
+        run: |
+          status=0
+          uv run --no-sync python scripts/extract_snapshots.py extract --at revision \
+            --neuralspotx main --zephyr main --output "$RUNNER_TEMP/main" \
+            > "$RUNNER_TEMP/step2.txt" 2>&1 || status=$?
+          cat "$RUNNER_TEMP/step2.txt"
+          # Commits move every week; only value changes and failures are reported.
+          grep -v ' metadata > ' "$RUNNER_TEMP/step2.txt" | grep -E '^(  [-+~] |error: )' \
+            > "$RUNNER_TEMP/drift.txt" || true
+          if [ "$status" -ne 0 ] && [ ! -s "$RUNNER_TEMP/drift.txt" ]; then
+            cp "$RUNNER_TEMP/step2.txt" "$RUNNER_TEMP/drift.txt"
+          fi
+          echo "hash=$(sha256sum "$RUNNER_TEMP/drift.txt" | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+      - name: Report a new step 2 diff
+        env:
+          MENTION: ${{ steps.owners.outputs.mention }}
+          HASH: ${{ steps.step2.outputs.hash }}
+          STATUS: ${{ steps.step2.outputs.status }}
+        run: |
+          if [ ! -s "$RUNNER_TEMP/drift.txt" ]; then
+            echo "No drift from upstream main."
+            exit 0
+          fi
+          last="$(gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE/comments" --paginate \
+            --jq '.[].body' | grep -o 'snapshot-drift sha256:[0-9a-f]*' | tail -n 1 | cut -d: -f2)"
+          if [ "$last" = "$HASH" ]; then
+            echo "The diff matches the last one posted ($HASH)."
+            exit 0
+          fi
+          {
+            if [ "$STATUS" -ne 0 ]; then
+              echo "Weekly snapshot check, step 2: extracting upstream main failed."
+            else
+              echo "Weekly snapshot check, step 2: upstream main differs from the snapshots."
+            fi
+            echo
+            echo '```diff'
+            head -c 60000 "$RUNNER_TEMP/drift.txt"
+            echo '```'
+            echo
+            echo "Run: $RUN_URL"
+            echo "cc $MENTION"
+            echo
+            echo "<!-- snapshot-drift sha256:$HASH -->"
+          } > "$RUNNER_TEMP/step2.md"
+          gh issue comment "$ISSUE" --body-file "$RUNNER_TEMP/step2.md"
+
+      - name: Fail the run when step 1 failed
+        if: steps.step1.outcome == 'failure'
+        run: exit 1

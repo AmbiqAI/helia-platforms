@@ -1,0 +1,2821 @@
+{
+  "metadata": {
+    "extractor_version": 1,
+    "sources": [
+      {
+        "commit": "a9f4ec25a162f6f3700623feb691423bb5a51132",
+        "repository": "AmbiqAI/nsx-ambiq-sdk",
+        "revision": "v5.2.24"
+      },
+      {
+        "commit": "aefce2ca858795e783c76726ebe7d14d9d4bde7c",
+        "repository": "AmbiqAI/nsx-ambiq-sdk",
+        "revision": "v5.2.25"
+      }
+    ]
+  },
+  "socs": {
+    "apollo2": {
+      "cmsis": {
+        "path": "modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo2.h",
+        "values": {
+          "__CM4_REV": 256,
+          "__FPU_PRESENT": 1,
+          "__MPU_PRESENT": 1,
+          "__NVIC_PRIO_BITS": 3,
+          "__VTOR_PRESENT": 1,
+          "__Vendor_SysTickConfig": 0
+        }
+      },
+      "facts": {
+        "path": "cmake/socs/facts/apollo2.cmake",
+        "values": {
+          "NSX_ABI_FLAGS": [
+            "thumbv7em-fpv4sp-hard"
+          ],
+          "NSX_CPU": [
+            "cortex-m4"
+          ],
+          "NSX_FLOAT_ABI": [
+            "hard"
+          ],
+          "NSX_FPU": [
+            "fpv4-sp-d16"
+          ],
+          "NSX_SEGGER_CPU": [
+            "Cortex-M4"
+          ],
+          "NSX_SEGGER_CPUFREQ": [
+            "48000000"
+          ],
+          "NSX_SEGGER_DEVICE": [
+            "AMA2B2KK-KBR"
+          ],
+          "NSX_SEGGER_IF_SPEED": [
+            "4000"
+          ],
+          "NSX_SEGGER_PF_ADDR": [
+            "0x0000"
+          ],
+          "NSX_SEGGER_SWOFREQ": [
+            "1000000"
+          ],
+          "NSX_SOC_ARCH_CLASS": [
+            "armv7e_m"
+          ],
+          "NSX_SOC_CAPABILITIES": [
+            "core:m4",
+            "isa:armv7e-m",
+            "dsp",
+            "fpu"
+          ],
+          "NSX_SOC_COMPILE_DEFINITIONS": [
+            "PART_apollo2",
+            "AM_PART_APOLLO2",
+            "ARMCM4",
+            "__FPU_PRESENT",
+            "NSX_SOC_CORE_M4=1",
+            "NSX_SOC_HAS_DSP=1",
+            "NSX_SOC_HAS_MVE=0",
+            "NSX_SOC_HAS_FPU=1",
+            "NSX_SOC_PMU_ARMV8M=0"
+          ],
+          "NSX_SOC_CORE": [
+            "cortex-m4"
+          ],
+          "NSX_SOC_FAMILY": [
+            "apollo2"
+          ],
+          "NSX_SOC_HAS_DSP": [
+            "TRUE"
+          ],
+          "NSX_SOC_HAS_FPU": [
+            "TRUE"
+          ],
+          "NSX_SOC_HAS_MVE": [
+            "FALSE"
+          ],
+          "NSX_SOC_PMU_TIER": [
+            "none"
+          ],
+          "NSX_SOC_RTOS_PORT_FAMILY": [
+            "AMapollo2"
+          ],
+          "NSX_SOC_RTOS_PORT_GENERIC": [
+            "ARM_CM4F"
+          ],
+          "NSX_SOC_SDK_PROVIDER": [
+            "ambiqsuite"
+          ],
+          "NSX_SOC_SERIES": [
+            "apollo2"
+          ],
+          "NSX_SOC_SKEW": [
+            "apollo2"
+          ]
+        }
+      },
+      "linker": {
+        "gcc": {
+          "default": "linker_script.ld",
+          "path": "modules/nsx-core/src/apollo2/gcc",
+          "scripts": {
+            "linker_script.ld": {
+              "ROMEM": {
+                "attributes": "rx",
+                "length": 1048576,
+                "origin": 0
+              },
+              "RWMEM": {
+                "attributes": "rwx",
+                "length": 192512,
+                "origin": 268505088
+              },
+              "STACKMEM": {
+                "attributes": "rwx",
+                "length": 4096,
+                "origin": 268500992
+              },
+              "TCM": {
+                "attributes": "rwx",
+                "length": 65536,
+                "origin": 268435456
+              }
+            }
+          }
+        }
+      },
+      "registers": {
+        "path": "modules/nsx-ambiqsuite/sdk/mcu/apollo2/regs/am_reg_base_addresses.h",
+        "values": {
+          "REG_ADC_BASEADDR": 1342242816,
+          "REG_CACHECTRL_BASEADDR": 1073840128,
+          "REG_CLKGEN_BASEADDR": 1073758208,
+          "REG_CTIMER_BASEADDR": 1073774592,
+          "REG_FLASHCTRL_BASEADDR": 1073823744,
+          "REG_GPIO_BASEADDR": 1073807360,
+          "REG_IOMSTR_BASEADDR": 1342193664,
+          "REG_IOSLAVE_BASEADDR": 1342177280,
+          "REG_ITM_BASEADDR": 0,
+          "REG_JEDEC_BASEADDR": 0,
+          "REG_MCUCTRLPRIV_BASEADDR": 1074003968,
+          "REG_MCUCTRL_BASEADDR": 1073872896,
+          "REG_NVIC_BASEADDR": 0,
+          "REG_PDM_BASEADDR": 1342246912,
+          "REG_PWRCTRL_BASEADDR": 1073876992,
+          "REG_RSTGEN_BASEADDR": 1073741824,
+          "REG_RTC_BASEADDR": 1073758272,
+          "REG_SYSCTRL_BASEADDR": 0,
+          "REG_SYSTICK_BASEADDR": 0,
+          "REG_TPIU_BASEADDR": 0,
+          "REG_UART_BASEADDR": 1073856512,
+          "REG_VCOMP_BASEADDR": 1073790976,
+          "REG_WDT_BASEADDR": 1073889280,
+          "SRAM_BASEADDR": 268435456
+        }
+      },
+      "revision": "v5.2.24"
+    },
+    "apollo3": {
+      "cmsis": {
+        "path": "modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo3.h",
+        "values": {
+          "__CM4_REV": 256,
+          "__DCACHE_PRESENT": 1,
+          "__DSP_PRESENT": 0,
+          "__DTCM_PRESENT": 1,
+          "__FPU_DP": 0,
+          "__FPU_PRESENT": 1,
+          "__ICACHE_PRESENT": 1,
+          "__ITCM_PRESENT": 1,
+          "__MPU_PRESENT": 1,
+          "__NVIC_PRIO_BITS": 3,
+          "__PMU_NUM_EVENTCNT": 0,
+          "__PMU_PRESENT": 0,
+          "__VTOR_PRESENT": 1,
+          "__Vendor_SysTickConfig": 0
+        }
+      },
+      "facts": {
+        "path": "cmake/socs/facts/apollo3.cmake",
+        "values": {
+          "NSX_ABI_FLAGS": [
+            "thumbv7em-fpv4sp-hard"
+          ],
+          "NSX_CPU": [
+            "cortex-m4"
+          ],
+          "NSX_FLOAT_ABI": [
+            "hard"
+          ],
+          "NSX_FPU": [
+            "fpv4-sp-d16"
+          ],
+          "NSX_SEGGER_CPU": [
+            "Cortex-M4"
+          ],
+          "NSX_SEGGER_CPUFREQ": [
+            "48000000"
+          ],
+          "NSX_SEGGER_DEVICE": [
+            "AMA3B1KK-KBR"
+          ],
+          "NSX_SEGGER_IF_SPEED": [
+            "4000"
+          ],
+          "NSX_SEGGER_PF_ADDR": [
+            "0xC000"
+          ],
+          "NSX_SEGGER_SWOFREQ": [
+            "1000000"
+          ],
+          "NSX_SOC_ARCH_CLASS": [
+            "armv7e_m"
+          ],
+          "NSX_SOC_CAPABILITIES": [
+            "core:m4",
+            "isa:armv7e-m",
+            "dsp",
+            "fpu"
+          ],
+          "NSX_SOC_COMPILE_DEFINITIONS": [
+            "PART_apollo3",
+            "AM_PART_APOLLO3",
+            "ARMCM4",
+            "__FPU_PRESENT",
+            "NSX_SOC_CORE_M4=1",
+            "NSX_SOC_HAS_DSP=1",
+            "NSX_SOC_HAS_MVE=0",
+            "NSX_SOC_HAS_FPU=1",
+            "NSX_SOC_PMU_ARMV8M=0"
+          ],
+          "NSX_SOC_CORE": [
+            "cortex-m4"
+          ],
+          "NSX_SOC_FAMILY": [
+            "apollo3"
+          ],
+          "NSX_SOC_HAS_DSP": [
+            "TRUE"
+          ],
+          "NSX_SOC_HAS_FPU": [
+            "TRUE"
+          ],
+          "NSX_SOC_HAS_MVE": [
+            "FALSE"
+          ],
+          "NSX_SOC_PMU_TIER": [
+            "none"
+          ],
+          "NSX_SOC_RTOS_PORT_FAMILY": [
+            "AMapollo"
+          ],
+          "NSX_SOC_RTOS_PORT_GENERIC": [
+            "ARM_CM4F"
+          ],
+          "NSX_SOC_SDK_PROVIDER": [
+            "ambiqsuite"
+          ],
+          "NSX_SOC_SERIES": [
+            "apollo3"
+          ],
+          "NSX_SOC_SKEW": [
+            "apollo3"
+          ]
+        }
+      },
+      "flash": {
+        "path": "modules/nsx-ambiqsuite/sdk/mcu/apollo3/hal/am_hal_flash.h",
+        "values": {
+          "AM_HAL_FLASH_ADDR": 0,
+          "AM_HAL_FLASH_INSTANCE_SIZE": 524288,
+          "AM_HAL_FLASH_NUM_INSTANCES": 2,
+          "AM_HAL_FLASH_SRAM_ADDR": 268435456,
+          "AM_HAL_FLASH_SRAM_SIZE": 393216,
+          "AM_HAL_FLASH_TOTAL_SIZE": 1048576
+        }
+      },
+      "linker": {
+        "armclang": {
+          "default": "linker_script.sct",
+          "path": "modules/nsx-core/src/apollo3/armclang",
+          "scripts": {
+            "linker_script.sct": {
+              "ARM_LIB_HEAP": {
+                "empty": true,
+                "length": 0,
+                "origin": 268824576
+              },
+              "ARM_LIB_STACK": {
+                "empty": true,
+                "length": 4096,
+                "origin": 268824576
+              },
+              "FLASH": {
+                "length": 999424,
+                "origin": 49152
+              },
+              "SRAM": {
+                "length": 389120,
+                "origin": 268435456
+              }
+            }
+          }
+        },
+        "gcc": {
+          "default": "linker_script.ld",
+          "path": "modules/nsx-core/src/apollo3/gcc",
+          "scripts": {
+            "linker_script.ld": {
+              "ROMEM": {
+                "attributes": "rx",
+                "length": 999424,
+                "origin": 49152
+              },
+              "RWMEM": {
+                "attributes": "rwx",
+                "length": 393216,
+                "origin": 268435456
+              }
+            }
+          }
+        }
+      },
+      "registers": {
+        "path": "modules/nsx-ambiqsuite/sdk/mcu/apollo3/regs/am_reg_base_addresses.h",
+        "values": {
+          "FLASH_BASEADDR": 0,
+          "SRAM_BASEADDR": 268435456,
+          "TCM_BASEADDR": 268435456,
+          "TCM_MAX_SIZE": 65536
+        }
+      },
+      "revision": "v5.2.24"
+    },
+    "apollo330P": {
+      "cmsis": {
+        "path": "modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo330P.h",
+        "values": {
+          "__CM55_REV": 257,
+          "__DCACHE_PRESENT": 1,
+          "__DSP_PRESENT": 1,
+          "__DTCM_PRESENT": 1,
+          "__FPU_DP": 1,
+          "__FPU_PRESENT": 1,
+          "__ICACHE_PRESENT": 1,
+          "__ITCM_PRESENT": 1,
+          "__MPU_PRESENT": 1,
+          "__NVIC_PRIO_BITS": 4,
+          "__PMU_NUM_EVENTCNT": 8,
+          "__PMU_PRESENT": 1,
+          "__SAUREGION_PRESENT": 1,
+          "__VTOR_PRESENT": 1,
+          "__Vendor_SysTickConfig": 0
+        }
+      },
+      "facts": {
+        "path": "cmake/socs/facts/apollo330P.cmake",
+        "values": {
+          "NSX_ABI_FLAGS": [
+            "thumbv8.1m-fpv5-hard"
+          ],
+          "NSX_CPU": [
+            "cortex-m55"
+          ],
+          "NSX_FLOAT_ABI": [
+            "hard"
+          ],
+          "NSX_FPU": [
+            ""
+          ],
+          "NSX_SEGGER_CPU": [
+            "Cortex-M55"
+          ],
+          "NSX_SEGGER_CPUFREQ": [
+            "48000000"
+          ],
+          "NSX_SEGGER_DEVICE": [
+            "AP330MPA-CBR"
+          ],
+          "NSX_SEGGER_IF_SPEED": [
+            "4000"
+          ],
+          "NSX_SEGGER_PF_ADDR": [
+            "0x00410000"
+          ],
+          "NSX_SEGGER_SWOFREQ": [
+            "1000000"
+          ],
+          "NSX_SOC_ARCH_CLASS": [
+            "armv8_1m"
+          ],
+          "NSX_SOC_CAPABILITIES": [
+            "core:m55",
+            "isa:armv8.1-m",
+            "dsp",
+            "mve",
+            "fpu",
+            "pmu:armv8m"
+          ],
+          "NSX_SOC_COMPILE_DEFINITIONS": [
+            "PART_apollo330P",
+            "AM_PART_APOLLO330P",
+            "ARMCM55",
+            "__FPU_PRESENT",
+            "NSX_SOC_CORE_M55=1",
+            "NSX_SOC_HAS_DSP=1",
+            "NSX_SOC_HAS_MVE=1",
+            "NSX_SOC_HAS_FPU=1",
+            "NSX_SOC_PMU_ARMV8M=1"
+          ],
+          "NSX_SOC_CORE": [
+            "cortex-m55"
+          ],
+          "NSX_SOC_FAMILY": [
+            "apollo330P"
+          ],
+          "NSX_SOC_HAS_DSP": [
+            "TRUE"
+          ],
+          "NSX_SOC_HAS_FPU": [
+            "TRUE"
+          ],
+          "NSX_SOC_HAS_MVE": [
+            "TRUE"
+          ],
+          "NSX_SOC_PMU_TIER": [
+            "armv8m"
+          ],
+          "NSX_SOC_RTOS_PORT_FAMILY": [
+            "AMapollo5"
+          ],
+          "NSX_SOC_RTOS_PORT_GENERIC": [
+            "ARM_CM55_NTZ"
+          ],
+          "NSX_SOC_SDK_PROVIDER": [
+            "ambiqsuite"
+          ],
+          "NSX_SOC_SERIES": [
+            "apollo330"
+          ],
+          "NSX_SOC_SKEW": [
+            "apollo330P"
+          ]
+        }
+      },
+      "linker": {
+        "armclang": {
+          "default": "linker_script_sbl.sct",
+          "path": "modules/nsx-core/src/apollo330P/armclang",
+          "scripts": {
+            "linker_script_itcm_sbl.sct": {
+              "ARM_LIB_HEAP": {
+                "empty": true,
+                "length": 4096,
+                "origin": 537374720
+              },
+              "ARM_LIB_STACK": {
+                "empty": true,
+                "length": 16384,
+                "origin": 537378816
+              },
+              "MCU_ITCM": {
+                "length": 262144,
+                "origin": 0
+              },
+              "MCU_MRAM": {
+                "length": 4128768,
+                "origin": 4259840
+              },
+              "MCU_TCM": {
+                "length": 503808,
+                "origin": 536870912
+              },
+              "SHARED_SRAM": {
+                "length": 3145728,
+                "origin": 537395200
+              }
+            },
+            "linker_script_nbl.sct": {
+              "ARM_LIB_HEAP": {
+                "empty": true,
+                "length": 4096,
+                "origin": 537374720
+              },
+              "ARM_LIB_STACK": {
+                "empty": true,
+                "length": 16384,
+                "origin": 537378816
+              },
+              "MCU_ITCM": {
+                "length": 262144,
+                "origin": 0
+              },
+              "MCU_MRAM": {
+                "length": 4194304,
+                "origin": 4194304
+              },
+              "MCU_TCM": {
+                "length": 503808,
+                "origin": 536870912
+              },
+              "SHARED_SRAM": {
+                "length": 3145728,
+                "origin": 537395200
+              }
+            },
+            "linker_script_sbl.sct": {
+              "ARM_LIB_HEAP": {
+                "empty": true,
+                "length": 4096,
+                "origin": 537112576
+              },
+              "ARM_LIB_STACK": {
+                "empty": true,
+                "length": 16384,
+                "origin": 537116672
+              },
+              "MCU_MRAM": {
+                "length": 2031616,
+                "origin": 4259840
+              },
+              "MCU_TCM": {
+                "length": 241664,
+                "origin": 536870912
+              },
+              "SHARED_SRAM": {
+                "length": 1835008,
+                "origin": 537395200
+              }
+            }
+          }
+        },
+        "gcc": {
+          "default": "linker_script_sbl.ld",
+          "path": "modules/nsx-core/src/apollo330P/gcc",
+          "scripts": {
+            "linker_script_itcm_sbl.ld": {
+              "MCU_ITCM": {
+                "attributes": "rwx",
+                "length": 262144,
+                "origin": 0
+              },
+              "MCU_MRAM": {
+                "attributes": "rx",
+                "length": 4128768,
+                "origin": 4259840
+              },
+              "MCU_TCM": {
+                "attributes": "rwx",
+                "length": 507904,
+                "origin": 536870912
+              },
+              "SHARED_SRAM": {
+                "attributes": "rwx",
+                "length": 3145728,
+                "origin": 537395200
+              }
+            },
+            "linker_script_nbl.ld": {
+              "MCU_ITCM": {
+                "attributes": "rwx",
+                "length": 262144,
+                "origin": 0
+              },
+              "MCU_MRAM": {
+                "attributes": "rx",
+                "length": 4128768,
+                "origin": 4194304
+              },
+              "MCU_TCM": {
+                "attributes": "rwx",
+                "length": 507904,
+                "origin": 536870912
+              },
+              "SHARED_SRAM": {
+                "attributes": "rwx",
+                "length": 3145728,
+                "origin": 537395200
+              }
+            },
+            "linker_script_sbl.ld": {
+              "MCU_MRAM": {
+                "attributes": "rx",
+                "length": 2031616,
+                "origin": 4259840
+              },
+              "MCU_TCM": {
+                "attributes": "rwx",
+                "length": 245760,
+                "origin": 536870912
+              },
+              "SHARED_SRAM": {
+                "attributes": "rwx",
+                "length": 1835008,
+                "origin": 537395200
+              }
+            }
+          }
+        }
+      },
+      "registers": {
+        "path": "modules/nsx-ambiqsuite/sdk/mcu/apollo330P/regs/am_reg_base_addresses.h",
+        "values": {
+          "AM_REG_INFO0_BASEADDR": 1107296256,
+          "AM_REG_INFO0_SIZE": 2048,
+          "AM_REG_INFO1_BASEADDR": 1107304448,
+          "AM_REG_INFO1_SIZE": 6144,
+          "AM_REG_INFOC_SIZE": 8192,
+          "AM_REG_OTP_INFO0_BASEADDR": 1107312640,
+          "AM_REG_OTP_INFO0_SIZE": 256,
+          "AM_REG_OTP_INFO1_BASEADDR": 1107320832,
+          "AM_REG_OTP_INFO1_SIZE": 2816,
+          "AM_REG_OTP_INFOC_BASEADDR": 1074536448,
+          "AM_REG_OTP_INFOC_SIZE": 1024,
+          "DTCM_BASEADDR": 536870912,
+          "DTCM_MAX_SIZE": 262144,
+          "MRAM_BASEADDR": 4194304,
+          "MRAM_MAX_SIZE": 2097152,
+          "MSPI0_APERTURE_END_ADDR": 1879048192,
+          "MSPI0_APERTURE_START_ADDR": 1610612736,
+          "MSPI0_XIP_BASEADDR": 1610612736,
+          "MSPI1_APERTURE_END_ADDR": 2214592512,
+          "MSPI1_APERTURE_START_ADDR": 2147483648,
+          "MSPI1_XIP_BASEADDR": 2147483648,
+          "MSPI2_APERTURE_END_ADDR": 2281701376,
+          "MSPI2_APERTURE_START_ADDR": 2214592512,
+          "MSPI2_XIP_BASEADDR": 2214592512,
+          "SSRAM_BASEADDR": 537395200,
+          "SSRAM_MAX_SIZE": 1835008
+        }
+      },
+      "revision": "v5.2.24"
+    },
+    "apollo3p": {
+      "cmsis": {
+        "path": "modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo3p.h",
+        "values": {
+          "__CM4_REV": 256,
+          "__DCACHE_PRESENT": 1,
+          "__DSP_PRESENT": 0,
+          "__DTCM_PRESENT": 1,
+          "__FPU_DP": 0,
+          "__FPU_PRESENT": 1,
+          "__ICACHE_PRESENT": 1,
+          "__ITCM_PRESENT": 1,
+          "__MPU_PRESENT": 1,
+          "__NVIC_PRIO_BITS": 3,
+          "__PMU_NUM_EVENTCNT": 0,
+          "__PMU_PRESENT": 0,
+          "__VTOR_PRESENT": 1,
+          "__Vendor_SysTickConfig": 0
+        }
+      },
+      "facts": {
+        "path": "cmake/socs/facts/apollo3p.cmake",
+        "values": {
+          "NSX_ABI_FLAGS": [
+            "thumbv7em-fpv4sp-hard"
+          ],
+          "NSX_CPU": [
+            "cortex-m4"
+          ],
+          "NSX_FLOAT_ABI": [
+            "hard"
+          ],
+          "NSX_FPU": [
+            "fpv4-sp-d16"
+          ],
+          "NSX_SEGGER_CPU": [
+            "Cortex-M4"
+          ],
+          "NSX_SEGGER_CPUFREQ": [
+            "48000000"
+          ],
+          "NSX_SEGGER_DEVICE": [
+            "AMA3B2KK-KBR"
+          ],
+          "NSX_SEGGER_IF_SPEED": [
+            "4000"
+          ],
+          "NSX_SEGGER_PF_ADDR": [
+            "0xC000"
+          ],
+          "NSX_SEGGER_SWOFREQ": [
+            "1000000"
+          ],
+          "NSX_SOC_ARCH_CLASS": [
+            "armv7e_m"
+          ],
+          "NSX_SOC_CAPABILITIES": [
+            "core:m4",
+            "isa:armv7e-m",
+            "dsp",
+            "fpu"
+          ],
+          "NSX_SOC_COMPILE_DEFINITIONS": [
+            "PART_apollo3p",
+            "AM_PART_APOLLO3P",
+            "ARMCM4",
+            "__FPU_PRESENT",
+            "NSX_SOC_CORE_M4=1",
+            "NSX_SOC_HAS_DSP=1",
+            "NSX_SOC_HAS_MVE=0",
+            "NSX_SOC_HAS_FPU=1",
+            "NSX_SOC_PMU_ARMV8M=0"
+          ],
+          "NSX_SOC_CORE": [
+            "cortex-m4"
+          ],
+          "NSX_SOC_FAMILY": [
+            "apollo3p"
+          ],
+          "NSX_SOC_HAS_DSP": [
+            "TRUE"
+          ],
+          "NSX_SOC_HAS_FPU": [
+            "TRUE"
+          ],
+          "NSX_SOC_HAS_MVE": [
+            "FALSE"
+          ],
+          "NSX_SOC_PMU_TIER": [
+            "none"
+          ],
+          "NSX_SOC_RTOS_PORT_FAMILY": [
+            "AMapollo"
+          ],
+          "NSX_SOC_RTOS_PORT_GENERIC": [
+            "ARM_CM4F"
+          ],
+          "NSX_SOC_SDK_PROVIDER": [
+            "ambiqsuite"
+          ],
+          "NSX_SOC_SERIES": [
+            "apollo3"
+          ],
+          "NSX_SOC_SKEW": [
+            "apollo3p"
+          ]
+        }
+      },
+      "flash": {
+        "path": "modules/nsx-ambiqsuite/sdk/mcu/apollo3p/hal/am_hal_flash.h",
+        "values": {
+          "AM_HAL_FLASH_ADDR": 0,
+          "AM_HAL_FLASH_INSTANCE_SIZE": 524288,
+          "AM_HAL_FLASH_NUM_INSTANCES": 4,
+          "AM_HAL_FLASH_SRAM_ADDR": 268435456,
+          "AM_HAL_FLASH_SRAM_SIZE": 786432,
+          "AM_HAL_FLASH_TOTAL_SIZE": 2097152
+        }
+      },
+      "linker": {
+        "armclang": {
+          "default": "linker_script.sct",
+          "path": "modules/nsx-core/src/apollo3p/armclang",
+          "scripts": {
+            "linker_script.sct": {
+              "ARM_LIB_HEAP": {
+                "empty": true,
+                "length": 0,
+                "origin": 268500992
+              },
+              "ARM_LIB_STACK": {
+                "empty": true,
+                "length": 4096,
+                "origin": 268500992
+              },
+              "ROMEM": {
+                "length": 2048000,
+                "origin": 49152
+              },
+              "RWMEM": {
+                "length": 716800,
+                "origin": 268505088
+              },
+              "TCM": {
+                "length": 65536,
+                "origin": 268435456
+              }
+            }
+          }
+        },
+        "gcc": {
+          "default": "linker_script.ld",
+          "path": "modules/nsx-core/src/apollo3p/gcc",
+          "scripts": {
+            "linker_script.ld": {
+              "ROMEM": {
+                "attributes": "rx",
+                "length": 2048000,
+                "origin": 49152
+              },
+              "RWMEM": {
+                "attributes": "rwx",
+                "length": 716800,
+                "origin": 268505088
+              },
+              "STACKMEM": {
+                "attributes": "rwx",
+                "length": 4096,
+                "origin": 268500992
+              },
+              "TCM": {
+                "attributes": "rwx",
+                "length": 65536,
+                "origin": 268435456
+              }
+            }
+          }
+        }
+      },
+      "registers": {
+        "path": "modules/nsx-ambiqsuite/sdk/mcu/apollo3p/regs/am_reg_base_addresses.h",
+        "values": {
+          "FLASH_BASEADDR": 0,
+          "MSPI0_XIPMM_BASEADDR": 1375731712,
+          "MSPI0_XIP_BASEADDR": 33554432,
+          "MSPI1_XIPMM_BASEADDR": 1409286144,
+          "MSPI1_XIP_BASEADDR": 67108864,
+          "MSPI2_XIPMM_BASEADDR": 1442840576,
+          "MSPI2_XIP_BASEADDR": 100663296,
+          "SRAM_BASEADDR": 268435456,
+          "TCM_BASEADDR": 268435456,
+          "TCM_MAX_SIZE": 65536
+        }
+      },
+      "revision": "v5.2.24"
+    },
+    "apollo4l": {
+      "cmsis": {
+        "path": "modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo4l.h",
+        "values": {
+          "__CM4_REV": 256,
+          "__DCACHE_PRESENT": 1,
+          "__DSP_PRESENT": 0,
+          "__DTCM_PRESENT": 1,
+          "__FPU_DP": 0,
+          "__FPU_PRESENT": 1,
+          "__ICACHE_PRESENT": 1,
+          "__ITCM_PRESENT": 1,
+          "__MPU_PRESENT": 1,
+          "__NVIC_PRIO_BITS": 3,
+          "__PMU_NUM_EVENTCNT": 0,
+          "__PMU_PRESENT": 0,
+          "__VTOR_PRESENT": 1,
+          "__Vendor_SysTickConfig": 0
+        }
+      },
+      "facts": {
+        "path": "cmake/socs/facts/apollo4l.cmake",
+        "values": {
+          "NSX_ABI_FLAGS": [
+            "thumbv7em-fpv4sp-hard"
+          ],
+          "NSX_CPU": [
+            "cortex-m4"
+          ],
+          "NSX_FLOAT_ABI": [
+            "hard"
+          ],
+          "NSX_FPU": [
+            "fpv4-sp-d16"
+          ],
+          "NSX_SEGGER_CPU": [
+            "Cortex-M4"
+          ],
+          "NSX_SEGGER_CPUFREQ": [
+            "96000000"
+          ],
+          "NSX_SEGGER_DEVICE": [
+            "AMAP42KL-KBR"
+          ],
+          "NSX_SEGGER_IF_SPEED": [
+            "4000"
+          ],
+          "NSX_SEGGER_PF_ADDR": [
+            "0x18000"
+          ],
+          "NSX_SEGGER_SWOFREQ": [
+            "1000000"
+          ],
+          "NSX_SOC_ARCH_CLASS": [
+            "armv7e_m"
+          ],
+          "NSX_SOC_CAPABILITIES": [
+            "core:m4",
+            "isa:armv7e-m",
+            "dsp",
+            "fpu"
+          ],
+          "NSX_SOC_COMPILE_DEFINITIONS": [
+            "PART_apollo4l",
+            "AM_PART_APOLLO4L",
+            "ARMCM4",
+            "__FPU_PRESENT",
+            "NSX_SOC_CORE_M4=1",
+            "NSX_SOC_HAS_DSP=1",
+            "NSX_SOC_HAS_MVE=0",
+            "NSX_SOC_HAS_FPU=1",
+            "NSX_SOC_PMU_ARMV8M=0"
+          ],
+          "NSX_SOC_CORE": [
+            "cortex-m4"
+          ],
+          "NSX_SOC_FAMILY": [
+            "apollo4l"
+          ],
+          "NSX_SOC_HAS_DSP": [
+            "TRUE"
+          ],
+          "NSX_SOC_HAS_FPU": [
+            "TRUE"
+          ],
+          "NSX_SOC_HAS_MVE": [
+            "FALSE"
+          ],
+          "NSX_SOC_PMU_TIER": [
+            "none"
+          ],
+          "NSX_SOC_RTOS_PORT_FAMILY": [
+            "AMapollo4"
+          ],
+          "NSX_SOC_RTOS_PORT_GENERIC": [
+            "ARM_CM4F"
+          ],
+          "NSX_SOC_SDK_PROVIDER": [
+            "ambiqsuite"
+          ],
+          "NSX_SOC_SERIES": [
+            "apollo4"
+          ],
+          "NSX_SOC_SKEW": [
+            "apollo4l"
+          ]
+        }
+      },
+      "linker": {
+        "armclang": {
+          "default": "linker_script.sct",
+          "path": "modules/nsx-core/src/apollo4l/armclang",
+          "scripts": {
+            "linker_script.sct": {
+              "ARM_LIB_HEAP": {
+                "empty": true,
+                "length": 4096,
+                "origin": 268808192
+              },
+              "ARM_LIB_STACK": {
+                "empty": true,
+                "length": 16384,
+                "origin": 268812288
+              },
+              "MCU_MRAM": {
+                "length": 1998848,
+                "origin": 98304
+              },
+              "MCU_TCM": {
+                "length": 372736,
+                "origin": 268435456
+              },
+              "SHARED_SRAM": {
+                "length": 1048576,
+                "origin": 268828672
+              }
+            }
+          }
+        },
+        "gcc": {
+          "default": "linker_script.ld",
+          "path": "modules/nsx-core/src/apollo4l/gcc",
+          "scripts": {
+            "linker_script.ld": {
+              "MCU_MRAM": {
+                "attributes": "rx",
+                "length": 1998848,
+                "origin": 98304
+              },
+              "MCU_TCM": {
+                "attributes": "rwx",
+                "length": 393216,
+                "origin": 268435456
+              },
+              "SHARED_SRAM": {
+                "attributes": "rwx",
+                "length": 1048576,
+                "origin": 268828672
+              }
+            }
+          }
+        }
+      },
+      "registers": {
+        "path": "modules/nsx-ambiqsuite/sdk/mcu/apollo4l/regs/am_reg_base_addresses.h",
+        "values": {
+          "EXTRAM_MAX_SIZE": 0,
+          "MRAM_BASEADDR": 0,
+          "MRAM_MAX_SIZE": 2097152,
+          "MSPI0_APERTURE_END_ADDR": 402653184,
+          "MSPI0_APERTURE_START_ADDR": 335544320,
+          "MSPI1_APERTURE_END_ADDR": 469762048,
+          "MSPI1_APERTURE_START_ADDR": 402653184,
+          "MSPI2_APERTURE_END_ADDR": 536870912,
+          "MSPI2_APERTURE_START_ADDR": 469762048,
+          "NONTCM_MAX_SIZE": 1048576,
+          "RAM_TOTAL_SIZE": 1441792,
+          "SRAM_BASEADDR": 268435456,
+          "SSRAM0_BASEADDR": 268828672,
+          "SSRAM0_MAX_SIZE": 1048576,
+          "SSRAM1_MAX_SIZE": 0,
+          "SSRAM_MAX_SIZE": 1048576,
+          "TCM_BASEADDR": 268435456,
+          "TCM_MAX_SIZE": 393216
+        }
+      },
+      "revision": "v5.2.24"
+    },
+    "apollo4p": {
+      "cmsis": {
+        "path": "modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo4p.h",
+        "values": {
+          "__CM4_REV": 256,
+          "__DCACHE_PRESENT": 1,
+          "__DSP_PRESENT": 0,
+          "__DTCM_PRESENT": 1,
+          "__FPU_DP": 0,
+          "__FPU_PRESENT": 1,
+          "__ICACHE_PRESENT": 1,
+          "__ITCM_PRESENT": 1,
+          "__MPU_PRESENT": 1,
+          "__NVIC_PRIO_BITS": 3,
+          "__PMU_NUM_EVENTCNT": 0,
+          "__PMU_PRESENT": 0,
+          "__VTOR_PRESENT": 1,
+          "__Vendor_SysTickConfig": 0
+        }
+      },
+      "facts": {
+        "path": "cmake/socs/facts/apollo4p.cmake",
+        "values": {
+          "NSX_ABI_FLAGS": [
+            "thumbv7em-fpv4sp-hard"
+          ],
+          "NSX_CPU": [
+            "cortex-m4"
+          ],
+          "NSX_FLOAT_ABI": [
+            "hard"
+          ],
+          "NSX_FPU": [
+            "fpv4-sp-d16"
+          ],
+          "NSX_SEGGER_CPU": [
+            "Cortex-M4"
+          ],
+          "NSX_SEGGER_CPUFREQ": [
+            "96000000"
+          ],
+          "NSX_SEGGER_DEVICE": [
+            "AMAP42KP-KBR"
+          ],
+          "NSX_SEGGER_IF_SPEED": [
+            "4000"
+          ],
+          "NSX_SEGGER_PF_ADDR": [
+            "0x18000"
+          ],
+          "NSX_SEGGER_SWOFREQ": [
+            "1000000"
+          ],
+          "NSX_SOC_ARCH_CLASS": [
+            "armv7e_m"
+          ],
+          "NSX_SOC_CAPABILITIES": [
+            "core:m4",
+            "isa:armv7e-m",
+            "dsp",
+            "fpu"
+          ],
+          "NSX_SOC_COMPILE_DEFINITIONS": [
+            "PART_apollo4p",
+            "AM_PART_APOLLO4P",
+            "ARMCM4",
+            "__FPU_PRESENT",
+            "NSX_SOC_CORE_M4=1",
+            "NSX_SOC_HAS_DSP=1",
+            "NSX_SOC_HAS_MVE=0",
+            "NSX_SOC_HAS_FPU=1",
+            "NSX_SOC_PMU_ARMV8M=0"
+          ],
+          "NSX_SOC_CORE": [
+            "cortex-m4"
+          ],
+          "NSX_SOC_FAMILY": [
+            "apollo4p"
+          ],
+          "NSX_SOC_HAS_DSP": [
+            "TRUE"
+          ],
+          "NSX_SOC_HAS_FPU": [
+            "TRUE"
+          ],
+          "NSX_SOC_HAS_MVE": [
+            "FALSE"
+          ],
+          "NSX_SOC_PMU_TIER": [
+            "none"
+          ],
+          "NSX_SOC_RTOS_PORT_FAMILY": [
+            "AMapollo4"
+          ],
+          "NSX_SOC_RTOS_PORT_GENERIC": [
+            "ARM_CM4F"
+          ],
+          "NSX_SOC_SDK_PROVIDER": [
+            "ambiqsuite"
+          ],
+          "NSX_SOC_SERIES": [
+            "apollo4"
+          ],
+          "NSX_SOC_SKEW": [
+            "apollo4p"
+          ]
+        }
+      },
+      "linker": {
+        "armclang": {
+          "default": "linker_script.sct",
+          "path": "modules/nsx-core/src/apollo4p/armclang",
+          "scripts": {
+            "linker_script.sct": {
+              "ARM_LIB_HEAP": {
+                "empty": true,
+                "length": 4096,
+                "origin": 268808192
+              },
+              "ARM_LIB_STACK": {
+                "empty": true,
+                "length": 16384,
+                "origin": 268812288
+              },
+              "MCU_MRAM": {
+                "length": 1998848,
+                "origin": 98304
+              },
+              "MCU_TCM": {
+                "length": 372736,
+                "origin": 268435456
+              },
+              "SHARED_SRAM": {
+                "length": 1048576,
+                "origin": 268828672
+              }
+            }
+          }
+        },
+        "gcc": {
+          "default": "linker_script.ld",
+          "path": "modules/nsx-core/src/apollo4p/gcc",
+          "scripts": {
+            "linker_script.ld": {
+              "MCU_MRAM": {
+                "attributes": "rx",
+                "length": 1998848,
+                "origin": 98304
+              },
+              "MCU_TCM": {
+                "attributes": "rw",
+                "length": 393216,
+                "origin": 268435456
+              },
+              "SHARED_SRAM": {
+                "attributes": "rw",
+                "length": 1048576,
+                "origin": 268828672
+              }
+            }
+          }
+        }
+      },
+      "registers": {
+        "path": "modules/nsx-ambiqsuite/sdk/mcu/apollo4p/regs/am_reg_base_addresses.h",
+        "values": {
+          "DSP0DRAM_BASEADDR": 270008320,
+          "DSP0DRAM_MAX_SIZE": 262144,
+          "DSP0IRAM_BASEADDR": 269877248,
+          "DSP0IRAM_MAX_SIZE": 131072,
+          "EXTRAM_BASEADDR": 269877248,
+          "EXTRAM_MAX_SIZE": 393216,
+          "MRAM_BASEADDR": 0,
+          "MRAM_MAX_SIZE": 2097152,
+          "MSPI0_APERTURE_END_ADDR": 402653184,
+          "MSPI0_APERTURE_START_ADDR": 335544320,
+          "MSPI1_APERTURE_END_ADDR": 469762048,
+          "MSPI1_APERTURE_START_ADDR": 402653184,
+          "MSPI2_APERTURE_END_ADDR": 536870912,
+          "MSPI2_APERTURE_START_ADDR": 469762048,
+          "NONTCM_MAX_SIZE": 2490368,
+          "RAM_TOTAL_SIZE": 2883584,
+          "SRAM_BASEADDR": 268435456,
+          "SSRAM0_BASEADDR": 268828672,
+          "SSRAM0_MAX_SIZE": 1048576,
+          "SSRAM1_BASEADDR": 270270464,
+          "SSRAM1_MAX_SIZE": 1048576,
+          "SSRAM_MAX_SIZE": 2097152,
+          "TCM_BASEADDR": 268435456,
+          "TCM_MAX_SIZE": 393216
+        }
+      },
+      "revision": "v5.2.24"
+    },
+    "apollo510": {
+      "cmsis": {
+        "path": "modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo510.h",
+        "values": {
+          "__CM55_REV": 257,
+          "__DCACHE_PRESENT": 1,
+          "__DSP_PRESENT": 1,
+          "__DTCM_PRESENT": 1,
+          "__FPU_DP": 1,
+          "__FPU_PRESENT": 1,
+          "__ICACHE_PRESENT": 1,
+          "__ITCM_PRESENT": 1,
+          "__MPU_PRESENT": 1,
+          "__NVIC_PRIO_BITS": 4,
+          "__PMU_NUM_EVENTCNT": 8,
+          "__PMU_PRESENT": 1,
+          "__SAUREGION_PRESENT": 1,
+          "__VTOR_PRESENT": 1,
+          "__Vendor_SysTickConfig": 0
+        }
+      },
+      "facts": {
+        "path": "cmake/socs/facts/apollo510.cmake",
+        "values": {
+          "NSX_ABI_FLAGS": [
+            "thumbv8.1m-fpv5-hard"
+          ],
+          "NSX_CPU": [
+            "cortex-m55"
+          ],
+          "NSX_FLOAT_ABI": [
+            "hard"
+          ],
+          "NSX_FPU": [
+            ""
+          ],
+          "NSX_SEGGER_CPU": [
+            "Cortex-M55"
+          ],
+          "NSX_SEGGER_CPUFREQ": [
+            "96000000"
+          ],
+          "NSX_SEGGER_DEVICE": [
+            "AP510NFA-CBR"
+          ],
+          "NSX_SEGGER_IF_SPEED": [
+            "4000"
+          ],
+          "NSX_SEGGER_PF_ADDR": [
+            "0x00410000"
+          ],
+          "NSX_SEGGER_SWOFREQ": [
+            "1000000"
+          ],
+          "NSX_SOC_ARCH_CLASS": [
+            "armv8_1m"
+          ],
+          "NSX_SOC_CAPABILITIES": [
+            "core:m55",
+            "isa:armv8.1-m",
+            "dsp",
+            "mve",
+            "fpu",
+            "pmu:armv8m"
+          ],
+          "NSX_SOC_COMPILE_DEFINITIONS": [
+            "PART_apollo510",
+            "AM_PART_APOLLO5B",
+            "AM_PART_APOLLO510",
+            "ARMCM55",
+            "__FPU_PRESENT",
+            "NSX_SOC_CORE_M55=1",
+            "NSX_SOC_HAS_DSP=1",
+            "NSX_SOC_HAS_MVE=1",
+            "NSX_SOC_HAS_FPU=1",
+            "NSX_SOC_PMU_ARMV8M=1"
+          ],
+          "NSX_SOC_CORE": [
+            "cortex-m55"
+          ],
+          "NSX_SOC_FAMILY": [
+            "apollo510"
+          ],
+          "NSX_SOC_HAS_DSP": [
+            "TRUE"
+          ],
+          "NSX_SOC_HAS_FPU": [
+            "TRUE"
+          ],
+          "NSX_SOC_HAS_MVE": [
+            "TRUE"
+          ],
+          "NSX_SOC_PMU_TIER": [
+            "armv8m"
+          ],
+          "NSX_SOC_RTOS_PORT_FAMILY": [
+            "AMapollo5"
+          ],
+          "NSX_SOC_RTOS_PORT_GENERIC": [
+            "ARM_CM55_NTZ"
+          ],
+          "NSX_SOC_SDK_PROVIDER": [
+            "ambiqsuite"
+          ],
+          "NSX_SOC_SERIES": [
+            "apollo5"
+          ],
+          "NSX_SOC_SKEW": [
+            "apollo510"
+          ]
+        }
+      },
+      "linker": {
+        "armclang": {
+          "default": "linker_script_sbl.sct",
+          "path": "modules/nsx-core/src/apollo510/armclang",
+          "scripts": {
+            "linker_script_itcm_sbl.sct": {
+              "ARM_LIB_HEAP": {
+                "empty": true,
+                "length": 4096,
+                "origin": 537374720
+              },
+              "ARM_LIB_STACK": {
+                "empty": true,
+                "length": 16384,
+                "origin": 537378816
+              },
+              "MCU_ITCM": {
+                "length": 262144,
+                "origin": 0
+              },
+              "MCU_MRAM": {
+                "length": 4128768,
+                "origin": 4259840
+              },
+              "MCU_TCM": {
+                "length": 503808,
+                "origin": 536870912
+              },
+              "SHARED_SRAM": {
+                "length": 3145728,
+                "origin": 537395200
+              }
+            },
+            "linker_script_nbl.sct": {
+              "ARM_LIB_HEAP": {
+                "empty": true,
+                "length": 4096,
+                "origin": 537374720
+              },
+              "ARM_LIB_STACK": {
+                "empty": true,
+                "length": 16384,
+                "origin": 537378816
+              },
+              "MCU_ITCM": {
+                "length": 262144,
+                "origin": 0
+              },
+              "MCU_MRAM": {
+                "length": 4194304,
+                "origin": 4194304
+              },
+              "MCU_TCM": {
+                "length": 503808,
+                "origin": 536870912
+              },
+              "SHARED_SRAM": {
+                "length": 3145728,
+                "origin": 537395200
+              }
+            },
+            "linker_script_sbl.sct": {
+              "ARM_LIB_HEAP": {
+                "empty": true,
+                "length": 4096,
+                "origin": 537374720
+              },
+              "ARM_LIB_STACK": {
+                "empty": true,
+                "length": 16384,
+                "origin": 537378816
+              },
+              "MCU_ITCM": {
+                "length": 262144,
+                "origin": 0
+              },
+              "MCU_MRAM": {
+                "length": 4128768,
+                "origin": 4259840
+              },
+              "MCU_TCM": {
+                "length": 503808,
+                "origin": 536870912
+              },
+              "SHARED_SRAM": {
+                "length": 3145728,
+                "origin": 537395200
+              }
+            }
+          }
+        },
+        "gcc": {
+          "default": "linker_script_sbl.ld",
+          "path": "modules/nsx-core/src/apollo510/gcc",
+          "scripts": {
+            "linker_script_itcm_sbl.ld": {
+              "MCU_ITCM": {
+                "attributes": "rwx",
+                "length": 262144,
+                "origin": 0
+              },
+              "MCU_MRAM": {
+                "attributes": "rx",
+                "length": 4128768,
+                "origin": 4259840
+              },
+              "MCU_TCM": {
+                "attributes": "rwx",
+                "length": 507904,
+                "origin": 536870912
+              },
+              "SHARED_SRAM": {
+                "attributes": "rwx",
+                "length": 3145728,
+                "origin": 537395200
+              }
+            },
+            "linker_script_nbl.ld": {
+              "MCU_ITCM": {
+                "attributes": "rwx",
+                "length": 262144,
+                "origin": 0
+              },
+              "MCU_MRAM": {
+                "attributes": "rx",
+                "length": 4128768,
+                "origin": 4194304
+              },
+              "MCU_TCM": {
+                "attributes": "rwx",
+                "length": 507904,
+                "origin": 536870912
+              },
+              "SHARED_SRAM": {
+                "attributes": "rwx",
+                "length": 3145728,
+                "origin": 537395200
+              }
+            },
+            "linker_script_sbl.ld": {
+              "MCU_ITCM": {
+                "attributes": "rwx",
+                "length": 262144,
+                "origin": 0
+              },
+              "MCU_MRAM": {
+                "attributes": "rx",
+                "length": 4128768,
+                "origin": 4259840
+              },
+              "MCU_TCM": {
+                "attributes": "rwx",
+                "length": 507904,
+                "origin": 536870912
+              },
+              "SHARED_SRAM": {
+                "attributes": "rwx",
+                "length": 3145728,
+                "origin": 537395200
+              }
+            }
+          }
+        }
+      },
+      "registers": {
+        "path": "modules/nsx-ambiqsuite/sdk/mcu/apollo510/regs/am_reg_base_addresses.h",
+        "values": {
+          "AM_REG_INFO0_BASEADDR": 1107296256,
+          "AM_REG_INFO0_SIZE": 2048,
+          "AM_REG_INFO1_BASEADDR": 1107304448,
+          "AM_REG_INFO1_SIZE": 6144,
+          "AM_REG_INFOC_SIZE": 8192,
+          "AM_REG_OTP_INFO0_BASEADDR": 1107312640,
+          "AM_REG_OTP_INFO0_SIZE": 256,
+          "AM_REG_OTP_INFO1_BASEADDR": 1107320832,
+          "AM_REG_OTP_INFO1_SIZE": 2816,
+          "AM_REG_OTP_INFOC_BASEADDR": 1074536448,
+          "AM_REG_OTP_INFOC_SIZE": 1024,
+          "DTCM_BASEADDR": 536870912,
+          "DTCM_END": 537395199,
+          "DTCM_MAX_SIZE": 524288,
+          "ITCM_BASEADDR": 0,
+          "ITCM_END": 262143,
+          "ITCM_MAX_SIZE": 262144,
+          "MRAM_BASEADDR": 4194304,
+          "MRAM_MAX_SIZE": 4194304,
+          "MSPI0_APERTURE_END_ADDR": 1879048192,
+          "MSPI0_APERTURE_START_ADDR": 1610612736,
+          "MSPI0_XIP_BASEADDR": 67108864,
+          "MSPI1_APERTURE_END_ADDR": 2214592512,
+          "MSPI1_APERTURE_START_ADDR": 2147483648,
+          "MSPI1_XIP_BASEADDR": 134217728,
+          "MSPI2_APERTURE_END_ADDR": 2281701376,
+          "MSPI2_APERTURE_START_ADDR": 2214592512,
+          "MSPI3_APERTURE_END_ADDR": 2415919104,
+          "MSPI3_APERTURE_START_ADDR": 2281701376,
+          "MSPI3_XIP_BASEADDR": 201326592,
+          "SSRAM0_BASEADDR": 537395200,
+          "SSRAM0_END": 538443775,
+          "SSRAM1_BASEADDR": 538443776,
+          "SSRAM1_END": 539492351,
+          "SSRAM2_BASEADDR": 539492352,
+          "SSRAM2_END": 540540927,
+          "SSRAM_BASEADDR": 537395200,
+          "SSRAM_MAX_SIZE": 3145728
+        }
+      },
+      "revision": "v5.2.24"
+    },
+    "apollo510L": {
+      "cmsis": {
+        "path": "modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo510L.h",
+        "values": {
+          "__CM55_REV": 257,
+          "__DCACHE_PRESENT": 1,
+          "__DSP_PRESENT": 1,
+          "__DTCM_PRESENT": 1,
+          "__FPU_DP": 1,
+          "__FPU_PRESENT": 1,
+          "__ICACHE_PRESENT": 1,
+          "__ITCM_PRESENT": 1,
+          "__MPU_PRESENT": 1,
+          "__NVIC_PRIO_BITS": 4,
+          "__PMU_NUM_EVENTCNT": 8,
+          "__PMU_PRESENT": 1,
+          "__SAUREGION_PRESENT": 1,
+          "__VTOR_PRESENT": 1,
+          "__Vendor_SysTickConfig": 0
+        }
+      },
+      "facts": {
+        "path": "cmake/socs/facts/apollo510L.cmake",
+        "values": {
+          "NSX_ABI_FLAGS": [
+            "thumbv8.1m-fpv5-hard"
+          ],
+          "NSX_CPU": [
+            "cortex-m55"
+          ],
+          "NSX_FLOAT_ABI": [
+            "hard"
+          ],
+          "NSX_FPU": [
+            ""
+          ],
+          "NSX_SEGGER_CPU": [
+            "Cortex-M55"
+          ],
+          "NSX_SEGGER_CPUFREQ": [
+            "48000000"
+          ],
+          "NSX_SEGGER_DEVICE": [
+            "AP510DLA-CBR"
+          ],
+          "NSX_SEGGER_IF_SPEED": [
+            "4000"
+          ],
+          "NSX_SEGGER_PF_ADDR": [
+            "0x00410000"
+          ],
+          "NSX_SEGGER_SWOFREQ": [
+            "1000000"
+          ],
+          "NSX_SOC_ARCH_CLASS": [
+            "armv8_1m"
+          ],
+          "NSX_SOC_CAPABILITIES": [
+            "core:m55",
+            "isa:armv8.1-m",
+            "dsp",
+            "mve",
+            "fpu",
+            "pmu:armv8m"
+          ],
+          "NSX_SOC_COMPILE_DEFINITIONS": [
+            "PART_apollo510L",
+            "AM_PART_APOLLO510L",
+            "ARMCM55",
+            "__FPU_PRESENT",
+            "NSX_SOC_CORE_M55=1",
+            "NSX_SOC_HAS_DSP=1",
+            "NSX_SOC_HAS_MVE=1",
+            "NSX_SOC_HAS_FPU=1",
+            "NSX_SOC_PMU_ARMV8M=1"
+          ],
+          "NSX_SOC_CORE": [
+            "cortex-m55"
+          ],
+          "NSX_SOC_FAMILY": [
+            "apollo510L"
+          ],
+          "NSX_SOC_HAS_DSP": [
+            "TRUE"
+          ],
+          "NSX_SOC_HAS_FPU": [
+            "TRUE"
+          ],
+          "NSX_SOC_HAS_MVE": [
+            "TRUE"
+          ],
+          "NSX_SOC_PMU_TIER": [
+            "armv8m"
+          ],
+          "NSX_SOC_RTOS_PORT_FAMILY": [
+            "AMapollo5"
+          ],
+          "NSX_SOC_RTOS_PORT_GENERIC": [
+            "ARM_CM55_NTZ"
+          ],
+          "NSX_SOC_SDK_PROVIDER": [
+            "ambiqsuite"
+          ],
+          "NSX_SOC_SERIES": [
+            "apollo5"
+          ],
+          "NSX_SOC_SKEW": [
+            "apollo510L"
+          ]
+        }
+      },
+      "linker": {
+        "armclang": {
+          "default": "linker_script_sbl.sct",
+          "path": "modules/nsx-core/src/apollo510L/armclang",
+          "scripts": {
+            "linker_script_itcm_sbl.sct": {
+              "ARM_LIB_HEAP": {
+                "empty": true,
+                "length": 4096,
+                "origin": 537374720
+              },
+              "ARM_LIB_STACK": {
+                "empty": true,
+                "length": 16384,
+                "origin": 537378816
+              },
+              "MCU_ITCM": {
+                "length": 262144,
+                "origin": 0
+              },
+              "MCU_MRAM": {
+                "length": 4128768,
+                "origin": 4259840
+              },
+              "MCU_TCM": {
+                "length": 503808,
+                "origin": 536870912
+              },
+              "SHARED_SRAM": {
+                "length": 3145728,
+                "origin": 537395200
+              }
+            },
+            "linker_script_nbl.sct": {
+              "ARM_LIB_HEAP": {
+                "empty": true,
+                "length": 4096,
+                "origin": 537374720
+              },
+              "ARM_LIB_STACK": {
+                "empty": true,
+                "length": 16384,
+                "origin": 537378816
+              },
+              "MCU_ITCM": {
+                "length": 262144,
+                "origin": 0
+              },
+              "MCU_MRAM": {
+                "length": 4194304,
+                "origin": 4194304
+              },
+              "MCU_TCM": {
+                "length": 503808,
+                "origin": 536870912
+              },
+              "SHARED_SRAM": {
+                "length": 3145728,
+                "origin": 537395200
+              }
+            },
+            "linker_script_sbl.sct": {
+              "ARM_LIB_HEAP": {
+                "empty": true,
+                "length": 4096,
+                "origin": 537112576
+              },
+              "ARM_LIB_STACK": {
+                "empty": true,
+                "length": 16384,
+                "origin": 537116672
+              },
+              "MCU_MRAM": {
+                "length": 2031616,
+                "origin": 4259840
+              },
+              "MCU_TCM": {
+                "length": 241664,
+                "origin": 536870912
+              },
+              "SHARED_SRAM": {
+                "length": 1835008,
+                "origin": 537395200
+              }
+            }
+          }
+        },
+        "gcc": {
+          "default": "linker_script_sbl.ld",
+          "path": "modules/nsx-core/src/apollo510L/gcc",
+          "scripts": {
+            "linker_script_itcm_sbl.ld": {
+              "MCU_ITCM": {
+                "attributes": "rwx",
+                "length": 262144,
+                "origin": 0
+              },
+              "MCU_MRAM": {
+                "attributes": "rx",
+                "length": 4128768,
+                "origin": 4259840
+              },
+              "MCU_TCM": {
+                "attributes": "rwx",
+                "length": 507904,
+                "origin": 536870912
+              },
+              "SHARED_SRAM": {
+                "attributes": "rwx",
+                "length": 3145728,
+                "origin": 537395200
+              }
+            },
+            "linker_script_nbl.ld": {
+              "MCU_ITCM": {
+                "attributes": "rwx",
+                "length": 262144,
+                "origin": 0
+              },
+              "MCU_MRAM": {
+                "attributes": "rx",
+                "length": 4128768,
+                "origin": 4194304
+              },
+              "MCU_TCM": {
+                "attributes": "rwx",
+                "length": 507904,
+                "origin": 536870912
+              },
+              "SHARED_SRAM": {
+                "attributes": "rwx",
+                "length": 3145728,
+                "origin": 537395200
+              }
+            },
+            "linker_script_sbl.ld": {
+              "MCU_MRAM": {
+                "attributes": "rx",
+                "length": 2031616,
+                "origin": 4259840
+              },
+              "MCU_TCM": {
+                "attributes": "rwx",
+                "length": 245760,
+                "origin": 536870912
+              },
+              "SHARED_SRAM": {
+                "attributes": "rwx",
+                "length": 1835008,
+                "origin": 537395200
+              }
+            }
+          }
+        }
+      },
+      "registers": {
+        "path": "modules/nsx-ambiqsuite/sdk/mcu/apollo510L/regs/am_reg_base_addresses.h",
+        "values": {
+          "AM_REG_INFO0_BASEADDR": 1107296256,
+          "AM_REG_INFO0_SIZE": 2048,
+          "AM_REG_INFO1_BASEADDR": 1107304448,
+          "AM_REG_INFO1_SIZE": 6144,
+          "AM_REG_INFOC_SIZE": 8192,
+          "AM_REG_OTP_INFO0_BASEADDR": 1107312640,
+          "AM_REG_OTP_INFO0_SIZE": 256,
+          "AM_REG_OTP_INFO1_BASEADDR": 1107320832,
+          "AM_REG_OTP_INFO1_SIZE": 2816,
+          "AM_REG_OTP_INFOC_BASEADDR": 1074536448,
+          "AM_REG_OTP_INFOC_SIZE": 1024,
+          "DTCM_BASEADDR": 536870912,
+          "DTCM_MAX_SIZE": 262144,
+          "MRAM_BASEADDR": 4194304,
+          "MRAM_MAX_SIZE": 2097152,
+          "MSPI0_APERTURE_END_ADDR": 1879048192,
+          "MSPI0_APERTURE_START_ADDR": 1610612736,
+          "MSPI0_XIP_BASEADDR": 1610612736,
+          "MSPI1_APERTURE_END_ADDR": 2214592512,
+          "MSPI1_APERTURE_START_ADDR": 2147483648,
+          "MSPI1_XIP_BASEADDR": 2147483648,
+          "MSPI2_APERTURE_END_ADDR": 2281701376,
+          "MSPI2_APERTURE_START_ADDR": 2214592512,
+          "MSPI2_XIP_BASEADDR": 2214592512,
+          "SSRAM_BASEADDR": 537395200,
+          "SSRAM_MAX_SIZE": 1835008
+        }
+      },
+      "revision": "v5.2.24"
+    },
+    "apollo510b": {
+      "cmsis": {
+        "path": "modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo510.h",
+        "values": {
+          "__CM55_REV": 257,
+          "__DCACHE_PRESENT": 1,
+          "__DSP_PRESENT": 1,
+          "__DTCM_PRESENT": 1,
+          "__FPU_DP": 1,
+          "__FPU_PRESENT": 1,
+          "__ICACHE_PRESENT": 1,
+          "__ITCM_PRESENT": 1,
+          "__MPU_PRESENT": 1,
+          "__NVIC_PRIO_BITS": 4,
+          "__PMU_NUM_EVENTCNT": 8,
+          "__PMU_PRESENT": 1,
+          "__SAUREGION_PRESENT": 1,
+          "__VTOR_PRESENT": 1,
+          "__Vendor_SysTickConfig": 0
+        }
+      },
+      "facts": {
+        "path": "cmake/socs/facts/apollo510b.cmake",
+        "values": {
+          "NSX_ABI_FLAGS": [
+            "thumbv8.1m-fpv5-hard"
+          ],
+          "NSX_CPU": [
+            "cortex-m55"
+          ],
+          "NSX_FLOAT_ABI": [
+            "hard"
+          ],
+          "NSX_FPU": [
+            ""
+          ],
+          "NSX_SEGGER_CPU": [
+            "Cortex-M55"
+          ],
+          "NSX_SEGGER_CPUFREQ": [
+            "96000000"
+          ],
+          "NSX_SEGGER_DEVICE": [
+            "AP510NFA-CBR"
+          ],
+          "NSX_SEGGER_IF_SPEED": [
+            "4000"
+          ],
+          "NSX_SEGGER_PF_ADDR": [
+            "0x00410000"
+          ],
+          "NSX_SEGGER_SWOFREQ": [
+            "1000000"
+          ],
+          "NSX_SOC_ARCH_CLASS": [
+            "armv8_1m"
+          ],
+          "NSX_SOC_CAPABILITIES": [
+            "core:m55",
+            "isa:armv8.1-m",
+            "dsp",
+            "mve",
+            "fpu",
+            "pmu:armv8m"
+          ],
+          "NSX_SOC_COMPILE_DEFINITIONS": [
+            "PART_apollo510b",
+            "AM_PART_APOLLO5B",
+            "AM_PART_APOLLO510",
+            "AM_PART_APOLLO510B",
+            "ARMCM55",
+            "__FPU_PRESENT",
+            "NSX_SOC_CORE_M55=1",
+            "NSX_SOC_HAS_DSP=1",
+            "NSX_SOC_HAS_MVE=1",
+            "NSX_SOC_HAS_FPU=1",
+            "NSX_SOC_PMU_ARMV8M=1"
+          ],
+          "NSX_SOC_CORE": [
+            "cortex-m55"
+          ],
+          "NSX_SOC_FAMILY": [
+            "apollo510b"
+          ],
+          "NSX_SOC_HAS_DSP": [
+            "TRUE"
+          ],
+          "NSX_SOC_HAS_FPU": [
+            "TRUE"
+          ],
+          "NSX_SOC_HAS_MVE": [
+            "TRUE"
+          ],
+          "NSX_SOC_PMU_TIER": [
+            "armv8m"
+          ],
+          "NSX_SOC_RTOS_PORT_FAMILY": [
+            "AMapollo5"
+          ],
+          "NSX_SOC_RTOS_PORT_GENERIC": [
+            "ARM_CM55_NTZ"
+          ],
+          "NSX_SOC_SDK_PROVIDER": [
+            "ambiqsuite"
+          ],
+          "NSX_SOC_SERIES": [
+            "apollo5"
+          ],
+          "NSX_SOC_SKEW": [
+            "apollo510b"
+          ]
+        }
+      },
+      "linker": {
+        "armclang": {
+          "default": "linker_script_sbl.sct",
+          "path": "modules/nsx-core/src/apollo510b/armclang",
+          "scripts": {
+            "linker_script_itcm_sbl.sct": {
+              "ARM_LIB_HEAP": {
+                "empty": true,
+                "length": 4096,
+                "origin": 537374720
+              },
+              "ARM_LIB_STACK": {
+                "empty": true,
+                "length": 16384,
+                "origin": 537378816
+              },
+              "MCU_ITCM": {
+                "length": 262144,
+                "origin": 0
+              },
+              "MCU_MRAM": {
+                "length": 4128768,
+                "origin": 4259840
+              },
+              "MCU_TCM": {
+                "length": 503808,
+                "origin": 536870912
+              },
+              "SHARED_SRAM": {
+                "length": 3145728,
+                "origin": 537395200
+              }
+            },
+            "linker_script_nbl.sct": {
+              "ARM_LIB_HEAP": {
+                "empty": true,
+                "length": 4096,
+                "origin": 537374720
+              },
+              "ARM_LIB_STACK": {
+                "empty": true,
+                "length": 16384,
+                "origin": 537378816
+              },
+              "MCU_ITCM": {
+                "length": 262144,
+                "origin": 0
+              },
+              "MCU_MRAM": {
+                "length": 4194304,
+                "origin": 4194304
+              },
+              "MCU_TCM": {
+                "length": 503808,
+                "origin": 536870912
+              },
+              "SHARED_SRAM": {
+                "length": 3145728,
+                "origin": 537395200
+              }
+            },
+            "linker_script_sbl.sct": {
+              "ARM_LIB_HEAP": {
+                "empty": true,
+                "length": 4096,
+                "origin": 537374720
+              },
+              "ARM_LIB_STACK": {
+                "empty": true,
+                "length": 16384,
+                "origin": 537378816
+              },
+              "MCU_ITCM": {
+                "length": 262144,
+                "origin": 0
+              },
+              "MCU_MRAM": {
+                "length": 4128768,
+                "origin": 4259840
+              },
+              "MCU_TCM": {
+                "length": 503808,
+                "origin": 536870912
+              },
+              "SHARED_SRAM": {
+                "length": 3145728,
+                "origin": 537395200
+              }
+            }
+          }
+        },
+        "gcc": {
+          "default": "linker_script_sbl.ld",
+          "path": "modules/nsx-core/src/apollo510b/gcc",
+          "scripts": {
+            "linker_script_itcm_sbl.ld": {
+              "MCU_ITCM": {
+                "attributes": "rwx",
+                "length": 262144,
+                "origin": 0
+              },
+              "MCU_MRAM": {
+                "attributes": "rx",
+                "length": 4128768,
+                "origin": 4259840
+              },
+              "MCU_TCM": {
+                "attributes": "rwx",
+                "length": 507904,
+                "origin": 536870912
+              },
+              "SHARED_SRAM": {
+                "attributes": "rwx",
+                "length": 3145728,
+                "origin": 537395200
+              }
+            },
+            "linker_script_nbl.ld": {
+              "MCU_ITCM": {
+                "attributes": "rwx",
+                "length": 262144,
+                "origin": 0
+              },
+              "MCU_MRAM": {
+                "attributes": "rx",
+                "length": 4128768,
+                "origin": 4194304
+              },
+              "MCU_TCM": {
+                "attributes": "rwx",
+                "length": 507904,
+                "origin": 536870912
+              },
+              "SHARED_SRAM": {
+                "attributes": "rwx",
+                "length": 3145728,
+                "origin": 537395200
+              }
+            },
+            "linker_script_sbl.ld": {
+              "MCU_ITCM": {
+                "attributes": "rwx",
+                "length": 262144,
+                "origin": 0
+              },
+              "MCU_MRAM": {
+                "attributes": "rx",
+                "length": 4128768,
+                "origin": 4259840
+              },
+              "MCU_TCM": {
+                "attributes": "rwx",
+                "length": 507904,
+                "origin": 536870912
+              },
+              "SHARED_SRAM": {
+                "attributes": "rwx",
+                "length": 3145728,
+                "origin": 537395200
+              }
+            }
+          }
+        }
+      },
+      "registers": {
+        "path": "modules/nsx-ambiqsuite/sdk/mcu/apollo510/regs/am_reg_base_addresses.h",
+        "values": {
+          "AM_REG_INFO0_BASEADDR": 1107296256,
+          "AM_REG_INFO0_SIZE": 2048,
+          "AM_REG_INFO1_BASEADDR": 1107304448,
+          "AM_REG_INFO1_SIZE": 6144,
+          "AM_REG_INFOC_SIZE": 8192,
+          "AM_REG_OTP_INFO0_BASEADDR": 1107312640,
+          "AM_REG_OTP_INFO0_SIZE": 256,
+          "AM_REG_OTP_INFO1_BASEADDR": 1107320832,
+          "AM_REG_OTP_INFO1_SIZE": 2816,
+          "AM_REG_OTP_INFOC_BASEADDR": 1074536448,
+          "AM_REG_OTP_INFOC_SIZE": 1024,
+          "DTCM_BASEADDR": 536870912,
+          "DTCM_END": 537395199,
+          "DTCM_MAX_SIZE": 524288,
+          "ITCM_BASEADDR": 0,
+          "ITCM_END": 262143,
+          "ITCM_MAX_SIZE": 262144,
+          "MRAM_BASEADDR": 4194304,
+          "MRAM_MAX_SIZE": 4194304,
+          "MSPI0_APERTURE_END_ADDR": 1879048192,
+          "MSPI0_APERTURE_START_ADDR": 1610612736,
+          "MSPI0_XIP_BASEADDR": 67108864,
+          "MSPI1_APERTURE_END_ADDR": 2214592512,
+          "MSPI1_APERTURE_START_ADDR": 2147483648,
+          "MSPI1_XIP_BASEADDR": 134217728,
+          "MSPI2_APERTURE_END_ADDR": 2281701376,
+          "MSPI2_APERTURE_START_ADDR": 2214592512,
+          "MSPI3_APERTURE_END_ADDR": 2415919104,
+          "MSPI3_APERTURE_START_ADDR": 2281701376,
+          "MSPI3_XIP_BASEADDR": 201326592,
+          "SSRAM0_BASEADDR": 537395200,
+          "SSRAM0_END": 538443775,
+          "SSRAM1_BASEADDR": 538443776,
+          "SSRAM1_END": 539492351,
+          "SSRAM2_BASEADDR": 539492352,
+          "SSRAM2_END": 540540927,
+          "SSRAM_BASEADDR": 537395200,
+          "SSRAM_MAX_SIZE": 3145728
+        }
+      },
+      "revision": "v5.2.24"
+    },
+    "apollo5b": {
+      "cmsis": {
+        "path": "modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo510.h",
+        "values": {
+          "__CM55_REV": 257,
+          "__DCACHE_PRESENT": 1,
+          "__DSP_PRESENT": 1,
+          "__DTCM_PRESENT": 1,
+          "__FPU_DP": 1,
+          "__FPU_PRESENT": 1,
+          "__ICACHE_PRESENT": 1,
+          "__ITCM_PRESENT": 1,
+          "__MPU_PRESENT": 1,
+          "__NVIC_PRIO_BITS": 4,
+          "__PMU_NUM_EVENTCNT": 8,
+          "__PMU_PRESENT": 1,
+          "__SAUREGION_PRESENT": 1,
+          "__VTOR_PRESENT": 1,
+          "__Vendor_SysTickConfig": 0
+        }
+      },
+      "facts": {
+        "path": "cmake/socs/facts/apollo5b.cmake",
+        "values": {
+          "NSX_ABI_FLAGS": [
+            "thumbv8.1m-fpv5-hard"
+          ],
+          "NSX_CPU": [
+            "cortex-m55"
+          ],
+          "NSX_FLOAT_ABI": [
+            "hard"
+          ],
+          "NSX_FPU": [
+            ""
+          ],
+          "NSX_SEGGER_CPU": [
+            "Cortex-M55"
+          ],
+          "NSX_SEGGER_CPUFREQ": [
+            "96000000"
+          ],
+          "NSX_SEGGER_DEVICE": [
+            "AP510NFA-CBR"
+          ],
+          "NSX_SEGGER_IF_SPEED": [
+            "4000"
+          ],
+          "NSX_SEGGER_PF_ADDR": [
+            "0x00410000"
+          ],
+          "NSX_SEGGER_SWOFREQ": [
+            "1000000"
+          ],
+          "NSX_SOC_ARCH_CLASS": [
+            "armv8_1m"
+          ],
+          "NSX_SOC_CAPABILITIES": [
+            "core:m55",
+            "isa:armv8.1-m",
+            "dsp",
+            "mve",
+            "fpu",
+            "pmu:armv8m"
+          ],
+          "NSX_SOC_COMPILE_DEFINITIONS": [
+            "PART_apollo5b",
+            "AM_PART_APOLLO5B",
+            "AM_PART_APOLLO510",
+            "ARMCM55",
+            "__FPU_PRESENT",
+            "NSX_SOC_CORE_M55=1",
+            "NSX_SOC_HAS_DSP=1",
+            "NSX_SOC_HAS_MVE=1",
+            "NSX_SOC_HAS_FPU=1",
+            "NSX_SOC_PMU_ARMV8M=1"
+          ],
+          "NSX_SOC_CORE": [
+            "cortex-m55"
+          ],
+          "NSX_SOC_FAMILY": [
+            "apollo5b"
+          ],
+          "NSX_SOC_HAS_DSP": [
+            "TRUE"
+          ],
+          "NSX_SOC_HAS_FPU": [
+            "TRUE"
+          ],
+          "NSX_SOC_HAS_MVE": [
+            "TRUE"
+          ],
+          "NSX_SOC_PMU_TIER": [
+            "armv8m"
+          ],
+          "NSX_SOC_RTOS_PORT_FAMILY": [
+            "AMapollo5"
+          ],
+          "NSX_SOC_RTOS_PORT_GENERIC": [
+            "ARM_CM55_NTZ"
+          ],
+          "NSX_SOC_SDK_PROVIDER": [
+            "ambiqsuite"
+          ],
+          "NSX_SOC_SERIES": [
+            "apollo5"
+          ],
+          "NSX_SOC_SKEW": [
+            "apollo5b"
+          ]
+        }
+      },
+      "linker": {
+        "armclang": {
+          "default": "linker_script_sbl.sct",
+          "path": "modules/nsx-core/src/apollo5b/armclang",
+          "scripts": {
+            "linker_script_nbl.sct": {
+              "ARM_LIB_HEAP": {
+                "empty": true,
+                "length": 4096,
+                "origin": 537374720
+              },
+              "ARM_LIB_STACK": {
+                "empty": true,
+                "length": 16384,
+                "origin": 537378816
+              },
+              "MCU_ITCM": {
+                "length": 262144,
+                "origin": 0
+              },
+              "MCU_MRAM": {
+                "length": 4194304,
+                "origin": 4194304
+              },
+              "MCU_TCM": {
+                "length": 503808,
+                "origin": 536870912
+              },
+              "SHARED_SRAM": {
+                "length": 3145728,
+                "origin": 537395200
+              }
+            },
+            "linker_script_sbl.sct": {
+              "ARM_LIB_HEAP": {
+                "empty": true,
+                "length": 4096,
+                "origin": 537374720
+              },
+              "ARM_LIB_STACK": {
+                "empty": true,
+                "length": 16384,
+                "origin": 537378816
+              },
+              "MCU_ITCM": {
+                "length": 262144,
+                "origin": 0
+              },
+              "MCU_MRAM": {
+                "length": 4128768,
+                "origin": 4259840
+              },
+              "MCU_TCM": {
+                "length": 503808,
+                "origin": 536870912
+              },
+              "SHARED_SRAM": {
+                "length": 3145728,
+                "origin": 537395200
+              }
+            }
+          }
+        },
+        "gcc": {
+          "default": "linker_script_sbl.ld",
+          "path": "modules/nsx-core/src/apollo5b/gcc",
+          "scripts": {
+            "linker_script_nbl.ld": {
+              "MCU_ITCM": {
+                "attributes": "rwx",
+                "length": 262144,
+                "origin": 0
+              },
+              "MCU_MRAM": {
+                "attributes": "rx",
+                "length": 4128768,
+                "origin": 4194304
+              },
+              "MCU_TCM": {
+                "attributes": "rwx",
+                "length": 507904,
+                "origin": 536870912
+              },
+              "SHARED_SRAM": {
+                "attributes": "rwx",
+                "length": 3145728,
+                "origin": 537395200
+              }
+            },
+            "linker_script_sbl.ld": {
+              "MCU_ITCM": {
+                "attributes": "rwx",
+                "length": 262144,
+                "origin": 0
+              },
+              "MCU_MRAM": {
+                "attributes": "rx",
+                "length": 4128768,
+                "origin": 4259840
+              },
+              "MCU_TCM": {
+                "attributes": "rwx",
+                "length": 507904,
+                "origin": 536870912
+              },
+              "SHARED_SRAM": {
+                "attributes": "rwx",
+                "length": 3145728,
+                "origin": 537395200
+              }
+            }
+          }
+        }
+      },
+      "registers": {
+        "path": "modules/nsx-ambiqsuite/sdk/mcu/apollo510/regs/am_reg_base_addresses.h",
+        "values": {
+          "AM_REG_INFO0_BASEADDR": 1107296256,
+          "AM_REG_INFO0_SIZE": 2048,
+          "AM_REG_INFO1_BASEADDR": 1107304448,
+          "AM_REG_INFO1_SIZE": 6144,
+          "AM_REG_INFOC_SIZE": 8192,
+          "AM_REG_OTP_INFO0_BASEADDR": 1107312640,
+          "AM_REG_OTP_INFO0_SIZE": 256,
+          "AM_REG_OTP_INFO1_BASEADDR": 1107320832,
+          "AM_REG_OTP_INFO1_SIZE": 2816,
+          "AM_REG_OTP_INFOC_BASEADDR": 1074536448,
+          "AM_REG_OTP_INFOC_SIZE": 1024,
+          "DTCM_BASEADDR": 536870912,
+          "DTCM_END": 537395199,
+          "DTCM_MAX_SIZE": 524288,
+          "ITCM_BASEADDR": 0,
+          "ITCM_END": 262143,
+          "ITCM_MAX_SIZE": 262144,
+          "MRAM_BASEADDR": 4194304,
+          "MRAM_MAX_SIZE": 4194304,
+          "MSPI0_APERTURE_END_ADDR": 1879048192,
+          "MSPI0_APERTURE_START_ADDR": 1610612736,
+          "MSPI0_XIP_BASEADDR": 67108864,
+          "MSPI1_APERTURE_END_ADDR": 2214592512,
+          "MSPI1_APERTURE_START_ADDR": 2147483648,
+          "MSPI1_XIP_BASEADDR": 134217728,
+          "MSPI2_APERTURE_END_ADDR": 2281701376,
+          "MSPI2_APERTURE_START_ADDR": 2214592512,
+          "MSPI3_APERTURE_END_ADDR": 2415919104,
+          "MSPI3_APERTURE_START_ADDR": 2281701376,
+          "MSPI3_XIP_BASEADDR": 201326592,
+          "SSRAM0_BASEADDR": 537395200,
+          "SSRAM0_END": 538443775,
+          "SSRAM1_BASEADDR": 538443776,
+          "SSRAM1_END": 539492351,
+          "SSRAM2_BASEADDR": 539492352,
+          "SSRAM2_END": 540540927,
+          "SSRAM_BASEADDR": 537395200,
+          "SSRAM_MAX_SIZE": 3145728
+        }
+      },
+      "revision": "v5.2.24"
+    },
+    "atomiq110": {
+      "cmsis": {
+        "path": "modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/atomiq110.h",
+        "values": {
+          "__CM55_REV": 257,
+          "__DCACHE_PRESENT": 1,
+          "__DSP_PRESENT": 1,
+          "__DTCM_PRESENT": 1,
+          "__FPU_DP": 1,
+          "__FPU_PRESENT": 1,
+          "__ICACHE_PRESENT": 1,
+          "__ITCM_PRESENT": 1,
+          "__MPU_PRESENT": 1,
+          "__NVIC_PRIO_BITS": 4,
+          "__PMU_NUM_EVENTCNT": 8,
+          "__PMU_PRESENT": 1,
+          "__SAUREGION_PRESENT": 1,
+          "__VTOR_PRESENT": 1,
+          "__Vendor_SysTickConfig": 0
+        }
+      },
+      "facts": {
+        "path": "cmake/socs/facts/atomiq110.cmake",
+        "values": {
+          "NSX_ABI_FLAGS": [
+            "thumbv8.1m-fpv5-hard"
+          ],
+          "NSX_CPU": [
+            "cortex-m55"
+          ],
+          "NSX_FLOAT_ABI": [
+            "hard"
+          ],
+          "NSX_FPU": [
+            ""
+          ],
+          "NSX_SEGGER_CPU": [
+            "Cortex-M55"
+          ],
+          "NSX_SEGGER_CPUFREQ": [
+            "25000000"
+          ],
+          "NSX_SEGGER_DEVICE": [
+            "Atomiq110"
+          ],
+          "NSX_SEGGER_IF_SPEED": [
+            "4000"
+          ],
+          "NSX_SEGGER_PF_ADDR": [
+            "0x22000000"
+          ],
+          "NSX_SEGGER_SWOFREQ": [
+            "1000000"
+          ],
+          "NSX_SOC_ARCH_CLASS": [
+            "armv8_1m"
+          ],
+          "NSX_SOC_CAPABILITIES": [
+            "core:m55",
+            "isa:armv8.1-m",
+            "dsp",
+            "mve",
+            "fpu",
+            "pmu:armv8m",
+            "npu"
+          ],
+          "NSX_SOC_COMPILE_DEFINITIONS": [
+            "PART_atomiq110",
+            "ARMCM55",
+            "__FPU_PRESENT",
+            "NSX_SOC_CORE_M55=1",
+            "NSX_SOC_HAS_DSP=1",
+            "NSX_SOC_HAS_MVE=1",
+            "NSX_SOC_HAS_FPU=1",
+            "NSX_SOC_PMU_ARMV8M=1"
+          ],
+          "NSX_SOC_CORE": [
+            "cortex-m55"
+          ],
+          "NSX_SOC_FAMILY": [
+            "atomiq110"
+          ],
+          "NSX_SOC_HAS_DSP": [
+            "TRUE"
+          ],
+          "NSX_SOC_HAS_FPU": [
+            "TRUE"
+          ],
+          "NSX_SOC_HAS_MVE": [
+            "TRUE"
+          ],
+          "NSX_SOC_PMU_TIER": [
+            "armv8m"
+          ],
+          "NSX_SOC_RTOS_PORT_FAMILY": [
+            "AMapollo5"
+          ],
+          "NSX_SOC_RTOS_PORT_GENERIC": [
+            "ARM_CM55_NTZ"
+          ],
+          "NSX_SOC_SDK_PROVIDER": [
+            "ambiqsuite"
+          ],
+          "NSX_SOC_SERIES": [
+            "atomiq"
+          ],
+          "NSX_SOC_SKEW": [
+            "atomiq110"
+          ]
+        }
+      },
+      "linker": {
+        "armclang": {
+          "default": "linker_script_nbl.sct",
+          "path": "modules/nsx-core/src/atomiq110/armclang",
+          "scripts": {
+            "linker_script_itcm_nbl.sct": {
+              "ARM_LIB_HEAP": {
+                "empty": true,
+                "length": 4096,
+                "origin": 537374720
+              },
+              "ARM_LIB_STACK": {
+                "empty": true,
+                "length": 16384,
+                "origin": 537378816
+              },
+              "MCU_ITCM": {
+                "length": 262144,
+                "origin": 0
+              },
+              "MCU_MRAM": {
+                "length": 4194304,
+                "origin": 570425344
+              },
+              "MCU_TCM": {
+                "length": 503808,
+                "origin": 536870912
+              },
+              "SHARED_SRAM": {
+                "length": 3145728,
+                "origin": 553648128
+              }
+            },
+            "linker_script_itcm_sbl.sct": {
+              "ARM_LIB_HEAP": {
+                "empty": true,
+                "length": 4096,
+                "origin": 537374720
+              },
+              "ARM_LIB_STACK": {
+                "empty": true,
+                "length": 16384,
+                "origin": 537378816
+              },
+              "MCU_ITCM": {
+                "length": 262144,
+                "origin": 0
+              },
+              "MCU_MRAM": {
+                "length": 4128768,
+                "origin": 570490880
+              },
+              "MCU_TCM": {
+                "length": 503808,
+                "origin": 536870912
+              },
+              "SHARED_SRAM": {
+                "length": 3145728,
+                "origin": 553648128
+              }
+            },
+            "linker_script_nbl.sct": {
+              "ARM_LIB_HEAP": {
+                "empty": true,
+                "length": 4096,
+                "origin": 537374720
+              },
+              "ARM_LIB_STACK": {
+                "empty": true,
+                "length": 16384,
+                "origin": 537378816
+              },
+              "MCU_ITCM": {
+                "length": 262144,
+                "origin": 0
+              },
+              "MCU_MRAM": {
+                "length": 4194304,
+                "origin": 570425344
+              },
+              "MCU_TCM": {
+                "length": 503808,
+                "origin": 536870912
+              },
+              "SHARED_SRAM": {
+                "length": 3145728,
+                "origin": 553648128
+              }
+            },
+            "linker_script_sbl.sct": {
+              "ARM_LIB_HEAP": {
+                "empty": true,
+                "length": 4096,
+                "origin": 537374720
+              },
+              "ARM_LIB_STACK": {
+                "empty": true,
+                "length": 16384,
+                "origin": 537378816
+              },
+              "MCU_ITCM": {
+                "length": 262144,
+                "origin": 0
+              },
+              "MCU_MRAM": {
+                "length": 4128768,
+                "origin": 570490880
+              },
+              "MCU_TCM": {
+                "length": 503808,
+                "origin": 536870912
+              },
+              "SHARED_SRAM": {
+                "length": 3145728,
+                "origin": 553648128
+              }
+            }
+          }
+        },
+        "gcc": {
+          "default": "linker_script_nbl.ld",
+          "path": "modules/nsx-core/src/atomiq110/gcc",
+          "scripts": {
+            "linker_script_itcm_nbl.ld": {
+              "MCU_ITCM": {
+                "attributes": "rwx",
+                "length": 262144,
+                "origin": 0
+              },
+              "MCU_MRAM": {
+                "attributes": "rx",
+                "length": 4194304,
+                "origin": 570425344
+              },
+              "MCU_TCM": {
+                "attributes": "rwx",
+                "length": 507904,
+                "origin": 536870912
+              },
+              "SHARED_SRAM": {
+                "attributes": "rwx",
+                "length": 3145728,
+                "origin": 553648128
+              }
+            },
+            "linker_script_itcm_sbl.ld": {
+              "MCU_ITCM": {
+                "attributes": "rwx",
+                "length": 262144,
+                "origin": 0
+              },
+              "MCU_MRAM": {
+                "attributes": "rx",
+                "length": 4128768,
+                "origin": 570490880
+              },
+              "MCU_TCM": {
+                "attributes": "rwx",
+                "length": 507904,
+                "origin": 536870912
+              },
+              "SHARED_SRAM": {
+                "attributes": "rwx",
+                "length": 3145728,
+                "origin": 553648128
+              }
+            },
+            "linker_script_nbl.ld": {
+              "MCU_ITCM": {
+                "attributes": "rwx",
+                "length": 262144,
+                "origin": 0
+              },
+              "MCU_MRAM": {
+                "attributes": "rx",
+                "length": 4194304,
+                "origin": 570425344
+              },
+              "MCU_TCM": {
+                "attributes": "rwx",
+                "length": 507904,
+                "origin": 536870912
+              },
+              "SHARED_SRAM": {
+                "attributes": "rwx",
+                "length": 3145728,
+                "origin": 553648128
+              }
+            },
+            "linker_script_sbl.ld": {
+              "MCU_ITCM": {
+                "attributes": "rwx",
+                "length": 262144,
+                "origin": 0
+              },
+              "MCU_MRAM": {
+                "attributes": "rx",
+                "length": 4128768,
+                "origin": 570490880
+              },
+              "MCU_TCM": {
+                "attributes": "rwx",
+                "length": 507904,
+                "origin": 536870912
+              },
+              "SHARED_SRAM": {
+                "attributes": "rwx",
+                "length": 3145728,
+                "origin": 553648128
+              }
+            }
+          }
+        }
+      },
+      "registers": {
+        "path": "modules/nsx-ambiqsuite/sdk/mcu/atomiq110/regs/am_reg_base_addresses.h",
+        "values": {
+          "AM_REG_INFO0_BASEADDR": 1107296256,
+          "AM_REG_INFO0_SIZE": 2048,
+          "AM_REG_INFO1_BASEADDR": 1107304448,
+          "AM_REG_INFO1_SIZE": 6144,
+          "AM_REG_INFOC_SIZE": 8192,
+          "AM_REG_OTP_INFO0_SIZE": 256,
+          "AM_REG_OTP_INFO1_SIZE": 2816,
+          "AM_REG_OTP_INFOC_SIZE": 1024,
+          "DTCM_BASEADDR": 536870912,
+          "DTCM_BASEADDR_SECURE": 805306368,
+          "DTCM_MAX_SIZE": 524288,
+          "DTCM_MAX_SIZE_SECURE": 524288,
+          "HBLRAM_BASEADDR": 1610612736,
+          "HBLRAM_MAX_SIZE": 13631488,
+          "RRAM_BASEADDR": 570425344,
+          "RRAM_BASEADDR_SECURE": 838860800,
+          "RRAM_MAX_SIZE": 4194304,
+          "RRAM_MAX_SIZE_SECURE": 4194304,
+          "SSRAM_BASEADDR": 553648128,
+          "SSRAM_BASEADDR_SECURE": 822083584,
+          "SSRAM_MAX_SIZE": 3145728,
+          "SSRAM_MAX_SIZE_SECURE": 3145728,
+          "VIRTUAL_BASEADDR": 134217728,
+          "VIRTUAL_MAX_ADDR": 268435455,
+          "VIRTUAL_MAX_SIZE": 131072,
+          "XSPI0_APERTURE_END_ADDR": 2415919104,
+          "XSPI0_APERTURE_END_SECURE_ADDR": 2684354560,
+          "XSPI0_APERTURE_START_ADDR": 2147483648,
+          "XSPI0_APERTURE_START_SECURE_ADDR": 2415919104,
+          "XSPI0_XIP_BASEADDR": 2147483648,
+          "XSPI0_XIP_BASEADDR_SECURE": 2415919104,
+          "XSPI1_APERTURE_END_ADDR": 2952790016,
+          "XSPI1_APERTURE_END_SECURE_ADDR": 3221225472,
+          "XSPI1_APERTURE_START_ADDR": 2684354560,
+          "XSPI1_APERTURE_START_SECURE_ADDR": 2952790016,
+          "XSPI1_XIP_BASEADDR": 2684354560,
+          "XSPI1_XIP_BASEADDR_SECURE": 2952790016,
+          "XSPI2_APERTURE_END_ADDR": 3489660928,
+          "XSPI2_APERTURE_END_SECURE_ADDR": 3758096384,
+          "XSPI2_APERTURE_START_ADDR": 3221225472,
+          "XSPI2_APERTURE_START_SECURE_ADDR": 3489660928,
+          "XSPI2_XIP_BASEADDR": 3221225472,
+          "XSPI2_XIP_BASEADDR_SECURE": 3489660928
+        }
+      },
+      "revision": "v5.2.25"
+    }
+  }
+}
