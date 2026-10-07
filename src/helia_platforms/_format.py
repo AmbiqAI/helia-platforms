@@ -275,6 +275,7 @@ class Soc(_Entity):
     access: NotRequired[Annotated[list[Access], Keyed(("master", "target"))]]
     default_access: NotRequired[DefaultAccess]
     peripherals: NotRequired[Names]
+    memory_controllers: NotRequired[Names]
     operating_points: NotRequired[dict[Name, OperatingPoint]]
     default_operating_point: NotRequired[Name]
     boot_configs: NotRequired[dict[Name, BootConfig]]

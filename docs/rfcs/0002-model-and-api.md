@@ -43,7 +43,7 @@ Each term has one meaning in this RFC, except `revision`, whose meaning depends 
 | specification | A `Soc`: the full design as its datasheet and SDK headers describe it. |
 | core instance (role) | A `CoreInstance` in `Soc.cores`: one core with its `role` (`application`, `radio`, `dsp`, `other`), options, clock domain and `programmable_by`. Index 0 is the primary application core. |
 | master | A core, NPU or accelerator id, as the subject of an access entry. |
-| access entry | An `Access`: whether one master reaches one target (a memory region, or a memory controller whose devices inherit the entry), which power domains must be awake, and with what guidance. Never inferred; `default_access` is a declared shorthand for them. |
+| access entry | An `Access`: whether one master reaches one target (a memory region, or a memory controller in `Soc.memory_controllers`, whose devices inherit the entry), which power domains must be awake, and with what guidance. Never inferred; `default_access` is a declared shorthand for them. |
 | image slot | An `ImageSlot`: a range of NVM owned by one core for its image, supplied by the vendor or the customer. |
 | clock domain | A `ClockDomain`: cores or accelerators clocked together, with the domain's own named points. |
 | operating point | A system `OperatingPoint`: one point per clock domain. `target.cpu_mhz()` and `target.npu_mhz()` read the core-0 and npu-0 domains; `cpu_mhz`/`npu_mhz` are also overlay shorthand that expands to domain points. |
@@ -95,7 +95,8 @@ Core ───────┐                      Npu ────────�
 Soc ── cores: [CoreInstance(id, role, core, options: CoreOptions, clock_domain, programmable_by)]
  │            (index 0: primary application core; CoreOptions: fpu, fpu_dp, mve, icache_kb, dcache_kb)
  │     npus: [NpuInstance(id, npu, axi_width_bits, base, irq, driven_by, clock_domain)]  accelerators: [...]
- │     memories: [MemoryRegion]   access: [Access(master, target, ...)], default_access   peripherals: [name]
+ │     memories: [MemoryRegion]   access: [Access(master, target, ...)], default_access
+ │     peripherals: [name]   memory_controllers: [name] (those peripherals that are memory controllers)
  │     clock_domains: [ClockDomain]   operating_points: [OperatingPoint] (system points)
  │     boot_configs: {name: BootConfig}, default_boot    (sbl, nbl; app_start per programmable core)
  │     sdk: SdkFacts (c_define, cmsis_header, ...)   default_board   aliases, release_status, provenance
@@ -165,7 +166,8 @@ Definitions, queries and an example are in [0002-multicore.md](0002-multicore.md
 | `memories: [MemoryRegion]` | structural, with optional characterization | See below. |
 | `access: [Access]`, `default_access` | structural | Reachability per (master, target), never inferred; `default_access` is a declared shorthand with provenance. |
 | `clock_domains: [ClockDomain]` | structural | Each with its own named points. |
-| `peripherals: [name]` | structural | Named list; an implementation's `peripherals_removed` removes from it. |
+| `peripherals: [name]` | structural | Named list of every peripheral; an implementation's `peripherals_removed` removes from it. |
+| `memory_controllers: [name]` | structural | The peripherals that are memory controllers (mspi0, iom4), each also in `peripherals`; empty by default. Only these, besides regions, may be an `Access` target, a `default_access` grant or a `MemoryInterface.controller`. Removing a peripheral removes it here too. |
 | `operating_points: [OperatingPoint]` | structural | System points: name, one point per clock domain, system HAL mode where the HAL has one; `target.cpu_mhz()` and `target.npu_mhz()` read the core-0 and npu-0 domains. heliaAOT `speeds` and the profiler `ClockDomain` are views. |
 | `default_operating_point` | SDK fact, optional | Set where the SDK names a default; otherwise absent and the choice is tool policy. |
 | `boot_configs: {name: BootConfig}`, `default_boot` | structural or SDK fact | The boot layouts the SDKs support, and the default. See Boot configurations. |
@@ -211,9 +213,10 @@ is that tool's marker.
 
 An `Implementation` names a `soc`, a `kind` and a subset expression:
 memories removed, resized or rebased; peripherals removed from
-`Soc.peripherals`; clock caps; cores or accelerators removed. Everything not mentioned is
-inherited from the specification. The validator rejects an implementation
-that adds a memory or exceeds a clock. Rebasing stays available because an
+`Soc.peripherals` (and so from `Soc.memory_controllers`); clock caps;
+cores or accelerators removed. Everything not mentioned is inherited
+from the specification. The validator rejects an implementation that
+adds a memory or exceeds a clock. Rebasing stays available because an
 FPGA build may move a region; no built-in uses it (the atomiq110 FPGA uses
 the silicon addresses, per research/ambiqsuite.md).
 
@@ -342,7 +345,7 @@ flash), and customers add daughter boards.
 
 - `MemoryInterface` on the Board: name, controller (mspi0, mspi1, iom4),
   modes (octal DDR, hex), XIP aperture base and maximum size. The
-  controller is a memory controller of the Soc (a `Soc.peripherals`
+  controller is a memory controller of the Soc (a `Soc.memory_controllers`
   entry); devices populated on the interface inherit that controller's
   access entries ([0002-multicore.md](0002-multicore.md)). An interface
   without aperture fields yields devices with no base: they are not
@@ -495,8 +498,10 @@ Semantics every overlay entry shares:
   `peripherals_removed`.
 - Removing a region, memory controller, core, NPU or accelerator, in a
   delta or an implementation `subset`, also removes the inherited `access`
-  entries that name it. An `access` entry that the overlay entry itself
-  writes and that names a removed unit is a reference error.
+  entries that name it, and removing a peripheral removes it from the
+  inherited `memory_controllers`. An `access` entry or `memory_controllers`
+  name that the overlay entry itself writes and that names a removed unit
+  is a reference error.
 - `cpu_mhz` and `npu_mhz` in an overlay operating point are shorthand: they
   expand to a point of that name in the core-0 and npu-0 clock domains. A
   single `app_start` means core 0. The multicore forms are in
@@ -769,14 +774,14 @@ one of them.
 @dataclass(frozen=True) class NpuInstance: id, npu, axi_width_bits, base_address, irq, driven_by, clock_domain
 @dataclass(frozen=True) class AcceleratorInstance: id, kind, ip, driven_by, clock_domain, base_address, irq
 @dataclass(frozen=True) class MemoryRegion: name, technology, attachment, size, base, alternate_bases, executable, writeable, cacheable, characterization, provenance
-@dataclass(frozen=True) class Access:     master, target, access, requires_awake, guidance, reason, address: int | None, port: int | None, characterization, provenance   # target: region or memory controller name
+@dataclass(frozen=True) class Access:     master, target, access, requires_awake, guidance, reason, address: int | None, port: int | None, characterization, provenance   # target: region or memory_controllers name
 @dataclass(frozen=True) class DefaultAccess: master, access, scope, provenance   # scope: on_die
 @dataclass(frozen=True) class MemoryCharacterization: read_latency_ns, write_latency_ns, max_outstanding, burst_bytes, ports, axi_clock_hz, bandwidth_fraction  (each value may carry its own Provenance)
 @dataclass(frozen=True) class ClockDomain: id, points: tuple[DomainPoint, ...]   # DomainPoint: name, mhz, hal_mode, provenance
 @dataclass(frozen=True) class OperatingPoint: name, domains: Mapping[str, str], hal_mode, provenance   # domain id -> point name
 @dataclass(frozen=True) class SdkFacts:   c_define, cmsis_header, trace_clock_mhz, hal_enums: Mapping[str, str], build: BuildFacts
 @dataclass(frozen=True) class BuildFacts: abi, float_abi, toolchains
-@dataclass(frozen=True) class Soc:        id, series, aliases, cores, npus, accelerators, memories, access, default_access: DefaultAccess | None, peripherals, clock_domains, operating_points, default_operating_point: str | None, boot_configs, default_boot, sdk, derives_from, default_board: str | None, revision, release_status, extensions, provenance
+@dataclass(frozen=True) class Soc:        id, series, aliases, cores, npus, accelerators, memories, access, default_access: DefaultAccess | None, peripherals, memory_controllers, clock_domains, operating_points, default_operating_point: str | None, boot_configs, default_boot, sdk, derives_from, default_board: str | None, revision, release_status, extensions, provenance
 @dataclass(frozen=True) class Implementation: id, soc, kind, model: str | None, subset: Subset, clock_domains: tuple | None, operating_points: tuple | None, boot_configs: Mapping | None, default_boot: str | None, provisioning: str | None, jlink_device, trace_clock_mhz, interfaces, population, aliases, release_status, extensions, provenance   # None: inherit the Soc's (after clock caps)
 @dataclass(frozen=True) class Subset:     memories_removed, memories_resized, memories_rebased, substitutions: Mapping[str, Substitution], peripherals_removed, cores_removed, npus_removed, accelerators_removed, clock_domains_removed, boot_configs_removed, operating_points_removed, access_removed, max_cpu_mhz, max_npu_mhz, max_domain_mhz   # substitutions: kind fvp only
 @dataclass(frozen=True) class Substitution: replaces: tuple[str, ...], size, base, characterization, provenance   # keyed by the FVP region name; many-to-one
@@ -859,8 +864,10 @@ refers to it): core ids unique; index 0 has role `application`; every
 `driven_by` names a core; every `clock_domain` reference names a domain;
 `OperatingPoint.domains` keys name domains and values name points of
 those domains; every `Access` master is a core, NPU or accelerator id and
-every `Access` target is a region or memory controller of the Soc; after
-`default_access` expansion every region and every memory controller a
+every `Access` target is a region or memory controller of the Soc;
+every `memory_controllers` name is in `peripherals`; every Board, AddOn
+or Implementation interface's controller is a memory controller of the
+Soc as realized; after `default_access` expansion every region and every memory controller a
 built-in interface names has at least one entry (which may be
 `access: none`); a Board, AddOn or Implementation interface whose controller has no
 Soc-level entries draws a warning that its devices are unreachable,

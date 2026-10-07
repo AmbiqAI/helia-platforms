@@ -532,6 +532,8 @@ class _Loader:
                 self.fail(origin, at, f"controller {controller!r} is removed by the implementation")
             elif controller not in soc.peripherals:
                 self.fail(origin, at, f"no controller {controller!r}")
+            elif controller not in soc.memory_controllers:
+                self.fail(origin, at, f"{controller!r} is not a memory controller of the Soc")
             elif controller not in reached:
                 message = (
                     f"controller {controller!r} has no access entry; its devices are unreachable"
@@ -636,12 +638,20 @@ def _access_problems(soc: model.Soc) -> list[str]:
     problems: list[str] = []
     cores = {c.id for c in soc.cores}
     masters = cores | {n.id for n in soc.npus} | {a.id for a in soc.accelerators}
-    targets = {r.name for r in soc.memories} | set(soc.peripherals)
+    problems.extend(
+        f"memory_controllers: {name!r} is not in peripherals"
+        for name in soc.memory_controllers
+        if name not in soc.peripherals
+    )
+    targets = {r.name for r in soc.memories} | set(soc.memory_controllers)
     for entry in soc.access:
+        key = f"access {entry.master}@{entry.target}"
         if entry.master not in masters:
-            problems.append(f"access {entry.master}@{entry.target}: no master {entry.master!r}")
-        if entry.target not in targets:
-            problems.append(f"access {entry.master}@{entry.target}: no target {entry.target!r}")
+            problems.append(f"{key}: no master {entry.master!r}")
+        if entry.target in soc.peripherals and entry.target not in targets:
+            problems.append(f"{key}: peripheral {entry.target!r} is not a memory controller")
+        elif entry.target not in targets:
+            problems.append(f"{key}: no target {entry.target!r}")
     default = soc.default_access
     if default is not None and default.master not in cores:
         problems.append(f"default_access.master: no core {default.master!r}")
@@ -702,7 +712,7 @@ def _physical_regions(soc: model.Soc) -> dict[str, tuple]:
 def _expanded_access(soc: model.Soc) -> tuple[model.Access, ...]:
     """``soc.access`` plus the entries ``default_access`` grants (RFC 0002 multicore).
 
-    Its master gets a ``direct`` entry to every on-die region and every peripheral
+    Its master gets a ``direct`` entry to every on-die region and memory controller
     that no core has an entry for, so neither an explicit entry for core 0 nor a
     region another core owns is granted by default.
     """
@@ -719,7 +729,7 @@ def _expanded_access(soc: model.Soc) -> tuple[model.Access, ...]:
             access=default.access,
             provenance=default.provenance,
         )
-        for target in (*on_die, *soc.peripherals)
+        for target in (*on_die, *soc.memory_controllers)
         if target not in taken
     )
 

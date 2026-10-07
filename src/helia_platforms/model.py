@@ -253,6 +253,7 @@ class Soc(_Carrier):
     access: tuple[Access, ...] = ()
     default_access: DefaultAccess | None = None
     peripherals: tuple[str, ...] = ()
+    memory_controllers: tuple[str, ...] = ()
     operating_points: tuple[OperatingPoint, ...] = ()
     default_operating_point: str | None = None
     boot_configs: Mapping[str, BootConfig] = field(default_factory=_empty)

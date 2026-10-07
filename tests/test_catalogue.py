@@ -552,6 +552,7 @@ def shield(population, fits=("board_a",)):
 
 def with_mspi1(document, aperture_max="256M"):
     soc(document)["peripherals"].append("mspi1")
+    soc(document)["memory_controllers"].append("mspi1")
     document["boards"]["board_a"]["interfaces"]["mspi1"] = {
         "controller": "mspi1",
         "aperture_base": 0x70000000,
@@ -628,9 +629,8 @@ def test_default_access_grants_core_0_what_no_core_has_an_entry_for(document):
         ("cm55_0", "ssram", "direct"),
         ("cm55_0", "nvm", "direct"),
         ("cm55_0", "mspi0", "direct"),
-        ("cm55_0", "iom1", "direct"),
-        ("cm55_0", "iom2", "direct"),
-    ]  # not radio_tcm (another core's), hbl (external) or iom0 (core 0's own entry)
+    ]  # not radio_tcm (another core's), hbl (external), iom0 (core 0's own entry),
+    # or iom1 and iom2 (peripherals that are not memory controllers)
     assert {e.provenance for e in expanded if e not in a.access} == {a.default_access.provenance}
 
 
@@ -663,6 +663,58 @@ def test_an_overlay_interface_without_access_draws_a_warning(document):
 def test_an_interface_needs_a_controller_of_the_soc(document):
     document["boards"]["board_a"]["interfaces"]["mspi0"]["controller"] = "mspi7"
     assert "boards.board_a.interfaces.mspi0: no controller 'mspi7'" in problems_of(document)
+
+
+def test_an_interface_on_a_peripheral_that_is_not_a_memory_controller_is_an_error(document):
+    document["boards"]["board_a"]["interfaces"]["mspi0"]["controller"] = "iom1"
+    assert (
+        "boards.board_a.interfaces.mspi0: 'iom1' is not a memory controller of the Soc"
+    ) in problems_of(document)
+
+
+def test_memory_controllers_are_peripherals(document):
+    soc(document)["memory_controllers"].append("mspi1")
+    assert "socs.soc_a: memory_controllers: 'mspi1' is not in peripherals" in problems_of(document)
+
+
+def test_access_to_a_peripheral_that_is_not_a_memory_controller_is_an_error(document):
+    soc(document)["access"].append({"master": "npu_0", "target": "iom1", "access": "direct"})
+    assert (
+        "socs.soc_a: access npu_0@iom1: peripheral 'iom1' is not a memory controller"
+    ) in problems_of(document)
+
+
+def test_removing_a_peripheral_removes_the_memory_controller_and_its_access(document):
+    soc(document)["access"].append({"master": "npu_0", "target": "mspi0", "access": "direct"})
+    soc(document)["memory_controllers"] = [
+        {"value": "mspi0", "provenance": {"status": "sdk"}},
+        "iom0",
+    ]
+    document["socs"]["soc_b"] = {"based_on": "soc_a", "peripherals_removed": ["mspi0"]}
+    cat = load_quietly(document)
+    a, b = cat._entry("socs", "soc_a"), cat._entry("socs", "soc_b")
+    assert a.field_provenance["memory_controllers.mspi0"].status == "sdk"
+    assert b.memory_controllers == ("iom0",)
+    assert "memory_controllers.mspi0" not in b.field_provenance
+    assert ("npu_0", "mspi0") not in [(e.master, e.target) for e in b.access]
+    assert "mspi0" not in [e.target for e in _expanded_access(b)]
+
+
+def test_an_implementation_subset_removes_the_memory_controller(document):
+    document["implementations"] = {
+        "cut": {"soc": "soc_a", "kind": "fpga", "subset": {"peripherals_removed": ["iom0"]}}
+    }
+    cat = load_quietly(document)
+    assert cat._realized("cut").memory_controllers == ("mspi0",)
+
+
+def test_a_delta_that_keeps_a_removed_peripheral_as_a_memory_controller_is_an_error(document):
+    document["socs"]["soc_b"] = {
+        "based_on": "soc_a",
+        "peripherals_removed": ["iom0"],
+        "memory_controllers": ["iom0"],
+    }
+    assert "socs.soc_b: memory_controllers: 'iom0' is not in peripherals" in problems_of(document)
 
 
 def test_an_interface_on_a_controller_the_implementation_removed_is_an_error(document):

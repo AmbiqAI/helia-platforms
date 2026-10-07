@@ -193,8 +193,7 @@ def merge(base: Tree, delta: Tree, obj: type, *, inherit_all: bool = False) -> T
             values[key] = _merge_collection(values[key], item, declared[key].type)
         else:
             values[key] = item
-    written = {(a["master"], a["target"]) for a in delta.values.get("access", [])}
-    problems = _apply_deltas(values, deltas, moved, declared, written)
+    problems = _apply_deltas(values, deltas, moved, declared, delta.values)
     if problems:
         raise MergeError(problems)
     records: dict[Path, Record] = {}
@@ -214,8 +213,9 @@ def _is_delta_key(key: str, declared: dict) -> bool:
 
 
 def _apply_deltas(
-    values: dict, deltas: dict, moved: dict, declared: dict, written: set
+    values: dict, deltas: dict, moved: dict, declared: dict, written: dict
 ) -> list[str]:
+    """Apply ``deltas`` to ``values`` in place; ``written`` is the delta's own values."""
     problems: list[str] = []
     for key, change in deltas.items():
         if key.endswith("_removed"):
@@ -231,6 +231,7 @@ def _apply_deltas(
                 regions[name] = {**regions[name], field_name: new}
                 moved[("memories", name, field_name)] = (key, name)
     _drop_dangling_access(values, deltas, written)
+    _drop_removed_controllers(values, deltas, written)
     return problems
 
 
@@ -268,12 +269,13 @@ def _remove(values: dict, target: str, names: list, declared: dict) -> list[str]
     return problems
 
 
-def _drop_dangling_access(values: dict, deltas: dict, written: set) -> None:
+def _drop_dangling_access(values: dict, deltas: dict, written: dict) -> None:
     """Removing a region, controller, core, NPU or accelerator removes inherited access naming it.
 
-    Entries in ``written`` (the delta's own ``(master, target)`` pairs) stay, so
-    the reference check reports them.
+    Entries the delta itself writes (in ``written``, its values) stay, so the
+    reference check reports them.
     """
+    own = {(a["master"], a["target"]) for a in written.get("access", [])}
     gone = set()
     for key in ("memories", "peripherals", "cores", "npus", "accelerators"):
         gone.update(deltas.get(f"{key}_removed", []))
@@ -281,9 +283,20 @@ def _drop_dangling_access(values: dict, deltas: dict, written: set) -> None:
         values["access"] = [
             a
             for a in values["access"]
-            if (a["master"], a["target"]) in written
+            if (a["master"], a["target"]) in own
             or (a["master"] not in gone and a["target"] not in gone)
         ]
+
+
+def _drop_removed_controllers(values: dict, deltas: dict, written: dict) -> None:
+    """Removing a peripheral removes it from the inherited ``memory_controllers``.
+
+    Names the delta itself writes there stay, so the reference check reports them.
+    """
+    own = set(written.get("memory_controllers", []))
+    gone = set(deltas.get("peripherals_removed", [])) - own
+    if gone and "memory_controllers" in values:
+        values["memory_controllers"] = [n for n in values["memory_controllers"] if n not in gone]
 
 
 def iter_paths(value: Any, tp: Any, path: Path = ()) -> list[Path]:
