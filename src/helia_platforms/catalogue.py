@@ -86,7 +86,7 @@ class Catalogue:
         return self._tables[kind][entry_id]
 
     def _realized(self, implementation: str) -> model.Soc:
-        """The Soc as an Implementation realizes it by the merge alone, without clock caps."""
+        """The Soc as an Implementation realizes it: merged, substituted and clock-capped."""
         impl = self._tables["implementations"][implementation]
         tree = realize(self._trees[("socs", impl.soc)], self._trees[("implementations", impl.id)])
         return build_entity(model.Soc, fmt.Soc, tree, impl.soc)

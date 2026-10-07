@@ -335,10 +335,11 @@ _SUBSET_DELTAS = (
 
 
 def realize(soc: Tree, implementation: Tree) -> Tree:
-    """The Soc as the Implementation realizes it, by the merge rule of section 2.5.
+    """The Soc as the Implementation realizes it (ADR 0002 section 2.5; RFC 0002).
 
-    Clock caps and FVP substitutions are not applied here; the resolver
-    applies them, because their semantics are RFC 0002's, not the merge's.
+    The merge rule applies first; then FVP substitutions replace regions and
+    clock caps drop operating points. Raises ``MergeError`` listing every
+    problem, including a subset that grows a region or a clock past the Soc's.
     """
     values: dict[str, Any] = {}
     records: dict[Path, Record] = {(): implementation.records.get(())}
@@ -354,7 +355,136 @@ def realize(soc: Tree, implementation: Tree) -> Tree:
             records[path[1:]] = record
         elif path[:1] and path[0] in _SOC_SHAPED:
             records[path] = record
-    return merge(soc, Tree(values, records), fmt.Soc, inherit_all=True)
+    problems = _subset_limits(soc.values, implementation.values)
+    try:
+        tree = merge(soc, Tree(values, records), fmt.Soc, inherit_all=True)
+    except MergeError as exc:
+        raise MergeError(problems + exc.problems) from None
+    problems += _substitute(tree, implementation)
+    problems += _cap_clocks(tree.values, subset)
+    if problems:
+        raise MergeError(problems)
+    live = set(iter_paths(tree.values, fmt.Soc))
+    return Tree(tree.values, {p: r for p, r in tree.records.items() if p in live})
+
+
+def _subset_limits(soc: dict, implementation: dict) -> list[str]:
+    """A subset never grows a region or a clock past the Soc's (RFC 0002 semantic rules)."""
+    problems: list[str] = []
+    regions = soc.get("memories") or {}
+    for name, size in implementation.get("subset", {}).get("memories_resized", {}).items():
+        if name in regions and size > regions[name]["size"]:
+            problems.append(
+                f"memories_resized.{name} is {size} bytes, more than the Soc's "
+                f"{regions[name]['size']}"
+            )
+    soc_domains = soc.get("clock_domains") or {}
+    for domain, points in (implementation.get("clock_domains") or {}).items():
+        if not soc_domains.get(domain):
+            continue  # a domain the Soc lacks has no clock to exceed
+        highest = max(p["mhz"] for p in soc_domains[domain].values())
+        problems.extend(
+            f"clock_domains.{domain}.{name} is {point['mhz']} MHz, above the Soc's "
+            f"highest {domain} point ({highest} MHz)"
+            for name, point in points.items()
+            if point["mhz"] > highest
+        )
+    return problems
+
+
+#: Region keys a substitute takes from the first region it replaces; RFC 0002 leaves them open.
+_SUBSTITUTE_INHERITS = ("technology", "attachment", "executable", "writeable", "cacheable")
+
+
+def _substitute(tree: Tree, implementation: Tree) -> list[str]:
+    """Replace Soc regions by an FVP model's own regions, many-to-one, in place."""
+    substitutions = implementation.values.get("subset", {}).get("substitutions") or {}
+    if not substitutions:
+        return []
+    kind = implementation.values["kind"]
+    if kind != "fvp":
+        return [f"substitutions are allowed only for kind fvp, not {kind!r}"]
+    regions = tree.values["memories"]
+    replaced = [r for s in substitutions.values() for r in s["replaces"]]
+    problems = [
+        f"region {r!r} is replaced by more than one substitution"
+        for r in dict.fromkeys(replaced)
+        if replaced.count(r) > 1
+    ]
+    for name, sub in substitutions.items():
+        if not sub["replaces"]:
+            problems.append(f"substitutions.{name} replaces no region")
+        problems.extend(
+            f"substitutions.{name} replaces region {r!r}, which the base lacks"
+            for r in sub["replaces"]
+            if r not in regions
+        )
+        if name in regions and name not in replaced:
+            problems.append(f"substitutions.{name} is named after a region it does not replace")
+    if problems:
+        return problems
+    kept = {k: v for k, v in regions.items() if k not in replaced}
+    added: dict[Path, Record] = {}
+    for name, sub in substitutions.items():
+        first = sub["replaces"][0]
+        inherited = [k for k in _SUBSTITUTE_INHERITS if k in regions[first]]
+        own = copy.deepcopy({k: v for k, v in sub.items() if k != "replaces"})
+        kept[name] = {**{k: regions[first][k] for k in inherited}, **own}
+        prefix = ("subset", "substitutions", name)
+        added[("memories", name)] = implementation.records.get(prefix)
+        added.update(
+            {("memories", name, k): tree.records.get(("memories", first, k)) for k in inherited}
+        )
+        for path, record in implementation.records.items():
+            if path[:3] == prefix and len(path) > 3 and path[3] != "replaces":
+                added[("memories", name, *path[3:])] = record
+    for path in [p for p in tree.records if p[:1] == ("memories",) and p[1:2] and p[1] in replaced]:
+        del tree.records[path]
+    tree.records.update(added)
+    tree.values["memories"] = kept
+    _drop_dangling_access(tree.values, {"memories_removed": replaced}, set())
+    return []
+
+
+def _cap_clocks(values: dict, subset: dict) -> list[str]:
+    """Drop the operating points whose clocks exceed a cap, in place (RFC 0002)."""
+    problems: list[str] = []
+    caps: dict[str, float] = {}
+    domains = values.get("clock_domains") or {}
+
+    def cap(domain: str, mhz: float) -> None:
+        caps[domain] = min(mhz, caps.get(domain, mhz))
+
+    for key, units, what in (("max_cpu_mhz", "cores", "a core"), ("max_npu_mhz", "npus", "an NPU")):
+        if key in subset:
+            if values.get(units):
+                cap(values[units][0]["clock_domain"], subset[key])
+            else:
+                problems.append(f"{key} needs {what} 0")
+    for domain, mhz in subset.get("max_domain_mhz", {}).items():
+        if domain not in domains:
+            problems.append(f"max_domain_mhz names domain {domain!r}, which the base lacks")
+        cap(domain, mhz)
+    points = values.get("operating_points") or {}
+    dropped = [
+        name
+        for name, point in points.items()
+        if any(
+            domains.get(domain, {}).get(ref, {}).get("mhz", 0) > caps[domain]
+            for domain, ref in point.get("domains", {}).items()
+            if domain in caps
+        )
+    ]
+    for name in dropped:
+        del points[name]
+    if dropped and not points:
+        problems.append(
+            "clock caps drop every operating point, so the implementation must declare "
+            "its own operating_points"
+        )
+    if values.get("default_operating_point") in dropped:
+        del values["default_operating_point"]
+    return problems
 
 
 # ---- shorthands (ADR 0002 section 2.5, last paragraph) ---------------------------------

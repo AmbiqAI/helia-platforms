@@ -346,6 +346,126 @@ def test_implementation_references_are_checked_after_the_merge(document):
     assert "as realized: operating_points.hp: no point cpu.hp" in found
 
 
+def with_cut(document, kind="fpga", **keys) -> dict[str, Any]:
+    """``document`` with one Implementation, ``cut``, of soc_a."""
+    document["implementations"] = {"cut": {"soc": "soc_a", "kind": kind, **keys}}
+    return document
+
+
+def implementation(document, kind="fpga", **keys) -> model.Soc:
+    """Implementation ``cut`` of soc_a, realized."""
+    return load_overlay(with_cut(document, kind, **keys))._realized("cut")
+
+
+@pytest.mark.parametrize(
+    "subset",
+    [
+        pytest.param({"max_cpu_mhz": 100}, id="core 0"),
+        pytest.param({"max_npu_mhz": 100}, id="npu 0"),
+        pytest.param({"max_domain_mhz": {"npu": 100}}, id="any domain"),
+    ],
+)
+def test_clock_caps_drop_the_points_they_exceed(document, subset):
+    realized = implementation(document, subset=subset)
+    assert [p.name for p in realized.operating_points] == ["lp"]
+    assert realized.default_operating_point == "lp"
+    cpu = next(d for d in realized.clock_domains if d.id == "cpu")
+    assert [p.name for p in cpu.points] == ["lp", "hp"]  # caps act on operating points only
+
+
+def test_a_cap_equal_to_a_clock_keeps_the_point(document):
+    realized = implementation(document, subset={"max_cpu_mhz": 192})
+    assert [p.name for p in realized.operating_points] == ["lp", "hp"]
+
+
+def test_a_dropped_default_point_becomes_none(document):
+    soc(document)["default_operating_point"] = "hp"
+    realized = implementation(document, subset={"max_cpu_mhz": 100})
+    assert realized.default_operating_point is None
+    assert "default_operating_point" not in realized.field_provenance
+
+
+def test_caps_that_drop_every_point_need_the_implementations_own(document):
+    found = problems_of(with_cut(copy.deepcopy(document), subset={"max_cpu_mhz": 50}))
+    assert "clock caps drop every operating point" in found
+    realized = implementation(
+        document,
+        subset={"max_cpu_mhz": 50},
+        operating_points={"fpga": {"cpu_mhz": 25, "npu_mhz": 25}},
+    )
+    assert [p.name for p in realized.operating_points] == ["fpga"]
+    assert realized.default_operating_point is None
+
+
+def test_caps_name_units_and_domains_the_soc_has(document):
+    del soc(document)["npus"]
+    del soc(document)["access"]
+    del soc(document)["operating_points"]["hp"]["npu_mhz"]
+    subset = {"max_npu_mhz": 100, "max_domain_mhz": {"dsp": 100}}
+    found = problems_of(with_cut(document, subset=subset))
+    assert "implementations.cut.subset: max_npu_mhz needs an NPU 0" in found
+    assert "max_domain_mhz names domain 'dsp', which the base lacks" in found
+
+
+def test_fvp_substitutions_replace_regions_many_to_one(document):
+    substitution = {"replaces": ["tcm", "ssram"], "size": "8M", "base": 0x30000000}
+    realized = implementation(document, "fvp", subset={"substitutions": {"sram": substitution}})
+    assert [r.name for r in realized.memories] == ["nvm", "sram"]
+    sram = realized.memories[1]
+    assert (sram.technology, sram.attachment) == ("sram", "tcm")  # from tcm, the first replaced
+    assert (sram.size, sram.base) == (8 * 1024 * 1024, 0x30000000)
+    assert sram.provenance == model.UNVERIFIED  # the overlay's record for the substitution
+    assert sram.field_provenance["technology"].status == "datasheet"  # the Soc's, for tcm
+    assert realized.access == ()  # the replaced regions' access entries go with them
+
+
+def test_a_substitute_may_take_the_name_of_a_region_it_replaces(document):
+    subset = {"substitutions": {"ssram": {"replaces": ["ssram"], "size": "1M"}}}
+    ssram = implementation(document, "fvp", subset=subset).memories[-1]
+    assert (ssram.name, ssram.size, ssram.base) == ("ssram", 1024 * 1024, None)
+
+
+def test_substitutions_are_allowed_only_on_kind_fvp(document):
+    subset = {"substitutions": {"sram": {"replaces": ["ssram"], "size": "1M"}}}
+    found = problems_of(with_cut(document, subset=subset))
+    assert "implementations.cut.subset: substitutions are allowed only for kind fvp" in found
+
+
+def test_substitutions_must_replace_regions_the_soc_has_once(document):
+    subset = {
+        "substitutions": {
+            "a": {"replaces": ["tcm", "hblram"], "size": "1M"},
+            "b": {"replaces": ["tcm"], "size": "1M"},
+            "c": {"replaces": [], "size": "1M"},
+            "nvm": {"replaces": ["ssram"], "size": "1M"},
+        }
+    }
+    found = problems_of(with_cut(document, "fvp", subset=subset))
+    assert "region 'tcm' is replaced by more than one substitution" in found
+    assert "substitutions.a replaces region 'hblram', which the base lacks" in found
+    assert "substitutions.c replaces no region" in found
+    assert "substitutions.nvm is named after a region it does not replace" in found
+
+
+def test_an_implementation_cannot_add_a_memory(document):
+    region = {"technology": "sram", "attachment": "system", "size": "1M"}
+    found = problems_of(with_cut(document, memories={"extra": region}))
+    assert "implementations.cut.memories: unknown key 'memories'" in found
+
+
+def test_an_implementation_cannot_grow_a_region_or_a_clock(document):
+    with_cut(
+        document,
+        clock_domains={"cpu": {"turbo": {"mhz": 250}}, "dsp": {"x": {"mhz": 500}}},
+        subset={"memories_resized": {"tcm": "1M", "ssram": "1M"}},
+    )
+    found = problems_of(document)
+    assert "memories_resized.tcm is 1048576 bytes, more than the Soc's 524288" in found
+    assert "memories_resized.ssram" not in found
+    assert "clock_domains.cpu.turbo is 250 MHz, above the Soc's highest cpu point (192" in found
+    assert "dsp" not in found  # a domain the Soc lacks has no clock to exceed
+
+
 # ---- names, references and origins --------------------------------------------------
 
 
@@ -441,6 +561,10 @@ def test_sources_are_keyed_by_table(tmp_path, document):
 RFC_0002 = Path(__file__).parents[1] / "docs" / "rfcs" / "0002-model-and-api.md"
 
 
+def rfc_0002_overlays() -> list[str]:
+    return re.findall(r"^```yaml\n(.*?)^```", RFC_0002.read_text(), re.MULTILINE | re.DOTALL)
+
+
 @pytest.mark.parametrize(
     ("index", "expected"),
     [
@@ -461,7 +585,7 @@ RFC_0002 = Path(__file__).parents[1] / "docs" / "rfcs" / "0002-model-and-api.md"
     ],
 )
 def test_rfc_0002_overlays_load_or_name_the_built_in_entries_they_need(tmp_path, index, expected):
-    overlays = re.findall(r"^```yaml\n(.*?)^```", RFC_0002.read_text(), re.MULTILINE | re.DOTALL)
+    overlays = rfc_0002_overlays()
     assert len(overlays) == 5
     path = tmp_path / "overlay.yaml"
     path.write_text(overlays[index])
@@ -471,6 +595,27 @@ def test_rfc_0002_overlays_load_or_name_the_built_in_entries_they_need(tmp_path,
     with pytest.raises(FormatError) as exc:
         load_overlay(path)
     assert [p.removeprefix(f"{path}: ") for p in exc.value.problems] == expected
+
+
+def test_rfc_0002_fpga_example_realizes_over_a_stand_in_soc(tmp_path, document):
+    stand_in = soc(document)
+    tcm, ssram, nvm = (stand_in["memories"][k] for k in ("tcm", "ssram", "nvm"))
+    stand_in["memories"] = {"dtcm": tcm, "hblram": ssram, "rram": {**nvm, "technology": "rram"}}
+    stand_in["peripherals"] = ["iom0", "iom1", "iom2", "iom3"]
+    del stand_in["access"]
+    stand_in["boot_configs"] = {
+        "sbl": {"reserved": {}, "app_start": {"region": "rram", "offset": "64K"}, "requires": "sbl"}
+    }
+    base = {"cores": document["cores"], "socs": {"atomiq110": stand_in}}
+    path = tmp_path / "overlay.yaml"
+    path.write_text(rfc_0002_overlays()[1])
+    realized = load_overlay(path, base=load_overlay(base))._realized("atomiq110_fpga_rev3")
+    assert [p.name for p in realized.operating_points] == ["fpga"]  # max_cpu_mhz: 25
+    assert realized.default_operating_point is None
+    assert [(r.name, r.size) for r in realized.memories] == [
+        ("dtcm", 256 * 1024),
+        ("rram", 4 * 1024 * 1024),
+    ]
 
 
 # ---- CLI --------------------------------------------------------------------------
