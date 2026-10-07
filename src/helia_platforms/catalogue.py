@@ -12,7 +12,15 @@ from typing import Any
 from helia_platforms import _format as fmt
 from helia_platforms import _parse, _structural, _walk, model
 from helia_platforms._build import build_entity
-from helia_platforms._tree import MergeError, Tree, expand_shorthands, merge, normalize, realize
+from helia_platforms._tree import (
+    MergeError,
+    Tree,
+    expand_shorthands,
+    fvp_problems,
+    merge,
+    normalize,
+    realize,
+)
 from helia_platforms.errors import FormatError
 
 #: Entity tables in load order, with the model class each builds.
@@ -86,7 +94,7 @@ class Catalogue:
         return self._tables[kind][entry_id]
 
     def _realized(self, implementation: str) -> model.Soc:
-        """The Soc as an Implementation realizes it: merged, substituted and clock-capped."""
+        """The Soc as an Implementation realizes it: merged and clock-capped (``_tree.realize``)."""
         impl = self._tables["implementations"][implementation]
         tree = realize(self._trees[("socs", impl.soc)], self._trees[("implementations", impl.id)])
         return build_entity(model.Soc, fmt.Soc, tree, impl.soc)
@@ -382,6 +390,13 @@ class _Loader:
         where = f"socs.{soc.id}"
         for problem in _soc_reference_problems(soc, catalogue):
             self.fail(origin, where, problem)
+        for region in soc.memories:
+            if region.stands_in_for:
+                self.fail(
+                    origin,
+                    f"{where}.memories.{region.name}.stands_in_for",
+                    "only a region of an fvp Implementation may stand in for others",
+                )
 
     def check_implementation(
         self, catalogue: Catalogue, impl: model.Implementation, origin: str
@@ -390,6 +405,14 @@ class _Loader:
         if impl.soc not in catalogue._tables.get("socs", {}):
             self.fail(origin, where, f"no soc {impl.soc!r}")
             return
+        trees = catalogue._trees
+        own = fvp_problems(
+            trees[("socs", impl.soc)].values, trees[("implementations", impl.id)].values
+        )
+        for problem in own:
+            self.fail(origin, where, problem)
+        if own:
+            return  # realizing raises the same problems
         try:
             realized = catalogue._realized(impl.id)
         except MergeError as exc:

@@ -2180,6 +2180,22 @@
         "subset": {
           "$ref": "#/$defs/Subset"
         },
+        "memories": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/MemoryRegion"
+          }
+        },
+        "access": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Access"
+          }
+        },
         "clock_domains": {
           "type": "object",
           "propertyNames": {
@@ -3236,6 +3252,81 @@
         },
         "characterization": {
           "$ref": "#/$defs/MemoryCharacterization"
+        },
+        "stands_in_for": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "value": {
+                        "type": "string",
+                        "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                      },
+                      "provenance": {
+                        "$ref": "#/$defs/Provenance"
+                      }
+                    },
+                    "required": [
+                      "value",
+                      "provenance"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              "uniqueItems": true
+            },
+            {
+              "type": "object",
+              "properties": {
+                "value": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "value": {
+                            "type": "string",
+                            "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                          },
+                          "provenance": {
+                            "$ref": "#/$defs/Provenance"
+                          }
+                        },
+                        "required": [
+                          "value",
+                          "provenance"
+                        ],
+                        "additionalProperties": false
+                      }
+                    ]
+                  },
+                  "uniqueItems": true
+                },
+                "provenance": {
+                  "$ref": "#/$defs/Provenance"
+                }
+              },
+              "required": [
+                "value",
+                "provenance"
+              ],
+              "additionalProperties": false
+            }
+          ]
         }
       },
       "additionalProperties": false,
@@ -4696,16 +4787,6 @@
             ]
           }
         },
-        "substitutions": {
-          "type": "object",
-          "propertyNames": {
-            "type": "string",
-            "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
-          },
-          "additionalProperties": {
-            "$ref": "#/$defs/Substitution"
-          }
-        },
         "peripherals_removed": {
           "anyOf": [
             {
@@ -5321,163 +5402,6 @@
         }
       },
       "additionalProperties": false
-    },
-    "Substitution": {
-      "type": "object",
-      "properties": {
-        "provenance": {
-          "$ref": "#/$defs/Provenance"
-        },
-        "replaces": {
-          "anyOf": [
-            {
-              "type": "array",
-              "items": {
-                "anyOf": [
-                  {
-                    "type": "string",
-                    "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
-                      "value": {
-                        "type": "string",
-                        "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
-                      },
-                      "provenance": {
-                        "$ref": "#/$defs/Provenance"
-                      }
-                    },
-                    "required": [
-                      "value",
-                      "provenance"
-                    ],
-                    "additionalProperties": false
-                  }
-                ]
-              },
-              "uniqueItems": true
-            },
-            {
-              "type": "object",
-              "properties": {
-                "value": {
-                  "type": "array",
-                  "items": {
-                    "anyOf": [
-                      {
-                        "type": "string",
-                        "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
-                      },
-                      {
-                        "type": "object",
-                        "properties": {
-                          "value": {
-                            "type": "string",
-                            "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
-                          },
-                          "provenance": {
-                            "$ref": "#/$defs/Provenance"
-                          }
-                        },
-                        "required": [
-                          "value",
-                          "provenance"
-                        ],
-                        "additionalProperties": false
-                      }
-                    ]
-                  },
-                  "uniqueItems": true
-                },
-                "provenance": {
-                  "$ref": "#/$defs/Provenance"
-                }
-              },
-              "required": [
-                "value",
-                "provenance"
-              ],
-              "additionalProperties": false
-            }
-          ]
-        },
-        "size": {
-          "anyOf": [
-            {
-              "anyOf": [
-                {
-                  "type": "integer",
-                  "minimum": 0
-                },
-                {
-                  "type": "string",
-                  "pattern": "^[0-9]+[KMG]$"
-                }
-              ]
-            },
-            {
-              "type": "object",
-              "properties": {
-                "value": {
-                  "anyOf": [
-                    {
-                      "type": "integer",
-                      "minimum": 0
-                    },
-                    {
-                      "type": "string",
-                      "pattern": "^[0-9]+[KMG]$"
-                    }
-                  ]
-                },
-                "provenance": {
-                  "$ref": "#/$defs/Provenance"
-                }
-              },
-              "required": [
-                "value",
-                "provenance"
-              ],
-              "additionalProperties": false
-            }
-          ]
-        },
-        "base": {
-          "anyOf": [
-            {
-              "type": "integer",
-              "minimum": 0
-            },
-            {
-              "type": "object",
-              "properties": {
-                "value": {
-                  "type": "integer",
-                  "minimum": 0
-                },
-                "provenance": {
-                  "$ref": "#/$defs/Provenance"
-                }
-              },
-              "required": [
-                "value",
-                "provenance"
-              ],
-              "additionalProperties": false
-            }
-          ]
-        },
-        "characterization": {
-          "$ref": "#/$defs/MemoryCharacterization"
-        }
-      },
-      "additionalProperties": false,
-      "required": [
-        "replaces",
-        "size"
-      ]
     }
   }
 }

@@ -128,6 +128,7 @@ class MemoryRegion(_Facts):
     writeable: NotRequired[bool]
     cacheable: NotRequired[bool]
     characterization: NotRequired[MemoryCharacterization]
+    stands_in_for: NotRequired[Names]  # on an FVP Implementation's regions only (ADR 0007)
 
 
 class Access(_Facts):
@@ -301,18 +302,10 @@ class Soc(_Entity):
     ]
 
 
-class Substitution(_Facts):
-    replaces: Required[Names]
-    size: Required[Size]
-    base: NotRequired[Address]
-    characterization: NotRequired[MemoryCharacterization]
-
-
 class Subset(_Facts, total=False):
     memories_removed: Names
     memories_resized: dict[Name, Size]
     memories_rebased: dict[Name, Address]
-    substitutions: dict[Name, Substitution]
     peripherals_removed: Names
     cores_removed: Names
     npus_removed: Names
@@ -338,6 +331,9 @@ class Implementation(_Entity):
     kind: Required[Literal["silicon", "fpga", "fvp", "rtl"]]
     model: NotRequired[str]
     subset: NotRequired[Subset]
+    # Kind fvp only: the complete memory list and added access entries (ADR 0007).
+    memories: NotRequired[dict[Name, MemoryRegion]]
+    access: NotRequired[Annotated[list[Access], Keyed(("master", "target"))]]
     clock_domains: NotRequired[ClockDomains]
     operating_points: NotRequired[dict[Name, OperatingPoint]]
     boot_configs: NotRequired[dict[Name, BootConfig]]

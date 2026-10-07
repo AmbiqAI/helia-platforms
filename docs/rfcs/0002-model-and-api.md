@@ -47,7 +47,7 @@ Each term has one meaning in this RFC, except `revision`, whose meaning depends 
 | image slot | An `ImageSlot`: a range of NVM owned by one core for its image, supplied by the vendor or the customer. |
 | clock domain | A `ClockDomain`: cores or accelerators clocked together, with the domain's own named points. |
 | operating point | A system `OperatingPoint`: one point per clock domain. `target.cpu_mhz()` and `target.npu_mhz()` read the core-0 and npu-0 domains; `cpu_mhz`/`npu_mhz` are also overlay shorthand that expands to domain points. |
-| implementation (kind) | An `Implementation`: a realization of a Soc. `kind` is `silicon`, `fpga`, `fvp` or `rtl`. It realizes the whole Soc unless it declares a validated subset. An FPGA or FVP implementation is resolvable directly and carries its own carrier facts; it needs no board. |
+| implementation (kind) | An `Implementation`: a realization of a Soc. `kind` is `silicon`, `fpga`, `fvp` or `rtl`. It realizes the whole Soc unless it declares a validated subset or, for an FVP, its own memory map. An FPGA or FVP implementation is resolvable directly and carries its own carrier facts; it needs no board. |
 | part | A `Part`: an orderable silicon device (ordering number, silicon revision, package, radio option). It references its Soc directly. |
 | board (category, revision) | A `Board`: a PCB carrying one Part. `category` is `engineering`, `evaluation` or `custom`, a description, not a lifecycle; `revision` is the board revision, which can change the population. |
 | revision (Soc) | `Soc.revision`: the design revision of the specification (for example a pre-silicon RTL revision). |
@@ -77,7 +77,7 @@ Each term has one meaning in this RFC, except `revision`, whose meaning depends 
 | # | Principle | Consequence |
 |---|---|---|
 | P1 | Facts, not opinions | No `preferred_memory_order`, no tool sections on built-ins. Tools derive policy from facts the package exposes (attachment, latency, ports). |
-| P2 | Specification and implementations | A SoC is the full specification. An implementation realizes all of it by default or a validated subset (bring-up FPGA with less memory and lower clocks, an FVP with substituted memories). Production silicon is the full set and says nothing extra. |
+| P2 | Specification and implementations | A SoC is the full specification. An implementation realizes all of it by default or a validated subset (bring-up FPGA with less memory and lower clocks). An FVP declares its own memory map and names the Soc regions each model region stands in for ([ADR 0007](../adr/0007-fvp-memory-maps.md)). Production silicon is the full set and says nothing extra. |
 | P3 | Declared structure, derived capability | Only structural facts are declared. "Supports FP16" is a function of the core's MVE option; "has NPU" is a function of an NPU instance being present; "which NPU" is a structured record. |
 | P4 | Every fact has provenance | Status (datasheet, sdk, measured, fitted, derived, unverified), source, date, reviewer. Releases reject `unverified` unless allow-listed. Record and rules per [ADR 0003](../adr/0003-provenance-record.md). |
 | P5 | Overlays compose by reference | `based_on`, `soc:`, `part:`; deltas and removals; unknown keys rejected with a suggestion; built-in ids cannot be shadowed. |
@@ -102,7 +102,8 @@ Soc ── cores: [CoreInstance(id, role, core, options: CoreOptions, clock_doma
  │
  ├── Implementation (kind: silicon | fpga | fvp | rtl; model; subset of the Soc; default = all;
  │                   may replace boot_configs, operating_points, clock domain points; an FPGA
- │                   carries jlink_device, trace clock, provisioning, interfaces; no board needed)
+ │                   carries jlink_device, trace clock, provisioning, interfaces; no board needed;
+ │                   an FVP declares its own memories, each naming what it stands_in_for)
  │
  ├── Part (silicon: references its Soc, and an Implementation only when a non-default one exists;
  │         ordering number, silicon revision, package, radio, jlink_device,
@@ -213,9 +214,10 @@ An `Implementation` names a `soc`, a `kind` and a subset expression:
 memories removed, resized or rebased; peripherals removed from
 `Soc.peripherals`; clock caps; cores or accelerators removed. Everything not mentioned is
 inherited from the specification. The validator rejects an implementation
-that adds a memory or exceeds a clock. Rebasing stays available because an
-FPGA build may move a region; no built-in uses it (the atomiq110 FPGA uses
-the silicon addresses, per research/ambiqsuite.md).
+that adds a memory or exceeds a clock; an FVP's own memory list, below, is
+not a subset and is checked by its own rules. Rebasing stays available
+because an FPGA build may move a region; no built-in uses it (the
+atomiq110 FPGA uses the silicon addresses, per research/ambiqsuite.md).
 
 Clock caps act on operating points: a point whose CPU or NPU clock exceeds
 `max_cpu_mhz` or `max_npu_mhz` (the core-0 and npu-0 domains;
@@ -261,15 +263,20 @@ its own `interfaces` and `population`. The built-in `atomiq110_fpga_turbo`
   Whether HBLRAM (0x60000000 in the header) is on-die or external on the
   FPGA is not documented.
 
-An FVP implementation names its `model` (corstone-320) and its
-`substitutions`, which are many-to-one: each names a region the model
-provides, the Soc regions it `replaces`, and its own size and base. The
-replaced regions are removed, and the substitute does not count as an
-added memory. Substitutions are allowed only for kind `fvp`. The
-estimator's "Corstone-320 as a subset of atomiq110" is therefore
-first-class rather than a private convention. An Implementation's boot
-configurations and operating points merge with the Soc's by key, and it
-removes any it must not offer with `subset` (ADR 0002 section 2.5).
+An FVP implementation names its `model` (corstone-320) and declares its
+own `memories`, the complete memory list of the realized Soc: no Soc
+region is inherited, and a region with a Soc region's name represents that
+region. A model region lists the Soc regions it emulates in
+`stands_in_for`; the Corstone-320's DDR region stands in for `hblram`,
+`psram` and `rram`. Inherited access entries to Soc regions the FVP does
+not list are dropped, and the FVP adds or replaces entries with its own
+`access`. `memories`, `access` and `stands_in_for` are allowed only for
+kind `fvp`, and `memories` replaces the `memories_*` deltas rather than
+combining with them ([ADR 0007](../adr/0007-fvp-memory-maps.md)). The
+estimator's Corstone-320 model of atomiq110 is therefore first-class
+rather than a private convention. An Implementation's boot configurations
+and operating points merge with the Soc's by key, and it removes any it
+must not offer with `subset` (ADR 0002 section 2.5).
 
 Production and engineering silicon is a `Part`. A Part references its
 `soc` directly and names an `implementation` only when a non-default
@@ -768,7 +775,7 @@ one of them.
 @dataclass(frozen=True) class Npu:        vendor, family, model, macs_per_cycle; accelerator_config (property)
 @dataclass(frozen=True) class NpuInstance: id, npu, axi_width_bits, base_address, irq, driven_by, clock_domain
 @dataclass(frozen=True) class AcceleratorInstance: id, kind, ip, driven_by, clock_domain, base_address, irq
-@dataclass(frozen=True) class MemoryRegion: name, technology, attachment, size, base, alternate_bases, executable, writeable, cacheable, characterization, provenance
+@dataclass(frozen=True) class MemoryRegion: name, technology, attachment, size, base, alternate_bases, executable, writeable, cacheable, characterization, stands_in_for: tuple[str, ...], provenance   # stands_in_for: FVP regions only (ADR 0007)
 @dataclass(frozen=True) class Access:     master, target, access, requires_awake, guidance, reason, address: int | None, port: int | None, characterization, provenance   # target: region or memory controller name
 @dataclass(frozen=True) class DefaultAccess: master, access, scope, provenance   # scope: on_die
 @dataclass(frozen=True) class MemoryCharacterization: read_latency_ns, write_latency_ns, max_outstanding, burst_bytes, ports, axi_clock_hz, bandwidth_fraction  (each value may carry its own Provenance)
@@ -777,9 +784,8 @@ one of them.
 @dataclass(frozen=True) class SdkFacts:   c_define, cmsis_header, trace_clock_mhz, hal_enums: Mapping[str, str], build: BuildFacts
 @dataclass(frozen=True) class BuildFacts: abi, float_abi, toolchains
 @dataclass(frozen=True) class Soc:        id, series, aliases, cores, npus, accelerators, memories, access, default_access: DefaultAccess | None, peripherals, clock_domains, operating_points, default_operating_point: str | None, boot_configs, default_boot, sdk, derives_from, default_board: str | None, revision, release_status, extensions, provenance
-@dataclass(frozen=True) class Implementation: id, soc, kind, model: str | None, subset: Subset, clock_domains: tuple | None, operating_points: tuple | None, boot_configs: Mapping | None, default_boot: str | None, provisioning: str | None, jlink_device, trace_clock_mhz, interfaces, population, aliases, release_status, extensions, provenance   # None: inherit the Soc's (after clock caps)
-@dataclass(frozen=True) class Subset:     memories_removed, memories_resized, memories_rebased, substitutions: Mapping[str, Substitution], peripherals_removed, cores_removed, npus_removed, accelerators_removed, clock_domains_removed, boot_configs_removed, operating_points_removed, access_removed, max_cpu_mhz, max_npu_mhz, max_domain_mhz   # substitutions: kind fvp only
-@dataclass(frozen=True) class Substitution: replaces: tuple[str, ...], size, base, characterization, provenance   # keyed by the FVP region name; many-to-one
+@dataclass(frozen=True) class Implementation: id, soc, kind, model: str | None, subset: Subset, memories: tuple | None, access: tuple | None, clock_domains: tuple | None, operating_points: tuple | None, boot_configs: Mapping | None, default_boot: str | None, provisioning: str | None, jlink_device, trace_clock_mhz, interfaces, population, aliases, release_status, extensions, provenance   # None: inherit the Soc's (after clock caps); memories and access: kind fvp only (ADR 0007)
+@dataclass(frozen=True) class Subset:     memories_removed, memories_resized, memories_rebased, peripherals_removed, cores_removed, npus_removed, accelerators_removed, clock_domains_removed, boot_configs_removed, operating_points_removed, access_removed, max_cpu_mhz, max_npu_mhz, max_domain_mhz
 @dataclass(frozen=True) class BootConfig: name, reserved: tuple[Reservation, ...], app_start: Mapping[str, AppStart], requires, provenance   # AppStart: region, offset; reserved in written key order
 @dataclass(frozen=True) class Reservation: region, offset, size, purpose, provenance
 @dataclass(frozen=True) class Part:       id, soc, implementation: str | None, silicon_revision, package, radio, jlink_device, image_slots, aliases, release_status, provenance
@@ -814,7 +820,7 @@ class Target:
     def placement_ranges(self, core: int | str = 0) -> Mapping[str, tuple[int, int]]   # (base, size) of reachable regions; raises for a region without a base
     def cpu_mhz(self, point: str | None = None, core: int | str = 0) -> int
     def npu_mhz(self, point: str | None = None, npu: int | str = 0) -> int
-    def region(self, name: str) -> MemoryRegion
+    def region(self, name: str) -> MemoryRegion   # on an FVP, also a Soc region name a stands_in_for lists
     def has_region(self, name: str | None = None, *, technology=None, attachment=None) -> bool
     def has_external_memory(self, technology: str | None = None) -> bool
     def operating_points(self, domain: str | None = None) -> tuple[OperatingPoint | DomainPoint, ...]
@@ -841,6 +847,12 @@ class Target:
 `core=` and `npu=` take an index or an id. `IsaFeatures` carries `has_dsp`, `has_mve`, `mve_flavour`, `supports_fp16`,
 `supports_fp32`, `supports_fp64`, `has_pmu`, `pmu_kind`.
 
+On an FVP target, `region(name)` also accepts the name of a Soc region
+that one of the FVP's regions lists in `stands_in_for`, and returns the
+region that stands in for it: `region("hblram")` on the Corstone-320
+target returns its DDR region
+([ADR 0007](../adr/0007-fvp-memory-maps.md)).
+
 ### Overlays, validation, export, CLI
 
 `load_overlay` parses an overlay (syntax per ADR #7), validates it against
@@ -849,8 +861,11 @@ semantic rules: ids unique; no shadowing of built-in ids, aliases,
 compositions or shorthands; overlays add no shorthands; `based_on`
 resolves; regions inside physical bounds and non-overlapping; a subset
 never adds a memory or exceeds a clock; an implementation whose clock caps
-drop every operating point declares its own; substitutions only on kind
-`fvp`;
+drop every operating point declares its own; an Implementation's
+`memories` and `access` only on kind `fvp`, `memories` not combined with
+the `memories_*` deltas, and `stands_in_for` only on an FVP's regions,
+naming Soc regions the FVP does not list, each in at most one region
+([ADR 0007](../adr/0007-fvp-memory-maps.md));
 `derives_from` requires equal physical regions; no two devices on one
 interface, no add-on on a board it does not fit, no device larger than
 its aperture; provenance required on built-ins; built-in entries may not
@@ -942,8 +957,9 @@ parity test (issue #13) that covers each are in
 2. Which environments the optional link-environment dataset covers
    (nsx-ambiq-sdk toolchains and profiles, Zephyr boards), and how it is
    versioned relative to the catalogue.
-3. Of `helia-npu`'s `targets` (FVP, RTL, silicon), the memory substitutions
-   and clock choices are implementation description and move here; the
+3. Of `helia-npu`'s `targets` (FVP, RTL, silicon), the FVP memory maps
+   ([ADR 0007](../adr/0007-fvp-memory-maps.md)) and clock choices are
+   implementation description and move here; the
    FVP binary, timing-adapter registers and run flags are harness
    configuration and stay. Confirm with the estimator owners.
 4. Whether to adopt `extensions` as proposed (an opaque per-tool map on

@@ -407,50 +407,107 @@ def test_caps_name_units_and_domains_the_soc_has(document):
     assert "max_domain_mhz names domain 'dsp', which the base lacks" in found
 
 
-def test_fvp_substitutions_replace_regions_many_to_one(document):
-    substitution = {"replaces": ["tcm", "ssram"], "size": "8M", "base": 0x30000000}
-    realized = implementation(document, "fvp", subset={"substitutions": {"sram": substitution}})
-    assert [r.name for r in realized.memories] == ["nvm", "sram"]
-    sram = realized.memories[1]
-    assert (sram.technology, sram.attachment) == ("sram", "tcm")  # from tcm, the first replaced
-    assert (sram.size, sram.base) == (8 * 1024 * 1024, 0x30000000)
-    assert sram.provenance == model.UNVERIFIED  # the overlay's record for the substitution
-    assert sram.field_provenance["technology"].status == "datasheet"  # the Soc's, for tcm
-    assert realized.access == ()  # the replaced regions' access entries go with them
-
-
-def test_a_substitute_may_take_the_name_of_a_region_it_replaces(document):
-    subset = {"substitutions": {"ssram": {"replaces": ["ssram"], "size": "1M"}}}
-    ssram = implementation(document, "fvp", subset=subset).memories[-1]
-    assert (ssram.name, ssram.size, ssram.base) == ("ssram", 1024 * 1024, None)
-
-
-def test_substitutions_are_allowed_only_on_kind_fvp(document):
-    subset = {"substitutions": {"sram": {"replaces": ["ssram"], "size": "1M"}}}
-    found = problems_of(with_cut(document, subset=subset))
-    assert "implementations.cut.subset: substitutions are allowed only for kind fvp" in found
-
-
-def test_substitutions_must_replace_regions_the_soc_has_once(document):
-    subset = {
-        "substitutions": {
-            "a": {"replaces": ["tcm", "hblram"], "size": "1M"},
-            "b": {"replaces": ["tcm"], "size": "1M"},
-            "c": {"replaces": [], "size": "1M"},
-            "nvm": {"replaces": ["ssram"], "size": "1M"},
-        }
+def fvp_memories() -> dict[str, Any]:
+    """An FVP memory map over soc_a: tcm and nvm by name, and ram standing in for ssram."""
+    return {
+        "tcm": {"technology": "sram", "attachment": "tcm", "size": "256K"},
+        "ram": {
+            "technology": "sram",
+            "attachment": "system",
+            "size": "8M",
+            "stands_in_for": ["ssram"],
+        },
+        "nvm": {"technology": "mram", "attachment": "system", "size": "4M"},
     }
-    found = problems_of(with_cut(document, "fvp", subset=subset))
-    assert "region 'tcm' is replaced by more than one substitution" in found
-    assert "substitutions.a replaces region 'hblram', which the base lacks" in found
-    assert "substitutions.c replaces no region" in found
-    assert "substitutions.nvm is named after a region it does not replace" in found
 
 
-def test_an_implementation_cannot_add_a_memory(document):
+def test_an_fvp_realizes_to_exactly_its_own_memories(document):
+    soc(document)["memories"]["hblram"] = {
+        "technology": "psram",
+        "attachment": "external",
+        "base": 0x60000000,
+        "size": "8M",
+    }
+    memories = fvp_memories()
+    memories["ram"]["stands_in_for"] = ["ssram", {"value": "hblram", "provenance": RECORD}]
+    cat = load_overlay(with_cut(document, "fvp", model="corstone", memories=memories))
+    assert [r.name for r in cat._entry("implementations", "cut").memories] == ["tcm", "ram", "nvm"]
+    realized = cat._realized("cut")
+    assert [r.name for r in realized.memories] == ["tcm", "ram", "nvm"]
+    tcm, ram, nvm = realized.memories
+    assert (tcm.size, tcm.base) == (256 * 1024, None)  # nothing of the Soc's tcm is inherited
+    assert tcm.provenance == model.UNVERIFIED  # the overlay's record, not the Soc's
+    assert dict(tcm.field_provenance) == {}
+    assert ram.stands_in_for == ("ssram", "hblram")
+    assert ram.field_provenance["stands_in_for.hblram"].status == "datasheet"
+    assert nvm.stands_in_for == ()
+
+
+def test_an_fvp_without_memories_inherits_the_socs(document):
+    realized = implementation(document, "fvp", model="corstone")
+    assert [r.name for r in realized.memories] == ["tcm", "ssram", "nvm"]
+
+
+def test_fvp_access_keeps_drops_adds_and_overrides_soc_entries(document):
+    soc(document)["default_access"] = {"master": "cm55_0", "access": "direct", "scope": "on_die"}
+    realized = implementation(copy.deepcopy(document), "fvp", memories=fvp_memories())
+    assert [(a.target, a.guidance) for a in realized.access] == [("tcm", "discouraged")]
+    assert realized.default_access is not None
+    access = [
+        {"master": "npu_0", "target": "ram", "access": "direct", "port": 1},
+        {"master": "npu_0", "target": "tcm", "access": "direct", "guidance": "preferred"},
+    ]
+    realized = implementation(document, "fvp", memories=fvp_memories(), access=access)
+    assert [(a.target, a.guidance, a.port) for a in realized.access] == [
+        ("tcm", "preferred", None),  # the Soc's entry, overridden in place
+        ("ram", None, 1),
+    ]
+    assert realized.access[1].provenance == model.UNVERIFIED
+
+
+def test_fvp_access_to_a_soc_region_it_does_not_list_is_an_error(document):
+    access = [{"master": "npu_0", "target": "ssram", "access": "direct"}]
+    found = problems_of(with_cut(document, "fvp", memories=fvp_memories(), access=access))
+    assert "implementations.cut: as realized: access npu_0@ssram: no target 'ssram'" in found
+
+
+def test_stands_in_for_names_soc_regions_the_fvp_does_not_list_once(document):
     region = {"technology": "sram", "attachment": "system", "size": "1M"}
-    found = problems_of(with_cut(document, memories={"extra": region}))
-    assert "implementations.cut.memories: unknown key 'memories'" in found
+    memories = {
+        "tcm": region,
+        "a": {**region, "stands_in_for": ["hblram"]},
+        "b": {**region, "stands_in_for": ["tcm", "ssram"]},
+        "c": {**region, "stands_in_for": ["ssram"]},
+    }
+    found = problems_of(with_cut(document, "fvp", memories=memories))
+    assert (
+        "implementations.cut: memories.a.stands_in_for names 'hblram', which the Soc lacks" in found
+    )
+    assert "memories.b.stands_in_for names 'tcm', which the implementation also lists" in found
+    assert "Soc region 'ssram' is in the stands_in_for of more than one region (b, c)" in found
+
+
+def test_only_an_fvp_declares_memories_access_and_stands_in_for(document):
+    soc(document)["memories"]["tcm"]["stands_in_for"] = ["ssram"]
+    access = [{"master": "npu_0", "target": "tcm", "access": "direct"}]
+    found = problems_of(with_cut(document, "rtl", memories=fvp_memories(), access=access))
+    assert (
+        "socs.soc_a.memories.tcm.stands_in_for: "
+        "only a region of an fvp Implementation may stand in for others"
+    ) in found
+    assert "implementations.cut: memories is allowed only for kind fvp, not 'rtl'" in found
+    assert "implementations.cut: access is allowed only for kind fvp, not 'rtl'" in found
+
+
+def test_fvp_memories_cannot_be_combined_with_region_deltas(document):
+    subset = {
+        "memories_removed": ["nvm"],
+        "memories_resized": {"tcm": "128K"},
+        "memories_rebased": {"tcm": 0},
+    }
+    found = problems_of(with_cut(document, "fvp", memories=fvp_memories(), subset=subset))
+    for key in subset:
+        assert f"implementations.cut: memories cannot be combined with subset.{key}" in found
 
 
 def test_an_implementation_cannot_grow_a_region_or_a_clock(document):
