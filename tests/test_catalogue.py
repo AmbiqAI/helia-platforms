@@ -2,6 +2,7 @@ import copy
 import dataclasses
 import datetime
 import re
+import warnings
 from pathlib import Path
 from types import MappingProxyType
 from typing import Any
@@ -13,9 +14,9 @@ from conftest import RECORD
 from helia_platforms import cli, model
 from helia_platforms._build import freeze
 from helia_platforms._tree import MergeError
-from helia_platforms.catalogue import _EMPTY, _load_documents, load_overlay
+from helia_platforms.catalogue import _EMPTY, _expanded_access, _load_documents, load_overlay
 from helia_platforms.cli import app
-from helia_platforms.errors import FormatError, PlatformError
+from helia_platforms.errors import FormatError, PlatformError, PlatformWarning
 
 
 def soc(document):
@@ -434,6 +435,298 @@ def test_sources_are_keyed_by_table(tmp_path, document):
     cat = load_overlay(path, base=load_overlay(document))
     assert cat.sources[("memory_devices", "psram_8m")] == "overlay:<mapping>"
     assert cat.sources[("addons", "psram_8m")] == f"overlay:{path}"
+
+
+# ---- semantic rules (RFC 0002 "Overlays, validation, export, CLI") ------------------
+
+_ENTITY_TABLES = ("cores", "socs", "implementations", "parts", "boards", "addons", "memory_devices")
+
+
+def as_builtin(document):
+    """The document made fit for a built-in load: every entity public and recorded."""
+    for kind in _ENTITY_TABLES:
+        for entry in document.get(kind, {}).values():
+            entry.setdefault("provenance", RECORD)
+            if kind != "cores":
+                entry["release_status"] = "public"
+    return document
+
+
+def builtin_problems(document) -> str:
+    with pytest.raises(FormatError) as exc:
+        _load_documents([(as_builtin(document), "builtin.yaml")], builtin=True)
+    return "\n".join(exc.value.problems)
+
+
+def add_radio(document, programmable_by=None):
+    core = {
+        "id": "radio_m4",
+        "role": "radio",
+        "core": "cortex-m4",
+        "clock_domain": "cpu",
+        "options": {"fpu": "fpv4-sp-d16", "mve": "none"},
+    }
+    if programmable_by is not None:
+        core["programmable_by"] = programmable_by
+    soc(document)["cores"].append(core)
+
+
+def load_quietly(document, **kwargs):
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        return load_overlay(document, **kwargs)
+
+
+def test_regions_may_touch_but_not_overlap(document):
+    load_quietly(document)  # tcm ends where ssram begins
+    soc(document)["memories"]["ssram"]["base"] = 0x2007F000
+    assert (
+        "socs.soc_a: memories.tcm (0x20000000, 524288 bytes) overlaps "
+        "memories.ssram (0x2007f000, 3145728 bytes)"
+    ) in problems_of(document)
+
+
+def test_alternate_bases_may_not_overlap_another_region(document):
+    soc(document)["memories"]["tcm"]["alternate_bases"] = [0x10000000]
+    load_quietly(document)
+    soc(document)["memories"]["tcm"]["alternate_bases"] = [0x00500000]
+    assert (
+        "memories.tcm at alternate base 0x500000 (0x500000, 524288 bytes) overlaps memories.nvm"
+        in (problems_of(document))
+    )
+
+
+def test_a_region_without_a_base_is_not_checked_for_overlap(document):
+    soc(document)["memories"]["extra"] = {
+        "technology": "sram",
+        "attachment": "system",
+        "size": "1M",
+    }
+    load_quietly(document)
+
+
+def test_an_implementation_rebase_is_checked_for_overlap(document):
+    document["implementations"] = {
+        "cut": {
+            "soc": "soc_a",
+            "kind": "fpga",
+            "subset": {"memories_rebased": {"ssram": 0x20000000}},
+        }
+    }
+    assert "implementations.cut: as realized: memories.tcm (0x20000000" in problems_of(document)
+
+
+def test_derives_from_requires_equal_physical_regions(document):
+    document["socs"]["soc_b"] = {**copy.deepcopy(soc(document)), "derives_from": "soc_a"}
+    document["socs"]["soc_b"]["memories"]["tcm"]["cacheable"] = True  # not a physical fact
+    load_quietly(document)
+    document["socs"]["soc_b"]["memories"]["ssram"]["size"] = "2M"
+    document["socs"]["soc_b"]["memories"]["nvm"]["base"] = 0x00800000
+    found = problems_of(document)
+    assert (
+        "socs.soc_b: derives_from 'soc_a': memories.ssram is not the same physical region" in found
+    )
+    assert "socs.soc_b: derives_from 'soc_a': memories.nvm is not the same physical region" in found
+    assert "memories.tcm" not in found
+
+
+def test_a_device_may_not_exceed_its_aperture(document):
+    document["boards"]["board_a"]["interfaces"]["mspi0"]["aperture_max"] = "8M"
+    load_quietly(document)  # exactly the device's capacity
+    document["boards"]["board_a"]["interfaces"]["mspi0"]["aperture_max"] = "4M"
+    assert (
+        "boards.board_a.population.mspi0: 'psram_8m' (8388608 bytes) exceeds the 'mspi0' "
+        "aperture (4194304 bytes)"
+    ) in problems_of(document)
+
+
+def test_an_interface_without_an_aperture_is_skipped_with_a_warning(document):
+    del document["boards"]["board_a"]["interfaces"]["mspi0"]["aperture_max"]
+    with pytest.warns(PlatformWarning, match="interface 'mspi0' has no aperture_max"):
+        load_overlay(document)
+
+
+def shield(population, fits=("board_a",)):
+    return {"fits_boards": list(fits), "occupies": list(population), "population": population}
+
+
+def with_mspi1(document, aperture_max="256M"):
+    soc(document)["peripherals"].append("mspi1")
+    document["boards"]["board_a"]["interfaces"]["mspi1"] = {
+        "controller": "mspi1",
+        "aperture_base": 0x70000000,
+        "aperture_max": aperture_max,
+    }
+
+
+def test_an_add_on_may_not_put_a_second_device_on_a_board_interface(document):
+    with_mspi1(document)
+    document["addons"] = {"shield": shield({"mspi1": "psram_8m"})}
+    load_quietly(document)
+    document["addons"] = {"shield": shield({"mspi0": "psram_8m"})}
+    assert (
+        "addons.shield: add-on 'shield' and board 'board_a' both put a device on 'mspi0'"
+    ) in problems_of(document)
+
+
+def test_an_add_on_device_may_not_exceed_the_board_aperture(document):
+    with_mspi1(document, aperture_max="4M")
+    document["addons"] = {"shield": shield({"mspi1": "psram_8m"})}
+    assert (
+        "addons.shield.population.mspi1 on board_a: 'psram_8m' (8388608 bytes) exceeds"
+    ) in problems_of(document)
+
+
+def test_a_composition_puts_add_ons_only_on_boards_they_fit(document):
+    with_mspi1(document)
+    document["boards"]["board_b"] = {"category": "custom", "part": "PART-A"}
+    document["addons"] = {"shield": shield({"mspi1": "psram_8m"})}
+    document["compositions"] = {"ok": {"board": "board_a", "addons": ["shield"]}}
+    load_quietly(document)
+    document["compositions"]["bad"] = {"board": "board_b", "addons": ["shield"]}
+    assert "compositions.bad: add-on 'shield' does not fit board 'board_b'" in problems_of(document)
+
+
+def test_a_composition_puts_one_device_on_each_interface(document):
+    with_mspi1(document)
+    document["addons"] = {
+        "first": shield({"mspi1": "psram_8m"}),
+        "second": shield({"mspi1": "psram_8m"}),
+    }
+    document["compositions"] = {"one": {"board": "board_a", "addons": ["first"]}}
+    load_quietly(document)
+    document["compositions"]["two"] = {"board": "board_a", "addons": ["first", "second"]}
+    assert (
+        "compositions.two: add-on 'second' and add-on 'first' both put a device on 'mspi1'"
+    ) in problems_of(document)
+
+
+def test_default_access_grants_core_0_what_no_core_has_an_entry_for(document):
+    add_radio(document)
+    memories = soc(document)["memories"]
+    memories["radio_tcm"] = {
+        "technology": "sram",
+        "attachment": "tcm",
+        "base": 0x10000000,
+        "size": "64K",
+    }
+    memories["hbl"] = {
+        "technology": "psram",
+        "attachment": "external",
+        "base": 0x60000000,
+        "size": "1M",
+    }
+    soc(document)["access"] += [
+        {"master": "radio_m4", "target": "radio_tcm", "access": "direct"},
+        {"master": "cm55_0", "target": "iom0", "access": "none"},
+    ]
+    a = load_quietly(document)._entry("socs", "soc_a")
+    expanded = _expanded_access(a)
+    granted = [(e.master, e.target, e.access) for e in expanded if e not in a.access]
+    assert granted == [
+        ("cm55_0", "tcm", "direct"),  # an NPU's entry does not exclude core 0
+        ("cm55_0", "ssram", "direct"),
+        ("cm55_0", "nvm", "direct"),
+        ("cm55_0", "mspi0", "direct"),
+        ("cm55_0", "iom1", "direct"),
+        ("cm55_0", "iom2", "direct"),
+    ]  # not radio_tcm (another core's), hbl (external) or iom0 (core 0's own entry)
+    assert {e.provenance for e in expanded if e not in a.access} == {a.default_access.provenance}
+
+
+def test_default_access_names_core_0(document):
+    add_radio(document)
+    soc(document)["default_access"]["master"] = "radio_m4"
+    assert "socs.soc_a: default_access.master: 'radio_m4' is not core 0" in problems_of(document)
+
+
+def test_built_in_regions_and_interface_controllers_need_an_access_entry(document):
+    _load_documents([(as_builtin(copy.deepcopy(document)), "builtin.yaml")], builtin=True)
+    del soc(document)["default_access"]
+    found = builtin_problems(document)
+    assert "socs.soc_a.memories.nvm: no access entry after default_access expansion" in found
+    assert "memories.tcm:" not in found  # npu_0 has an entry
+    assert (
+        "boards.board_a.interfaces.mspi0: controller 'mspi0' has no access entry; "
+        "its devices are unreachable"
+    ) in found
+
+
+def test_an_overlay_interface_without_access_draws_a_warning(document):
+    del soc(document)["default_access"]
+    with pytest.warns(PlatformWarning, match="controller 'mspi0' has no access entry"):
+        load_overlay(document)
+    soc(document)["access"].append({"master": "npu_0", "target": "mspi0", "access": "none"})
+    load_quietly(document)
+
+
+def test_an_interface_needs_a_controller_of_the_soc(document):
+    document["boards"]["board_a"]["interfaces"]["mspi0"]["controller"] = "mspi7"
+    assert "boards.board_a.interfaces.mspi0: no controller 'mspi7'" in problems_of(document)
+
+
+def test_an_interface_on_a_controller_the_implementation_removed_is_an_error(document):
+    interfaces = copy.deepcopy(document["boards"]["board_a"]["interfaces"])
+    document["implementations"] = {
+        "cut": {
+            "soc": "soc_a",
+            "kind": "fpga",
+            "interfaces": interfaces,
+            "subset": {"peripherals_removed": ["iom2"]},
+        }
+    }
+    document["parts"]["PART-A"]["implementation"] = "cut"
+    load_quietly(document)
+    document["implementations"]["cut"]["subset"]["peripherals_removed"] = ["mspi0"]
+    found = problems_of(document)
+    removed = "interfaces.mspi0: controller 'mspi0' is removed by the implementation"
+    assert f"implementations.cut.{removed}" in found
+    assert f"boards.board_a.{removed}" in found
+
+
+@pytest.mark.parametrize(("programmable_by", "ok"), [("vendor", True), (None, False)])
+def test_app_start_keys_name_programmable_cores(document, programmable_by, ok):
+    add_radio(document, programmable_by)
+    soc(document)["boot_configs"]["nbl"]["app_start"] = {
+        "cm55_0": {"region": "nvm", "offset": 0},
+        "radio_m4": {"region": "nvm", "offset": "2M"},
+    }
+    if ok:
+        load_quietly(document)
+    else:
+        assert "boot_configs.nbl.app_start: core 'radio_m4' is not programmable" in problems_of(
+            document
+        )
+
+
+def slot(offset, size, core="radio_m4"):
+    return {"core": core, "region": "nvm", "offset": offset, "size": size, "supplier": "vendor"}
+
+
+@pytest.mark.parametrize(("programmable_by", "ok"), [("either", True), (None, False)])
+def test_an_image_slot_owner_is_a_programmable_core(document, programmable_by, ok):
+    add_radio(document, programmable_by)
+    document["parts"]["PART-A"]["image_slots"] = {"radio": slot("1M", "64K")}
+    if ok:
+        load_quietly(document)
+    else:
+        assert (
+            "parts.PART-A.image_slots.radio: core 'radio_m4' is not programmable"
+        ) in problems_of(document)
+
+
+def test_image_slots_overlap_neither_each_other_nor_boot_reservations(document):
+    add_radio(document, "vendor")
+    slots = document["parts"]["PART-A"]["image_slots"] = {
+        "a": slot(0x100000, 0x10000),
+        "b": slot(0x110000, 0x10000),  # touches a
+    }
+    load_quietly(document)
+    slots["b"]["offset"] = 0x108000
+    slots["c"] = slot(0x8000, 0x1000)  # inside the 64K SBL reservation
+    found = problems_of(document)
+    assert "parts.PART-A: image_slots.a overlaps image_slots.b in region 'nvm'" in found
+    assert "parts.PART-A: image_slots.c overlaps boot_configs.sbl.reserved.sbl" in found
 
 
 # ---- RFC 0002's example overlays --------------------------------------------------

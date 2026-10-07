@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import warnings
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -13,7 +14,7 @@ from helia_platforms import _format as fmt
 from helia_platforms import _parse, _structural, _walk, model
 from helia_platforms._build import build_entity
 from helia_platforms._tree import MergeError, Tree, expand_shorthands, merge, normalize, realize
-from helia_platforms.errors import FormatError
+from helia_platforms.errors import FormatError, PlatformWarning
 
 #: Entity tables in load order, with the model class each builds.
 _KINDS: dict[str, type] = {
@@ -159,6 +160,7 @@ class _Loader:
         self.base = base
         self.builtin = builtin
         self.problems: list[str] = []
+        self.warnings: list[str] = []
         self.trees: dict[tuple[str, str], Tree] = dict(base._trees)
         self.tables: dict[str, dict[str, Any]] = {k: dict(v) for k, v in base._tables.items()}
         self.sources: dict[tuple[str, str], str] = dict(base.sources)
@@ -166,6 +168,9 @@ class _Loader:
 
     def fail(self, origin: str, where: str, message: str) -> None:
         self.problems.append(f"{origin}: {where}: {message}")
+
+    def warn(self, origin: str, where: str, message: str) -> None:
+        self.warnings.append(f"{origin}: {where}: {message}")
 
     def load(self, entries: dict, compositions: dict, shorthands: dict) -> Catalogue:
         self.check_names(entries, compositions, shorthands)
@@ -197,6 +202,8 @@ class _Loader:
             _trees=MappingProxyType(self.trees),
         )
         self.check_references(catalogue, entries, compositions, shorthands)
+        for message in self.warnings:
+            warnings.warn(message, PlatformWarning, stacklevel=4)  # the caller of load_overlay
         if self.problems:
             raise FormatError("invalid catalogue", tuple(self.problems))
         return catalogue
@@ -372,6 +379,10 @@ class _Loader:
             for addon in raw.get("addons", []):
                 if addon not in addons:
                     self.fail(origin, f"compositions.{alias}", f"no add-on {addon!r}")
+            if raw["board"] in boards and all(a in addons for a in raw.get("addons", [])):
+                placed = [addons[a] for a in raw.get("addons", [])]
+                for problem in _placement_problems(boards[raw["board"]], placed):
+                    self.fail(origin, f"compositions.{alias}", problem)
         resolvable = {name for kind in _RESOLVABLE for name in catalogue._tables.get(kind, {})}
         for name, (members, origin) in shorthands.items():
             for member in members:
@@ -382,6 +393,14 @@ class _Loader:
         where = f"socs.{soc.id}"
         for problem in _soc_reference_problems(soc, catalogue):
             self.fail(origin, where, problem)
+        for problem in _derivation_problems(soc, catalogue):
+            self.fail(origin, where, problem)
+        if self.builtin:
+            reached = {a.target for a in _expanded_access(soc)}
+            for region in soc.memories:
+                if region.name not in reached:
+                    message = "no access entry after default_access expansion"
+                    self.fail(origin, f"{where}.memories.{region.name}", message)
 
     def check_implementation(
         self, catalogue: Catalogue, impl: model.Implementation, origin: str
@@ -401,6 +420,8 @@ class _Loader:
         if impl.provisioning is not None and impl.provisioning not in realized.boot_configs:
             self.fail(origin, where, f"provisioning {impl.provisioning!r} is not a boot config")
         self.check_population(catalogue, impl.interfaces, impl.population, where, origin)
+        removed = impl.subset.peripherals_removed
+        self.check_interfaces(catalogue, realized, impl, where, origin, removed=removed)
 
     def check_part(self, catalogue: Catalogue, part: model.Part, origin: str) -> None:
         where = f"parts.{part.id}"
@@ -418,13 +439,18 @@ class _Loader:
                     soc = catalogue._realized(impl.id)  # slots name what the Implementation keeps
                 except MergeError:
                     return  # reported against the implementation
-        cores = {c.id for c in soc.cores}
+        cores = {c.id: c for c in soc.cores}
         regions = {r.name for r in soc.memories}
         for name, slot in part.image_slots.items():
             if slot.core not in cores:
                 self.fail(origin, f"{where}.image_slots.{name}", f"no core {slot.core!r}")
+            elif cores[slot.core].programmable_by is None:
+                message = f"core {slot.core!r} is not programmable, so it cannot own a slot"
+                self.fail(origin, f"{where}.image_slots.{name}", message)
             if slot.region not in regions:
                 self.fail(origin, f"{where}.image_slots.{name}", f"no region {slot.region!r}")
+        for problem in _slot_overlap_problems(part, soc):
+            self.fail(origin, where, problem)
 
     def check_board(self, catalogue: Catalogue, board: model.Board, origin: str) -> None:
         where = f"boards.{board.id}"
@@ -432,20 +458,22 @@ class _Loader:
         if part is None:
             self.fail(origin, where, f"no part {board.part!r}")
             return
-        if board.provisioning is not None and part.soc in catalogue._tables.get("socs", {}):
-            try:
-                soc = (
-                    catalogue._realized(part.implementation)
-                    if part.implementation
-                    else catalogue._tables["socs"][part.soc]
-                )
-            except (KeyError, MergeError):
-                return  # reported against the part or the implementation
-            if board.provisioning not in soc.boot_configs:
-                self.fail(
-                    origin, where, f"provisioning {board.provisioning!r} is not a boot config"
-                )
         self.check_population(catalogue, board.interfaces, board.population, where, origin)
+        if part.soc not in catalogue._tables.get("socs", {}):
+            return  # reported against the part
+        try:
+            soc = (
+                catalogue._realized(part.implementation)
+                if part.implementation
+                else catalogue._tables["socs"][part.soc]
+            )
+        except (KeyError, MergeError):
+            return  # reported against the part or the implementation
+        if board.provisioning is not None and board.provisioning not in soc.boot_configs:
+            self.fail(origin, where, f"provisioning {board.provisioning!r} is not a boot config")
+        impl = catalogue._tables.get("implementations", {}).get(part.implementation)
+        removed = impl.subset.peripherals_removed if impl is not None else ()
+        self.check_interfaces(catalogue, soc, board, where, origin, removed=removed)
 
     def check_addon(self, catalogue: Catalogue, addon: model.AddOn, origin: str) -> None:
         where = f"addons.{addon.id}"
@@ -457,6 +485,14 @@ class _Loader:
             if interface not in addon.occupies:
                 self.fail(origin, f"{where}.population", f"{interface!r} is not in occupies")
         self.check_population(catalogue, None, addon.population, where, origin)
+        devices = catalogue._tables.get("memory_devices", {})
+        for board in (boards[b] for b in addon.fits_boards if b in boards):
+            for problem in _placement_problems(board, [addon]):
+                self.fail(origin, where, problem)
+            for name, device in addon.population.items():
+                if name in board.interfaces and device in devices:
+                    at = f"{where}.population.{name} on {board.id}"
+                    self.check_aperture(board.interfaces[name], devices[device], at, origin)
 
     def check_population(
         self,
@@ -473,6 +509,57 @@ class _Loader:
             if device not in devices:
                 self.fail(origin, f"{where}.population", f"no memory device {device!r}")
 
+    def check_interfaces(
+        self,
+        catalogue: Catalogue,
+        soc: model.Soc,
+        owner: model.Board | model.Implementation,
+        where: str,
+        origin: str,
+        *,
+        removed: Iterable[str],
+    ) -> None:
+        """Controllers and apertures of ``owner``'s interfaces on ``soc``, the Soc as realized.
+
+        ``removed`` lists the controllers the Implementation removed (RFC 0002
+        multicore, "Memory reachability").
+        """
+        interfaces, population = owner.interfaces, owner.population
+        reached = {a.target for a in _expanded_access(soc)}
+        for name, interface in interfaces.items():
+            at, controller = f"{where}.interfaces.{name}", interface.controller
+            if controller in removed:
+                self.fail(origin, at, f"controller {controller!r} is removed by the implementation")
+            elif controller not in soc.peripherals:
+                self.fail(origin, at, f"no controller {controller!r}")
+            elif controller not in reached:
+                message = (
+                    f"controller {controller!r} has no access entry; its devices are unreachable"
+                )
+                # Built-in interfaces must be covered (RFC 0002 "Overlays, validation").
+                (self.fail if self.builtin else self.warn)(origin, at, message)
+        devices = catalogue._tables.get("memory_devices", {})
+        for name, device in population.items():
+            if name in interfaces and device in devices:
+                at = f"{where}.population.{name}"
+                self.check_aperture(interfaces[name], devices[device], at, origin)
+
+    def check_aperture(
+        self, interface: model.MemoryInterface, device: model.MemoryDevice, at: str, origin: str
+    ) -> None:
+        if interface.aperture_max is None:
+            message = (
+                f"interface {interface.name!r} has no aperture_max; {device.id!r} is unchecked"
+            )
+            self.warn(origin, at, message)
+        elif device.capacity > interface.aperture_max:
+            self.fail(
+                origin,
+                at,
+                f"{device.id!r} ({device.capacity} bytes) exceeds the {interface.name!r} "
+                f"aperture ({interface.aperture_max} bytes)",
+            )
+
 
 def _soc_reference_problems(soc: model.Soc, catalogue: Catalogue) -> list[str]:
     """References inside one Soc that do not resolve (ADR 0002 section 2.5; RFC 0002)."""
@@ -482,6 +569,7 @@ def _soc_reference_problems(soc: model.Soc, catalogue: Catalogue) -> list[str]:
         *_boot_problems(soc),
         *_access_problems(soc),
         *_relation_problems(soc, catalogue),
+        *_layout_problems(soc),
     ]
 
 
@@ -524,7 +612,7 @@ def _clock_problems(soc: model.Soc) -> list[str]:
 
 def _boot_problems(soc: model.Soc) -> list[str]:
     problems: list[str] = []
-    cores = {c.id for c in soc.cores}
+    cores = {c.id: c for c in soc.cores}
     regions = {r.name for r in soc.memories}
     if soc.default_boot is not None and soc.default_boot not in soc.boot_configs:
         problems.append(f"default_boot: no boot config {soc.default_boot!r}")
@@ -532,6 +620,8 @@ def _boot_problems(soc: model.Soc) -> list[str]:
         for core, start in config.app_start.items():
             if core not in cores:
                 problems.append(f"boot_configs.{name}.app_start: no core {core!r}")
+            elif cores[core].programmable_by is None:
+                problems.append(f"boot_configs.{name}.app_start: core {core!r} is not programmable")
             if start.region not in regions:
                 problems.append(f"boot_configs.{name}.app_start: no region {start.region!r}")
         problems.extend(
@@ -552,8 +642,11 @@ def _access_problems(soc: model.Soc) -> list[str]:
             problems.append(f"access {entry.master}@{entry.target}: no master {entry.master!r}")
         if entry.target not in targets:
             problems.append(f"access {entry.master}@{entry.target}: no target {entry.target!r}")
-    if soc.default_access is not None and soc.default_access.master not in cores:
-        problems.append(f"default_access.master: no core {soc.default_access.master!r}")
+    default = soc.default_access
+    if default is not None and default.master not in cores:
+        problems.append(f"default_access.master: no core {default.master!r}")
+    elif default is not None and default.master != soc.cores[0].id:
+        problems.append(f"default_access.master: {default.master!r} is not core 0")
     return problems
 
 
@@ -565,6 +658,104 @@ def _relation_problems(soc: model.Soc, catalogue: Catalogue) -> list[str]:
     if soc.default_board is not None and soc.default_board not in boards:
         problems.append(f"default_board: no board {soc.default_board!r}")
     return problems
+
+
+def _layout_problems(soc: model.Soc) -> list[str]:
+    """Regions that overlap at their bases or alternate bases; a region with no base is skipped."""
+    spans: list[tuple[str, int, int]] = []
+    for region in soc.memories:
+        if region.base is None:
+            continue
+        spans.append((f"memories.{region.name}", region.base, region.size))
+        spans += [
+            (f"memories.{region.name} at alternate base {alt:#x}", alt, region.size)
+            for alt in region.alternate_bases
+        ]
+    return [
+        f"{a} ({a_base:#x}, {a_size} bytes) overlaps {b} ({b_base:#x}, {b_size} bytes)"
+        for i, (a, a_base, a_size) in enumerate(spans)
+        for b, b_base, b_size in spans[i + 1 :]
+        if a_base < b_base + b_size and b_base < a_base + a_size
+    ]
+
+
+def _derivation_problems(soc: model.Soc, catalogue: Catalogue) -> list[str]:
+    """``derives_from`` requires equal physical regions (RFC 0002 "Inheritance and derivation")."""
+    parent = catalogue._tables.get("socs", {}).get(soc.derives_from or "")
+    if parent is None:
+        return []  # no relation, or reported as a reference problem
+    mine, theirs = _physical_regions(soc), _physical_regions(parent)
+    return [
+        f"derives_from {parent.id!r}: memories.{name} is not the same physical region"
+        for name in sorted(mine.keys() | theirs.keys())
+        if mine.get(name) != theirs.get(name)
+    ]
+
+
+def _physical_regions(soc: model.Soc) -> dict[str, tuple]:
+    return {
+        r.name: (r.technology, r.attachment, r.size, r.base, r.alternate_bases)
+        for r in soc.memories
+    }
+
+
+def _expanded_access(soc: model.Soc) -> tuple[model.Access, ...]:
+    """``soc.access`` plus the entries ``default_access`` grants (RFC 0002 multicore).
+
+    Its master gets a ``direct`` entry to every on-die region and every peripheral
+    that no core has an entry for, so neither an explicit entry for core 0 nor a
+    region another core owns is granted by default.
+    """
+    default = soc.default_access
+    if default is None:
+        return soc.access
+    cores = {c.id for c in soc.cores}
+    taken = {a.target for a in soc.access if a.master in cores}
+    on_die = [r.name for r in soc.memories if r.attachment != "external"]
+    return soc.access + tuple(
+        model.Access(
+            master=default.master,
+            target=target,
+            access=default.access,
+            provenance=default.provenance,
+        )
+        for target in (*on_die, *soc.peripherals)
+        if target not in taken
+    )
+
+
+def _placement_problems(board: model.Board, addons: Iterable[model.AddOn]) -> list[str]:
+    """Add-ons on ``board`` that do not fit it or put a second device on an interface."""
+    problems: list[str] = []
+    holders = {name: f"board {board.id!r}" for name in board.population}
+    for addon in addons:
+        if board.id not in addon.fits_boards:
+            problems.append(f"add-on {addon.id!r} does not fit board {board.id!r}")
+        for name in addon.population:
+            if name in holders:
+                problems.append(
+                    f"add-on {addon.id!r} and {holders[name]} both put a device on {name!r}"
+                )
+            holders[name] = f"add-on {addon.id!r}"
+    return problems
+
+
+def _slot_overlap_problems(part: model.Part, soc: model.Soc) -> list[str]:
+    """Image slots that overlap each other or any boot configuration's reservation."""
+    slots = [
+        (f"image_slots.{name}", s.region, s.offset, s.size) for name, s in part.image_slots.items()
+    ]
+    reserved = [
+        (f"boot_configs.{config}.reserved.{r.purpose}", r.region, r.offset, r.size)
+        for config, boot in soc.boot_configs.items()
+        for r in boot.reserved
+    ]
+    return [
+        f"{a} overlaps {b} in region {a_region!r}"
+        for i, (a, a_region, a_offset, a_size) in enumerate(slots)
+        for b, b_region, b_offset, b_size in (*slots[i + 1 :], *reserved)
+        if a_region == b_region and a_offset < b_offset + b_size and b_offset < a_offset + a_size
+    ]
 
 
 def _plain(value: Any) -> Any:

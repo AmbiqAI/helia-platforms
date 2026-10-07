@@ -69,6 +69,7 @@ BASE_DOCUMENT: dict[str, Any] = {
                 {"master": "npu_0", "target": "ssram", "access": "direct", "port": 0},
                 {"master": "npu_0", "target": "tcm", "access": "direct", "guidance": "discouraged"},
             ],
+            "default_access": {"master": "cm55_0", "access": "direct", "scope": "on_die"},
             "clock_domains": {
                 "cpu": {"lp": {"mhz": 96}, "hp": {"mhz": 192}},
                 "npu": {"lp": {"mhz": 96}},
