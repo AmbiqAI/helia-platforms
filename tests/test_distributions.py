@@ -19,6 +19,8 @@ PACKAGE = "helia_platforms"
 
 # The five sdist paths listed in ADR 0005, Context (plus the sdist's own directory prefix).
 SDIST_TOP_LEVEL = {"PKG-INFO", "pyproject.toml", "README.md", "LICENSE.md", "src"}
+# Newer uv versions keep the unnormalised pyproject.toml beside the rewritten one.
+SDIST_TOOL_FILES = {"pyproject.toml.orig"}
 WHEEL_DIST_INFO = {
     "licenses/LICENSE.md",
     "WHEEL",
@@ -82,7 +84,7 @@ def test_sdist_file_list(dist_dir: Path) -> None:
     assert len(prefixes) == 1
     (prefix,) = prefixes
     names = {n.removeprefix(f"{prefix}/") for n in members}
-    assert {n.split("/", 1)[0] for n in names} == SDIST_TOP_LEVEL
+    assert {n.split("/", 1)[0] for n in names} - SDIST_TOOL_FILES == SDIST_TOP_LEVEL
     assert {n for n in names if n.startswith("src/")} == {
         f"src/{p}" for p in _tracked_package_files()
     }
