@@ -1,55 +1,48 @@
 # HANDOFF
 
-Briefing for whoever picks this up next. Keep under ~2k tokens. Updated
-2026-10-07.
+Briefing for whoever picks this up next. Keep under ~2k tokens, and keep
+in it only what changes rarely: the live state (open PRs, the next issue,
+what is blocked) is the status section of the roadmap issue #79.
 
 ## Goal
 
 `helia-platforms`: one shared Python package holding Ambiq SoC and board
 facts for heliaAOT, helia-profiler, helia-estimator and `helia-npu`, with
-neuralspotx as a possible later consumer. The model and API are RFC 0002;
-the export and pages are RFC 0003.
+neuralspotx as a possible later consumer. The model and API are RFC 0002
+(with `0002-multicore.md`, `0002-private-silicon.md`,
+`0002-migration.md`); the export and pages are RFC 0003.
 
-## Current state
+## Where things live
 
-Merged on `main`:
+- **Plan and live status:** #79. It lists every remaining issue in order
+  with its dependencies, and its status section names the open PRs and
+  the next issue to start.
+- **Decisions:** accepted ones are ADRs in `docs/adr/`. Smaller owner
+  decisions about one issue are comments on that issue.
+- **Built-in data (#63 to #68):** each issue carries the owner's decisions,
+  the datasheet verification sign-off, and, in collapsed comments, the full
+  research proposal (draft YAML with provenance records) and the page-quote
+  verification table. The decisions override the proposal where they
+  differ. Read all of them before writing a data file.
+- **Datasheets:** Ambiq PDFs are not in this repository. The owner holds a
+  local copy; ask for its path and never commit it. The SHA256 prefixes in
+  `docs/research/datasheets.md` confirm the copy is the one the notes
+  cite.
+- **Source inventories:** `docs/research/`, each dated and pinned to a
+  revision.
 
-- Design record: RFC 0001 (imported) and its review; RFC 0002 with its
-  companions (`0002-multicore.md`, `0002-private-silicon.md`,
-  `0002-migration.md`); RFC 0003. All RFCs are still Draft (#75).
-- ADRs 0001 to 0006, all Accepted (#50): docs layout, file format and
-  runtime, provenance record, versions, publication and embargo, drift
-  snapshots.
-- The loader (#48, PR #49): the ADR 0002 file format, YAML 1.2 reader,
-  structural stage, `based_on` and Implementation merges with per-value
-  provenance, frozen model, `load_overlay()`, the committed JSON Schema,
-  and `helia-platforms validate` and `export --schema`.
-- Tooling: ruff, ty, pytest, pre-commit (gitleaks, uv-lock, deferred-work
-  markers, local paths), all run in CI; CODEOWNERS per data path and a
-  fact-change PR template (#17).
+## How to work
 
-Not yet: built-in data (`src/helia_platforms/data/` does not exist), the
-resolver and `Target`, `builtin()`, the provenance validator, the export,
-the snapshots, and anything a consumer can call. `helia_platforms` exports
-only `__version__`.
-
-## Next steps
-
-The ordered plan, with each step's dependencies, is the roadmap issue #79
-(issues #56 to #78). In short:
-
-1. Stage 1, in parallel: #56 (clock caps, FVP substitutions), #57
-   (remaining semantic rules), #60 (`builtin()`), #69 part 1
-   (distribution file lists), #71 (snapshot extractor).
-2. #58 (resolver and `Target`), #61 (provenance validator and register),
-   #59 (`identity()` and digest).
-3. #63 (first built-in data: apollo510), then the other Socs (#64 to #68).
-4. #72 (`check-sources`), #73 (link environments), #74 (export), #13
-   (parity tests), then publication (#77) and consumer adoption (#78).
-
-Stage 1 is in review: #82 (#56), #84 (#57), #85 (#60), #80 (#69 part 1)
-and #86 (#71). Check `gh pr list` before starting an issue. The release
-PR #27 is also open (see Gotchas).
+- One issue per change, on a branch `<issue#>-slug` (CONTRIBUTING.md).
+  Roadmap issues are committed and opened as a PR when their checks pass;
+  apage224 reviews and merges. No tool attribution in commits or PRs.
+- Before starting an issue, check that the issues it depends on are merged
+  (`gh pr list`, #79).
+- Accepted ADRs are never edited. A change to an accepted decision is a new
+  ADR that supersedes the affected part (ADR 0007 and ADR 0008 do this).
+- Every built-in value carries an ADR 0003 provenance record; a value with
+  no source of record is `unverified` with an allow-list entry and an
+  issue. Where sources disagree, ask the owner before writing the value.
 
 ## Decisions (owner)
 
@@ -60,27 +53,12 @@ PR #27 is also open (see Gotchas).
   canonical id.
 - Capabilities are derived from structural facts, never declared.
 - A Soc is a specification; an FPGA or FVP is an Implementation, not a
-  board. Board `category` is engineering, evaluation or custom.
+  board. An FVP declares its own memory map (ADR 0007, proposed in #82).
 - RAM budgets are physical region sizes; NVM is `usable_nvm()` after boot
   reservations and other cores' image slots (#28).
 - heliaAOT keeps the alias the user passed and records the canonical id.
 - RFC 0003 defers the resolved `targets` export; publishable outputs come
   only from `builtin(include_plugins=False)` with no overlays.
-- Roadmap PRs: each issue is committed and opened as a PR when its checks
-  pass; apage224 reviews and merges.
-
-## Open owner decisions
-
-- Data conflicts found while writing built-in data (#63 to #68).
-- Accepting RFC 0002 and RFC 0003 (#75).
-- Whether the link-environment dataset ships in the wheel (RFC 0002 open
-  question 2; #73).
-- The distribution path, public first or PyPI from the private repository
-  (ADR 0005 point 2; #77).
-- Document ids for the internal atomiq110 specification (ADR 0003 open
-  question 1; #68).
-- Hardware questions with no owner (#19); facts-versus-policy sign-off
-  from the profiler maintainers (#15); neuralspotx direction (#18).
 
 ## Gotchas
 
@@ -94,13 +72,11 @@ PR #27 is also open (see Gotchas).
   project's own entry in `uv.lock`, so `uv sync --locked` (CI) and the
   uv-lock hook fail on a release PR until `uv lock` is run on its branch.
 - Datasheets are the source of record and contradict consumer data in
-  several places (PSRAM on Apollo4 EVBs, apollo4p SSRAM, apollo3p sizes,
-  Lite and 330 Plus NVM and clocks): `docs/rfcs/0002-migration.md`,
-  "Pending data corrections".
-- Boot layout is a choice, not one fact: Apollo510 datasheets partition a
-  64 KB SBL region, Lite and 330 Plus parts ship SBL-provisioned without
-  it in the datasheet, and AmbiqSuite's Apollo4 `am_defines.py` disagrees
-  with its linker scripts.
+  several places (`docs/rfcs/0002-migration.md`, "Pending data
+  corrections"); each difference needs a row in the parity allow-lists of
+  #13.
+- No datasheet states the Apollo3 or Apollo4 application start or SBL
+  size; those come from SDK sources at pinned revisions.
 
 ## References
 
