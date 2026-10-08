@@ -47,6 +47,10 @@ The ordered plan, with each step's dependencies, is the roadmap issue #79
 4. #72 (`check-sources`), #73 (link environments), #74 (export), #13
    (parity tests), then publication (#77) and consumer adoption (#78).
 
+Stage 1 is in review: #82 (#56), #84 (#57), #85 (#60), #80 (#69 part 1)
+and #86 (#71). Check `gh pr list` before starting an issue. The release
+PR #27 is also open (see Gotchas).
+
 ## Decisions (owner)
 
 - Unreleased hardware never enters this repository; private silicon is
@@ -86,6 +90,9 @@ The ordered plan, with each step's dependencies, is the roadmap issue #79
   before citing. `docs/research/` notes mark what was and was not read.
 - The repository is private; a PyPI release before ADR 0005's audit could
   ship material that is not cleared (ADR 0005 points 2 and 3).
+- release-please bumps the version in `pyproject.toml` but not the
+  project's own entry in `uv.lock`, so `uv sync --locked` (CI) and the
+  uv-lock hook fail on a release PR until `uv lock` is run on its branch.
 - Datasheets are the source of record and contradict consumer data in
   several places (PSRAM on Apollo4 EVBs, apollo4p SSRAM, apollo3p sizes,
   Lite and 330 Plus NVM and clocks): `docs/rfcs/0002-migration.md`,
