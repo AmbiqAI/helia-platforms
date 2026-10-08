@@ -177,7 +177,7 @@ Definitions, queries and an example are in [0002-multicore.md](0002-multicore.md
 | `extensions` | per-tool, proposal | Overlay entries only; see Overlays. |
 
 `MemoryRegion`: `name` (dtcm, ssram, mram, hblram, psram0), `technology`
-(sram, mram, rram, psram, flash, nvm), `attachment` (tcm, system, external),
+(sram, mram, rram, psram, flash, nvm, dram), `attachment` (tcm, system, external),
 `size`, `base`, optional `alternate_bases` where the silicon aliases the
 region, `executable`, `writeable`, `cacheable`, optional
 `characterization` (read and write latency, ports, max outstanding,

@@ -119,7 +119,7 @@ class MemoryCharacterization(_Facts, total=False):
 
 
 class MemoryRegion(_Facts):
-    technology: Required[Literal["sram", "mram", "rram", "psram", "flash", "nvm"]]
+    technology: Required[Literal["sram", "mram", "rram", "psram", "flash", "nvm", "dram"]]
     attachment: Required[Literal["tcm", "system", "external"]]
     size: Required[Size]
     base: NotRequired[Address]
@@ -386,7 +386,7 @@ class AddOn(_Entity):
 
 
 class MemoryDevice(_Entity):
-    technology: Required[Literal["sram", "mram", "rram", "psram", "flash", "nvm"]]
+    technology: Required[Literal["sram", "mram", "rram", "psram", "flash", "nvm", "dram"]]
     capacity: Required[Size]
     driver_family: NotRequired[str]
     modes: NotRequired[Annotated[list[str], BY_VALUE]]

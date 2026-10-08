@@ -2612,7 +2612,8 @@
                 "rram",
                 "psram",
                 "flash",
-                "nvm"
+                "nvm",
+                "dram"
               ]
             },
             {
@@ -2625,7 +2626,8 @@
                     "rram",
                     "psram",
                     "flash",
-                    "nvm"
+                    "nvm",
+                    "dram"
                   ]
                 },
                 "provenance": {
@@ -2981,7 +2983,8 @@
                 "rram",
                 "psram",
                 "flash",
-                "nvm"
+                "nvm",
+                "dram"
               ]
             },
             {
@@ -2994,7 +2997,8 @@
                     "rram",
                     "psram",
                     "flash",
-                    "nvm"
+                    "nvm",
+                    "dram"
                   ]
                 },
                 "provenance": {

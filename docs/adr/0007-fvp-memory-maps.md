@@ -93,7 +93,11 @@ of them that describe substitutions.
    `fact:implementation:<id>:memories.<name>.size`,
    `memories.<name>.stands_in_for.<Soc region>` (the item ends the path)
    and `access.<master>@<target>.port`.
-6. **Queries.** On an FVP target, `Target.region(name)` also accepts a Soc
+6. **`dram` technology.** `MemoryRegion.technology` and
+   `MemoryDevice.technology` gain the value `dram`, so a model's DDR region
+   can say what it is. The owner chose this on 2026-10-07; the other values
+   are unchanged.
+7. **Queries.** On an FVP target, `Target.region(name)` also accepts a Soc
    region name that a region's `stands_in_for` lists, and returns the
    region that stands in for it, so a tool asking for `hblram` on the
    Corstone-320 target gets the DDR region. The resolver (issue #58)
@@ -121,13 +125,7 @@ list sorted by (`master`, `target`), like the Soc's.
 - A reference from inherited Soc data to a region the FVP does not list,
   such as a boot configuration's `app_start` in `rram`, is reported after
   realization, as after `memories_removed`; the FVP removes or redeclares
-  those boot configurations.
+  those boot configurations. The owner chose this strict rule over letting
+  such references resolve to a stand-in.
 - RFC 0002 and its migration plan describe the FVP memory map and link
-  here; the resolver (issue #58) must implement the query rule in point 6.
-
-## Open questions
-
-1. The `technology` vocabulary (`sram`, `mram`, `rram`, `psram`, `flash`,
-   `nvm`) has no value for the Corstone-320's DDR region. Whether to add
-   one (for example `dram`) is a format change that this record does not
-   make.
+  here; the resolver (issue #58) must implement the query rule in point 7.
