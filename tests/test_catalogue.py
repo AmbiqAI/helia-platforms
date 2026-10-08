@@ -524,9 +524,11 @@ def test_side_loaded_sources_load_in_order_over_the_earlier_ones(plugins, tmp_pa
     part_b = {"PART-B": {"based_on": "PART-A", "silicon_revision": "C0"}}
     part_b_file = str(write(tmp_path / "ep" / "part_b.yaml", {"parts": part_b}))
     plugins += [  # listed out of order: distribution name, then entry name, decides
-        FakeEntryPoint("a", "b-private", {"boards": {"board_a": board_a}}),
+        FakeEntryPoint("a", "b-private", {"schema_version": 1, "boards": {"board_a": board_a}}),
         FakeEntryPoint("b", "a-private", part_b_file),
-        FakeEntryPoint("a", "a-private", {"parts": {"PART-A": {"soc": "soc_a"}}}),
+        FakeEntryPoint(
+            "a", "a-private", {"schema_version": 1, "parts": {"PART-A": {"soc": "soc_a"}}}
+        ),
     ]
     env = tmp_path / "env"
     board_b = write(env / "a.yaml", {"boards": {"board_b": {"based_on": "board_a"}}})
@@ -563,7 +565,8 @@ def test_side_loaded_sources_load_in_order_over_the_earlier_ones(plugins, tmp_pa
 )
 def test_side_loaded_entries_may_not_shadow(plugins, tmp_path, monkeypatch, overlay, shadowed):
     device = {"technology": "psram", "capacity": "8M"}
-    plugins.append(FakeEntryPoint("a", "a-private", {"memory_devices": {"dev": device}}))
+    found = {"schema_version": 1, "memory_devices": {"dev": device}}
+    plugins.append(FakeEntryPoint("a", "a-private", found))
     path = write(tmp_path / "late.yaml", overlay)
     monkeypatch.setenv("HELIA_PLATFORMS_PATH", str(path))
     with pytest.raises(FormatError) as exc:
@@ -581,10 +584,15 @@ EP = "entry_point:a-private"
     [
         (RuntimeError("boom"), PlatformError, f"{EP}: entry point 'a' raised RuntimeError('boom')"),
         (42, PlatformError, f"{EP}: entry point 'a' returned int, not a mapping or a path"),
-        ({"parts": {"P": {"soc": "nope"}}}, FormatError, f"{EP} (a): parts.P: no soc 'nope'"),
+        (
+            {"schema_version": 1, "parts": {"P": {"soc": "nope"}}},
+            FormatError,
+            f"{EP} (a): parts.P: no soc 'nope'",
+        ),
+        ({"parts": {}}, FormatError, f"{EP} (a): missing required key 'schema_version'"),
         (Path("missing.yaml"), FormatError, f"{EP} (missing.yaml): cannot be read"),
     ],
-    ids=["raises", "bad return", "invalid overlay", "unreadable path"],
+    ids=["raises", "bad return", "invalid overlay", "no schema_version", "unreadable path"],
 )
 def test_a_failing_entry_point_names_its_source(plugins, result, error, message):
     plugins.append(FakeEntryPoint("a", "a-private", result))
@@ -601,6 +609,28 @@ def test_an_unreadable_environment_path_names_its_source(plugins, tmp_path, monk
     monkeypatch.setenv("HELIA_PLATFORMS_PATH", str(path))
     with pytest.raises(FormatError, match=re.escape(f"env:{path}: cannot be read")):
         builtin()
+
+
+@pytest.mark.skipif(not hasattr(os, "geteuid") or os.geteuid() == 0, reason="root reads anything")
+def test_an_unreadable_environment_directory_names_its_source(plugins, tmp_path, monkeypatch):
+    env = tmp_path / "env"
+    write(env / "a.yaml", {})
+    env.chmod(0)
+    monkeypatch.setenv("HELIA_PLATFORMS_PATH", str(env))
+    try:
+        with pytest.raises(FormatError, match=re.escape(f"env:{env}: cannot be read")):
+            builtin()
+    finally:
+        env.chmod(0o700)
+
+
+def test_a_source_that_calls_builtin_while_loading_is_refused(plugins, monkeypatch):
+    reentrant = FakeEntryPoint("a", "a-private", None)
+    monkeypatch.setattr(reentrant, "load", lambda: builtin)  # its callable is builtin itself
+    plugins.append(reentrant)
+    with pytest.raises(PlatformError, match="called while the catalogue was being loaded"):
+        builtin()
+    assert set(builtin(include_plugins=False).sources.values()) == {"builtin"}
 
 
 def test_builtin_is_cached_and_discovers_once(plugins, tmp_path, monkeypatch):

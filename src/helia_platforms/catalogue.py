@@ -100,6 +100,7 @@ class Catalogue:
 
 _EMPTY = Catalogue()
 _CACHE: dict[bool, Catalogue] = {}
+_LOADING: set[bool] = set()
 
 
 def builtin(include_plugins: bool = True) -> Catalogue:
@@ -107,24 +108,30 @@ def builtin(include_plugins: bool = True) -> Catalogue:
 
     With ``include_plugins``, entry points in ``helia_platforms.catalogues``, then
     files in ``HELIA_PLATFORMS_PATH``, each load as an overlay on the catalogue so
-    far. Discovery runs at the first call; a failing source raises ``PlatformError``.
+    far. Discovery runs at the first call; a failing source raises ``PlatformError``,
+    as does a source that calls ``builtin()`` while it is being loaded.
     """
     key = bool(include_plugins)
     if key not in _CACHE:
-        if key:
-            catalogue = builtin(include_plugins=False)
-            for label, origin, data, require in _side_loaded():
-                catalogue = _load_documents(
-                    [(data, origin)],
-                    base=catalogue,
-                    builtin=False,
-                    require_version=require,
-                    source=label,
-                )
-        else:
-            catalogue = _load_documents(_data_documents(_data_root()), builtin=True)
-        _CACHE[key] = catalogue
+        if key in _LOADING:
+            raise PlatformError("builtin() was called while the catalogue was being loaded")
+        _LOADING.add(key)
+        try:
+            _CACHE[key] = _build(key)
+        finally:
+            _LOADING.discard(key)
     return _CACHE[key]
+
+
+def _build(include_plugins: bool) -> Catalogue:
+    if not include_plugins:
+        return _load_documents(_data_documents(_data_root()), builtin=True)
+    catalogue = builtin(include_plugins=False)
+    for label, origin, data in _side_loaded():
+        catalogue = _load_documents(
+            [(data, origin)], base=catalogue, builtin=False, require_version=True, source=label
+        )
+    return catalogue
 
 
 def _data_root() -> Traversable:
@@ -149,8 +156,11 @@ def _data_documents(root: Traversable) -> list[tuple[Any, str]]:
     return documents
 
 
-def _side_loaded() -> Iterator[tuple[str, str, Any, bool]]:
-    """Yield (label, origin, data, require_version) for each side-loaded source, in order."""
+def _side_loaded() -> Iterator[tuple[str, str, Any]]:
+    """Yield (label, origin, data) for each side-loaded source, in order.
+
+    Every source declares ``schema_version``, a returned mapping included (ADR 0002 section 2.2).
+    """
     found = entry_points(group=_ENTRY_POINT_GROUP)
     for entry in sorted(found, key=lambda e: (e.dist.name if e.dist else "", e.name)):
         label = f"entry_point:{entry.dist.name if entry.dist else '<unknown>'}"
@@ -159,10 +169,10 @@ def _side_loaded() -> Iterator[tuple[str, str, Any, bool]]:
         except Exception as exc:
             raise PlatformError(f"{label}: entry point {entry.name!r} raised {exc!r}") from exc
         if isinstance(result, Mapping):
-            yield label, f"{label} ({entry.name})", dict(result), False
+            yield label, f"{label} ({entry.name})", dict(result)
         elif isinstance(result, str | os.PathLike):
             origin = f"{label} ({result})"
-            yield label, origin, _parse.parse_file(Path(result), origin), True
+            yield label, origin, _parse.parse_file(Path(result), origin)
         else:
             raise PlatformError(
                 f"{label}: entry point {entry.name!r} returned {type(result).__name__}, "
@@ -171,10 +181,19 @@ def _side_loaded() -> Iterator[tuple[str, str, Any, bool]]:
     for item in os.environ.get(_PATH_VARIABLE, "").split(os.pathsep):
         if not item:
             continue
-        path = Path(item)
-        for file in sorted(path.glob("*.yaml")) if path.is_dir() else [path]:
+        for file in _environment_files(Path(item)):
             label = f"env:{file}"
-            yield label, label, _parse.parse_file(file, label), True
+            yield label, label, _parse.parse_file(file, label)
+
+
+def _environment_files(path: Path) -> list[Path]:
+    """A ``HELIA_PLATFORMS_PATH`` item: a directory's ``*.yaml`` files, or the path itself."""
+    if not path.is_dir():
+        return [path]
+    try:
+        return sorted(child for child in path.iterdir() if child.name.endswith(".yaml"))
+    except OSError as exc:  # Path.glob would hide an unreadable directory
+        raise FormatError(f"env:{path}: cannot be read: {exc}") from None
 
 
 def load_overlay(
