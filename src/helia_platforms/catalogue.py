@@ -202,10 +202,11 @@ class _Loader:
             _trees=MappingProxyType(self.trees),
         )
         self.check_references(catalogue, entries, compositions, shorthands)
-        for message in self.warnings:
-            warnings.warn(message, PlatformWarning, stacklevel=4)  # the caller of load_overlay
+        # Problems first: a warning escalated to an error must not hide them.
         if self.problems:
             raise FormatError("invalid catalogue", tuple(self.problems))
+        for message in self.warnings:
+            warnings.warn(message, PlatformWarning, stacklevel=4)  # the caller of load_overlay
         return catalogue
 
     def label(self, origin: str) -> str:
@@ -704,7 +705,7 @@ def _derivation_problems(soc: model.Soc, catalogue: Catalogue) -> list[str]:
 
 def _physical_regions(soc: model.Soc) -> dict[str, tuple]:
     return {
-        r.name: (r.technology, r.attachment, r.size, r.base, r.alternate_bases)
+        r.name: (r.technology, r.attachment, r.size, r.base, tuple(sorted(r.alternate_bases)))
         for r in soc.memories
     }
 

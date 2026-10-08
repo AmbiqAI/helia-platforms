@@ -519,7 +519,9 @@ def test_an_implementation_rebase_is_checked_for_overlap(document):
 def test_derives_from_requires_equal_physical_regions(document):
     document["socs"]["soc_b"] = {**copy.deepcopy(soc(document)), "derives_from": "soc_a"}
     document["socs"]["soc_b"]["memories"]["tcm"]["cacheable"] = True  # not a physical fact
-    load_quietly(document)
+    soc(document)["memories"]["tcm"]["alternate_bases"] = [0x10000000, 0x30000000]
+    document["socs"]["soc_b"]["memories"]["tcm"]["alternate_bases"] = [0x30000000, 0x10000000]
+    load_quietly(document)  # alternate_bases is keyed by value, so its order is not a fact
     document["socs"]["soc_b"]["memories"]["ssram"]["size"] = "2M"
     document["socs"]["soc_b"]["memories"]["nvm"]["base"] = 0x00800000
     found = problems_of(document)
@@ -544,6 +546,13 @@ def test_an_interface_without_an_aperture_is_skipped_with_a_warning(document):
     del document["boards"]["board_a"]["interfaces"]["mspi0"]["aperture_max"]
     with pytest.warns(PlatformWarning, match="interface 'mspi0' has no aperture_max"):
         load_overlay(document)
+
+
+def test_an_escalated_warning_does_not_hide_the_problems(document):
+    del document["boards"]["board_a"]["interfaces"]["mspi0"]["aperture_max"]
+    document["parts"]["PART-B"] = {"soc": "nope"}
+    with pytest.raises(FormatError, match="no soc 'nope'"):
+        load_quietly(document)
 
 
 def shield(population, fits=("board_a",)):
