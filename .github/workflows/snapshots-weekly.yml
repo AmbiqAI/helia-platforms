@@ -15,25 +15,32 @@ concurrency:
   group: ${{ github.workflow }}
   cancel-in-progress: false
 
-permissions:
-  contents: read
-  issues: write
+permissions: {}
 
 jobs:
-  drift:
+  # Step 2 runs upstream code (Zephyr's dtlib), so extraction holds no token
+  # (ADR 0006 section 1); only the report job can write to the issue.
+  extract:
     runs-on: ubuntu-latest
-    env:
-      GH_TOKEN: ${{ github.token }}
-      ISSUE: ${{ vars.SNAPSHOT_TRACKING_ISSUE }}
-      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    permissions:
+      contents: read
+    outputs:
+      mention: ${{ steps.owners.outputs.mention }}
+      step1: ${{ steps.step1.outcome }}
+      hash: ${{ steps.step2.outputs.hash }}
+      status: ${{ steps.step2.outputs.status }}
     steps:
       - name: Require the tracking issue variable
+        env:
+          ISSUE: ${{ vars.SNAPSHOT_TRACKING_ISSUE }}
         run: |
           if [ -z "$ISSUE" ]; then
             echo "::error::Set the repository variable SNAPSHOT_TRACKING_ISSUE to the tracking issue's number."
             exit 1
           fi
       - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
@@ -48,30 +55,15 @@ jobs:
         id: step1
         continue-on-error: true
         run: |
+          mkdir -p "$RUNNER_TEMP/report"
           uv run --no-sync python scripts/extract_snapshots.py extract --check --at revision \
-            > "$RUNNER_TEMP/step1.txt" 2>&1 || { cat "$RUNNER_TEMP/step1.txt"; exit 1; }
-          cat "$RUNNER_TEMP/step1.txt"
-      - name: Report the step 1 failure
-        if: steps.step1.outcome == 'failure'
-        env:
-          MENTION: ${{ steps.owners.outputs.mention }}
-        run: |
-          {
-            echo "Weekly snapshot check, step 1: re-extracting at the recorded revisions failed."
-            echo "A tag may now resolve to another commit, or the extractor no longer reads a source."
-            echo
-            echo '```'
-            head -c 60000 "$RUNNER_TEMP/step1.txt"
-            echo '```'
-            echo
-            echo "Run: $RUN_URL"
-            echo "cc $MENTION"
-          } > "$RUNNER_TEMP/step1.md"
-          gh issue comment "$ISSUE" --body-file "$RUNNER_TEMP/step1.md"
+            > "$RUNNER_TEMP/report/step1.txt" 2>&1 || { cat "$RUNNER_TEMP/report/step1.txt"; exit 1; }
+          cat "$RUNNER_TEMP/report/step1.txt"
 
       - name: "Step 2: extract upstream main and diff against the snapshots"
         id: step2
         run: |
+          mkdir -p "$RUNNER_TEMP/report"
           status=0
           uv run --no-sync python scripts/extract_snapshots.py extract --at revision \
             --neuralspotx main --zephyr main --output "$RUNNER_TEMP/main" \
@@ -79,19 +71,55 @@ jobs:
           cat "$RUNNER_TEMP/step2.txt"
           # Commits move every week; only value changes and failures are reported.
           grep -v ' metadata > ' "$RUNNER_TEMP/step2.txt" | grep -E '^(  [-+~] |error: )' \
-            > "$RUNNER_TEMP/drift.txt" || true
-          if [ "$status" -ne 0 ] && [ ! -s "$RUNNER_TEMP/drift.txt" ]; then
-            cp "$RUNNER_TEMP/step2.txt" "$RUNNER_TEMP/drift.txt"
+            > "$RUNNER_TEMP/report/drift.txt" || true
+          if [ "$status" -ne 0 ] && [ ! -s "$RUNNER_TEMP/report/drift.txt" ]; then
+            cp "$RUNNER_TEMP/step2.txt" "$RUNNER_TEMP/report/drift.txt"
           fi
-          echo "hash=$(sha256sum "$RUNNER_TEMP/drift.txt" | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+          echo "hash=$(sha256sum "$RUNNER_TEMP/report/drift.txt" | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
           echo "status=$status" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: snapshot-drift
+          path: ${{ runner.temp }}/report/
+          retention-days: 7
+
+  report:
+    needs: extract
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      ISSUE: ${{ vars.SNAPSHOT_TRACKING_ISSUE }}
+      MENTION: ${{ needs.extract.outputs.mention }}
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: snapshot-drift
+          path: report
+      - name: Report the step 1 failure
+        if: needs.extract.outputs.step1 == 'failure'
+        run: |
+          {
+            echo "Weekly snapshot check, step 1: re-extracting at the recorded revisions failed."
+            echo "A tag may now resolve to another commit, or the extractor no longer reads a source."
+            echo
+            echo '```'
+            head -c 60000 report/step1.txt
+            echo '```'
+            echo
+            echo "Run: $RUN_URL"
+            echo "cc $MENTION"
+          } > "$RUNNER_TEMP/step1.md"
+          gh issue comment "$ISSUE" --body-file "$RUNNER_TEMP/step1.md"
       - name: Report a new step 2 diff
         env:
-          MENTION: ${{ steps.owners.outputs.mention }}
-          HASH: ${{ steps.step2.outputs.hash }}
-          STATUS: ${{ steps.step2.outputs.status }}
+          HASH: ${{ needs.extract.outputs.hash }}
+          STATUS: ${{ needs.extract.outputs.status }}
         run: |
-          if [ ! -s "$RUNNER_TEMP/drift.txt" ]; then
+          if [ ! -s report/drift.txt ]; then
             echo "No drift from upstream main."
             exit 0
           fi
@@ -109,7 +137,7 @@ jobs:
             fi
             echo
             echo '```diff'
-            head -c 60000 "$RUNNER_TEMP/drift.txt"
+            head -c 60000 report/drift.txt
             echo '```'
             echo
             echo "Run: $RUN_URL"
@@ -120,5 +148,5 @@ jobs:
           gh issue comment "$ISSUE" --body-file "$RUNNER_TEMP/step2.md"
 
       - name: Fail the run when step 1 failed
-        if: steps.step1.outcome == 'failure'
+        if: needs.extract.outputs.step1 == 'failure'
         run: exit 1

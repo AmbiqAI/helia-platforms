@@ -52,9 +52,13 @@ jobs:
 
   extract-check:
     needs: changes
-    if: needs.changes.outputs.references == 'true'
+    # A job skipped because `changes` failed would pass as a required check.
+    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.references == 'true') }}
     runs-on: ubuntu-latest
     steps:
+      - name: Fail when the changed-path check failed
+        if: needs.changes.result != 'success'
+        run: exit 1
       - uses: actions/checkout@v5
       - uses: astral-sh/setup-uv@v6
         with:
