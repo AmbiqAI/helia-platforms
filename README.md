@@ -11,8 +11,12 @@ optional generated dataset of link environments that ships separately.
 
 ## Status
 
-Planning. This repository ships the toolchain and an importable stub only. It
-contains no catalog data or catalog code yet.
+Pre-release; nothing is published yet. The runtime is in place: the file
+format and its JSON Schema, the frozen model, `load_overlay` and `builtin()`
+with side-loaded private catalogs, the structural and semantic validation, the
+catalog digest, and the CLI's `validate` and `export --schema` commands. The
+built-in data is still an empty stub (`src/helia_platforms/data/names.yaml`),
+and the resolver that consumers will query (RFC 0002) is not written yet.
 
 ## Quickstart
 
