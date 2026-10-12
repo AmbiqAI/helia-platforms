@@ -6,6 +6,7 @@ import os
 import re
 import subprocess
 import sys
+import threading
 from pathlib import Path
 from types import MappingProxyType, SimpleNamespace
 from typing import Any
@@ -624,6 +625,14 @@ def test_an_unreadable_environment_directory_names_its_source(plugins, tmp_path,
         env.chmod(0o700)
 
 
+def test_an_unreadable_data_file_names_its_resource(plugins, tmp_path):
+    (tmp_path / "data" / "bad.yaml").write_bytes(b"\xff\xfe")
+    with pytest.raises(
+        FormatError, match=re.escape("helia_platforms/data/bad.yaml: cannot be read")
+    ):
+        builtin(include_plugins=False)
+
+
 def test_a_source_that_calls_builtin_while_loading_is_refused(plugins, monkeypatch):
     reentrant = FakeEntryPoint("a", "a-private", None)
     monkeypatch.setattr(reentrant, "load", lambda: builtin)  # its callable is builtin itself
@@ -631,6 +640,42 @@ def test_a_source_that_calls_builtin_while_loading_is_refused(plugins, monkeypat
     with pytest.raises(PlatformError, match="called while the catalogue was being loaded"):
         builtin()
     assert set(builtin(include_plugins=False).sources.values()) == {"builtin"}
+
+
+def test_a_concurrent_first_call_waits_for_the_loading_one(plugins, monkeypatch):
+    started, release = threading.Event(), threading.Event()
+    calls: list[Any] = []
+    read = catalogue._data_documents
+
+    def slow(root):
+        calls.append(root)
+        started.set()
+        release.wait(5)
+        return read(root)
+
+    monkeypatch.setattr(catalogue, "_data_documents", slow)
+    results: dict[str, Any] = {}
+
+    def call(name: str) -> None:
+        try:
+            results[name] = builtin(include_plugins=False)
+        except PlatformError as exc:
+            results[name] = exc
+
+    first, second = (threading.Thread(target=call, args=(n,)) for n in ("first", "second"))
+    first.start()
+    try:
+        assert started.wait(5)
+        second.start()
+        second.join(0.2)
+        waiting = second.is_alive()
+    finally:
+        release.set()
+        first.join()
+    second.join()
+    assert waiting, results  # the second call waited instead of being refused as recursion
+    assert results["second"] is results["first"]
+    assert len(calls) == 1
 
 
 def test_builtin_is_cached_and_discovers_once(plugins, tmp_path, monkeypatch):
@@ -646,7 +691,7 @@ def test_builtin_is_cached_and_discovers_once(plugins, tmp_path, monkeypatch):
     assert builtin() is cat
     assert builtin(include_plugins=True) is cat
     assert builtin(include_plugins=False) is builtin(include_plugins=False)
-    assert calls == ["helia_platforms.catalogues"]
+    assert calls == ["helia_platforms.catalogs"]
 
 
 def test_the_packaged_data_loads(monkeypatch):

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import threading
 from collections.abc import Iterable, Iterator, Mapping
 from dataclasses import dataclass, field
 from importlib import resources
@@ -31,7 +32,7 @@ _KINDS: dict[str, type] = {
 #: Kinds whose ids and aliases share the one namespace ``resolve()`` reads (section 2.3).
 _RESOLVABLE = ("socs", "implementations", "parts", "boards")
 #: Where ``builtin()`` side-loads private catalogues from (RFC 0002 private silicon).
-_ENTRY_POINT_GROUP = "helia_platforms.catalogues"
+_ENTRY_POINT_GROUP = "helia_platforms.catalogs"
 _PATH_VARIABLE = "HELIA_PLATFORMS_PATH"
 
 
@@ -100,26 +101,31 @@ class Catalogue:
 
 _EMPTY = Catalogue()
 _CACHE: dict[bool, Catalogue] = {}
+#: Held while a catalogue loads, so a concurrent first call waits for it. Only the
+#: thread holding it adds to ``_LOADING``, so a key found there means recursion.
+_LOCK = threading.RLock()
 _LOADING: set[bool] = set()
 
 
 def builtin(include_plugins: bool = True) -> Catalogue:
     """The built-in catalogue, cached per ``include_plugins`` value.
 
-    With ``include_plugins``, entry points in ``helia_platforms.catalogues``, then
+    With ``include_plugins``, entry points in ``helia_platforms.catalogs``, then
     files in ``HELIA_PLATFORMS_PATH``, each load as an overlay on the catalogue so
     far. Discovery runs at the first call; a failing source raises ``PlatformError``,
     as does a source that calls ``builtin()`` while it is being loaded.
     """
     key = bool(include_plugins)
     if key not in _CACHE:
-        if key in _LOADING:
-            raise PlatformError("builtin() was called while the catalogue was being loaded")
-        _LOADING.add(key)
-        try:
-            _CACHE[key] = _build(key)
-        finally:
-            _LOADING.discard(key)
+        with _LOCK:
+            if key in _LOADING:
+                raise PlatformError("builtin() was called while the catalogue was being loaded")
+            if key not in _CACHE:  # another thread may have loaded it while this one waited
+                _LOADING.add(key)
+                try:
+                    _CACHE[key] = _build(key)
+                finally:
+                    _LOADING.discard(key)
     return _CACHE[key]
 
 
@@ -152,7 +158,11 @@ def _data_documents(root: Traversable) -> list[tuple[Any, str]]:
     documents = []
     for name, file in sorted(found, key=lambda item: item[0]):
         origin = f"helia_platforms/data/{name}"
-        documents.append((_parse.parse_yaml(file.read_text(encoding="utf-8"), origin), origin))
+        try:
+            text = file.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError) as exc:
+            raise FormatError(f"{origin}: cannot be read: {exc}") from None
+        documents.append((_parse.parse_yaml(text, origin), origin))
     return documents
 
 
