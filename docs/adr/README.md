@@ -20,3 +20,4 @@ NNNN, Rejected.
 | 0005 | Gate PyPI publication and choose the path to public | Accepted |
 | 0006 | Check the catalogue against committed source snapshots | Accepted |
 | 0007 | Model an FVP's memories as its own list, not as substitutions | Proposed |
+| 0008 | Mark a Soc's memory controllers in a list of their own | Proposed |

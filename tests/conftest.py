@@ -65,10 +65,12 @@ BASE_DOCUMENT: dict[str, Any] = {
                 },
             },
             "peripherals": ["mspi0", "iom0", "iom1", "iom2"],
+            "memory_controllers": ["mspi0", "iom0"],
             "access": [
                 {"master": "npu_0", "target": "ssram", "access": "direct", "port": 0},
                 {"master": "npu_0", "target": "tcm", "access": "direct", "guidance": "discouraged"},
             ],
+            "default_access": {"master": "cm55_0", "access": "direct", "scope": "on_die"},
             "clock_domains": {
                 "cpu": {"lp": {"mhz": 96}, "hp": {"mhz": 192}},
                 "npu": {"lp": {"mhz": 96}},
