@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 import functools
 import os
 import threading
@@ -15,7 +16,7 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import Any
 
-from helia_platforms import _digest, _parse, _structural, _walk, model
+from helia_platforms import __version__, _digest, _parse, _structural, _walk, model
 from helia_platforms import _format as fmt
 from helia_platforms._build import build_entity
 from helia_platforms._tree import (
@@ -51,6 +52,41 @@ def _empty() -> Mapping[Any, Any]:
 
 
 @dataclass(frozen=True)
+class SourceIdentity:
+    """One source applied on top of the built-in data (ADR 0004 point 4).
+
+    ``label`` has no directory. ``schema_version`` is the version the source was read
+    at: the one it declares, or the current one for a mapping that omits it.
+    """
+
+    label: str
+    schema_version: int
+    sha256: str
+    distribution_version: str | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        return dataclasses.asdict(self)
+
+
+@dataclass(frozen=True)
+class CatalogIdentity:
+    """What a consumer output records about the catalog it used (ADR 0004 point 4)."""
+
+    package_version: str
+    schema_version: int
+    catalog_digest: str
+    sources: tuple[SourceIdentity, ...] = ()
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "package_version": self.package_version,
+            "schema_version": self.schema_version,
+            "catalog_digest": self.catalog_digest,
+            "sources": [source.to_dict() for source in self.sources],
+        }
+
+
+@dataclass(frozen=True)
 class Catalog:
     """An immutable catalog. ``load_overlay`` returns a new one; nothing is mutated."""
 
@@ -60,6 +96,7 @@ class Catalog:
     sources: Mapping[tuple[str, str], str] = field(default_factory=_empty)
     _tables: Mapping[str, Mapping[str, Any]] = field(default_factory=_empty, repr=False)
     _trees: Mapping[tuple[str, str], Tree] = field(default_factory=_empty, repr=False)
+    _applied: tuple[SourceIdentity, ...] = field(default=(), repr=False)
 
     def socs(self) -> tuple[model.Soc, ...]:
         return tuple(self._tables.get("socs", {}).values())
@@ -116,6 +153,15 @@ class Catalog:
             tables, builtin("compositions", self.compositions), self.shorthands
         )
 
+    def identity(self) -> CatalogIdentity:
+        """The package and schema versions, the digest and each applied source, in order."""
+        return CatalogIdentity(
+            package_version=__version__,
+            schema_version=self.schema_version,
+            catalog_digest=self.catalog_digest,
+            sources=self._applied,
+        )
+
     def _entry(self, kind: str, entry_id: str) -> Any:
         """One entry by table name and exact id; raises KeyError when absent."""
         return self._tables[kind][entry_id]
@@ -161,9 +207,14 @@ def _build(include_plugins: bool) -> Catalog:
     if not include_plugins:
         return _load_documents(_data_documents(_data_root()), builtin=True)
     catalog = builtin(include_plugins=False)
-    for label, origin, data in _side_loaded():
+    for label, origin, data, version in _side_loaded():
         catalog = _load_documents(
-            [(data, origin)], base=catalog, builtin=False, require_version=True, source=label
+            [(data, origin)],
+            base=catalog,
+            builtin=False,
+            require_version=True,
+            source=label,
+            distribution_version=version,
         )
     return catalog
 
@@ -194,23 +245,24 @@ def _data_documents(root: Traversable) -> list[tuple[Any, str]]:
     return documents
 
 
-def _side_loaded() -> Iterator[tuple[str, str, Any]]:
-    """Yield (label, origin, data) for each side-loaded source, in order.
+def _side_loaded() -> Iterator[tuple[str, str, Any, str | None]]:
+    """Yield (label, origin, data, distribution version) for each side-loaded source, in order.
 
     Every source declares ``schema_version``, a returned mapping included (ADR 0002 section 2.2).
     """
     found = entry_points(group=_ENTRY_POINT_GROUP)
     for entry in sorted(found, key=lambda e: (e.dist.name if e.dist else "", e.name)):
         label = f"entry_point:{entry.dist.name if entry.dist else '<unknown>'}"
+        version = entry.dist.version if entry.dist else None
         try:
             result = entry.load()()
         except Exception as exc:
             raise PlatformError(f"{label}: entry point {entry.name!r} raised {exc!r}") from exc
         if isinstance(result, Mapping):
-            yield label, f"{label} ({entry.name})", dict(result)
+            yield label, f"{label} ({entry.name})", dict(result), version
         elif isinstance(result, str | os.PathLike):
             origin = f"{label} ({result})"
-            yield label, origin, _parse.parse_file(Path(result), origin)
+            yield label, origin, _parse.parse_file(Path(result), origin), version
         else:
             raise PlatformError(
                 f"{label}: entry point {entry.name!r} returned {type(result).__name__}, "
@@ -221,7 +273,7 @@ def _side_loaded() -> Iterator[tuple[str, str, Any]]:
             continue
         for file in _environment_files(Path(item)):
             label = f"env:{file}"
-            yield label, label, _parse.parse_file(file, label)
+            yield label, label, _parse.parse_file(file, label), None
 
 
 def _environment_files(path: Path) -> list[Path]:
@@ -257,13 +309,15 @@ def _load_documents(
     builtin: bool,
     require_version: bool = True,
     source: str | None = None,
+    distribution_version: str | None = None,
 ) -> Catalog:
     """Load parsed documents as one source over ``base``.
 
     ``source`` is the label of every entry loaded; by default it is ``builtin``
-    or ``overlay:<origin>``.
+    or ``overlay:<origin>``. Each non-built-in document is recorded for ``identity()``.
     """
     base = base or _EMPTY
+    documents = list(documents)  # read twice: checked, then recorded
     problems: list[str] = []
     merged: dict[str, dict[str, tuple[Any, str]]] = {}
     compositions: dict[str, tuple[Any, str]] = {}
@@ -294,15 +348,39 @@ def _load_documents(
                 target[entry_id] = (entry, origin)
     if problems:
         raise FormatError("invalid catalog", tuple(problems))
-    loader = _Loader(base, builtin, source)
+    applied = base._applied
+    if not builtin:
+        applied += tuple(
+            SourceIdentity(
+                label=_public_label(source or f"overlay:{origin}"),
+                schema_version=data.get("schema_version", fmt.SCHEMA_VERSION),
+                sha256=_digest.source_sha256(data),
+                distribution_version=distribution_version,
+            )
+            for data, origin in documents
+        )
+    loader = _Loader(base, builtin, source, applied)
     return loader.load(merged, compositions, shorthands)
 
 
+def _public_label(label: str) -> str:
+    """``label`` with any directory removed, so a shared record names no local path."""
+    kind, _, where = label.partition(":")
+    return f"{kind}:{Path(where).name}" if kind in ("env", "overlay") else label
+
+
 class _Loader:
-    def __init__(self, base: Catalog, builtin: bool, source: str | None = None) -> None:
+    def __init__(
+        self,
+        base: Catalog,
+        builtin: bool,
+        source: str | None = None,
+        applied: tuple[SourceIdentity, ...] = (),
+    ) -> None:
         self.base = base
         self.builtin = builtin
         self.source = source
+        self.applied = applied
         self.problems: list[str] = []
         self.warnings: list[str] = []
         self.trees: dict[tuple[str, str], Tree] = dict(base._trees)
@@ -344,6 +422,7 @@ class _Loader:
             sources=MappingProxyType(self.sources),
             _tables=MappingProxyType({k: MappingProxyType(v) for k, v in self.tables.items()}),
             _trees=MappingProxyType(self.trees),
+            _applied=self.applied,
         )
         self.check_references(catalog, entries, compositions, shorthands)
         # Problems first: a warning escalated to an error must not hide them.

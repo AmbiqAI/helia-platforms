@@ -1,10 +1,12 @@
 import copy
 import dataclasses
+import json
 from types import MappingProxyType
 
 import pytest
 import yaml
 
+import helia_platforms
 from conftest import RECORD
 from helia_platforms import _digest, _parse
 from helia_platforms.catalog import _EMPTY, _load_documents, load_overlay
@@ -182,3 +184,39 @@ def test_source_sha256_sees_value_changes(document):
     before = _digest.source_sha256(copy.deepcopy(document))
     document["socs"]["soc_a"]["memories"]["tcm"]["size"] = "256K"
     assert _digest.source_sha256(document) != before
+
+
+def test_identity_records_each_overlay_in_order(tmp_path, document):
+    path = tmp_path / "private" / "overlay.yaml"
+    path.parent.mkdir()
+    path.write_text(yaml.safe_dump(document), encoding="utf-8")
+    from_file = load_overlay(path)
+    device = {"memory_devices": {"dev": {"technology": "psram", "capacity": "8M"}}}
+    both = load_overlay(device, base=from_file)
+    identity = both.identity()
+    assert identity.package_version == helia_platforms.__version__
+    assert identity.schema_version == 1
+    assert identity.catalog_digest == both.catalog_digest
+    file_source, mapping_source = identity.sources
+    assert file_source == from_file.identity().sources[0]
+    assert (file_source.label, mapping_source.label) == (
+        "overlay:overlay.yaml",
+        "overlay:<mapping>",
+    )
+    assert mapping_source.schema_version == 1  # omitted, so read at the current version
+    assert mapping_source.distribution_version is None
+
+
+def test_a_file_and_the_same_mapping_record_the_same_hash(tmp_path, document):
+    path = tmp_path / "overlay.yaml"
+    path.write_text(yaml.safe_dump(document), encoding="utf-8")
+    (from_file,) = load_overlay(path).identity().sources
+    (from_mapping,) = load_overlay(document).identity().sources
+    assert from_file.sha256 == from_mapping.sha256 == _digest.source_sha256(document)
+
+
+def test_identity_to_dict_is_json(document):
+    found = json.loads(json.dumps(load_overlay(document).identity().to_dict()))
+    assert set(found) == {"package_version", "schema_version", "catalog_digest", "sources"}
+    assert set(found["sources"][0]) == {"label", "schema_version", "sha256", "distribution_version"}
+    assert _EMPTY.identity().sources == ()
