@@ -8,6 +8,7 @@ left to later stages, except the keyed-list check, which needs no context.
 from __future__ import annotations
 
 import difflib
+import math
 import re
 from typing import Any, get_args
 
@@ -144,13 +145,18 @@ class _Checker:
         if isinstance(value, dict):
             for key, item in value.items():
                 if isinstance(key, str):
+                    self.check_text(key, path)
                     self.check_json(item, _join(path, key), enclosing)
                 else:
                     self.fail(path, f"key {key!r} must be a string; quote it")
         elif isinstance(value, list):
             for index, item in enumerate(value):
                 self.check_json(item, f"{path}[{index}]", enclosing)
-        elif not (value is None or isinstance(value, str | int | float)):
+        elif isinstance(value, str):
+            self.check_text(value, path)
+        elif isinstance(value, float) and not math.isfinite(value):
+            self.fail(path, f"{value!r} is not a finite number")
+        elif not (value is None or isinstance(value, int | float)):
             self.fail(path, f"expected JSON data, got {_describe(value)}")
 
     def check_union(self, value: Any, tp: Any, path: str, facts: bool) -> None:
@@ -186,6 +192,7 @@ class _Checker:
                 hint = "; quote it" if _is_number(value) or isinstance(value, bool) else ""
                 self.fail(path, f"expected a string, got {_describe(value)}{hint}")
                 return
+            self.check_text(value, path)
             pattern = _walk.marker(markers, fmt.Pattern)
             if pattern is not None and not re.fullmatch(pattern.regex, value):
                 reserved = value in ("value", "provenance")
@@ -207,9 +214,26 @@ class _Checker:
         if not ok:
             self.fail(path, f"expected {what}, got {_describe(value)}")
             return
+        if isinstance(value, float) and not math.isfinite(value):
+            self.fail(path, f"{value!r} is not a finite number")
+            return
         minimum = _walk.marker(markers, fmt.Minimum)
         if minimum is not None and value < minimum.value:
             self.fail(path, f"must be at least {minimum.value}")
+
+    def check_text(self, value: str, path: str) -> None:
+        """A string must encode as UTF-8; a lone surrogate from a JSON ``\\ud800`` does not."""
+        try:
+            value.encode("utf-8")
+        except UnicodeEncodeError:
+            self.fail(path, f"{value!r} is not valid Unicode text (it has a lone surrogate)")
+
+
+def conforms(value: Any, tp: Any, *, facts: bool) -> bool:
+    """True when ``value`` has no structural problem as a ``tp``."""
+    checker = _Checker("")
+    checker.check(value, tp, "", facts)
+    return not checker.problems
 
 
 def check_document(data: Any, origin: str, *, require_version: bool = True) -> list[str]:
