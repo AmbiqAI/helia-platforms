@@ -4,7 +4,7 @@ Source: AmbiqSuite (internal SWS repository) (SWS AmbiqSuite)
 Revision: stable b015b860da
 Read on: 2026-10-04
 Method: gatherer read of linker scripts, tools/ and boards/*/bsp. File:line
-references as reported; spot-check before citing in the catalogue.
+references as reported; spot-check before citing in the catalog.
 
 ## Boot layout
 

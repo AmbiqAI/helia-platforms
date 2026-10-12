@@ -1,8 +1,8 @@
 # helia-platforms
 
-`helia-platforms` is the shared catalogue of Ambiq SoC and board facts (cores,
+`helia-platforms` is the shared catalog of Ambiq SoC and board facts (cores,
 memories, clocks, NPU, debug-probe identifiers) consumed by heliaAOT,
-helia-profiler and helia-estimator. Linker windows are not catalogue content:
+helia-profiler and helia-estimator. Linker windows are not catalog content:
 the design ([RFC 0002](docs/rfcs/0002-model-and-api.md)) places them in an
 optional generated dataset of link environments that ships separately.
 
@@ -12,7 +12,7 @@ optional generated dataset of link environments that ships separately.
 ## Status
 
 Planning. This repository ships the toolchain and an importable stub only. It
-contains no catalogue data or catalogue code yet.
+contains no catalog data or catalog code yet.
 
 ## Quickstart
 

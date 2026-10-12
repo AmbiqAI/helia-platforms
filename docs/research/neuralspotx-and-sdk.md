@@ -204,7 +204,7 @@ Only `apollo510_evb/board.yaml` was read field by field in this pass.
 | 3 | The `apollo510` HAL header comment reads `NVM (MRAM): 4096MB` while its address range `0x00400000 - 0x007FFFFF` spans 4 MB. Treat the comment unit as a header typo, or raise it upstream? |
 | 4 | `cmake/socs/facts/` holds 11 files, not 12. Which SoC was expected as the twelfth? |
 | 5 | The lock's per-SoC version split (v5.2.24 for ten SoCs, v5.2.25 for `atomiq110`) is stated in the `soc_families` block; lines 17-21 only show the project-level pin. |
-| 6 | `apollo510` `NSX_FPU` is empty by design (the facts comment at `apollo510.cmake:24-27` says no separate `-mfpu` flag is emitted for Armv8.1-M). Confirm the catalogue should record the ABI string rather than an FPU name for M55 parts. |
+| 6 | `apollo510` `NSX_FPU` is empty by design (the facts comment at `apollo510.cmake:24-27` says no separate `-mfpu` flag is emitted for Armv8.1-M). Confirm the catalog should record the ABI string rather than an FPU name for M55 parts. |
 | 7 | How does the nsx-ambiq-sdk-audit mirror (`a9f4ec2`) relate to nsx-ambiq-sdk `main` (`9d4463a`)? Not compared in this pass. |
 
 ### Citation checks (2026-10-04)

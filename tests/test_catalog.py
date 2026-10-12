@@ -16,10 +16,10 @@ import pytest
 from typer.testing import CliRunner
 
 from conftest import BASE_DOCUMENT, RECORD
-from helia_platforms import catalogue, cli, model
+from helia_platforms import catalog, cli, model
 from helia_platforms._build import freeze
 from helia_platforms._tree import MergeError
-from helia_platforms.catalogue import (
+from helia_platforms.catalog import (
     _EMPTY,
     _expanded_access,
     _load_documents,
@@ -66,7 +66,7 @@ def test_model_is_immutable(document):
     assert isinstance(a.memories, tuple)
 
 
-def test_the_catalogue_and_the_empty_base_are_read_only(document):
+def test_the_catalog_and_the_empty_base_are_read_only(document):
     cat = load_overlay(document)
     mappings: tuple[Any, ...] = (cat._tables, cat._tables["socs"], cat.sources, _EMPTY._tables)
     for mapping in mappings:
@@ -1043,11 +1043,11 @@ def test_image_slots_overlap_neither_each_other_nor_boot_reservations(document):
     assert "parts.PART-A: image_slots.c overlaps boot_configs.sbl.reserved.sbl" in found
 
 
-# ---- builtin() and side-loaded catalogues (RFC 0002 private silicon) ---------------
+# ---- builtin() and side-loaded catalogs (RFC 0002 private silicon) ---------------
 
 
 def write(path: Path, data: dict[str, Any]) -> Path:
-    """Write ``data`` as a catalogue file (JSON is YAML 1.2) and return its path."""
+    """Write ``data`` as a catalog file (JSON is YAML 1.2) and return its path."""
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps({"schema_version": 1, **data}))
     return path
@@ -1083,9 +1083,9 @@ def plugins(tmp_path, monkeypatch) -> list[FakeEntryPoint]:
         {"memory_devices": {"psram_8m": device | {"provenance": RECORD}}},
     )
     found: list[FakeEntryPoint] = []
-    monkeypatch.setattr(catalogue, "_CACHE", {})
-    monkeypatch.setattr(catalogue, "_data_root", lambda: data)
-    monkeypatch.setattr(catalogue, "entry_points", lambda *, group: list(found))
+    monkeypatch.setattr(catalog, "_CACHE", {})
+    monkeypatch.setattr(catalog, "_data_root", lambda: data)
+    monkeypatch.setattr(catalog, "entry_points", lambda *, group: list(found))
     monkeypatch.delenv("HELIA_PLATFORMS_PATH", raising=False)
     return found
 
@@ -1202,7 +1202,7 @@ def test_a_failing_entry_point_names_its_source(plugins, result, error, message)
     with pytest.raises(error) as exc:
         builtin()
     assert str(exc.value).startswith(message)
-    with pytest.raises(error):  # the failure is not cached as a partial catalogue
+    with pytest.raises(error):  # the failure is not cached as a partial catalog
         builtin()
     assert set(builtin(include_plugins=False).sources.values()) == {"builtin"}
 
@@ -1239,7 +1239,7 @@ def test_a_source_that_calls_builtin_while_loading_is_refused(plugins, monkeypat
     reentrant = FakeEntryPoint("a", "a-private", None)
     monkeypatch.setattr(reentrant, "load", lambda: builtin)  # its callable is builtin itself
     plugins.append(reentrant)
-    with pytest.raises(PlatformError, match="called while the catalogue was being loaded"):
+    with pytest.raises(PlatformError, match="called while the catalog was being loaded"):
         builtin()
     assert set(builtin(include_plugins=False).sources.values()) == {"builtin"}
 
@@ -1247,7 +1247,7 @@ def test_a_source_that_calls_builtin_while_loading_is_refused(plugins, monkeypat
 def test_a_concurrent_first_call_waits_for_the_loading_one(plugins, monkeypatch):
     started, release = threading.Event(), threading.Event()
     calls: list[Any] = []
-    read = catalogue._data_documents
+    read = catalog._data_documents
 
     def slow(root):
         calls.append(root)
@@ -1255,7 +1255,7 @@ def test_a_concurrent_first_call_waits_for_the_loading_one(plugins, monkeypatch)
         release.wait(5)
         return read(root)
 
-    monkeypatch.setattr(catalogue, "_data_documents", slow)
+    monkeypatch.setattr(catalog, "_data_documents", slow)
     results: dict[str, Any] = {}
 
     def call(name: str) -> None:
@@ -1287,7 +1287,7 @@ def test_builtin_is_cached_and_discovers_once(plugins, tmp_path, monkeypatch):
         calls.append(group)
         return []
 
-    monkeypatch.setattr(catalogue, "entry_points", found)
+    monkeypatch.setattr(catalog, "entry_points", found)
     cat = builtin()
     monkeypatch.setenv("HELIA_PLATFORMS_PATH", str(tmp_path / "missing.yaml"))
     assert builtin() is cat
@@ -1297,7 +1297,7 @@ def test_builtin_is_cached_and_discovers_once(plugins, tmp_path, monkeypatch):
 
 
 def test_the_packaged_data_loads(monkeypatch):
-    monkeypatch.setattr(catalogue, "_CACHE", {})
+    monkeypatch.setattr(catalog, "_CACHE", {})
     assert set(builtin(include_plugins=False).sources.values()) <= {"builtin"}
 
 
@@ -1314,15 +1314,15 @@ def hook(event, args):
             seen.append(f"{event} {args[0]}")
 importlib.metadata.entry_points = recording
 sys.addaudithook(hook)
-import helia_platforms, helia_platforms.catalogue, helia_platforms.cli
+import helia_platforms, helia_platforms.catalog, helia_platforms.cli
 assert not seen and "yaml" not in sys.modules, seen
-helia_platforms.catalogue.builtin()
+helia_platforms.catalog.builtin()
 assert all(any(w in event for event in seen) for w in ["entry_points", *sys.argv[1:]]), seen
 """
 
 
-def test_importing_the_package_reads_no_catalogue_or_entry_points(tmp_path):
-    data = Path(catalogue.__file__).parent / "data"
+def test_importing_the_package_reads_no_catalog_or_entry_points(tmp_path):
+    data = Path(catalog.__file__).parent / "data"
     write(
         tmp_path / "env" / "x.yaml",
         {"memory_devices": {"dev": {"technology": "sram", "capacity": "1K"}}},

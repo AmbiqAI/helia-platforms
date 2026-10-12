@@ -1,7 +1,7 @@
 # RFC 0002: the platform model and the API helia-platforms exposes
 
 Status: Draft, 2026-10-04. Builds on [RFC 0001](0001-platform-catalogue.md)
-(the catalogue and its data), on AmbiqAI/helia-aot#278 (the Soc/Board
+(the catalog and its data), on AmbiqAI/helia-aot#278 (the Soc/Board
 split, typed NPU spec and alias design, captured verbatim in
 [research/helia-aot-278.md](../research/helia-aot-278.md)), and on the
 [review of RFC 0001](0001-platform-catalogue-review.md). RFC 0001 stands
@@ -15,10 +15,10 @@ sources.
 `helia-platforms` is a queryable model of Ambiq SoCs and the things that
 realize them, not a static table. It exposes:
 
-1. a **catalogue** of specifications (SoCs), implementations of them
+1. a **catalog** of specifications (SoCs), implementations of them
    (FPGA builds, FVP and RTL models, and non-default silicon), silicon
    parts, boards, add-ons and memory devices, every fact carrying
-   provenance. Linker windows are not catalogue content: an optional
+   provenance. Linker windows are not catalog content: an optional
    generated dataset of link environments ships separately;
 2. a **resolver** that turns any accepted spelling into one target, with
    aliases, compositions, family shorthands and did-you-mean in one place;
@@ -26,8 +26,8 @@ realize them, not a static table. It exposes:
    256 MACs are computed from structural facts, never declared;
 4. an **overlay** mechanism so a downstream tool, customer or bring-up team
    describes a new SoC, implementation or board by reference and delta,
-   never by restating die facts, and gets a new immutable catalogue back;
-5. **exports**: a JSON catalogue, a JSON Schema for overlays, and a CLI.
+   never by restating die facts, and gets a new immutable catalog back;
+5. **exports**: a JSON catalog, a JSON Schema for overlays, and a CLI.
 
 Tools keep their opinions. heliaAOT's placement order and alignment
 policy, the profiler's reset and PMU planning, the estimator's energy model
@@ -59,14 +59,14 @@ Each term has one meaning in this RFC, except `revision`, whose meaning depends 
 | interface | A `MemoryInterface` on a board: controller, modes and XIP aperture. |
 | population | Which memory device sits on which interface, as a board ships or as an add-on brings it. A mapping from interface name to device id. |
 | provisioning | `Board.provisioning` (or `Implementation.provisioning` for an FPGA): the name of the boot configuration the fitted part or build ships with. |
-| source label | Where a catalogue entry came from: `builtin`, `entry_point:<distribution>`, `env:<path>` or `overlay:<path>`; see `Catalogue.sources`. |
+| source label | Where a catalog entry came from: `builtin`, `entry_point:<distribution>`, `env:<path>` or `overlay:<path>`; see `Catalog.sources`. |
 | boot configuration | A `BootConfig`: a named boot layout (sbl, nbl, or a custom layout) with its reservations, one application start per programmable core (`app_start`, core 0 by default) and what it `requires`. |
 | reservation | A documented range of memory no core's image may use: boot ROM, an SBL partition. Radio firmware is an image slot, not a reservation. |
 | link environment | A `LinkEnvironment`: the linker windows one piece of software (an SDK, Zephyr, a customer script) gives a set of targets. Not part of the core model. |
 | link family | The toolchain flavour a link environment describes: `gnu`, `armlink`, `zephyr`. |
 | profile | A named linker variant within an owner and link family (for example `default`). Not the profiler's clock profile (an operating point) and not a neuralspotx starter profile. |
 | series | The SDK product line (`apollo5`, `atomiq`). Not the profiler's AP3/AP4/AP5 tier, which is profiler policy. |
-| origin | Catalogue origin only: `builtin` or `overlay`, where an entry came from. The address an application links at is `BootConfig.app_start`; the start of a linker window is `WindowRegion.start`. |
+| origin | Catalog origin only: `builtin` or `overlay`, where an entry came from. The address an application links at is `BootConfig.app_start`; the start of a linker window is `WindowRegion.start`. |
 | provenance status | One of `datasheet`, `sdk`, `measured`, `fitted`, `derived`, `unverified` ([ADR 0003](../adr/0003-provenance-record.md)). The status `derived` marks a value computed from other sourced values, such as a size computed from two addresses. |
 | derived capability | A query computed from structural facts (`isa().supports_fp16`). Not the same as `derives_from` or `based_on`; see [Inheritance and derivation](#inheritance-and-derivation). |
 | target | The resolved, flattened view `resolve()` returns. Its `kind` is `board`, `part`, `implementation` or `soc`. |
@@ -82,7 +82,7 @@ Each term has one meaning in this RFC, except `revision`, whose meaning depends 
 | P4 | Every fact has provenance | Status (datasheet, sdk, measured, fitted, derived, unverified), source, date, reviewer. Releases reject `unverified` unless allow-listed. Record and rules per [ADR 0003](../adr/0003-provenance-record.md). |
 | P5 | Overlays compose by reference | `based_on`, `soc:`, `part:`; deltas and removals; unknown keys rejected with a suggestion; built-in ids cannot be shadowed. |
 | P6 | One resolver | Canonical ids are the neuralspotx/SDK spellings, matched case-insensitively. Exact aliases and composition aliases resolve. Family shorthands (`AP5`, `AP510`) from the built-in shorthands table raise with candidates. Near misses suggest. |
-| P7 | Immutable catalogue, no global state | Loading an overlay returns a new catalogue. Nothing registers into a process-global table (the class of bug in helia-aot#331). No I/O at import. |
+| P7 | Immutable catalog, no global state | Loading an overlay returns a new catalog. Nothing registers into a process-global table (the class of bug in helia-aot#331). No I/O at import. |
 | P8 | Stdlib runtime, schema as contract | Frozen dataclasses; PyYAML for overlays and typer for the CLI, nothing heavier; a published JSON Schema with `schema_version`; whether to offer a pydantic extra is [ADR 0002](../adr/0002-schema-format-and-runtime.md)'s open question 2. Format and runtime per ADR 0002. |
 
 ## Entity model
@@ -374,7 +374,7 @@ flash), and customers add daughter boards.
   does not fit, and a device larger than its aperture.
 
 AmbiqSuite's per-shield board directories (`apollo4p_evb_disp_shield_rev2`)
-and neuralspotx's matching board id become entries in the catalogue's
+and neuralspotx's matching board id become entries in the catalog's
 `compositions` table: an alias mapped to a board id and add-on ids.
 `resolve("apollo4p_evb_disp_shield_rev2")` returns the `apollo4p_evb`
 board target with the rev 2 display shield in `Target.addons`;
@@ -407,7 +407,7 @@ is a Core or Npu that no exported Soc references (ADR 0005).
 
 Unreleased SoCs never enter this repository, so the export filter is
 defence in depth, not the primary control. `builtin()` side-loads them
-from private packages in the entry-point group `helia_platforms.catalogues`
+from private packages in the entry-point group `helia_platforms.catalogs`
 and from overlays in `HELIA_PLATFORMS_PATH`; side-loaded entries have
 origin `overlay` and a source label, never shadow built-ins, and carry
 provenance and `release_status`. Rules, load order and conflict errors are
@@ -469,12 +469,12 @@ declaration" path because there is nothing to declare but facts.
 id, a composition alias, or an alias, case-insensitively, and returns one
 resolved target. A Soc id always resolves to the bare Soc target, never to
 a board (heliaAOT's bare `atomiq110` target stays valid, as #278
-resolved). Resolution never depends on how many boards a catalogue holds.
+resolved). Resolution never depends on how many boards a catalog holds.
 A Soc may name a `default_board`, which only the explicit
 `resolve_board(soc_id)` uses. An FPGA or FVP implementation id
 (`atomiq110_fpga_turbo`) resolves directly to an implementation target.
 
-The catalogue holds two name tables besides ids and aliases:
+The catalog holds two name tables besides ids and aliases:
 
 - `compositions`: alias to (board id, add-on ids), so legacy per-shield
   ids resolve to a board plus its add-ons (see Board, external memory and
@@ -601,8 +601,8 @@ addons:
     population: {mspi1: acme_psram_8m}
 ```
 
-`load_overlay(source) -> Catalogue` returns a new catalogue; the built-in
-catalogue is never mutated. Unknown keys outside `extensions` are rejected
+`load_overlay(source) -> Catalog` returns a new catalog; the built-in
+catalog is never mutated. Unknown keys outside `extensions` are rejected
 with a suggestion. A JSON Schema is published for editors and CI.
 
 `extensions` is a proposal (see open question 4): an opaque, per-tool map
@@ -652,7 +652,7 @@ below is the resolved object returned by `resolve()`.
 | CPU string for compiler flags | `target.core.id`, `target.core_options.fpu`, `.mve` | package |
 | Name to print and to key artefacts | `target.id` (canonical) and `target.aliases`; heliaAOT lowercases, and for an alias keeps the name passed and records the canonical id (decided) | package |
 | Zephyr section names for TCM | Zephyr `LinkEnvironment` from the optional dataset, for the zephyr module type only; heliaAOT template reads its section names. No module type uses a link environment or link family for budgets | dataset, heliaAOT |
-| SoC list for the nsx manifest | `catalogue.socs()` ids in neuralspotx spelling | package |
+| SoC list for the nsx manifest | `catalog.socs()` ids in neuralspotx spelling | package |
 
 ### helia-profiler
 
@@ -719,15 +719,15 @@ range must overlap every consumer's own typer pin (helia-profiler caps
 it, see research/queries-helia-profiler.md and helia-profiler#459); typer
 stays a core dependency (decided).
 
-### `helia_platforms.catalogue`
+### `helia_platforms.catalog`
 
 ```python
-def builtin(include_plugins: bool = True) -> Catalogue   # cached, immutable; plugins: entry points, then HELIA_PLATFORMS_PATH
-def load_overlay(source: str | Path | Mapping, *, base: Catalogue | None = None) -> Catalogue
+def builtin(include_plugins: bool = True) -> Catalog   # cached, immutable; plugins: entry points, then HELIA_PLATFORMS_PATH
+def load_overlay(source: str | Path | Mapping, *, base: Catalog | None = None) -> Catalog
 
-class Catalogue:
+class Catalog:
     schema_version: int                         # the file format and export shape (ADR 0004)
-    catalogue_digest: str                       # sha256 of the data without provenance (ADR 0004)
+    catalog_digest: str                       # sha256 of the data without provenance (ADR 0004)
     compositions: Mapping[str, Composition]     # alias -> board id and add-on ids
     shorthands: Mapping[str, tuple[str, ...]]   # built-in only; the only source of AmbiguousPlatform
     sources: Mapping[tuple[str, str], str]      # (table, entry id) -> source label
@@ -740,7 +740,7 @@ class Catalogue:
     def find(self, **predicates) -> tuple[Target, ...]   # core="cortex-m55", npu_model="u85", has_region="psram"
     def resolve(self, name: str) -> Target
     def suggest(self, name: str) -> tuple[str, ...]
-    def identity(self) -> CatalogueIdentity     # package and schema versions, digest, sources (ADR 0004)
+    def identity(self) -> CatalogIdentity     # package and schema versions, digest, sources (ADR 0004)
     def to_dict(self) -> dict                   # the JSON export
 ```
 
@@ -751,7 +751,7 @@ devices each have their own namespace, so an id can recur across tables.
 
 ```python
 def resolve(name: str, *, addons: Sequence[str] = (), boot: str | None = None,
-            catalogue: Catalogue | None = None) -> Target
+            catalog: Catalog | None = None) -> Target
 def resolve_board(name) -> Board                # a board id or alias; a Soc id returns Soc.default_board
 def resolve_soc(name) -> Soc
 
@@ -870,7 +870,7 @@ target returns its DDR region
 ### Overlays, validation, export, CLI
 
 `load_overlay` parses an overlay (syntax per ADR #7), validates it against
-the JSON Schema and the semantic rules, and returns a new `Catalogue`. The
+the JSON Schema and the semantic rules, and returns a new `Catalog`. The
 semantic rules: ids unique; no shadowing of built-in ids, aliases,
 compositions or shorthands; overlays add no shorthands; `based_on`
 resolves; regions inside physical bounds and non-overlapping; a subset
@@ -900,7 +900,7 @@ and is an error when an Implementation removed that controller; a
 has an entry for is excluded, per the multicore document;
 `app_start` keys name programmable cores; every `ImageSlot` owner is a
 programmable core; slots overlap neither each other nor boot
-reservations. `helia_platforms.export` writes the JSON catalogue,
+reservations. `helia_platforms.export` writes the JSON catalog,
 filtered and scrubbed by effective release status, the JSON Schema and
 Markdown pages.
 `helia-platforms` CLI: `list [socs|boards|parts|implementations]`,
@@ -974,7 +974,7 @@ parity test (issue #13) that covers each are in
    facts, or is that characterization with provenance like memory timing?
 2. Which environments the optional link-environment dataset covers
    (nsx-ambiq-sdk toolchains and profiles, Zephyr boards), and how it is
-   versioned relative to the catalogue.
+   versioned relative to the catalog.
 3. Of `helia-npu`'s `targets` (FVP, RTL, silicon), the FVP memory maps
    ([ADR 0007](../adr/0007-fvp-memory-maps.md)) and clock choices are
    implementation description and move here; the
@@ -985,9 +985,9 @@ parity test (issue #13) that covers each are in
    whether it is enough for the profiler's custom-board measurement wiring
    or the profiler keeps its own sidecar file.
 5. How power-domain names (used in `Access.requires_awake`) are spelled
-   and sourced: the SDK HAL's power-control enums, a catalogue vocabulary
+   and sourced: the SDK HAL's power-control enums, a catalog vocabulary
    mapped to them, or both.
-6. Whether private catalogue packages are signed
+6. Whether private catalog packages are signed
    ([0002-private-silicon.md](0002-private-silicon.md)). A consumer records
-   which private catalogue it ran against through `Catalogue.identity()`
+   which private catalog it ran against through `Catalog.identity()`
    ([ADR 0004](../adr/0004-schema-and-catalogue-versions.md)).

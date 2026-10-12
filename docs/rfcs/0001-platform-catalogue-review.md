@@ -57,7 +57,7 @@ Ownership is settled by the owner direction above: `helia-npu` keeps the
 NPU-driver side (command-stream chunking, Vela system configs, port rules)
 and consumes SoC and board definitions from this package. Its
 `SocDefinition` and `socs/atomiq110.yaml` are therefore a migration source
-for this catalogue (memory timing, modes, provenance records), not a
+for this catalog (memory timing, modes, provenance records), not a
 parallel schema. The RFC should list the fields that move and which stay in
 `helia-npu` as NPU-driver policy.
 
@@ -81,11 +81,11 @@ exists. 278 itself is left to its assignee.
 The RFC makes neuralspotx the naming authority and the SDK the authority for
 firmware builds, while this package is "the authority for tools". That is
 three authorities for overlapping facts. neuralspotx's 17 `board.yaml`
-files and `registry.lock.yaml` already form a catalogue, and it carries
+files and `registry.lock.yaml` already form a catalog, and it carries
 boards the RFC excludes (apollo2_evb, apollo3_evb_cygnus,
 apollo4p_evb_disp_shield_rev2).
 
-Proposed change. The catalogue holds every board neuralspotx or any
+Proposed change. The catalog holds every board neuralspotx or any
 consumer knows, with a per-tool `support` marker (supported, experimental,
 unsupported) instead of omission. The direction of flow is decided once:
 the package generates `board.yaml` and the J-Link line into neuralspotx at
@@ -168,7 +168,7 @@ optional characterization (latency, bandwidth, port) under 2.1.
 
 The RFC keeps profiler policy in the profiler, keyed by id, but puts
 heliaAOT's `capabilities`, `preferred_memory_order` and `min_alignment`
-inside the shared catalogue. A preferred memory order of TCM, SRAM, MRAM,
+inside the shared catalog. A preferred memory order of TCM, SRAM, MRAM,
 PSRAM is heliaAOT's placement opinion, possibly not the right one, and a
 change to it would need a helia-platforms release. The asymmetry is not
 argued for, and the owner direction is that the package holds no such
@@ -211,7 +211,7 @@ Vela accelerator config string as a derived view.
 ### 2.6 The schema is the contract, so it needs a format decision
 
 The RFC says "the YAML layout is not [the design]", yet the overlay format
-is customer-facing and the catalogue will be read by three tools. Which
+is customer-facing and the catalog will be read by three tools. Which
 runtime representation (dataclasses, pydantic, attrs) and which on-disk
 format (YAML in the wheel, JSON Schema published) are undecided. Consumers
 differ: heliaAOT uses pydantic v2, the profiler uses dataclasses, the
@@ -236,7 +236,7 @@ headers produce equal physical regions.
 ### 3.1 Public PyPI before the repo is public leaks unreleased parts
 
 The RFC publishes 0.1.0 to PyPI before adoption. The repo is private today
-and the catalogue would include parts the SDK calls experimental or
+and the catalog would include parts the SDK calls experimental or
 descriptor-only. A public wheel from a private repo also cannot be audited
 by the people installing it.
 
@@ -254,7 +254,7 @@ out without a token that would then live in a public workflow.
 Proposed change. The drift test runs in two parts: an extractor script in
 this repo that reads the SDK and writes a committed snapshot (`facts.cmake`
 values, linker `MEMORY` blocks, header defines) with the SDK tag in the
-file; and a CI test that compares the catalogue with the snapshot. Refreshing
+file; and a CI test that compares the catalog with the snapshot. Refreshing
 the snapshot is a reviewed PR. The Zephyr comparison can stay live because
 Zephyr is public. (Superseded: [ADR 0006](../adr/0006-drift-test-snapshots.md)
 snapshots Zephyr as well.)
@@ -265,7 +265,7 @@ Data corrections as minor bumps, pinned `>=0.y,<0.(y+1)`, force three
 consumers to re-release for a corrected PSRAM size.
 
 Proposed change. Two versions: the package version follows the schema and
-API (semver); the catalogue carries a `catalogue_version` and date. Data-only
+API (semver); the catalog carries a `catalog_version` and date. Data-only
 releases are patch bumps. Consumers pin the schema major.
 
 ### 3.4 Governance of a fact change is unspecified
@@ -283,14 +283,14 @@ The RFC proves Phase 2 by regenerating `targets.json` and reading the diff.
 
 Proposed change. Before adoption, a parity test in this repo loads each
 consumer's current literals (heliaAOT's `targets.json`, the profiler's
-registry, the estimator's `at110.yaml`) and asserts the catalogue matches
+registry, the estimator's `at110.yaml`) and asserts the catalog matches
 except for an explicit allow-list of intended changes with reasons. The
 allow-list is the change list.
 
 ### 3.6 Phase 1 lifts code; it should start from data
 
 Phase 1 moves the profiler's `platform/` package and adds fields. A
-catalogue is better built data-first: schema, YAML entries migrated by a
+catalog is better built data-first: schema, YAML entries migrated by a
 script from all three sources, validators, then a thin API.
 
 Proposed change. Reorder Phase 1: schema and provenance ADRs, migration

@@ -97,7 +97,7 @@ BoardDef     soc -> SocDef, tier (evb|fpga|custom), is_fpga,
   uses `fp-armv8-fullfp16-sp-d16`); `supports_fp32` is `fpu != none`;
   `supports_fp64` is `fpu_dp`, the CMSIS device header's `__FPU_DP` (1 on
   the M55 parts, 0 on the M4 parts); `supports_npu` is `npu is not None`.
-- Boards, the union of both catalogues: from helia-profiler `apollo3p_evb`,
+- Boards, the union of both catalogs: from helia-profiler `apollo3p_evb`,
   `apollo3p_evb_cygnus`, `apollo4p_evb`, `apollo4l_evb`, `apollo4l_blue_evb`,
   `apollo4p_blue_kbr_evb`, `apollo4p_blue_kxr_evb`, `apollo510_evb`,
   `apollo510b_evb`, `apollo5b_evb`, `apollo330mP_evb`, `apollo510dL_evb`,
@@ -112,11 +112,11 @@ BoardDef     soc -> SocDef, tier (evb|fpga|custom), is_fpga,
   parts (AP510NLA, AP510BLA, AP510DLA), which share the core, clocks
   (96 / 192 / 250 MHz) and memories (2 MB NVM, 2 MB SRAM as 1792 KB SSRAM +
   256 KB DTCM). neuralspotx's `apollo2_evb`, `apollo3_evb_cygnus` and
-  `apollo4p_evb_disp_shield_rev2` are not in the catalogue: neither tool
+  `apollo4p_evb_disp_shield_rev2` are not in the catalog: neither tool
   supports them, and neuralspotx is not a consumer.
 - `ethos-u55-128` is the Corstone-300 FVP configuration heliaAOT's e2e
   harness uses (`CMakeLists.txt.j2:227-239`), not a SoC, and is not in the
-  catalogue.
+  catalog.
 - Seed rule for the `helia_aot` section of a board heliaAOT has no literal
   for: `min_alignment` 4 on M4 and 16 on M55; `preferred_memory_order`
   DTCM → SRAM → MRAM (ITCM never, PSRAM only where declared: today only
@@ -223,7 +223,7 @@ devicetrees in the Zephyr tree):
 | apollo4p_blue_kxr_evb | 64 (named `ITCM`) | 2752 | 1952 @ 0x18000 | — |
 | apollo3p_evb | 64 | 704 | 2000 @ 0xc000 | — |
 | apollo3_evb | 64 | 320 | 976 @ 0xc000 | — |
-| apollo2_evb | not in the catalogue | | | |
+| apollo2_evb | not in the catalog | | | |
 
 heliaAOT budget wiring: a `SocPlatform` carries `budgets: {gnu: ...,
 zephyr: ...}`; its `memories` is the `gnu` budget.
@@ -285,7 +285,7 @@ CLI: `helia-platforms list [socs|boards|cores|npus]`, `show <id>`,
 ## G. The SDK drift test
 
 Superseded by [ADR 0006](../adr/0006-drift-test-snapshots.md), which
-compares the catalogue with committed snapshots of the SDK, neuralspotx
+compares the catalog with committed snapshots of the SDK, neuralspotx
 and Zephyr. The table below is kept as imported.
 
 The package's CI checks out `nsx-ambiq-sdk` at the tags neuralspotx pins
@@ -343,7 +343,7 @@ ephemeral overlay; a plain `uv pip install -e` is undone by the next
 3. Overlay v2 parser, `PlatformError`, and the CLI.
 4. Validators (ids and aliases unique across entities; every reference
    resolves; regions inside physical bounds and non-overlapping; FP16 only
-   with MVE-FP; MVE only on Armv8.1-M; catalogue snapshot) and the SDK
+   with MVE-FP; MVE only on Armv8.1-M; catalog snapshot) and the SDK
    drift test.
 5. Reconcile the data (section J).
 6. helia-profiler maintainers sign off on section C.
@@ -370,7 +370,7 @@ ephemeral overlay; a plain `uv pip install -e` is undone by the next
      apollo330mp/apollo510l DTCM 256→240, MRAM 2048→1984; apollo3p MRAM
      2048→2000, SRAM 704→700; apollo3 boards MRAM 1024→976; apollo4p/4l
      MRAM 2000→1952; atomiq110 unchanged;
-   - budgets (`zephyr`), new column, for the five catalogue boards Zephyr
+   - budgets (`zephyr`), new column, for the five catalog boards Zephyr
      supports (section D);
    - PSRAM: apollo510 32168→65536 KB; new PSRAM memory on apollo3p_evb,
      the five Apollo4 boards, apollo510b_evb and apollo330mp_evb, with the
@@ -389,7 +389,7 @@ ephemeral overlay; a plain `uv pip install -e` is undone by the next
    - HBLRAM 13312 on atomiq110 (no `MemoryType`, so not exported);
    - `templates/nsx/nsx-module.yaml.j2:44-53`: the dead `apollo510l` entry
      becomes `apollo510L` (neuralspotx matches SoC ids exactly), and the
-     list is generated from the catalogue's SoC ids; it stays unconditional,
+     list is generated from the catalog's SoC ids; it stays unconditional,
      as `tests/unit/aot/test_ethos_u_driver_contract.py:210-213` requires,
      so no module's compatibility narrows;
    - `TargetChips.astro` gains the `apollo5` stem, placed after `apollo510`.

@@ -113,7 +113,7 @@ def generate() -> dict[str, Any]:
     return {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "$id": SCHEMA_ID,
-        "title": "helia-platforms catalogue file",
+        "title": "helia-platforms catalog file",
         **document,
         "$defs": dict(sorted(generator.defs.items())),
     }

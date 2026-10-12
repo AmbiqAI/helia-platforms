@@ -1,4 +1,4 @@
-"""The catalogue and ``load_overlay`` (RFC 0002 "helia_platforms.catalogue"; ADR 0002)."""
+"""The catalog and ``load_overlay`` (RFC 0002 "helia_platforms.catalog"; ADR 0002)."""
 
 from __future__ import annotations
 
@@ -41,7 +41,7 @@ _KINDS: dict[str, type] = {
 }
 #: Kinds whose ids and aliases share the one namespace ``resolve()`` reads (section 2.3).
 _RESOLVABLE = ("socs", "implementations", "parts", "boards")
-#: Where ``builtin()`` side-loads private catalogues from (RFC 0002 private silicon).
+#: Where ``builtin()`` side-loads private catalogs from (RFC 0002 private silicon).
 _ENTRY_POINT_GROUP = "helia_platforms.catalogs"
 _PATH_VARIABLE = "HELIA_PLATFORMS_PATH"
 
@@ -51,8 +51,8 @@ def _empty() -> Mapping[Any, Any]:
 
 
 @dataclass(frozen=True)
-class Catalogue:
-    """An immutable catalogue. ``load_overlay`` returns a new one; nothing is mutated."""
+class Catalog:
+    """An immutable catalog. ``load_overlay`` returns a new one; nothing is mutated."""
 
     schema_version: int = fmt.SCHEMA_VERSION
     compositions: Mapping[str, model.Composition] = field(default_factory=_empty)
@@ -102,7 +102,7 @@ class Catalogue:
     def catalog_digest(self) -> str:
         """``sha256:<hex>`` of the built-in entries without provenance (ADR 0004 point 1).
 
-        ADR 0004's ``catalogue_digest``; loading computes it (point 3). Entries from
+        ADR 0004's ``catalogue_digest`` (ADR 0009); loading computes it (point 3). Entries from
         overlays and side-loaded sources are left out: ADR 0004 point 4 records those
         sources beside the digest, in ``identity()``.
         """
@@ -127,19 +127,19 @@ class Catalogue:
         return build_entity(model.Soc, fmt.Soc, tree, impl.soc)
 
 
-_EMPTY = Catalogue()
-_CACHE: dict[bool, Catalogue] = {}
-#: Held while a catalogue loads, so a concurrent first call waits for it. Only the
+_EMPTY = Catalog()
+_CACHE: dict[bool, Catalog] = {}
+#: Held while a catalog loads, so a concurrent first call waits for it. Only the
 #: thread holding it adds to ``_LOADING``, so a key found there means recursion.
 _LOCK = threading.RLock()
 _LOADING: set[bool] = set()
 
 
-def builtin(include_plugins: bool = True) -> Catalogue:
-    """The built-in catalogue, cached per ``include_plugins`` value.
+def builtin(include_plugins: bool = True) -> Catalog:
+    """The built-in catalog, cached per ``include_plugins`` value.
 
     With ``include_plugins``, entry points in ``helia_platforms.catalogs``, then
-    files in ``HELIA_PLATFORMS_PATH``, each load as an overlay on the catalogue so
+    files in ``HELIA_PLATFORMS_PATH``, each load as an overlay on the catalog so
     far. Discovery runs at the first call; a failing source raises ``PlatformError``,
     as does a source that calls ``builtin()`` while it is being loaded.
     """
@@ -147,7 +147,7 @@ def builtin(include_plugins: bool = True) -> Catalogue:
     if key not in _CACHE:
         with _LOCK:
             if key in _LOADING:
-                raise PlatformError("builtin() was called while the catalogue was being loaded")
+                raise PlatformError("builtin() was called while the catalog was being loaded")
             if key not in _CACHE:  # another thread may have loaded it while this one waited
                 _LOADING.add(key)
                 try:
@@ -157,15 +157,15 @@ def builtin(include_plugins: bool = True) -> Catalogue:
     return _CACHE[key]
 
 
-def _build(include_plugins: bool) -> Catalogue:
+def _build(include_plugins: bool) -> Catalog:
     if not include_plugins:
         return _load_documents(_data_documents(_data_root()), builtin=True)
-    catalogue = builtin(include_plugins=False)
+    catalog = builtin(include_plugins=False)
     for label, origin, data in _side_loaded():
-        catalogue = _load_documents(
-            [(data, origin)], base=catalogue, builtin=False, require_version=True, source=label
+        catalog = _load_documents(
+            [(data, origin)], base=catalog, builtin=False, require_version=True, source=label
         )
-    return catalogue
+    return catalog
 
 
 def _data_root() -> Traversable:
@@ -235,9 +235,9 @@ def _environment_files(path: Path) -> list[Path]:
 
 
 def load_overlay(
-    source: str | os.PathLike[str] | Mapping[str, Any], *, base: Catalogue | None = None
-) -> Catalogue:
-    """Load an overlay file or mapping over ``base`` and return a new catalogue.
+    source: str | os.PathLike[str] | Mapping[str, Any], *, base: Catalog | None = None
+) -> Catalog:
+    """Load an overlay file or mapping over ``base`` and return a new catalog.
 
     A mapping may omit ``schema_version`` (ADR 0002 section 2.2). Raises
     ``FormatError`` listing every problem found.
@@ -253,11 +253,11 @@ def load_overlay(
 def _load_documents(
     documents: Iterable[tuple[Any, str]],
     *,
-    base: Catalogue | None = None,
+    base: Catalog | None = None,
     builtin: bool,
     require_version: bool = True,
     source: str | None = None,
-) -> Catalogue:
+) -> Catalog:
     """Load parsed documents as one source over ``base``.
 
     ``source`` is the label of every entry loaded; by default it is ``builtin``
@@ -293,13 +293,13 @@ def _load_documents(
                     problems.append(f"{origin}: {key}.{entry_id}: defined twice")
                 target[entry_id] = (entry, origin)
     if problems:
-        raise FormatError("invalid catalogue", tuple(problems))
+        raise FormatError("invalid catalog", tuple(problems))
     loader = _Loader(base, builtin, source)
     return loader.load(merged, compositions, shorthands)
 
 
 class _Loader:
-    def __init__(self, base: Catalogue, builtin: bool, source: str | None = None) -> None:
+    def __init__(self, base: Catalog, builtin: bool, source: str | None = None) -> None:
         self.base = base
         self.builtin = builtin
         self.source = source
@@ -316,7 +316,7 @@ class _Loader:
     def warn(self, origin: str, where: str, message: str) -> None:
         self.warnings.append(f"{origin}: {where}: {message}")
 
-    def load(self, entries: dict, compositions: dict, shorthands: dict) -> Catalogue:
+    def load(self, entries: dict, compositions: dict, shorthands: dict) -> Catalog:
         self.check_names(entries, compositions, shorthands)
         new: dict[tuple[str, str], tuple[Tree, str]] = {}
         for kind in _KINDS:
@@ -328,7 +328,7 @@ class _Loader:
         for (kind, entry_id), (tree, origin) in new.items():
             self.finish(kind, entry_id, tree, origin)
         if self.problems:
-            raise FormatError("invalid catalogue", tuple(self.problems))
+            raise FormatError("invalid catalog", tuple(self.problems))
         built_compositions = dict(self.base.compositions)
         for alias, (raw, origin) in compositions.items():
             built_compositions[alias] = model.Composition(
@@ -338,21 +338,21 @@ class _Loader:
         built_shorthands = dict(self.base.shorthands)
         for name, (members, _) in shorthands.items():
             built_shorthands[name] = tuple(members)
-        catalogue = Catalogue(
+        catalog = Catalog(
             compositions=MappingProxyType(built_compositions),
             shorthands=MappingProxyType(built_shorthands),
             sources=MappingProxyType(self.sources),
             _tables=MappingProxyType({k: MappingProxyType(v) for k, v in self.tables.items()}),
             _trees=MappingProxyType(self.trees),
         )
-        self.check_references(catalogue, entries, compositions, shorthands)
+        self.check_references(catalog, entries, compositions, shorthands)
         # Problems first: a warning escalated to an error must not hide them.
         if self.problems:
-            raise FormatError("invalid catalogue", tuple(self.problems))
-        catalogue.catalog_digest  # noqa: B018 (computed at load, ADR 0004 point 3)
+            raise FormatError("invalid catalog", tuple(self.problems))
+        catalog.catalog_digest  # noqa: B018 (computed at load, ADR 0004 point 3)
         for message in self.warnings:
             warnings.warn(message, PlatformWarning, stacklevel=4)  # the caller of load_overlay
-        return catalogue
+        return catalog
 
     def label(self, origin: str) -> str:
         if self.source is not None:
@@ -512,7 +512,7 @@ class _Loader:
     # -- references, checked after the merge (section 2.5) ---------------------------
 
     def check_references(
-        self, catalogue: Catalogue, entries: dict, compositions: dict, shorthands: dict
+        self, catalog: Catalog, entries: dict, compositions: dict, shorthands: dict
     ) -> None:
         checks = {
             "socs": self.check_soc,
@@ -523,11 +523,11 @@ class _Loader:
         }
         for kind, check in checks.items():
             for entry_id, (_, origin) in entries.get(kind, {}).items():
-                entity = catalogue._tables.get(kind, {}).get(entry_id)
+                entity = catalog._tables.get(kind, {}).get(entry_id)
                 if entity is not None:
-                    check(catalogue, entity, origin)
-        boards = catalogue._tables.get("boards", {})
-        addons = catalogue._tables.get("addons", {})
+                    check(catalog, entity, origin)
+        boards = catalog._tables.get("boards", {})
+        addons = catalog._tables.get("addons", {})
         for alias, (raw, origin) in compositions.items():
             if raw["board"] not in boards:
                 self.fail(origin, f"compositions.{alias}", f"no board {raw['board']!r}")
@@ -538,17 +538,17 @@ class _Loader:
                 placed = [addons[a] for a in raw.get("addons", [])]
                 for problem in _placement_problems(boards[raw["board"]], placed):
                     self.fail(origin, f"compositions.{alias}", problem)
-        resolvable = {name for kind in _RESOLVABLE for name in catalogue._tables.get(kind, {})}
+        resolvable = {name for kind in _RESOLVABLE for name in catalog._tables.get(kind, {})}
         for name, (members, origin) in shorthands.items():
             for member in members:
                 if member not in resolvable:
                     self.fail(origin, f"shorthands.{name}", f"no entry {member!r}")
 
-    def check_soc(self, catalogue: Catalogue, soc: model.Soc, origin: str) -> None:
+    def check_soc(self, catalog: Catalog, soc: model.Soc, origin: str) -> None:
         where = f"socs.{soc.id}"
-        for problem in _soc_reference_problems(soc, catalogue):
+        for problem in _soc_reference_problems(soc, catalog):
             self.fail(origin, where, problem)
-        for problem in _derivation_problems(soc, catalogue):
+        for problem in _derivation_problems(soc, catalog):
             self.fail(origin, where, problem)
         for region in soc.memories:
             if region.stands_in_for:
@@ -563,13 +563,13 @@ class _Loader:
                 self.fail(origin, f"{where}.memories.{name}", message)
 
     def check_implementation(
-        self, catalogue: Catalogue, impl: model.Implementation, origin: str
+        self, catalog: Catalog, impl: model.Implementation, origin: str
     ) -> None:
         where = f"implementations.{impl.id}"
-        if impl.soc not in catalogue._tables.get("socs", {}):
+        if impl.soc not in catalog._tables.get("socs", {}):
             self.fail(origin, where, f"no soc {impl.soc!r}")
             return
-        trees = catalogue._trees
+        trees = catalog._trees
         own = fvp_problems(
             trees[("socs", impl.soc)].values, trees[("implementations", impl.id)].values
         )
@@ -578,41 +578,41 @@ class _Loader:
         if own:
             return  # realizing raises the same problems
         try:
-            realized = catalogue._realized(impl.id)
+            realized = catalog._realized(impl.id)
         except MergeError as exc:
             for problem in exc.problems:
                 self.fail(origin, f"{where}.subset", problem)
             return
-        for problem in _soc_reference_problems(realized, catalogue):
+        for problem in _soc_reference_problems(realized, catalog):
             self.fail(origin, where, f"as realized: {problem}")
         if self.builtin:
             # A subset can drop a kept region's only entry. Gaps the Soc already has are
             # reported against the Soc, not again here.
-            unreached = set(_unreached_regions(catalogue._tables["socs"][impl.soc]))
+            unreached = set(_unreached_regions(catalog._tables["socs"][impl.soc]))
             for name in _unreached_regions(realized):
                 if name not in unreached:
                     message = "as realized: no access entry after default_access expansion"
                     self.fail(origin, f"{where}.memories.{name}", message)
         if impl.provisioning is not None and impl.provisioning not in realized.boot_configs:
             self.fail(origin, where, f"provisioning {impl.provisioning!r} is not a boot config")
-        self.check_population(catalogue, impl.interfaces, impl.population, where, origin)
+        self.check_population(catalog, impl.interfaces, impl.population, where, origin)
         removed = impl.subset.peripherals_removed
-        self.check_interfaces(catalogue, realized, impl, where, origin, removed=removed)
+        self.check_interfaces(catalog, realized, impl, where, origin, removed=removed)
 
-    def check_part(self, catalogue: Catalogue, part: model.Part, origin: str) -> None:
+    def check_part(self, catalog: Catalog, part: model.Part, origin: str) -> None:
         where = f"parts.{part.id}"
-        socs = catalogue._tables.get("socs", {})
+        socs = catalog._tables.get("socs", {})
         if part.soc not in socs:
             self.fail(origin, where, f"no soc {part.soc!r}")
             return
         soc = socs[part.soc]
         if part.implementation is not None:
-            impl = catalogue._tables.get("implementations", {}).get(part.implementation)
+            impl = catalog._tables.get("implementations", {}).get(part.implementation)
             if impl is None or impl.soc != part.soc:
                 self.fail(origin, where, f"no implementation {part.implementation!r} of {soc.id}")
             else:
                 try:
-                    soc = catalogue._realized(impl.id)  # slots name what the Implementation keeps
+                    soc = catalog._realized(impl.id)  # slots name what the Implementation keeps
                 except MergeError:
                     return  # reported against the implementation
         cores = {c.id: c for c in soc.cores}
@@ -628,40 +628,40 @@ class _Loader:
         for problem in _slot_overlap_problems(part, soc):
             self.fail(origin, where, problem)
 
-    def check_board(self, catalogue: Catalogue, board: model.Board, origin: str) -> None:
+    def check_board(self, catalog: Catalog, board: model.Board, origin: str) -> None:
         where = f"boards.{board.id}"
-        part = catalogue._tables.get("parts", {}).get(board.part)
+        part = catalog._tables.get("parts", {}).get(board.part)
         if part is None:
             self.fail(origin, where, f"no part {board.part!r}")
             return
-        self.check_population(catalogue, board.interfaces, board.population, where, origin)
-        if part.soc not in catalogue._tables.get("socs", {}):
+        self.check_population(catalog, board.interfaces, board.population, where, origin)
+        if part.soc not in catalog._tables.get("socs", {}):
             return  # reported against the part
         try:
             soc = (
-                catalogue._realized(part.implementation)
+                catalog._realized(part.implementation)
                 if part.implementation
-                else catalogue._tables["socs"][part.soc]
+                else catalog._tables["socs"][part.soc]
             )
         except (KeyError, MergeError):
             return  # reported against the part or the implementation
         if board.provisioning is not None and board.provisioning not in soc.boot_configs:
             self.fail(origin, where, f"provisioning {board.provisioning!r} is not a boot config")
-        impl = catalogue._tables.get("implementations", {}).get(part.implementation)
+        impl = catalog._tables.get("implementations", {}).get(part.implementation)
         removed = impl.subset.peripherals_removed if impl is not None else ()
-        self.check_interfaces(catalogue, soc, board, where, origin, removed=removed)
+        self.check_interfaces(catalog, soc, board, where, origin, removed=removed)
 
-    def check_addon(self, catalogue: Catalogue, addon: model.AddOn, origin: str) -> None:
+    def check_addon(self, catalog: Catalog, addon: model.AddOn, origin: str) -> None:
         where = f"addons.{addon.id}"
-        boards = catalogue._tables.get("boards", {})
+        boards = catalog._tables.get("boards", {})
         for board in addon.fits_boards:
             if board not in boards:
                 self.fail(origin, f"{where}.fits_boards", f"no board {board!r}")
         for interface in addon.population:
             if interface not in addon.occupies:
                 self.fail(origin, f"{where}.population", f"{interface!r} is not in occupies")
-        self.check_population(catalogue, None, addon.population, where, origin)
-        devices = catalogue._tables.get("memory_devices", {})
+        self.check_population(catalog, None, addon.population, where, origin)
+        devices = catalog._tables.get("memory_devices", {})
         for board in (boards[b] for b in addon.fits_boards if b in boards):
             for problem in _placement_problems(board, [addon]):
                 self.fail(origin, where, problem)
@@ -675,13 +675,13 @@ class _Loader:
 
     def check_population(
         self,
-        catalogue: Catalogue,
+        catalog: Catalog,
         interfaces: Mapping[str, Any] | None,
         population: Mapping[str, str],
         where: str,
         origin: str,
     ) -> None:
-        devices = catalogue._tables.get("memory_devices", {})
+        devices = catalog._tables.get("memory_devices", {})
         for interface, device in population.items():
             if interfaces is not None and interface not in interfaces:
                 self.fail(origin, f"{where}.population", f"no interface {interface!r}")
@@ -690,7 +690,7 @@ class _Loader:
 
     def check_interfaces(
         self,
-        catalogue: Catalogue,
+        catalog: Catalog,
         soc: model.Soc,
         owner: model.Board | model.Implementation,
         where: str,
@@ -719,7 +719,7 @@ class _Loader:
                 )
                 # Built-in interfaces must be covered (RFC 0002 "Overlays, validation").
                 (self.fail if self.builtin else self.warn)(origin, at, message)
-        devices = catalogue._tables.get("memory_devices", {})
+        devices = catalog._tables.get("memory_devices", {})
         for name, device in population.items():
             if name in interfaces and device in devices:
                 at = f"{where}.population.{name}"
@@ -742,23 +742,23 @@ class _Loader:
             )
 
 
-def _soc_reference_problems(soc: model.Soc, catalogue: Catalogue) -> list[str]:
+def _soc_reference_problems(soc: model.Soc, catalog: Catalog) -> list[str]:
     """References inside one Soc that do not resolve (ADR 0002 section 2.5; RFC 0002)."""
     return [
-        *_unit_problems(soc, catalogue),
+        *_unit_problems(soc, catalog),
         *_clock_problems(soc),
         *_boot_problems(soc),
         *_access_problems(soc),
-        *_relation_problems(soc, catalogue),
+        *_relation_problems(soc, catalog),
         *_layout_problems(soc),
     ]
 
 
-def _unit_problems(soc: model.Soc, catalogue: Catalogue) -> list[str]:
+def _unit_problems(soc: model.Soc, catalog: Catalog) -> list[str]:
     problems: list[str] = []
     domains = {d.id for d in soc.clock_domains}
     cores = {c.id for c in soc.cores}
-    known_cores = catalogue._tables.get("cores", {})
+    known_cores = catalog._tables.get("cores", {})
     if soc.cores and soc.cores[0].role != "application":
         problems.append(f"core 0 ({soc.cores[0].id}) must have role application")
     for core in soc.cores:
@@ -839,11 +839,11 @@ def _access_problems(soc: model.Soc) -> list[str]:
     return problems
 
 
-def _relation_problems(soc: model.Soc, catalogue: Catalogue) -> list[str]:
+def _relation_problems(soc: model.Soc, catalog: Catalog) -> list[str]:
     problems: list[str] = []
-    if soc.derives_from is not None and soc.derives_from not in catalogue._tables.get("socs", {}):
+    if soc.derives_from is not None and soc.derives_from not in catalog._tables.get("socs", {}):
         problems.append(f"derives_from: no soc {soc.derives_from!r}")
-    boards = catalogue._tables.get("boards", {})
+    boards = catalog._tables.get("boards", {})
     if soc.default_board is not None and soc.default_board not in boards:
         problems.append(f"default_board: no board {soc.default_board!r}")
     return problems
@@ -867,9 +867,9 @@ def _layout_problems(soc: model.Soc) -> list[str]:
     ]
 
 
-def _derivation_problems(soc: model.Soc, catalogue: Catalogue) -> list[str]:
+def _derivation_problems(soc: model.Soc, catalog: Catalog) -> list[str]:
     """``derives_from`` requires equal physical regions (RFC 0002 "Inheritance and derivation")."""
-    parent = catalogue._tables.get("socs", {}).get(soc.derives_from or "")
+    parent = catalog._tables.get("socs", {}).get(soc.derives_from or "")
     if parent is None:
         return []  # no relation, or reported as a reference problem
     mine, theirs = _physical_regions(soc), _physical_regions(parent)

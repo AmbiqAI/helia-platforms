@@ -7,7 +7,7 @@
 | Method | pypdf text extraction with decryption of the permissions wrapper; layout extraction used for one table (the Cortex-M55 memory map and ordering table of the Apollo510 Lite and Apollo330 Plus datasheets) |
 | Atomiq110 | No atomiq110 datasheet is present in the folder |
 
-This note records what Ambiq's own datasheets and EVB quick-start guides say. The datasheets are the source of record for silicon and board numbers; this note is a page-cited summary of them. Catalogue values should cite the document and PDF page given here, not another repo. Every citation is `<document key> p<N>`, where N is the PDF page index (1-based). For the datasheets the PDF page index matches the printed "Page N of M" footer. Document keys are defined in the inventory. Quotes are kept short and exact; anything that is arithmetic on a datasheet value is marked "computed".
+This note records what Ambiq's own datasheets and EVB quick-start guides say. The datasheets are the source of record for silicon and board numbers; this note is a page-cited summary of them. Catalog values should cite the document and PDF page given here, not another repo. Every citation is `<document key> p<N>`, where N is the PDF page index (1-based). For the datasheets the PDF page index matches the printed "Page N of M" footer. Document keys are defined in the inventory. Quotes are kept short and exact; anything that is arithmetic on a datasheet value is marked "computed".
 
 ## 1. Inventory
 
@@ -304,7 +304,7 @@ The documents disagree with each other on ordering in three places:
 | Apollo4 EVB (rev 3) | None listed | none described | Segger J-Link; SWO defaults to J13 | RF switch for BLE PHY testing listed | p9, p10, p18 |
 | Apollo3 Blue Plus EVB | None listed; FTDI USB-to-SPI interface | none described | Segger J-Link; debugger-in and debugger-out ports | PCB (MIFA) antenna; RF switch J1 | p7 |
 
-## 7. Catalogue corrections implied
+## 7. Catalog corrections implied
 
 | Current belief | Datasheet or guide says | Source |
 | --- | --- | --- |
@@ -321,7 +321,7 @@ The documents disagree with each other on ordering in three places:
 | helia-profiler `apollo510L` and `apollo330P` clocks lp 96, hp 250 | Two HP modes: HP1 192 MHz (HFRC) and HP2 250 MHz (PLL). heliaAOT `apollo330mp_evb` already lists 96, 192, 250 | DS-A510LS p46; DS-A330PS p46 |
 | `apollo4p` SRAM 1 MB (heliaAOT `apollo4p_evb`; helia-profiler `sram_kb=1024`) | 2048 kB SSRAM plus 384 kB extended SRAM plus 384 kB TCM | DS-A4P p52, p58 |
 | helia-profiler `apollo3p` `mram_kb=2000`, `sram_kb=700` | 2 MB flash; 704 KB main SRAM plus 64 KB TCM | DS-A3P p2, p82 |
-| Board identity is the board name only | Board revision changes fitted memory (Apollo510 Lite and Apollo330 Plus revision 2.0 drop PSRAM; the Apollo4 Plus EVB guide spans revisions 1 to 3). The catalogue needs a board revision field | QS-A510DL p30; QS-A330MP p30; QS-A4P p6, p12 |
+| Board identity is the board name only | Board revision changes fitted memory (Apollo510 Lite and Apollo330 Plus revision 2.0 drop PSRAM; the Apollo4 Plus EVB guide spans revisions 1 to 3). The catalog needs a board revision field | QS-A510DL p30; QS-A330MP p30; QS-A4P p6, p12 |
 
 ## 8. Gaps
 
@@ -331,8 +331,8 @@ The documents disagree with each other on ordering in three places:
 | No Apollo4 Family Security User's Guide (referenced by DS-A4 p94, DS-A4B p87, DS-A4P p95, DS-A4BP p93) | Apollo4 SBL layout and application start address remain unsourced |
 | No Apollo5 or Apollo510 Lite security documentation, and no SBL documentation for the Lite and 330 Plus parts | The 0x410000 offset on those parts rests on the EVB guides alone |
 | No apollo5b documents | `apollo5b` and `apollo5b_evb` cannot be checked |
-| No guides for Apollo4 Lite, Apollo4 Blue Lite, Apollo4 Blue Plus KXR, Apollo4 Blue, Apollo3 Blue, Apollo3, or Apollo2 EVBs | Board facts for those catalogue entries are unsourced |
-| J-Link device names | Confirmed in a guide only for the Apollo4 Blue Plus KBR EVB ("AMA4B2KP-KBR", QS-A4BP p7). Other `jlink_device` values in the catalogue are unverified |
+| No guides for Apollo4 Lite, Apollo4 Blue Lite, Apollo4 Blue Plus KXR, Apollo4 Blue, Apollo3 Blue, Apollo3, or Apollo2 EVBs | Board facts for those catalog entries are unsourced |
+| J-Link device names | Confirmed in a guide only for the Apollo4 Blue Plus KBR EVB ("AMA4B2KP-KBR", QS-A4BP p7). Other `jlink_device` values in the catalog are unverified |
 | PSRAM capacity of the APS512XX parts | Not stated in any document in the folder |
 | Fitted crystal values | Each datasheet states its crystal oscillator frequencies (section 4), but no EVB guide states which crystals are fitted |
 | Preliminary revisions | DS-A510LS and DS-A330PS are 0.9.0; DS-A4L 0.9.1; DS-A4BL 0.9.0 |
@@ -342,7 +342,7 @@ The documents disagree with each other on ordering in three places:
 Recorded from Adam Page in planning discussion, not from a document. They
 carry provenance status "owner statement" until a document confirms them.
 
-| Statement | Effect on the catalogue |
+| Statement | Effect on the catalog |
 |---|---|
 | The Apollo510 EVB has PSRAM and NOR flash populated. | Confirms the parts named in the Apollo510 EVB guide are fitted; capacities still need a document. |
 | The Apollo330 Plus EVB does not come with PSRAM populated. | Agrees with the rev 2.0 guide. |

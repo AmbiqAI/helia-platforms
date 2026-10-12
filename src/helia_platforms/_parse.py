@@ -1,4 +1,4 @@
-"""Read catalogue files: YAML by the 1.2 core schema, and JSON (ADR 0002 section 2.6)."""
+"""Read catalog files: YAML by the 1.2 core schema, and JSON (ADR 0002 section 2.6)."""
 
 from __future__ import annotations
 

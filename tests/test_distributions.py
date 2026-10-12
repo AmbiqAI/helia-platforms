@@ -1,7 +1,7 @@
 """File-list test for the built wheel and sdist (ADR 0005, point 1).
 
 A published PyPI file cannot be replaced, so a stray file in either
-distribution must fail here first. The catalogue half of the test waits for
+distribution must fail here first. The catalog half of the test waits for
 the loader and export (#69).
 """
 

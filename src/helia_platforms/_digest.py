@@ -64,7 +64,7 @@ def _keyed(entries: Mapping[str, Any]) -> dict[str, Any]:
 
 def _field(cls: type, name: str, value: Any) -> Any:
     if name == "extensions":
-        # Unreachable from Catalogue.catalog_digest, since built-in entries may not
+        # Unreachable from Catalog.catalog_digest, since built-in entries may not
         # carry extensions; kept so a hand-built model still projects.
         return _opaque(value)
     if isinstance(value, tuple):

@@ -262,8 +262,8 @@ From `origin/main b195e29f`.
 | 2 | `hpx analyze` passes the profiler board name to heliaAOT unmapped (`engine_analysis.py:72`). Boards whose names differ from heliaAOT's (`apollo330mP_evb`, `apollo510dL_evb`, `atomiq110_fpga_turbo`, `apollo5b_evb`) would not resolve to a registered heliaAOT entry. Confirm intended behaviour. |
 | 3 | `apollo3p_evb_cygnus` has no heliaAOT mapping. |
 | 4 | Memory literals differ from heliaAOT for the same parts: profiler `mram_kb=2000` vs heliaAOT 2 MB (Apollo3P/4P/4L); profiler Apollo3P `sram_kb=700` vs heliaAOT 704 KB; profiler `apollo510` `psram_kb=65536` vs heliaAOT `32168 * 1024`. Which is authoritative, and against which source of record? |
-| 5 | `psram_kb` lives on both `MemoryLayout` (SoC) and `BoardDef` (board override). The catalogue needs one owner per fact. |
-| 6 | `capabilities._FAMILY_MEMORY_BASES` and `memory_map._MAPS` disagree by design (module docstring, `memory_map.py:15-21`); a contract test pins the divergence until callers migrate. Which one does the catalogue adopt? |
+| 5 | `psram_kb` lives on both `MemoryLayout` (SoC) and `BoardDef` (board override). The catalog needs one owner per fact. |
+| 6 | `capabilities._FAMILY_MEMORY_BASES` and `memory_map._MAPS` disagree by design (module docstring, `memory_map.py:15-21`); a contract test pins the divergence until callers migrate. Which one does the catalog adopt? |
 
 ### Citation checks against the coordinator's facts (origin/main b195e29f)
 
