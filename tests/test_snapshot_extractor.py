@@ -72,6 +72,28 @@ def test_names_resolve_through_the_given_table() -> None:
         cexpr.evaluate("UNKNOWN + 1")
 
 
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("0 && (1 / 0)", 0),
+        ("1 || UNKNOWN", 1),
+        ("0 && UNKNOWN || 1", 1),
+        ("1 || (0 && 1 / 0) + UNKNOWN", 1),
+        ("1 && 2", 1),
+        ("0 || 3", 1),
+    ],
+)
+def test_logical_operators_short_circuit(text: str, expected: int) -> None:
+    assert cexpr.evaluate(text) == expected
+
+
+def test_the_evaluated_operand_of_a_logical_operator_still_resolves() -> None:
+    with pytest.raises(ExtractError, match="UNKNOWN is not an integer"):
+        cexpr.evaluate("1 && UNKNOWN")
+    with pytest.raises(ExtractError, match="division by zero"):
+        cexpr.evaluate("0 || 1 / 0")
+
+
 @pytest.mark.parametrize("text", ["(1 + 2", "1 +", "1 2", "1 @ 2", ""])
 def test_malformed_expressions_raise(text: str) -> None:
     with pytest.raises(ExtractError):

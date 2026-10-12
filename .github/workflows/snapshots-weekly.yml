@@ -19,7 +19,7 @@ permissions: {}
 
 jobs:
   # Step 2 runs upstream code (Zephyr's dtlib), so extraction holds no token
-  # (ADR 0006 section 1); only the report job can write to the issue.
+  # (ADR 0006 section 1); only the report job's two gh steps get one.
   extract:
     runs-on: ubuntu-latest
     permissions:
@@ -89,7 +89,6 @@ jobs:
     permissions:
       issues: write
     env:
-      GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
       ISSUE: ${{ vars.SNAPSHOT_TRACKING_ISSUE }}
       MENTION: ${{ needs.extract.outputs.mention }}
@@ -101,6 +100,8 @@ jobs:
           path: report
       - name: Report the step 1 failure
         if: needs.extract.outputs.step1 == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           {
             echo "Weekly snapshot check, step 1: re-extracting at the recorded revisions failed."
@@ -116,6 +117,7 @@ jobs:
           gh issue comment "$ISSUE" --body-file "$RUNNER_TEMP/step1.md"
       - name: Report a new step 2 diff
         env:
+          GH_TOKEN: ${{ github.token }}
           HASH: ${{ needs.extract.outputs.hash }}
           STATUS: ${{ needs.extract.outputs.status }}
         run: |

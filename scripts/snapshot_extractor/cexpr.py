@@ -147,6 +147,7 @@ class _Parser:
         self.pos = 0
         self.resolve = resolve
         self.text = text
+        self.skipping = 0
 
     def _peek(self) -> str | int | None:
         return self.tokens[self.pos] if self.pos < len(self.tokens) else None
@@ -165,7 +166,15 @@ class _Parser:
             if not isinstance(op, str) or op not in _BINARY or _BINARY[op] <= min_power:
                 return left
             self.pos += 1
-            left = _APPLY[op](left, self.expression(_BINARY[op]))
+            if (op == "&&" and not left) or (op == "||" and left):
+                # As in C, the right operand is parsed but not evaluated.
+                self.skipping += 1
+                self.expression(_BINARY[op])
+                self.skipping -= 1
+                left = int(bool(left))
+                continue
+            right = self.expression(_BINARY[op])
+            left = 0 if self.skipping else _APPLY[op](left, right)
 
     def _unary(self) -> int:  # noqa: PLR0911 (one return per kind of operand)
         token = self._take()
@@ -187,6 +196,8 @@ class _Parser:
         if token == "!":
             return int(not self._unary())
         if token[0].isalpha() or token[0] == "_":
+            if self.skipping:
+                return 0
             value = self.resolve(token)
             if value is None:
                 raise ExtractError(f"{token} is not an integer in {self.text.strip()!r}")

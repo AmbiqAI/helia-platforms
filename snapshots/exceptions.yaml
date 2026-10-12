@@ -1,4 +1,4 @@
-# Disagreements between the catalogue and these snapshots that check-sources
+# Disagreements between the catalog and these snapshots that check-sources
 # (#72) accepts (ADR 0006 section 3). Each entry names a snapshot file, the key
 # path of the value or group in it, the comparison rule it fails, a reason and
 # the issue that tracks the fix. Remove an entry when its issue is fixed.
