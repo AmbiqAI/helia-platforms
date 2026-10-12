@@ -38,7 +38,7 @@ def _tracked_package_files() -> set[str]:
         ["git", "ls-files", "-z", f"src/{PACKAGE}"],
         cwd=ROOT,
         check=True,
-        capture_output=True,
+        stdout=subprocess.PIPE,
         text=True,
     ).stdout
     files = {Path(p).relative_to("src").as_posix() for p in out.split("\0") if p}
@@ -52,7 +52,8 @@ def dist_dir(tmp_path_factory: pytest.TempPathFactory) -> Path:
     if uv is None:
         pytest.skip("uv is not on PATH")
     out = tmp_path_factory.mktemp("dist")
-    subprocess.run([uv, "build", "--out-dir", str(out)], cwd=ROOT, check=True, capture_output=True)
+    # Output is left uncaptured so pytest shows uv's diagnostics if the build fails.
+    subprocess.run([uv, "build", "--out-dir", str(out)], cwd=ROOT, check=True)
     return out
 
 
