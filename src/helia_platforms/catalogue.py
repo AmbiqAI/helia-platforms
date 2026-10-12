@@ -4,9 +4,13 @@ from __future__ import annotations
 
 import functools
 import os
+import threading
 import warnings
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Iterator, Mapping
 from dataclasses import dataclass, field
+from importlib import resources
+from importlib.metadata import entry_points
+from importlib.resources.abc import Traversable
 from pathlib import Path
 from types import MappingProxyType
 from typing import Any
@@ -23,7 +27,7 @@ from helia_platforms._tree import (
     normalize,
     realize,
 )
-from helia_platforms.errors import FormatError, PlatformWarning
+from helia_platforms.errors import FormatError, PlatformError, PlatformWarning
 
 #: Entity tables in load order, with the model class each builds.
 _KINDS: dict[str, type] = {
@@ -37,6 +41,9 @@ _KINDS: dict[str, type] = {
 }
 #: Kinds whose ids and aliases share the one namespace ``resolve()`` reads (section 2.3).
 _RESOLVABLE = ("socs", "implementations", "parts", "boards")
+#: Where ``builtin()`` side-loads private catalogues from (RFC 0002 private silicon).
+_ENTRY_POINT_GROUP = "helia_platforms.catalogs"
+_PATH_VARIABLE = "HELIA_PLATFORMS_PATH"
 
 
 def _empty() -> Mapping[Any, Any]:
@@ -121,6 +128,110 @@ class Catalogue:
 
 
 _EMPTY = Catalogue()
+_CACHE: dict[bool, Catalogue] = {}
+#: Held while a catalogue loads, so a concurrent first call waits for it. Only the
+#: thread holding it adds to ``_LOADING``, so a key found there means recursion.
+_LOCK = threading.RLock()
+_LOADING: set[bool] = set()
+
+
+def builtin(include_plugins: bool = True) -> Catalogue:
+    """The built-in catalogue, cached per ``include_plugins`` value.
+
+    With ``include_plugins``, entry points in ``helia_platforms.catalogs``, then
+    files in ``HELIA_PLATFORMS_PATH``, each load as an overlay on the catalogue so
+    far. Discovery runs at the first call; a failing source raises ``PlatformError``,
+    as does a source that calls ``builtin()`` while it is being loaded.
+    """
+    key = bool(include_plugins)
+    if key not in _CACHE:
+        with _LOCK:
+            if key in _LOADING:
+                raise PlatformError("builtin() was called while the catalogue was being loaded")
+            if key not in _CACHE:  # another thread may have loaded it while this one waited
+                _LOADING.add(key)
+                try:
+                    _CACHE[key] = _build(key)
+                finally:
+                    _LOADING.discard(key)
+    return _CACHE[key]
+
+
+def _build(include_plugins: bool) -> Catalogue:
+    if not include_plugins:
+        return _load_documents(_data_documents(_data_root()), builtin=True)
+    catalogue = builtin(include_plugins=False)
+    for label, origin, data in _side_loaded():
+        catalogue = _load_documents(
+            [(data, origin)], base=catalogue, builtin=False, require_version=True, source=label
+        )
+    return catalogue
+
+
+def _data_root() -> Traversable:
+    return resources.files("helia_platforms") / "data"
+
+
+def _data_documents(root: Traversable) -> list[tuple[Any, str]]:
+    """Parse every ``*.yaml`` file under ``root``, in path order (ADR 0002 section 1)."""
+    found: list[tuple[str, Traversable]] = []
+    pending = [(root, "")]
+    while pending:
+        node, prefix = pending.pop()
+        for child in node.iterdir():
+            if child.is_dir():
+                pending.append((child, f"{prefix}{child.name}/"))
+            elif child.name.endswith(".yaml"):
+                found.append((f"{prefix}{child.name}", child))
+    documents = []
+    for name, file in sorted(found, key=lambda item: item[0]):
+        origin = f"helia_platforms/data/{name}"
+        try:
+            text = file.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError) as exc:
+            raise FormatError(f"{origin}: cannot be read: {exc}") from None
+        documents.append((_parse.parse_yaml(text, origin), origin))
+    return documents
+
+
+def _side_loaded() -> Iterator[tuple[str, str, Any]]:
+    """Yield (label, origin, data) for each side-loaded source, in order.
+
+    Every source declares ``schema_version``, a returned mapping included (ADR 0002 section 2.2).
+    """
+    found = entry_points(group=_ENTRY_POINT_GROUP)
+    for entry in sorted(found, key=lambda e: (e.dist.name if e.dist else "", e.name)):
+        label = f"entry_point:{entry.dist.name if entry.dist else '<unknown>'}"
+        try:
+            result = entry.load()()
+        except Exception as exc:
+            raise PlatformError(f"{label}: entry point {entry.name!r} raised {exc!r}") from exc
+        if isinstance(result, Mapping):
+            yield label, f"{label} ({entry.name})", dict(result)
+        elif isinstance(result, str | os.PathLike):
+            origin = f"{label} ({result})"
+            yield label, origin, _parse.parse_file(Path(result), origin)
+        else:
+            raise PlatformError(
+                f"{label}: entry point {entry.name!r} returned {type(result).__name__}, "
+                "not a mapping or a path"
+            )
+    for item in os.environ.get(_PATH_VARIABLE, "").split(os.pathsep):
+        if not item:
+            continue
+        for file in _environment_files(Path(item)):
+            label = f"env:{file}"
+            yield label, label, _parse.parse_file(file, label)
+
+
+def _environment_files(path: Path) -> list[Path]:
+    """A ``HELIA_PLATFORMS_PATH`` item: a directory's ``*.yaml`` files, or the path itself."""
+    if not path.is_dir():
+        return [path]
+    try:
+        return sorted(child for child in path.iterdir() if child.name.endswith(".yaml"))
+    except OSError as exc:  # Path.glob would hide an unreadable directory
+        raise FormatError(f"env:{path}: cannot be read: {exc}") from None
 
 
 def load_overlay(
@@ -145,8 +256,13 @@ def _load_documents(
     base: Catalogue | None = None,
     builtin: bool,
     require_version: bool = True,
+    source: str | None = None,
 ) -> Catalogue:
-    """Load parsed documents as one source over ``base``."""
+    """Load parsed documents as one source over ``base``.
+
+    ``source`` is the label of every entry loaded; by default it is ``builtin``
+    or ``overlay:<origin>``.
+    """
     base = base or _EMPTY
     problems: list[str] = []
     merged: dict[str, dict[str, tuple[Any, str]]] = {}
@@ -178,14 +294,15 @@ def _load_documents(
                 target[entry_id] = (entry, origin)
     if problems:
         raise FormatError("invalid catalogue", tuple(problems))
-    loader = _Loader(base, builtin)
+    loader = _Loader(base, builtin, source)
     return loader.load(merged, compositions, shorthands)
 
 
 class _Loader:
-    def __init__(self, base: Catalogue, builtin: bool) -> None:
+    def __init__(self, base: Catalogue, builtin: bool, source: str | None = None) -> None:
         self.base = base
         self.builtin = builtin
+        self.source = source
         self.problems: list[str] = []
         self.warnings: list[str] = []
         self.trees: dict[tuple[str, str], Tree] = dict(base._trees)
@@ -238,6 +355,8 @@ class _Loader:
         return catalogue
 
     def label(self, origin: str) -> str:
+        if self.source is not None:
+            return self.source
         return "builtin" if self.builtin else f"overlay:{origin}"
 
     # -- names (section 2.3; RFC 0002 P5) ------------------------------------------
@@ -268,16 +387,23 @@ class _Loader:
                     self.fail(origin, where, f"{name!r} would shadow {existing[space][folded]}")
 
     def base_names(self) -> dict[str, dict[str, str]]:
+        """Each name in the base, by namespace, mapped to its entry and that entry's source."""
+
+        def owner(kind: str, entry_id: str) -> str:
+            # Only built-in files carry shorthands, so they have no entry in ``sources``.
+            source = "builtin" if kind == "shorthands" else self.base.sources.get((kind, entry_id))
+            return f"{kind}.{entry_id} from {source}" if source else f"{kind}.{entry_id}"
+
         spaces: dict[str, dict[str, str]] = {}
         for kind, table in self.base._tables.items():
             space = "resolvable" if kind in _RESOLVABLE else kind
             for entry_id, entry in table.items():
                 for name in (entry_id, *getattr(entry, "aliases", ())):
-                    spaces.setdefault(space, {})[name.casefold()] = f"{kind}.{entry_id}"
+                    spaces.setdefault(space, {})[name.casefold()] = owner(kind, entry_id)
         for alias in self.base.compositions:
-            spaces.setdefault("resolvable", {})[alias.casefold()] = f"compositions.{alias}"
+            spaces.setdefault("resolvable", {})[alias.casefold()] = owner("compositions", alias)
         for name in self.base.shorthands:
-            spaces.setdefault("resolvable", {})[name.casefold()] = f"shorthands.{name}"
+            spaces.setdefault("resolvable", {})[name.casefold()] = owner("shorthands", name)
         return spaces
 
     # -- trees and merges ------------------------------------------------------------

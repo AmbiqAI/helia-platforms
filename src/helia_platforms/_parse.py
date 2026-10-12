@@ -124,12 +124,16 @@ def parse_json(text: str, origin: str) -> Any:
         raise FormatError(f"{origin}: {exc}") from None
 
 
-def parse_file(path: Path) -> Any:
-    """Parse a ``.json`` file as JSON and anything else as YAML."""
+def parse_file(path: Path, origin: str | None = None) -> Any:
+    """Parse a ``.json`` file as JSON and anything else as YAML.
+
+    Problems are prefixed with ``origin``, which defaults to the path.
+    """
+    origin = str(path) if origin is None else origin
     try:
         text = path.read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError) as exc:
-        raise FormatError(f"{path}: cannot be read: {exc}") from None
+        raise FormatError(f"{origin}: cannot be read: {exc}") from None
     if path.suffix == ".json":
-        return parse_json(text, str(path))
-    return parse_yaml(text, str(path))
+        return parse_json(text, origin)
+    return parse_yaml(text, origin)
