@@ -63,8 +63,9 @@ Ambiq parts use a unified address space. A region may list
 Reachability is an explicit access matrix, never inferred from the address
 space. `Soc.access` is a tuple of `Access` entries keyed by (master id,
 target), where a master is a core, NPU or accelerator id and the target is
-a region name or a memory controller name (a `Soc.peripherals` entry such
-as `mspi0`):
+a region name or a memory controller name (a `Soc.memory_controllers`
+entry such as `mspi0`; `Soc.peripherals` lists every peripheral, and only
+those also in `memory_controllers` may be targets):
 
 | Field | Meaning |
 |---|---|
@@ -93,9 +94,10 @@ devices are unreachable.
 `Soc.default_access` is a declared shorthand that keeps single-core
 built-ins short: `{master: <core 0 id>, access: direct, scope: on_die}`
 expands to a `direct` entry from core 0 to every on-die region and memory
-controller that has no explicit entry for core 0, excluding any region or
-controller that has an entry for another core (a region another core owns,
-such as the radio subsystem TCM, is never granted to core 0 by default).
+controller (`Soc.memory_controllers`, not every peripheral) that has no
+explicit entry for core 0, excluding any region or controller that has an
+entry for another core (a region another core owns, such as the radio
+subsystem TCM, is never granted to core 0 by default).
 It is a fact with provenance, not inference, and explicit entries for core
 0 override it; entries for other masters never remove core 0's default.
 NPU and accelerator entries are always explicit.
@@ -108,7 +110,8 @@ requires_awake: [<application core domain>], guidance: discouraged,
 reason: "keeps the application core domain awake"}`.
 
 An Implementation that removes a region, controller, core or accelerator
-removes the access entries that name it. Removing a memory controller makes
+removes the access entries that name it; removing a peripheral also
+removes it from `memory_controllers`. Removing a memory controller makes
 any Board, AddOn or Implementation population on that controller's interfaces a validation
 error, not a warning: the hardware to attach the device does not exist.
 
@@ -190,6 +193,8 @@ socs:
         npu: {vendor: arm, family: ethos-u, model: u85, macs_per_cycle: 256}
         driven_by: app_0
         clock_domain: npu
+    peripherals: [mspi0, iom0]
+    memory_controllers: [mspi0]
     default_access: {master: app_0, access: direct, scope: on_die}
     access:
       - {master: app_0, target: dsp_tcm, access: none}
