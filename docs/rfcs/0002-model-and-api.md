@@ -423,6 +423,14 @@ extractor script regenerates it rather than hand-copying, from the
 committed source snapshots of
 [ADR 0006](../adr/0006-drift-test-snapshots.md).
 
+The two consumers that size memory use different sources on purpose.
+heliaAOT plans against physical sizes (#28): it serves several build
+systems, and no single link environment describes them all.
+helia-profiler builds through neuralspotx with a known toolchain and
+linker profile, so it checks a plan against the windows that build links
+with, through `Target.budget(env)`. A plan that fits the physical size
+but not the window fails before the firmware is built.
+
 ## Derived capabilities
 
 The package computes, and exposes both as typed properties and as a
@@ -641,8 +649,9 @@ below is the resolved object returned by `resolve()`.
 | Which SoC, part, implementation is this board | `resolve(board).soc`, `.part`, `.implementation` | package |
 | Core, PMU kind, MVE | `target.core`, `target.core.pmu`, `target.isa()` (core 0; `target.cores()` for all) | package |
 | Clock speeds, names, default | `target.operating_points()`, `target.default_operating_point` (`None` where the SDK names no default), `target.cpu_mhz(point)`; HAL mode names from `DomainPoint.hal_mode` per domain (`OperatingPoint.hal_mode` is the system mode where the HAL has one) | package where the SDK names a default; otherwise profiler policy |
-| Region sizes and capacities | `target.memories()`, `target.usable_nvm()`; `target.budget(env)` with a link environment | package; environment is profiler choice |
-| Linker windows per toolchain and profile | `LinkEnvironment` from the optional SDK dataset or the build's own script | dataset or profiler |
+| Region sizes to report | `target.memories()`, `target.usable_nvm()`, `target.external_memories()` (physical) | package |
+| Capacities for the pre-build fit check | `target.budget(env)`, where `env` is the nsx environment for the build's link family and linker profile; where no environment covers the target (an overlay target, or a profile the dataset does not hold), `target.memories()` and `target.usable_nvm()` | package; the environment and the fallback are profiler policy |
+| Linker windows for placement verification and measured used and free bytes | The same `LinkEnvironment` | dataset |
 | Which region holds address X | `target.classify_address(addr)` over physical regions, as seen by core 0 (`master=` for another) | package |
 | J-Link device name | `target.jlink_device` (board, else implementation, else part) | package |
 | App flash load address | `target.flash_load_address()` from the selected boot configuration (explicit `boot=`, else board provisioning, else default) | package |
@@ -897,8 +906,10 @@ and Zephyr snapshots; [ADR 0006](../adr/0006-drift-test-snapshots.md)),
 - helia-profiler: `SocDef`/`BoardDef` become views over `Target`; its
   policy layer (`SocCapabilities`, GPIO records, reset strategies) stays
   and reads facts from `Target`; its windows table is deleted in favour of
-  the generated SDK environment dataset; `target.custom_socs/custom_boards`
-  is translated to the overlay format by a shim for one release.
+  the generated SDK environment dataset, which also supplies its capacity
+  checks through `t.budget(env)` (physical sizes only where no environment
+  covers the target); `target.custom_socs/custom_boards` is translated to
+  the overlay format by a shim for one release.
 - helia-npu: `SocDefinition` becomes a projection of `Target.npu`, its
   access entries (port classes) and the regions they name, taking an
   entry's characterization where present (it overrides the region's for
