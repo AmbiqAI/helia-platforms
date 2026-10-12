@@ -397,11 +397,9 @@ class _Loader:
         for problem in _derivation_problems(soc, catalogue):
             self.fail(origin, where, problem)
         if self.builtin:
-            reached = {a.target for a in _expanded_access(soc)}
-            for region in soc.memories:
-                if region.name not in reached:
-                    message = "no access entry after default_access expansion"
-                    self.fail(origin, f"{where}.memories.{region.name}", message)
+            for name in _unreached_regions(soc):
+                message = "no access entry after default_access expansion"
+                self.fail(origin, f"{where}.memories.{name}", message)
 
     def check_implementation(
         self, catalogue: Catalogue, impl: model.Implementation, origin: str
@@ -418,6 +416,14 @@ class _Loader:
             return
         for problem in _soc_reference_problems(realized, catalogue):
             self.fail(origin, where, f"as realized: {problem}")
+        if self.builtin:
+            # A subset can drop a kept region's only entry. Gaps the Soc already has are
+            # reported against the Soc, not again here.
+            unreached = set(_unreached_regions(catalogue._tables["socs"][impl.soc]))
+            for name in _unreached_regions(realized):
+                if name not in unreached:
+                    message = "as realized: no access entry after default_access expansion"
+                    self.fail(origin, f"{where}.memories.{name}", message)
         if impl.provisioning is not None and impl.provisioning not in realized.boot_configs:
             self.fail(origin, where, f"provisioning {impl.provisioning!r} is not a boot config")
         self.check_population(catalogue, impl.interfaces, impl.population, where, origin)
@@ -490,6 +496,9 @@ class _Loader:
         for board in (boards[b] for b in addon.fits_boards if b in boards):
             for problem in _placement_problems(board, [addon]):
                 self.fail(origin, where, problem)
+            for name in dict.fromkeys((*addon.occupies, *addon.population)):
+                if name not in board.interfaces:
+                    self.fail(origin, where, f"board {board.id!r} has no interface {name!r}")
             for name, device in addon.population.items():
                 if name in board.interfaces and device in devices:
                     at = f"{where}.population.{name} on {board.id}"
@@ -672,12 +681,11 @@ def _relation_problems(soc: model.Soc, catalogue: Catalogue) -> list[str]:
 
 
 def _layout_problems(soc: model.Soc) -> list[str]:
-    """Regions that overlap at their bases or alternate bases; a region with no base is skipped."""
+    """Regions that overlap at their bases or alternate bases (only the latter if base is None)."""
     spans: list[tuple[str, int, int]] = []
     for region in soc.memories:
-        if region.base is None:
-            continue
-        spans.append((f"memories.{region.name}", region.base, region.size))
+        if region.base is not None:
+            spans.append((f"memories.{region.name}", region.base, region.size))
         spans += [
             (f"memories.{region.name} at alternate base {alt:#x}", alt, region.size)
             for alt in region.alternate_bases
@@ -708,6 +716,12 @@ def _physical_regions(soc: model.Soc) -> dict[str, tuple]:
         r.name: (r.technology, r.attachment, r.size, r.base, tuple(sorted(r.alternate_bases)))
         for r in soc.memories
     }
+
+
+def _unreached_regions(soc: model.Soc) -> list[str]:
+    """Regions with no access entry, ``none`` included, after ``default_access`` expansion."""
+    reached = {a.target for a in _expanded_access(soc)}
+    return [r.name for r in soc.memories if r.name not in reached]
 
 
 def _expanded_access(soc: model.Soc) -> tuple[model.Access, ...]:

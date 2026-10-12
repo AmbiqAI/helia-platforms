@@ -389,6 +389,7 @@ def test_overlays_may_not_carry_shorthands(document):
 
 
 def test_compositions_resolve(document):
+    with_mspi1(document)
     document["addons"] = {
         "shield": {
             "fits_boards": ["board_a"],
@@ -505,6 +506,19 @@ def test_a_region_without_a_base_is_not_checked_for_overlap(document):
     load_quietly(document)
 
 
+def test_a_region_without_a_base_is_checked_at_its_alternate_bases(document):
+    soc(document)["memories"]["extra"] = {
+        "technology": "sram",
+        "attachment": "system",
+        "size": "4K",
+        "alternate_bases": [0x20000000],
+    }
+    assert (
+        "socs.soc_a: memories.tcm (0x20000000, 524288 bytes) overlaps "
+        "memories.extra at alternate base 0x20000000 (0x20000000, 4096 bytes)"
+    ) in problems_of(document)
+
+
 def test_an_implementation_rebase_is_checked_for_overlap(document):
     document["implementations"] = {
         "cut": {
@@ -577,6 +591,14 @@ def test_an_add_on_may_not_put_a_second_device_on_a_board_interface(document):
     assert (
         "addons.shield: add-on 'shield' and board 'board_a' both put a device on 'mspi0'"
     ) in problems_of(document)
+
+
+def test_an_add_on_uses_only_interfaces_its_boards_have(document):
+    document["addons"] = {"shield": shield({"mspi1": "psram_8m"})}
+    document["compositions"] = {"c": {"board": "board_a", "addons": ["shield"]}}
+    assert "addons.shield: board 'board_a' has no interface 'mspi1'" in problems_of(document)
+    document["addons"]["shield"] = {**shield({}), "occupies": ["mspi1"]}
+    assert "addons.shield: board 'board_a' has no interface 'mspi1'" in problems_of(document)
 
 
 def test_an_add_on_device_may_not_exceed_the_board_aperture(document):
@@ -659,6 +681,29 @@ def test_built_in_regions_and_interface_controllers_need_an_access_entry(documen
         "boards.board_a.interfaces.mspi0: controller 'mspi0' has no access entry; "
         "its devices are unreachable"
     ) in found
+
+
+def test_a_built_in_implementation_keeps_an_access_entry_for_each_region(document):
+    del soc(document)["default_access"]
+    soc(document)["access"] += [
+        {"master": "cm55_0", "target": target, "access": "direct"}
+        for target in ("nvm", "mspi0", "iom0")
+    ]
+    document["implementations"] = {
+        "cut": {
+            "soc": "soc_a",
+            "kind": "fpga",
+            "subset": {"access_removed": [{"master": "npu_0", "target": "tcm"}]},
+        }
+    }
+    found = builtin_problems(copy.deepcopy(document))
+    assert (
+        "implementations.cut.memories.tcm: as realized: no access entry after "
+        "default_access expansion"
+    ) in found
+    assert "socs.soc_a.memories" not in found
+    soc(document)["access"].append({"master": "cm55_0", "target": "tcm", "access": "none"})
+    _load_documents([(as_builtin(document), "builtin.yaml")], builtin=True)
 
 
 def test_an_overlay_interface_without_access_draws_a_warning(document):
