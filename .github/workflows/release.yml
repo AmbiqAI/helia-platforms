@@ -41,5 +41,9 @@ jobs:
       - uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
+      # --frozen, not --locked: release-please bumps pyproject.toml but not the
+      # project's own version in uv.lock, which --locked would reject.
+      - run: uv sync --frozen --group dev
+      - run: uv run --frozen pytest tests/test_distributions.py
       - run: uv build
       - uses: pypa/gh-action-pypi-publish@release/v1
