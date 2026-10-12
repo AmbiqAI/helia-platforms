@@ -332,6 +332,8 @@ def iter_paths(value: Any, tp: Any, path: Path = ()) -> list[Path]:
 # ---- an Implementation over its Soc ---------------------------------------------------
 
 _SOC_SHAPED = ("clock_domains", "operating_points", "boot_configs", "default_boot")
+#: Soc-shaped keys only an Implementation of kind ``fvp`` may write (ADR 0007).
+_FVP_ONLY = ("memories", "access")
 _SUBSET_DELTAS = (
     "memories_removed",
     "memories_resized",
@@ -345,29 +347,153 @@ _SUBSET_DELTAS = (
     "operating_points_removed",
     "access_removed",
 )
+#: Region deltas an FVP's own memories replace (ADR 0007).
+_REGION_DELTAS = ("memories_removed", "memories_resized", "memories_rebased")
 
 
 def realize(soc: Tree, implementation: Tree) -> Tree:
-    """The Soc as the Implementation realizes it, by the merge rule of section 2.5.
+    """The Soc as the Implementation realizes it (ADR 0002 section 2.5; RFC 0002; ADR 0007).
 
-    Clock caps and FVP substitutions are not applied here; the resolver
-    applies them, because their semantics are RFC 0002's, not the merge's.
+    The merge rule applies first, with an FVP's own memories as the whole
+    list; then clock caps drop operating points. Raises ``MergeError`` listing
+    every problem, including a subset that grows a region or a clock past the Soc's.
     """
+    problems = fvp_problems(soc.values, implementation.values)
+    if problems:
+        raise MergeError(problems)
     values: dict[str, Any] = {}
     records: dict[Path, Record] = {(): implementation.records.get(())}
-    for key in _SOC_SHAPED:
+    for key in (*_SOC_SHAPED, *_FVP_ONLY):
         if key in implementation.values:
             values[key] = implementation.values[key]
     subset = implementation.values.get("subset", {})
     for key in _SUBSET_DELTAS:
         if key in subset:
             values[key] = subset[key]
+    own = implementation.values.get("memories")
+    if own is not None:
+        # Soc regions the FVP does not list go, with their access, as by memories_removed.
+        values["memories_removed"] = [n for n in soc.values.get("memories", {}) if n not in own]
     for path, record in implementation.records.items():
         if path[:1] == ("subset",) and len(path) > 1 and path[1] in _SUBSET_DELTAS:
             records[path[1:]] = record
-        elif path[:1] and path[0] in _SOC_SHAPED:
+        elif path[:1] and path[0] in (*_SOC_SHAPED, *_FVP_ONLY):
             records[path] = record
-    return merge(soc, Tree(values, records), fmt.Soc, inherit_all=True)
+    problems = _subset_limits(soc.values, implementation.values)
+    try:
+        tree = merge(soc, Tree(values, records), fmt.Soc, inherit_all=True)
+    except MergeError as exc:
+        raise MergeError(problems + exc.problems) from None
+    if own is not None:
+        tree.values["memories"] = {name: tree.values["memories"][name] for name in own}
+    problems += _cap_clocks(tree.values, subset)
+    if problems:
+        raise MergeError(problems)
+    live = set(iter_paths(tree.values, fmt.Soc))
+    return Tree(tree.values, {p: r for p, r in tree.records.items() if p in live})
+
+
+def fvp_problems(soc: dict, implementation: dict) -> list[str]:
+    """What is wrong with an Implementation's own ``memories`` and ``access`` (ADR 0007).
+
+    Each problem names its key relative to the Implementation.
+    """
+    kind = implementation["kind"]
+    if kind != "fvp":
+        return [
+            f"{key} is allowed only for kind fvp, not {kind!r}"
+            for key in _FVP_ONLY
+            if key in implementation
+        ]
+    own = implementation.get("memories")
+    if own is None:
+        return []
+    subset = implementation.get("subset", {})
+    problems = [
+        f"memories cannot be combined with subset.{key}" for key in _REGION_DELTAS if key in subset
+    ]
+    soc_regions = soc.get("memories") or {}
+    claimed: dict[str, list[str]] = {}
+    for name, region in own.items():
+        for target in region.get("stands_in_for", []):
+            where = f"memories.{name}.stands_in_for"
+            if target not in soc_regions:
+                problems.append(f"{where} names {target!r}, which the Soc lacks")
+            elif target in own:
+                problems.append(f"{where} names {target!r}, which the implementation also lists")
+            claimed.setdefault(target, []).append(name)
+    problems.extend(
+        f"Soc region {target!r} is in the stands_in_for of more than one region "
+        f"({', '.join(names)})"
+        for target, names in claimed.items()
+        if len(names) > 1
+    )
+    return problems
+
+
+def _subset_limits(soc: dict, implementation: dict) -> list[str]:
+    """A subset never grows a region or a clock past the Soc's (RFC 0002 semantic rules)."""
+    problems: list[str] = []
+    regions = soc.get("memories") or {}
+    for name, size in implementation.get("subset", {}).get("memories_resized", {}).items():
+        if name in regions and size > regions[name]["size"]:
+            problems.append(
+                f"memories_resized.{name} is {size} bytes, more than the Soc's "
+                f"{regions[name]['size']}"
+            )
+    soc_domains = soc.get("clock_domains") or {}
+    for domain, points in (implementation.get("clock_domains") or {}).items():
+        if not soc_domains.get(domain):
+            continue  # a domain the Soc lacks has no clock to exceed
+        highest = max(p["mhz"] for p in soc_domains[domain].values())
+        problems.extend(
+            f"clock_domains.{domain}.{name} is {point['mhz']} MHz, above the Soc's "
+            f"highest {domain} point ({highest} MHz)"
+            for name, point in points.items()
+            if point["mhz"] > highest
+        )
+    return problems
+
+
+def _cap_clocks(values: dict, subset: dict) -> list[str]:
+    """Drop the operating points whose clocks exceed a cap, in place (RFC 0002)."""
+    problems: list[str] = []
+    caps: dict[str, float] = {}
+    domains = values.get("clock_domains") or {}
+
+    def cap(domain: str, mhz: float) -> None:
+        caps[domain] = min(mhz, caps.get(domain, mhz))
+
+    for key, units, what in (("max_cpu_mhz", "cores", "a core"), ("max_npu_mhz", "npus", "an NPU")):
+        if key in subset:
+            if values.get(units):
+                cap(values[units][0]["clock_domain"], subset[key])
+            else:
+                problems.append(f"{key} needs {what} 0")
+    for domain, mhz in subset.get("max_domain_mhz", {}).items():
+        if domain not in domains:
+            problems.append(f"max_domain_mhz names domain {domain!r}, which the base lacks")
+        cap(domain, mhz)
+    points = values.get("operating_points") or {}
+    dropped = [
+        name
+        for name, point in points.items()
+        if any(
+            domains.get(domain, {}).get(ref, {}).get("mhz", 0) > caps[domain]
+            for domain, ref in point.get("domains", {}).items()
+            if domain in caps
+        )
+    ]
+    for name in dropped:
+        del points[name]
+    if dropped and not points:
+        problems.append(
+            "clock caps drop every operating point, so the implementation must declare "
+            "its own operating_points"
+        )
+    if values.get("default_operating_point") in dropped:
+        del values["default_operating_point"]
+    return problems
 
 
 # ---- shorthands (ADR 0002 section 2.5, last paragraph) ---------------------------------

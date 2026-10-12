@@ -171,5 +171,5 @@ def test_app_start_accepts_the_per_core_form(document):
 def test_every_problem_is_reported(document):
     soc(document)["series"] = 5
     soc(document)["memories"]["tcm"]["size"] = "1.5M"
-    soc(document)["memories"]["tcm"]["technology"] = "dram"
+    soc(document)["memories"]["tcm"]["technology"] = "sdram"
     assert len(problems(document)) == 3
