@@ -83,11 +83,12 @@ class Catalogue:
         return tuple(self._tables.get("memory_devices", {}).values())
 
     @functools.cached_property
-    def catalogue_digest(self) -> str:
+    def catalog_digest(self) -> str:
         """``sha256:<hex>`` of the built-in entries without provenance (ADR 0004 point 1).
 
-        Entries from overlays and side-loaded sources are left out: ADR 0004 point 4
-        records those sources beside the digest, in ``identity()``.
+        ADR 0004's ``catalogue_digest``; loading computes it (point 3). Entries from
+        overlays and side-loaded sources are left out: ADR 0004 point 4 records those
+        sources beside the digest, in ``identity()``.
         """
 
         def builtin(table: str, entries: Mapping[str, Any]) -> dict[str, Any]:
@@ -95,7 +96,7 @@ class Catalogue:
 
         tables = {kind: builtin(kind, self._tables.get(kind, {})) for kind in _KINDS}
         # Only built-in files carry shorthands (ADR 0002 section 1).
-        return _digest.catalogue_digest(
+        return _digest.catalog_digest(
             tables, builtin("compositions", self.compositions), self.shorthands
         )
 
@@ -217,6 +218,7 @@ class _Loader:
         self.check_references(catalogue, entries, compositions, shorthands)
         if self.problems:
             raise FormatError("invalid catalogue", tuple(self.problems))
+        catalogue.catalog_digest  # noqa: B018 (computed at load, ADR 0004 point 3)
         return catalogue
 
     def label(self, origin: str) -> str:

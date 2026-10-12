@@ -1,4 +1,4 @@
-"""``catalogue_digest`` and the source hash of ADR 0004 points 1 and 4."""
+"""The catalog digest and the source hash of ADR 0004 points 1 and 4."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from collections.abc import Mapping
 from typing import Any, get_args, get_origin
 
 from helia_platforms import _format as fmt
-from helia_platforms import _walk, model
+from helia_platforms import _structural, _walk, model
 
 #: Instance lists whose order is a fact (ADR 0002 section 2.4).
 _ORDERED = (model.CoreInstance, model.NpuInstance, model.AcceleratorInstance)
@@ -30,7 +30,7 @@ def sha256(value: Any) -> str:
     return "sha256:" + hashlib.sha256(canonical(value)).hexdigest()
 
 
-def catalogue_digest(
+def catalog_digest(
     tables: Mapping[str, Mapping[str, Any]],
     compositions: Mapping[str, model.Composition],
     shorthands: Mapping[str, tuple[str, ...]],
@@ -64,7 +64,7 @@ def _keyed(entries: Mapping[str, Any]) -> dict[str, Any]:
 
 def _field(cls: type, name: str, value: Any) -> Any:
     if name == "extensions":
-        # Unreachable from Catalogue.catalogue_digest, since built-in entries may not
+        # Unreachable from Catalogue.catalog_digest, since built-in entries may not
         # carry extensions; kept so a hand-built model still projects.
         return _opaque(value)
     if isinstance(value, tuple):
@@ -131,7 +131,7 @@ def _strip(value: Any, tp: Any, facts: bool) -> Any:  # noqa: PLR0911
             if not (key == "provenance" and key in declared)
         }
     if _walk.is_union(bare):
-        return _strip(value, _branch(value, bare), facts)
+        return _strip(value, _branch(value, bare, facts), facts)
     if get_origin(bare) is dict and isinstance(value, dict):
         item_tp = get_args(bare)[1]
         return {key: _strip(item, item_tp, facts) for key, item in value.items()}
@@ -141,14 +141,13 @@ def _strip(value: Any, tp: Any, facts: bool) -> Any:  # noqa: PLR0911
     return value
 
 
-def _branch(value: Any, union: Any) -> Any:
-    """The union member a value takes: an object whose keys it uses, else a mapping."""
-    alternatives = [_walk.unwrap(arg)[0] for arg in get_args(union)]
-    if isinstance(value, dict):
-        for alt in alternatives:
-            if _walk.is_object(alt) and set(value) <= set(_walk.fields(alt)):
-                return alt
-        for alt in alternatives:
-            if get_origin(alt) is dict:
-                return alt
-    return alternatives[0]
+def _branch(value: Any, union: Any, facts: bool) -> Any:
+    """The union member a value takes: the first it conforms to, as the loader decides.
+
+    Key names alone are not enough: ``app_start`` keyed by a core named ``offset``
+    uses only AppStart's keys but is the per-core mapping.
+    """
+    alternatives = get_args(union)
+    return next(
+        (a for a in alternatives if _structural.conforms(value, a, facts=facts)), alternatives[0]
+    )

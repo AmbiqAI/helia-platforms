@@ -229,6 +229,13 @@ class _Checker:
             self.fail(path, f"{value!r} is not valid Unicode text (it has a lone surrogate)")
 
 
+def conforms(value: Any, tp: Any, *, facts: bool) -> bool:
+    """True when ``value`` has no structural problem as a ``tp``."""
+    checker = _Checker("")
+    checker.check(value, tp, "", facts)
+    return not checker.problems
+
+
 def check_document(data: Any, origin: str, *, require_version: bool = True) -> list[str]:
     """Return every structural problem in a parsed document (empty when it conforms)."""
     checker = _Checker(origin)

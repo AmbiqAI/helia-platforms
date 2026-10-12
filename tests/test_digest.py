@@ -24,7 +24,7 @@ def builtin_grade(document):
 
 
 def digest_of(document):
-    return _load_documents([(document, "builtin.yaml")], builtin=True).catalogue_digest
+    return _load_documents([(document, "builtin.yaml")], builtin=True).catalog_digest
 
 
 @pytest.fixture
@@ -73,7 +73,7 @@ def test_reordering_cores_changes_digest(builtin_document):
     other = dataclasses.replace(soc, cores=(second, soc.cores[0]))
 
     def digest(entry):
-        return _digest.catalogue_digest({"socs": {"soc_a": entry}}, {}, {})
+        return _digest.catalog_digest({"socs": {"soc_a": entry}}, {}, {})
 
     assert digest(one) != digest(other)
 
@@ -130,8 +130,8 @@ def test_digest_covers_built_in_entries_only(builtin_document):
         "schema_version": 1,
         "memory_devices": {"dev": {"technology": "psram", "capacity": "8M"}},
     }
-    assert load_overlay(overlay, base=base).catalogue_digest == base.catalogue_digest
-    assert load_overlay({"schema_version": 1}).catalogue_digest == _EMPTY.catalogue_digest
+    assert load_overlay(overlay, base=base).catalog_digest == base.catalog_digest
+    assert load_overlay({"schema_version": 1}).catalog_digest == _EMPTY.catalog_digest
 
 
 def test_extensions_are_opaque(builtin_document):
@@ -139,7 +139,7 @@ def test_extensions_are_opaque(builtin_document):
 
     def digest(extensions):
         entry = dataclasses.replace(board, extensions=MappingProxyType(extensions))
-        return _digest.catalogue_digest({"boards": {"board_a": entry}}, {}, {})
+        return _digest.catalog_digest({"boards": {"board_a": entry}}, {}, {})
 
     assert digest({"tool": ("b", "a")}) != digest({"tool": ("a", "b")})
 
@@ -148,6 +148,20 @@ def test_source_sha256_matches_for_a_file_and_the_same_mapping(tmp_path, documen
     path = tmp_path / "overlay.yaml"
     path.write_text(yaml.safe_dump(document), encoding="utf-8")
     assert _digest.source_sha256(_parse.parse_file(path)) == _digest.source_sha256(document)
+
+
+def test_source_sha256_reads_per_core_app_start_keyed_like_app_start(document):
+    def source(record):
+        app_start = {"region": "nvm", "offset": {"value": 0, "provenance": record}}
+        boot = document["socs"]["soc_a"]["boot_configs"]["nbl"]
+        boot["app_start"] = {"offset": app_start}  # a core named offset
+        return _digest.source_sha256(document)
+
+    assert source(RECORD) == source({**RECORD, "notes": "changed"})
+
+
+def test_loading_computes_the_digest(document):
+    assert "catalog_digest" in vars(load_overlay(document))
 
 
 def test_source_sha256_strips_records_on_declared_keys_only(document):
