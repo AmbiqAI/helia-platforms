@@ -1,0 +1,71 @@
+name: Snapshots
+
+# ADR 0006 section 1: on a PR that changes the snapshots, the extractor or
+# uv.lock, re-run the extractor at each recorded commit and require identical
+# bytes; on a PR that changes those or the built-in data, check each #<symbol>
+# reference. A job-level condition, not a path filter, skips the job otherwise,
+# so it can be a required check.
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      extract: ${{ steps.paths.outputs.extract }}
+      references: ${{ steps.paths.outputs.references }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - id: paths
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if [ "$EVENT" != "pull_request" ]; then
+            echo "extract=true" >> "$GITHUB_OUTPUT"
+            echo "references=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          changed="$(git diff --name-only "$BASE"...HEAD)"
+          extract=false
+          references=false
+          if grep -Eq '^(snapshots/|scripts/snapshot_extractor/|scripts/extract_snapshots\.py$|uv\.lock$|\.github/workflows/snapshots\.yml$)' <<< "$changed"; then
+            extract=true
+            references=true
+          fi
+          if grep -Eq '^src/helia_platforms/data/' <<< "$changed"; then
+            references=true
+          fi
+          echo "extract=$extract" >> "$GITHUB_OUTPUT"
+          echo "references=$references" >> "$GITHUB_OUTPUT"
+
+  extract-check:
+    needs: changes
+    # A job skipped because `changes` failed would pass as a required check.
+    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.references == 'true') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail when the changed-path check failed
+        if: needs.changes.result != 'success'
+        run: exit 1
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - run: uv sync --locked --no-dev --group extract
+      - name: Regenerate the snapshots at their recorded commits
+        if: needs.changes.outputs.extract == 'true'
+        run: uv run --no-sync python scripts/extract_snapshots.py extract --check
+      - name: Check each #<symbol> reference names one definition
+        run: uv run --no-sync python scripts/extract_snapshots.py references
