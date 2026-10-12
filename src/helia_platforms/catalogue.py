@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import functools
 import os
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
@@ -9,8 +10,8 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import Any
 
+from helia_platforms import _digest, _parse, _structural, _walk, model
 from helia_platforms import _format as fmt
-from helia_platforms import _parse, _structural, _walk, model
 from helia_platforms._build import build_entity
 from helia_platforms._tree import MergeError, Tree, expand_shorthands, merge, normalize, realize
 from helia_platforms.errors import FormatError
@@ -80,6 +81,23 @@ class Catalogue:
 
     def memory_devices(self) -> tuple[model.MemoryDevice, ...]:
         return tuple(self._tables.get("memory_devices", {}).values())
+
+    @functools.cached_property
+    def catalogue_digest(self) -> str:
+        """``sha256:<hex>`` of the built-in entries without provenance (ADR 0004 point 1).
+
+        Entries from overlays and side-loaded sources are left out: ADR 0004 point 4
+        records those sources beside the digest, in ``identity()``.
+        """
+
+        def builtin(table: str, entries: Mapping[str, Any]) -> dict[str, Any]:
+            return {k: v for k, v in entries.items() if self.sources.get((table, k)) == "builtin"}
+
+        tables = {kind: builtin(kind, self._tables.get(kind, {})) for kind in _KINDS}
+        # Only built-in files carry shorthands (ADR 0002 section 1).
+        return _digest.catalogue_digest(
+            tables, builtin("compositions", self.compositions), self.shorthands
+        )
 
     def _entry(self, kind: str, entry_id: str) -> Any:
         """One entry by table name and exact id; raises KeyError when absent."""
