@@ -1,0 +1,414 @@
+{
+  "boards": {
+    "apollo2_evb": {
+      "board": {
+        "path": "boards/ambiq/apollo2_evb/board.yml",
+        "values": {
+          "soc": "apollo2"
+        }
+      },
+      "devicetree": {
+        "chosen": {
+          "zephyr,flash": "/soc/flash-controller@0/flash@0",
+          "zephyr,sram": "/memory@10000000"
+        },
+        "memory": {
+          "/memory@10000000": {
+            "base": 268435456,
+            "compatible": [
+              "mmio-sram"
+            ],
+            "labels": [
+              "sram0"
+            ],
+            "size": 262144
+          },
+          "/soc/flash-controller@0/flash@0": {
+            "base": 0,
+            "compatible": [
+              "soc-nv-flash"
+            ],
+            "labels": [
+              "flash0"
+            ],
+            "size": 1048576
+          }
+        },
+        "path": "boards/ambiq/apollo2_evb/apollo2_evb.dts"
+      },
+      "kconfig": {}
+    },
+    "apollo3_evb": {
+      "board": {
+        "path": "boards/ambiq/apollo3_evb/board.yml",
+        "values": {
+          "soc": "apollo3_blue"
+        }
+      },
+      "devicetree": {
+        "chosen": {
+          "zephyr,flash": "/soc/flash-controller@0/flash@0",
+          "zephyr,itcm": "/tcm@10000000",
+          "zephyr,sram": "/memory@10010000"
+        },
+        "memory": {
+          "/memory@10010000": {
+            "base": 268500992,
+            "compatible": [
+              "mmio-sram"
+            ],
+            "labels": [
+              "sram0"
+            ],
+            "size": 327680
+          },
+          "/soc/flash-controller@0/flash@0": {
+            "base": 0,
+            "compatible": [
+              "soc-nv-flash"
+            ],
+            "labels": [
+              "flash0"
+            ],
+            "size": 1048576
+          },
+          "/tcm@10000000": {
+            "base": 268435456,
+            "compatible": [
+              "zephyr,memory-region"
+            ],
+            "labels": [
+              "tcm"
+            ],
+            "size": 65536,
+            "zephyr,memory-region": "ITCM"
+          }
+        },
+        "path": "boards/ambiq/apollo3_evb/apollo3_evb.dts"
+      },
+      "kconfig": {
+        "FLASH_LOAD_OFFSET": {
+          "path": "soc/ambiq/apollo3x/Kconfig.defconfig.apollo3_blue",
+          "value": 49152
+        }
+      }
+    },
+    "apollo3p_evb": {
+      "board": {
+        "path": "boards/ambiq/apollo3p_evb/board.yml",
+        "values": {
+          "soc": "apollo3p_blue"
+        }
+      },
+      "devicetree": {
+        "chosen": {
+          "zephyr,flash": "/soc/flash-controller@c000/flash@c000",
+          "zephyr,itcm": "/tcm@10000000",
+          "zephyr,sram": "/memory@10010000"
+        },
+        "memory": {
+          "/memory@10010000": {
+            "base": 268500992,
+            "compatible": [
+              "mmio-sram"
+            ],
+            "labels": [
+              "sram0"
+            ],
+            "size": 720896
+          },
+          "/memory@52000000": {
+            "base": 1375731712,
+            "compatible": [
+              "zephyr,memory-region"
+            ],
+            "labels": [
+              "xip0"
+            ],
+            "size": 33554432,
+            "zephyr,memory-region": "XIP0"
+          },
+          "/memory@54000000": {
+            "base": 1409286144,
+            "compatible": [
+              "zephyr,memory-region"
+            ],
+            "labels": [
+              "xip1"
+            ],
+            "size": 33554432,
+            "zephyr,memory-region": "XIP1"
+          },
+          "/memory@56000000": {
+            "base": 1442840576,
+            "compatible": [
+              "zephyr,memory-region"
+            ],
+            "labels": [
+              "xip2"
+            ],
+            "size": 33554432,
+            "zephyr,memory-region": "XIP2"
+          },
+          "/soc/flash-controller@c000/flash@c000": {
+            "base": 49152,
+            "compatible": [
+              "soc-nv-flash"
+            ],
+            "labels": [
+              "flash0"
+            ],
+            "size": 2048000
+          },
+          "/tcm@10000000": {
+            "base": 268435456,
+            "compatible": [
+              "zephyr,memory-region"
+            ],
+            "labels": [
+              "tcm"
+            ],
+            "size": 65536,
+            "zephyr,memory-region": "ITCM"
+          }
+        },
+        "path": "boards/ambiq/apollo3p_evb/apollo3p_evb.dts"
+      },
+      "kconfig": {}
+    },
+    "apollo4p_blue_kxr_evb": {
+      "board": {
+        "path": "boards/ambiq/apollo4p_blue_kxr_evb/board.yml",
+        "values": {
+          "soc": "apollo4p_blue"
+        }
+      },
+      "devicetree": {
+        "chosen": {
+          "zephyr,flash": "/soc/flash-controller@18000/flash@18000",
+          "zephyr,itcm": "/tcm@10000000",
+          "zephyr,sram": "/memory@10010000"
+        },
+        "memory": {
+          "/memory@10010000": {
+            "base": 268500992,
+            "compatible": [
+              "mmio-sram"
+            ],
+            "labels": [
+              "sram0"
+            ],
+            "size": 2818048
+          },
+          "/soc/flash-controller@18000/flash@18000": {
+            "base": 98304,
+            "compatible": [
+              "soc-nv-flash"
+            ],
+            "labels": [
+              "flash0"
+            ],
+            "size": 1998848
+          },
+          "/tcm@10000000": {
+            "base": 268435456,
+            "compatible": [
+              "zephyr,memory-region"
+            ],
+            "labels": [
+              "tcm"
+            ],
+            "size": 65536,
+            "zephyr,memory-region": "ITCM"
+          }
+        },
+        "path": "boards/ambiq/apollo4p_blue_kxr_evb/apollo4p_blue_kxr_evb.dts"
+      },
+      "kconfig": {}
+    },
+    "apollo4p_evb": {
+      "board": {
+        "path": "boards/ambiq/apollo4p_evb/board.yml",
+        "values": {
+          "soc": "apollo4p"
+        }
+      },
+      "devicetree": {
+        "chosen": {
+          "zephyr,flash": "/soc/flash-controller@18000/flash@18000",
+          "zephyr,itcm": "/tcm@10000000",
+          "zephyr,sram": "/memory@10010000"
+        },
+        "memory": {
+          "/memory@10010000": {
+            "base": 268500992,
+            "compatible": [
+              "mmio-sram"
+            ],
+            "labels": [
+              "sram0"
+            ],
+            "size": 2818048
+          },
+          "/soc/flash-controller@18000/flash@18000": {
+            "base": 98304,
+            "compatible": [
+              "soc-nv-flash"
+            ],
+            "labels": [
+              "flash0"
+            ],
+            "size": 1998848
+          },
+          "/tcm@10000000": {
+            "base": 268435456,
+            "compatible": [
+              "zephyr,memory-region"
+            ],
+            "labels": [
+              "tcm"
+            ],
+            "size": 65536,
+            "zephyr,memory-region": "ITCM"
+          }
+        },
+        "path": "boards/ambiq/apollo4p_evb/apollo4p_evb.dts"
+      },
+      "kconfig": {}
+    },
+    "apollo510_evb": {
+      "board": {
+        "path": "boards/ambiq/apollo510_evb/board.yml",
+        "values": {
+          "soc": "apollo510"
+        }
+      },
+      "devicetree": {
+        "chosen": {
+          "zephyr,dtcm": "/dtcm@20000000",
+          "zephyr,flash": "/soc/flash-controller@410000/flash@410000",
+          "zephyr,itcm": "/itcm@0",
+          "zephyr,sram": "/memory@20080000"
+        },
+        "memory": {
+          "/dtcm@20000000": {
+            "base": 536870912,
+            "compatible": [
+              "zephyr,memory-region"
+            ],
+            "labels": [
+              "dtcm"
+            ],
+            "size": 507904,
+            "zephyr,memory-region": "DTCM"
+          },
+          "/itcm@0": {
+            "base": 0,
+            "compatible": [
+              "zephyr,memory-region"
+            ],
+            "labels": [
+              "itcm"
+            ],
+            "size": 262144,
+            "zephyr,memory-region": "ITCM"
+          },
+          "/memory@20080000": {
+            "base": 537395200,
+            "compatible": [
+              "mmio-sram"
+            ],
+            "labels": [
+              "sram",
+              "sram0"
+            ],
+            "size": 2097152
+          },
+          "/memory@20280000": {
+            "base": 539492352,
+            "compatible": [
+              "zephyr,memory-region",
+              "mmio-sram"
+            ],
+            "labels": [
+              "sram_no_cache"
+            ],
+            "size": 1048576,
+            "zephyr,memory-region": "SRAM_NO_CACHE"
+          },
+          "/memory@60000000": {
+            "base": 1610612736,
+            "compatible": [
+              "zephyr,memory-region"
+            ],
+            "labels": [
+              "xip0"
+            ],
+            "size": 268435456,
+            "zephyr,memory-region": "XIP0"
+          },
+          "/memory@80000000": {
+            "base": 2147483648,
+            "compatible": [
+              "zephyr,memory-region"
+            ],
+            "labels": [
+              "xip1"
+            ],
+            "size": 67108864,
+            "zephyr,memory-region": "XIP1"
+          },
+          "/memory@84000000": {
+            "base": 2214592512,
+            "compatible": [
+              "zephyr,memory-region"
+            ],
+            "labels": [
+              "xip2"
+            ],
+            "size": 67108864,
+            "zephyr,memory-region": "XIP2"
+          },
+          "/memory@88000000": {
+            "base": 2281701376,
+            "compatible": [
+              "zephyr,memory-region"
+            ],
+            "labels": [
+              "xip3"
+            ],
+            "size": 134217728,
+            "zephyr,memory-region": "XIP3"
+          },
+          "/soc/flash-controller@410000/flash@410000": {
+            "base": 4259840,
+            "compatible": [
+              "soc-nv-flash"
+            ],
+            "labels": [
+              "flash0"
+            ],
+            "size": 4128768
+          }
+        },
+        "path": "boards/ambiq/apollo510_evb/apollo510_evb.dts"
+      },
+      "kconfig": {}
+    }
+  },
+  "metadata": {
+    "extractor_version": 1,
+    "sources": [
+      {
+        "commit": "8f62a4ab82b5c2121c088842d3233f75b603ce35",
+        "repository": "zephyrproject-rtos/zephyr",
+        "revision": "8f62a4ab82b5c2121c088842d3233f75b603ce35"
+      },
+      {
+        "commit": "3d7044ea240fc8dcb7b4c843b76f70cae5db736b",
+        "repository": "zephyrproject-rtos/hal_ambiq",
+        "revision": "3d7044ea240fc8dcb7b4c843b76f70cae5db736b"
+      }
+    ]
+  }
+}

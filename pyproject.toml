@@ -35,7 +35,10 @@ dev = [
     "ty",
     "pre-commit>=4",
     "jsonschema>=4.23",
+    { include-group = "extract" },
 ]
+# The snapshot extractor's dependencies (ADR 0006), outside the wheel's runtime ones.
+extract = ["pcpp>=1.30"]
 
 [tool.ruff]
 line-length = 100
