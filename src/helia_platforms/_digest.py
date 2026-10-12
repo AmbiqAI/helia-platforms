@@ -13,8 +13,6 @@ from typing import Any, get_args, get_origin
 from helia_platforms import _format as fmt
 from helia_platforms import _walk, model
 
-#: Model fields the projection drops: records are not data (ADR 0004 point 1).
-_RECORDS = frozenset({"provenance", "field_provenance"})
 #: Instance lists whose order is a fact (ADR 0002 section 2.4).
 _ORDERED = (model.CoreInstance, model.NpuInstance, model.AcceleratorInstance)
 #: Lists keyed by (master, target), projected as lists sorted by that pair.
@@ -51,7 +49,7 @@ def project(value: Any) -> Any:
         return {
             f.name: _field(cls, f.name, getattr(value, f.name))
             for f in dataclasses.fields(value)
-            if f.name not in _RECORDS
+            if f.name not in model.RECORD_FIELDS  # records are not data (ADR 0004 point 1)
         }
     if isinstance(value, Mapping):
         return _keyed(value)
@@ -66,6 +64,8 @@ def _keyed(entries: Mapping[str, Any]) -> dict[str, Any]:
 
 def _field(cls: type, name: str, value: Any) -> Any:
     if name == "extensions":
+        # Unreachable from Catalogue.catalogue_digest, since built-in entries may not
+        # carry extensions; kept so a hand-built model still projects.
         return _opaque(value)
     if isinstance(value, tuple):
         return _sequence(value, _item_type(cls, name))

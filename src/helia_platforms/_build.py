@@ -70,7 +70,7 @@ class _Builder:
         kwargs: dict[str, Any] = {}
         carrier = issubclass(cls, model._Carrier)
         for f in dataclasses.fields(typing.cast(Any, cls)):
-            if f.name in ("provenance", "field_provenance"):
+            if f.name in model.RECORD_FIELDS:
                 continue
             if key is not None and f.name == getattr(cls, "KEY", None):
                 kwargs[f.name] = key

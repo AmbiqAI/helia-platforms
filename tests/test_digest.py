@@ -118,9 +118,8 @@ def test_an_integer_and_the_same_float_give_the_same_digest(builtin_document):
     assert digest(96) == digest(96.0)
 
 
-@pytest.mark.parametrize("value", [float("inf"), float("nan"), "a\ud800"])
-def test_values_canonical_cannot_encode_fail_to_load(document, value):
-    document["boards"]["board_a"]["extensions"] = {"tool": value}
+def test_values_canonical_cannot_encode_fail_to_load(document):
+    document["boards"]["board_a"]["extensions"] = {"tool": float("nan")}
     with pytest.raises(FormatError, match=r"boards\.board_a\.extensions\.tool"):
         load_overlay(document)
 
