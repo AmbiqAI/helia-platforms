@@ -11,8 +11,8 @@ and generated per-SoC and per-board pages". This note designs both,
 except resolved per-target records, which it defers (see "Deferred:
 resolved targets"). It does not edit RFC 0002; the edits RFC 0002 would
 take on acceptance are listed at the end. RFC 0002 line numbers below are
-at `4c7bfce`. Citations of PR #49's code are pinned to its commit
-`217e0ea`, because #49 is still changing.
+at `4c7bfce`. Citations of #49's code are pinned to its merge commit
+`af7482b`.
 
 ## Problem
 
@@ -89,15 +89,15 @@ One JSON document, built from a `Catalogue`, with three top-level keys:
 |---|---|
 | `schema_version` | ADR 0004's integer. |
 | `identity` | `Catalogue.identity().to_dict()` (ADR 0004 point 4): package version, `schema_version`, `catalogue_digest`, and one entry per source applied on top of the built-in data. In every export that may be published, there is no such entry (see "One publishable path"). |
-| `catalogue` | The entities, written as a complete document in ADR 0002's file format: `schema_version`, equal to the export's top-level `schema_version`, then `cores`, `socs`, `implementations`, `parts`, `boards`, `addons`, `memory_devices`, `compositions`, `shorthands`. Every entry is written after the `based_on` merge, so no entry carries `based_on` or a file-only delta key that applies over a base (a Soc's `memories_removed` and the like, a Part's `image_slots_removed`; #49 at `217e0ea`, `_format.py:286-301`, `:369`). An Implementation entry keeps its `subset` as in the file format, because its removals, resizes, rebases and clock caps live only there (ADR 0002 `:211-216`); a reader that wants the realized Implementation calls `resolve()` with its id. |
+| `catalogue` | The entities, written as a complete document in ADR 0002's file format: `schema_version`, equal to the export's top-level `schema_version`, then `cores`, `socs`, `implementations`, `parts`, `boards`, `addons`, `memory_devices`, `compositions`, `shorthands`. Every entry is written after the `based_on` merge, so no entry carries `based_on` or a file-only delta key that applies over a base (a Soc's `memories_removed` and the like, a Part's `image_slots_removed`; #49 at `af7482b`, `_format.py:286-301`, `:369`). An Implementation entry keeps its `subset` as in the file format, because its removals, resizes, rebases and clock caps live only there (ADR 0002 `:211-216`); a reader that wants the realized Implementation calls `resolve()` with its id. |
 
 `catalogue` is the raw data: a tool can rebuild any view from it, and
 because it is in the file format, the file-format JSON Schema of the same
-`schema_version` validates it (in #49's draft schema at `217e0ea`,
+`schema_version` validates it (in #49's schema at `af7482b`,
 `provenance` is not a required key of an entry, so an entry without it
 validates). The member carries its own `schema_version` because that
 schema requires the key at the top level of a document and allows no
-top-level key it does not list (#49 at `217e0ea`,
+top-level key it does not list (#49 at `af7482b`,
 `helia-platforms-v1.schema.json:110-113`).
 
 The export carries no derived values. Capabilities, ISA features, the
@@ -129,7 +129,7 @@ references it.
 
 The export also drops a composition when its board or any of its add-ons
 is scrubbed. A composition without its board is not a valid entry: #49's
-schema requires `board` (#49 at `217e0ea`,
+schema requires `board` (#49 at `af7482b`,
 `helia-platforms-v1.schema.json:1345-1365`). A composition that lost only
 an add-on would ship under its alias with that add-on removed from
 `addons`, so the alias would resolve to a different target from the one
@@ -171,7 +171,7 @@ The command line enforces the path:
 
 - `--pages` and `--release` refuse `--overlay` and `--include-plugins`
   and exit with status 2, as #49's `export` does when no output option is
-  given (#49 at `217e0ea`, `cli.py:75-77`). `--release` also refuses
+  given (#49 at `af7482b`, `cli.py:78-80`). `--release` also refuses
   `--provenance`.
 - Before writing, both check that `identity()` lists no source and fail
   otherwise, so a source added by another route also stops the write.
@@ -224,7 +224,7 @@ removed or renamed". This note follows that:
   and `catalogue.schema_version` must each equal N. For `catalogue` this
   is an `allOf` of the `$ref` and `{"properties": {"schema_version":
   {"const": N}}}`, because the file-format schema accepts any integer
-  from 1 (#49 at `217e0ea`, `helia-platforms-v1.schema.json:10-13`).
+  from 1 (#49 at `af7482b`, `helia-platforms-v1.schema.json:10-13`).
 - This answers ADR 0002 open question 3: yes, one schema for the whole
   export, which reuses the file-format schema for `catalogue`.
 - Adding a top-level member or an `identity` field is a `feat:` (a patch
@@ -313,8 +313,8 @@ only the standard library (RFC 0002 principle P8).
 
 ### Command line
 
-PR #49's `export` command writes only `--schema` (#49 at `217e0ea`,
-`cli.py:68-78`). This note adds:
+#49's `export` command writes only `--schema` (#49 at `af7482b`,
+`cli.py:71-81`). This note adds:
 
 | Option | Writes |
 |---|---|
@@ -377,9 +377,9 @@ raises `PlatformError` because no boot configuration is selected or
 because the `app_start` region has no `base` (RFC 0002 `:187-191`,
 `:809`). Overlay and plugin entries can produce both: #49's file format
 lets a Soc omit `boot_configs` and `default_boot` and lets an overlay
-region omit `base` (#49 at `217e0ea`, `_format.py:280-281`, `:125`).
-Built-in regions always carry a base (RFC 0002 `:191`; #49 at `217e0ea`,
-`catalogue.py:329-330`), so in built-in data only a missing boot
+region omit `base` (#49 at `af7482b`, `_format.py:280-281`, `:125`).
+Built-in regions always carry a base (RFC 0002 `:191`; #49 at `af7482b`,
+`catalogue.py:344-345`), so in built-in data only a missing boot
 configuration produced `null`. `targets` had its own JSON Schema, which
 `--export-schema` wrote, and heliaAOT's field mapping read `cpu`,
 `speeds_mhz`, `capabilities`, `supports_fp16` and the memory inputs from

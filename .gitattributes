@@ -1,0 +1,2 @@
+# Regeneration compares bytes, so a CRLF checkout must not alter the snapshots (ADR 0006).
+snapshots/*.json text eol=lf

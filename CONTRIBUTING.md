@@ -86,6 +86,27 @@ For the rare line where the path is itself the subject, add a
 The hook skips `tests/test_check_local_paths.py` entirely, because that
 file is made of local-path examples, so review changes to it by hand.
 
+## Source snapshots
+
+`snapshots/` holds the values extracted from nsx-ambiq-sdk, neuralspotx and
+Zephyr with hal_ambiq ([ADR 0006](docs/adr/0006-drift-test-snapshots.md)). They
+are generated, never edited by hand. The pins are the neuralspotx and Zephyr
+revisions the committed files record; the SDK tags and the hal_ambiq commit
+follow from them. The extractor fetches only those commits from GitHub, into
+`~/.cache/helia-platforms/upstream` unless `--cache` names another directory.
+
+```sh
+# Check that the committed snapshots regenerate byte for byte
+uv run --group extract scripts/extract_snapshots.py extract --check
+# Refresh: a neuralspotx tag and a Zephyr main commit by full SHA
+uv run --group extract scripts/extract_snapshots.py extract \
+    --neuralspotx <tag> --zephyr <40-hex SHA>
+```
+
+The refresh prints the values that changed, with addresses in hex; put that
+summary in the pull request description. `snapshots/exceptions.yaml` lists the
+disagreements `check-sources` accepts, each with a reason and an issue.
+
 ## Checks
 
 Before opening a pull request, make sure these pass:
