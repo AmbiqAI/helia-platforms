@@ -139,6 +139,10 @@ def test_extensions_hold_any_json(document):
         ({"x": b"hi"}, "expected JSON data, got a bytes value"),
         ({"x": (1, 2)}, "expected JSON data, got a tuple value"),
         ({1: "a"}, "key 1 must be a string"),
+        ([float("inf")], "is not a finite number"),
+        ([float("nan")], "is not a finite number"),
+        ("a\ud800", "is not valid Unicode text"),
+        ({"a\ud800": 1}, "is not valid Unicode text"),
     ],
 )
 def test_extensions_reject_values_json_cannot_hold(document, value, message):
@@ -146,6 +150,19 @@ def test_extensions_reject_values_json_cannot_hold(document, value, message):
     (found,) = problems(document)
     assert "boards.board_a.extensions.tool" in found
     assert message in found
+
+
+@pytest.mark.parametrize("value", [float("inf"), float("-inf"), float("nan")])
+def test_non_finite_numbers_are_rejected(document, value):
+    soc(document)["memories"]["tcm"]["characterization"] = {"read_latency_ns": value}
+    (found,) = problems(document)
+    assert "is not a finite number" in found
+
+
+def test_lone_surrogates_are_rejected(document):
+    soc(document)["series"] = "a\ud800"
+    (found,) = problems(document)
+    assert "is not valid Unicode text" in found
 
 
 def test_extensions_reject_a_value_that_contains_itself(document):

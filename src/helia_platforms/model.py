@@ -38,6 +38,8 @@ class Provenance:
 
 
 UNVERIFIED = Provenance(status="unverified")
+#: The ``_Carrier`` fields that hold records rather than data.
+RECORD_FIELDS = frozenset({"provenance", "field_provenance"})
 
 
 @_frozen
