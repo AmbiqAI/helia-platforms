@@ -21,3 +21,4 @@ NNNN, Rejected.
 | 0006 | Check the catalogue against committed source snapshots | Accepted |
 | 0007 | Model an FVP's memories as its own list, not as substitutions | Proposed |
 | 0008 | Mark a Soc's memory controllers in a list of their own | Proposed |
+| 0009 | Spell catalog in American English in every name and document | Proposed |

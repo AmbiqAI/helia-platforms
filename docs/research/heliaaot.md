@@ -7,7 +7,7 @@
 - **Read on:** 2026-10-04
 - **Method:** Inventory from a read of the local checkout; ten citations re-checked against `e537d293` on 2026-10-04 (results under Open questions, "Citation checks").
 
-> **Stale checkout.** Local `main` at `e537d293` is **45 commits behind `origin/main`** (`git status -sb` on 2026-10-04 reports `## main...origin/main [behind 45]`). Every path, line number, and value below describes `e537d293`, not current upstream. Re-run this inventory against `origin/main` before reconciling the catalogue with it. The checkout also has an untracked `HANDOFF.md`.
+> **Stale checkout.** Local `main` at `e537d293` is **45 commits behind `origin/main`** (`git status -sb` on 2026-10-04 reports `## main...origin/main [behind 45]`). Every path, line number, and value below describes `e537d293`, not current upstream. Re-run this inventory against `origin/main` before reconciling the catalog with it. The checkout also has an untracked `HANDOFF.md`.
 
 ## What it is
 
@@ -162,8 +162,8 @@ Notes on specific literals:
 | 1 | Which of the 45 upstream commits touch `helia_aot/platforms/`? The entry table may already differ on `origin/main` (for example after #539). |
 | 2 | Is the `apollo510_evb` PSRAM literal `32168 * 1024` intended? helia-profiler (origin/main `b195e29f`) carries `psram_kb=65536` for SoC `apollo510`; the two sources disagree. |
 | 3 | MRAM and SRAM literals differ from helia-profiler for the same parts (heliaAOT 2 MB vs profiler `mram_kb=2000` on Apollo3P/4P/4L; heliaAOT 704 KB vs profiler `sram_kb=700` on Apollo3P). Which source is authoritative? |
-| 4 | How will #278's Soc/Board split map the six board variants that exist only here (see Facts) onto the catalogue? |
-| 5 | `platform.h.j2` dispatches on name prefixes; the catalogue needs a family field that keeps this working for `atomiq110` (no matching prefix). |
+| 4 | How will #278's Soc/Board split map the six board variants that exist only here (see Facts) onto the catalog? |
+| 5 | `platform.h.j2` dispatches on name prefixes; the catalog needs a family field that keeps this working for `atomiq110` (no matching prefix). |
 
 ### Citation checks (2026-10-04, against `e537d293`)
 

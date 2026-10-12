@@ -39,11 +39,11 @@ with a hand-written name map that sends three boards to the wrong target.
 
 `helia-platforms` is one Python package that holds the silicon and board
 facts both tools need, plus each tool's per-target settings in a section
-labelled with that tool's name. It is a **declared catalogue with
+labelled with that tool's name. It is a **declared catalog with
 validators**, not a derivation engine: every value is written down per
 entry, and tests enforce the invariants and compare the overlap with the
 SDK. It is published to PyPI before either consumer adopts it. heliaAOT
-keeps its `SocPlatform` type and builds it from the catalogue; the
+keeps its `SocPlatform` type and builds it from the catalog; the
 profiler keeps its policy modules and imports the facts.
 
 ## Motivation
@@ -99,7 +99,7 @@ profiler keeps its policy modules and imports the facts.
   `neuralspot` module type needs.
 - Making neuralspotx a consumer. It stays a source of facts (`board.yaml`,
   per-board `debug.cmake` overrides) and the naming authority; its own
-  boards that neither tool supports are not in the catalogue. See
+  boards that neither tool supports are not in the catalog. See
   *Alternatives considered*.
 - Knowing an application's stack, heap or other `.bss`. The budget heliaAOT
   plans against is the region the link environment gives the AOT sections;
@@ -122,7 +122,7 @@ accelerator config). A chip composes them; the options Arm leaves to the
 implementer (FPU flavour, MVE flavour, caches, NPU clock and base address)
 are the chip's fields, not the IP's.
 
-Every board in either tool's catalogue today becomes a `BoardDef`, and
+Every board in either tool's catalog today becomes a `BoardDef`, and
 every `BoardDef` is a heliaAOT target: 13 from the profiler and 3 Apollo3
 boards from heliaAOT. Two heliaAOT names become aliases:
 `apollo3_blue_plus_evb` is byte-identical to `apollo3p_evb`, and
@@ -274,7 +274,7 @@ two v1 behaviours that change are in appendix E.
 `placement_ranges`, `classify_address`, the board-aware accessors
 (`jlink_device_for`, `swo_trace_clock_for`, `clocks_for`) and
 `load_overlay`; no I/O at import time. A `helia-platforms` CLI (`list`,
-`show`, `windows`, `validate`, `check-sdk`) gives the catalogue a view of
+`show`, `windows`, `validate`, `check-sdk`) gives the catalog a view of
 its own; `target-info` and `hpx boards` remain each tool's view.
 
 ### Authority

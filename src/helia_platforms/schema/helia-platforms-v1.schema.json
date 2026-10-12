@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "tag:ambiq.com,2026:helia-platforms/schema/v1",
-  "title": "helia-platforms catalogue file",
+  "title": "helia-platforms catalog file",
   "type": "object",
   "properties": {
     "$schema": {

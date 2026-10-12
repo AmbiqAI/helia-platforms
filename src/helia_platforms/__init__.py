@@ -1,4 +1,4 @@
-"""Shared catalogue of Ambiq SoC and board facts."""
+"""Shared catalog of Ambiq SoC and board facts."""
 
 from importlib.metadata import PackageNotFoundError, version
 

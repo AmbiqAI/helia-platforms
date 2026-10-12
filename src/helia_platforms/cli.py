@@ -8,13 +8,13 @@ from typing import Annotated
 import typer
 
 from helia_platforms import __version__
-from helia_platforms.catalogue import load_overlay
+from helia_platforms.catalog import load_overlay
 from helia_platforms.errors import FormatError, PlatformError
 from helia_platforms.schema import render
 
 app = typer.Typer(
     name="helia-platforms",
-    help="Shared catalogue of Ambiq SoC and board facts.",
+    help="Shared catalog of Ambiq SoC and board facts.",
     no_args_is_help=False,
     add_completion=False,
 )
@@ -39,7 +39,7 @@ def root(
         ),
     ] = False,
 ) -> None:
-    """Shared catalogue of Ambiq SoC and board facts."""
+    """Shared catalog of Ambiq SoC and board facts."""
     if ctx.invoked_subcommand is None:
         typer.echo(__version__)
 

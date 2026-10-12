@@ -76,7 +76,7 @@ each box and the reviewer checks it again. -->
       neuralspotx, zephyr, hal_ambiq) cites a `revision` that the committed
       snapshots hold (ADR 0006).
 
-## Catalogue scope
+## Catalog scope
 
 <!-- No check can tell whether hardware is released, and no CI job checks
 the other two rules yet. The author confirms each box and the reviewer

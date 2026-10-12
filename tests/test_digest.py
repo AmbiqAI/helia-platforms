@@ -7,7 +7,7 @@ import yaml
 
 from conftest import RECORD
 from helia_platforms import _digest, _parse
-from helia_platforms.catalogue import _EMPTY, _load_documents, load_overlay
+from helia_platforms.catalog import _EMPTY, _load_documents, load_overlay
 from helia_platforms.errors import FormatError
 
 

@@ -1,7 +1,7 @@
 [project]
 name = "helia-platforms"
 version = "0.0.0"
-description = "Shared catalogue of Ambiq SoC and board facts (cores, memories, clocks, NPU, debug-probe identifiers) consumed by heliaAOT, helia-profiler and helia-estimator."
+description = "Shared catalog of Ambiq SoC and board facts (cores, memories, clocks, NPU, debug-probe identifiers) consumed by heliaAOT, helia-profiler and helia-estimator."
 readme = "README.md"
 license-files = ["LICENSE.md"]
 requires-python = ">=3.11"

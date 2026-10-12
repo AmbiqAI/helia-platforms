@@ -101,7 +101,7 @@ of them that describe substitutions.
    region name that a region's `stands_in_for` lists, and returns the
    region that stands in for it, so a tool asking for `hblram` on the
    Corstone-320 target gets the DDR region. The resolver (issue #58)
-   implements this rule; the realized Soc that `Catalogue._realized()`
+   implements this rule; the realized Soc that `Catalog._realized()`
    returns holds only the FVP's regions.
 
 This record supersedes, in ADR 0002 section 2.4, the collection "an FVP

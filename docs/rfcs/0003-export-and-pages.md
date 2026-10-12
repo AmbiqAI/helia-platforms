@@ -1,7 +1,7 @@
-# RFC 0003: the JSON export and the generated catalogue pages
+# RFC 0003: the JSON export and the generated catalog pages
 
 Status: Draft, 2026-10-06. Builds on [RFC 0002](0002-model-and-api.md)
-(`Catalogue.to_dict()`, release status and `helia_platforms.export`) and
+(`Catalog.to_dict()`, release status and `helia_platforms.export`) and
 on ADRs [0002](../adr/0002-schema-format-and-runtime.md),
 [0004](../adr/0004-schema-and-catalogue-versions.md) and
 [0005](../adr/0005-publication-and-embargo.md), all Accepted (#50).
@@ -18,7 +18,7 @@ at `4c7bfce`. Citations of #49's code are pinned to its merge commit
 
 RFC 0002 names the outputs in two lines: `to_dict()` is "the JSON export"
 (`docs/rfcs/0002-model-and-api.md:707`), and `helia_platforms.export`
-"writes the JSON catalogue, filtered and scrubbed by effective release
+"writes the JSON catalog, filtered and scrubbed by effective release
 status, the JSON Schema and Markdown pages" (`:853-855`). It does not say
 what the JSON contains, whether derived values are in it, how it is
 versioned, or who reads it. ADR 0002 leaves open whether the resolved
@@ -83,15 +83,15 @@ pages live is open question 1.
 
 ### What the export contains
 
-One JSON document, built from a `Catalogue`, with three top-level keys:
+One JSON document, built from a `Catalog`, with three top-level keys:
 
 | Key | Content |
 |---|---|
 | `schema_version` | ADR 0004's integer. |
-| `identity` | `Catalogue.identity().to_dict()` (ADR 0004 point 4): package version, `schema_version`, `catalogue_digest`, and one entry per source applied on top of the built-in data. In every export that may be published, there is no such entry (see "One publishable path"). |
-| `catalogue` | The entities, written as a complete document in ADR 0002's file format: `schema_version`, equal to the export's top-level `schema_version`, then `cores`, `socs`, `implementations`, `parts`, `boards`, `addons`, `memory_devices`, `compositions`, `shorthands`. Every entry is written after the `based_on` merge, so no entry carries `based_on` or a file-only delta key that applies over a base (a Soc's `memories_removed` and the like, a Part's `image_slots_removed`; #49 at `af7482b`, `_format.py:286-301`, `:369`). An Implementation entry keeps its `subset` as in the file format, because its removals, resizes, rebases and clock caps live only there (ADR 0002 `:211-216`); a reader that wants the realized Implementation calls `resolve()` with its id. |
+| `identity` | `Catalog.identity().to_dict()` (ADR 0004 point 4): package version, `schema_version`, `catalog_digest`, and one entry per source applied on top of the built-in data. In every export that may be published, there is no such entry (see "One publishable path"). |
+| `catalog` | The entities, written as a complete document in ADR 0002's file format: `schema_version`, equal to the export's top-level `schema_version`, then `cores`, `socs`, `implementations`, `parts`, `boards`, `addons`, `memory_devices`, `compositions`, `shorthands`. Every entry is written after the `based_on` merge, so no entry carries `based_on` or a file-only delta key that applies over a base (a Soc's `memories_removed` and the like, a Part's `image_slots_removed`; #49 at `af7482b`, `_format.py:286-301`, `:369`). An Implementation entry keeps its `subset` as in the file format, because its removals, resizes, rebases and clock caps live only there (ADR 0002 `:211-216`); a reader that wants the realized Implementation calls `resolve()` with its id. |
 
-`catalogue` is the raw data: a tool can rebuild any view from it, and
+`catalog` is the raw data: a tool can rebuild any view from it, and
 because it is in the file format, the file-format JSON Schema of the same
 `schema_version` validates it (in #49's schema at `af7482b`,
 `provenance` is not a required key of an entry, so an entry without it
@@ -137,9 +137,9 @@ it names, and the alias name itself can reveal the add-on. This tightens
 RFC 0002's rule, which drops a composition only when it references only
 embargoed entities (`:390-392`).
 
-`Catalogue.to_dict()` returns this filtered document. The unfiltered form
+`Catalog.to_dict()` returns this filtered document. The unfiltered form
 exists only for ADR 0005's distribution test, which asserts the two are
-equal for the built-in catalogue. No public call returns an unfiltered
+equal for the built-in catalog. No public call returns an unfiltered
 dump, so a tool cannot publish one by calling `json.dump(cat.to_dict())`.
 
 ### One publishable path
@@ -152,7 +152,7 @@ packages nor `HELIA_PLATFORMS_PATH` (RFC 0002 `:688`). The outputs that
 may be published are the pages, the release assets, and any copy a
 consumer commits, such as a copy in the hub. Built-in entries must be
 `public` (ADR 0005 point 1), and ADR 0005's distribution test asserts
-that the filtered export of this catalogue equals the unfiltered one, so
+that the filtered export of this catalog equals the unfiltered one, so
 on this path the filter removes nothing and is defence in depth.
 
 The filter is not enough when other sources are loaded, because it does
@@ -161,7 +161,7 @@ label, such as `entry_point:<distribution>`, `env:<file>` or
 `overlay:<file>`, the distribution version for an entry point, and a
 sha256 of the source's whole mapping, embargoed entries included (ADR
 0004 point 4). An export built with `--include-plugins` while a private
-catalogue package is installed, or with `--overlay`, therefore drops the
+catalog package is installed, or with `--overlay`, therefore drops the
 embargoed entries but still names the private package and its version,
 or the overlay file. The hub condition in "Where outputs are published"
 checks only the named Socs, Parts, Boards and Implementations and would
@@ -182,16 +182,16 @@ The command line enforces the path:
 
 ### Provenance
 
-The default export carries no provenance records. `catalogue` omits every
+The default export carries no provenance records. `catalog` omits every
 `provenance` key and writes plain values in place of the `{value,
-provenance}` form, as the projection that `catalogue_digest` hashes does
+provenance}` form, as the projection that `catalog_digest` hashes does
 (ADR 0004 point 1). Pages show the worst status per group from
 `Target.provenance()`, which needs no record.
 
-`--provenance` writes the full records into `catalogue` in the file
+`--provenance` writes the full records into `catalog` in the file
 format, for `--json` only. ADR 0005 point 2 requires an audit of the
 source register's document ids, the provenance notes and the
-`verified_by` logins before any publication with catalogue content, so an
+`verified_by` logins before any publication with catalog content, so an
 export with full records is for internal use until that audit is done.
 Reason: pages need to say how well a value is sourced, which the status
 does; the full records add internal document ids and GitHub logins that
@@ -203,30 +203,30 @@ ADR 0004 gives one `schema_version` to "the overlay format and the JSON
 export shape" and bumps it on a schema break, including "an export field
 removed or renamed". This note follows that:
 
-- The export declares `schema_version: N`, and its `catalogue` member is
+- The export declares `schema_version: N`, and its `catalog` member is
   a file-format document that declares the same `schema_version: N`.
 - The export gets one JSON Schema for the whole document, generated from
   `TypedDict` declarations as ADR 0002 section 3 does for the file format:
   `src/helia_platforms/schema/helia-platforms-export-v<N>.schema.json`,
   `$id` `tag:ambiq.com,2026:helia-platforms/export/v<N>`, shipped in the
   wheel, written by `--export-schema` and held by the same staleness test.
-  It requires `schema_version`, `identity` and `catalogue` and allows no
+  It requires `schema_version`, `identity` and `catalog` and allows no
   other key, as the file-format schema does at its top level. `identity`
-  is declared from the shape of `CatalogueIdentity.to_dict()`.
-- `catalogue` reuses the file-format schema instead of copying its
+  is declared from the shape of `CatalogIdentity.to_dict()`.
+- `catalog` reuses the file-format schema instead of copying its
   definitions. The generator embeds the file-format schema of version N
   under `$defs` with its own `$id`, which draft 2020-12 allows as a
-  bundled schema resource, and `catalogue` refers to it by `$ref`. The
+  bundled schema resource, and `catalog` refers to it by `$ref`. The
   export schema therefore validates on its own, without a schema
   registry, and both schemas come from one declaration of the file format.
 - Each export schema serves one N, so it checks that the versions agree
   with `const`: the top-level `schema_version`, `identity.schema_version`
-  and `catalogue.schema_version` must each equal N. For `catalogue` this
+  and `catalog.schema_version` must each equal N. For `catalog` this
   is an `allOf` of the `$ref` and `{"properties": {"schema_version":
   {"const": N}}}`, because the file-format schema accepts any integer
   from 1 (#49 at `af7482b`, `helia-platforms-v1.schema.json:10-13`).
 - This answers ADR 0002 open question 3: yes, one schema for the whole
-  export, which reuses the file-format schema for `catalogue`.
+  export, which reuses the file-format schema for `catalog`.
 - Adding a top-level member or an `identity` field is a `feat:` (a patch
   before 1.0); removing or renaming one is `feat!:` and bumps N (ADR 0004
   point 2). Adding `targets` later is therefore an addition and does not
@@ -240,7 +240,7 @@ acceptable.
 ### How `targets.json` consumers migrate
 
 The export does not replace `targets.json`. heliaAOT is a Python package
-and reads the catalogue through `resolve()`; `targets.json` stays
+and reads the catalog through `resolve()`; `targets.json` stays
 heliaAOT's record of which targets heliaAOT supports and how it plans
 into them, because budgets and policy stay in heliaAOT (RFC 0002
 principle P1). Each field of a `targets.json` record maps as follows:
@@ -256,7 +256,7 @@ principle P1). Each field of a `targets.json` record maps as follows:
 | `preferred_memory_order`, `min_alignment` | heliaAOT policy tables, in neither the package nor the export (`0002-migration.md:122`) |
 
 Every value in the table comes from `resolve()`, not from the export's
-`catalogue`. heliaAOT's adapter computes `speeds_mhz`, `capabilities` and
+`catalog`. heliaAOT's adapter computes `speeds_mhz`, `capabilities` and
 `memories` itself from `Target` queries; the export does not carry them.
 
 Per reader:
@@ -264,11 +264,11 @@ Per reader:
 - heliaAOT keeps `targets.json` and builds it from `SocPlatform.from_target`
   (RFC 0002, "Adapters, in the consumers"). Its readers and `--check`
   are unchanged. ADR 0004 point 4 asks every output that depends on
-  catalogue facts to record `identity()`, so the file gains an `identity`
+  catalog facts to record `identity()`, so the file gains an `identity`
   member; how heliaAOT versions that addition is heliaAOT's decision. A
   `soc` or `series` field would let `TargetChips.astro` drop its
   hand-kept family table; that is heliaAOT's choice. Whether heliaAOT's
-  Targets reference keeps its hardware columns or links to the catalogue
+  Targets reference keeps its hardware columns or links to the catalog
   pages is open question 4.
 - The handbook's `mcu-coverage.yaml` records tool integration by URL and
   stays pointed at heliaAOT's file.
@@ -277,13 +277,13 @@ Per reader:
 ### Markdown pages
 
 `helia_platforms.export` renders pages only on the publishable path, from
-the `builtin(include_plugins=False)` catalogue the export is built from.
-RFC 0002 defines no filtered `Catalogue` object, and this path needs
-none, because the filter removes nothing from that catalogue. The
+the `builtin(include_plugins=False)` catalog the export is built from.
+RFC 0002 defines no filtered `Catalog` object, and this path needs
+none, because the filter removes nothing from that catalog. The
 renderer takes the list of Socs and boards, and every declared fact it
 shows, from the filtered export document, so pages inherit the filter and
-the scrubbing. It takes derived values from `Catalogue.resolve()` on the
-same catalogue, and fails if a resolved `Target` has a `release_status`
+the scrubbing. It takes derived values from `Catalog.resolve()` on the
+same catalog, and fails if a resolved `Target` has a `release_status`
 other than `public`. Where a `Target` method raises `PlatformError`
 because no boot configuration is selected, as `flash_load_address()` does
 (RFC 0002 `:809`), the page says that no boot configuration is selected
@@ -308,7 +308,7 @@ rendition of a page, as heliaAOT's renderer notes
 (`render-generated.mjs:12-15` at `1fd91daf`). Front matter holds only
 `title`, which Starlight requires (both heliaAOT's site and the hub use
 Starlight), and `description`. Each page ends with the package version and
-`catalogue_digest`. Aliases get no page of their own. The renderer uses
+`catalog_digest`. Aliases get no page of their own. The renderer uses
 only the standard library (RFC 0002 principle P8).
 
 ### Command line
@@ -322,7 +322,7 @@ only the standard library (RFC 0002 principle P8).
 | `--export-schema` | The export JSON Schema |
 | `--pages DIR` | The Markdown pages; refuses `--overlay` and `--include-plugins` |
 | `--release DIR` | The release assets: the export document and the pages; refuses `--overlay`, `--include-plugins` and `--provenance` |
-| `--provenance` | Full provenance records in `catalogue`, with `--json` only |
+| `--provenance` | Full provenance records in `catalog`, with `--json` only |
 | `--overlay FILE` (repeatable), `--include-plugins` | Adds sources to a `--json` export for internal use; the filter still applies, and `identity` names each source |
 | `--check` | Compares with the existing outputs and fails on any difference |
 
@@ -332,7 +332,7 @@ Tests cover the refusals, the empty-sources check before `--pages` and
 
 ### Where outputs are published
 
-ADR 0005 governs every output here, because each one carries catalogue
+ADR 0005 governs every output here, because each one carries catalog
 content.
 
 - Nothing gets a public URL until the owner chooses a publication path
@@ -352,7 +352,7 @@ content.
   records the export's `identity` beside it. That `identity` lists no
   source, which the consumer can check. Committing pages or JSON into the
   hub publishes them once the hub deploys its real site, so the hub takes
-  catalogue content only after the ADR 0005 audit and the owner's
+  catalog content only after the ADR 0005 audit and the owner's
   confirmation that every named Soc, Part, Board and Implementation is
   announced (ADR 0005 point 3).
 
@@ -379,7 +379,7 @@ because the `app_start` region has no `base` (RFC 0002 `:187-191`,
 lets a Soc omit `boot_configs` and `default_boot` and lets an overlay
 region omit `base` (#49 at `af7482b`, `_format.py:280-281`, `:125`).
 Built-in regions always carry a base (RFC 0002 `:191`; #49 at `af7482b`,
-`catalogue.py:344-345`), so in built-in data only a missing boot
+`catalog.py:344-345`), so in built-in data only a missing boot
 configuration produced `null`. `targets` had its own JSON Schema, which
 `--export-schema` wrote, and heliaAOT's field mapping read `cpu`,
 `speeds_mhz`, `capabilities`, `supports_fp16` and the memory inputs from
@@ -414,7 +414,7 @@ the addition is a `feat:` (ADR 0004 point 2).
 3. Should public pages show a provenance status at all, and is showing
    `unverified` on a public page acceptable?
 4. Does heliaAOT's Targets reference keep its hardware columns, or keep
-   only heliaAOT's budgets and policy and link to the catalogue pages?
+   only heliaAOT's budgets and policy and link to the catalog pages?
    heliaAOT's owners decide.
 5. Should FPGA and FVP implementations of a public Soc appear on the
    public pages, or only in the JSON? Their release status says they may

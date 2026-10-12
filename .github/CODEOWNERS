@@ -6,7 +6,7 @@
 # changes: reassigning /src/helia_platforms/data/ also needs the socs/ line
 # and the six data file lines below it changed.
 
-# Built-in catalogue data (ADR 0002 section 1).
+# Built-in catalog data (ADR 0002 section 1).
 /src/helia_platforms/data/ @apage224
 /src/helia_platforms/data/socs/ @apage224
 /src/helia_platforms/data/ip.yaml @apage224

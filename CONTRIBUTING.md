@@ -23,7 +23,7 @@ type drives release notes and version bumps through release-please:
 ## Fact changes
 
 A pull request that changes anything under `src/helia_platforms/data/` (the
-built-in catalogue, the source register `sources.yaml` or the release
+built-in catalog, the source register `sources.yaml` or the release
 allow-list `unverified.yaml`) or under `snapshots/` uses the fact-change
 template, `.github/PULL_REQUEST_TEMPLATE/fact-change.md`, instead of the
 default one. The template asks for the provenance record of each changed

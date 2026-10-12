@@ -74,10 +74,10 @@ clash with its COM_UART pads 22 and 23 (the same lines in the cygnus BSP).
 ### Target names
 
 The 15 registered targets at `ea5cd6c0` resolve as follows. A name is
-either a catalogue id or an alias; an alias resolves to a target whose
+either a catalog id or an alias; an alias resolves to a target whose
 `id` differs from the name, and the name is kept in `Target.aliases`.
 
-| heliaAOT name | Catalogue entry | `target.id` | Artefact name |
+| heliaAOT name | Catalog entry | `target.id` | Artefact name |
 |---|---|---|---|
 | `apollo3_evb` | Board id (also a neuralspotx board id) | `apollo3_evb` | Unchanged |
 | `apollo3_blue_evb` | Board id carried from heliaAOT; no neuralspotx board | `apollo3_blue_evb` | Unchanged |
@@ -107,7 +107,7 @@ today's for every name.
 
 | Output that changes | Parity test (#13) |
 |---|---|
-| Memory budgets come from the catalogue for every module type: on-chip RAM is the physical region size from `target.memories()`, except `atomiq110`'s HBLRAM (see below the table), NVM is `target.usable_nvm()`, and external memories come from `target.external_memories()`; no link environment is a budget source (decided 2026-10-05, see #28). `usable_nvm()` subtracts the boot reservations and other cores' image slots of the selected boot configuration, because planning into them would overwrite the bootloader or radio firmware; it does not subtract stack and heap carve-outs. A plan within a physical RAM size can therefore exceed what a linker script or devicetree gives the program, for example the nsx default script's 496 KB of DTCM on Apollo510 or Zephyr's 2 MB `sram0` on `apollo510_evb` against 3 MB of SSRAM. The largest case is apollo4p: the nsx scripts link SSRAM0 only (`SHARED_SRAM`, 1048576 bytes, at nsx-ambiq-sdk `v5.2.24` `modules/nsx-core/src/apollo4p/gcc/linker_script.ld:12`; RFC 0001 appendix D) against a 2432 KB SRAM budget. The budgets stay physical (accepted, decided 2026-10-05, see #28); heliaAOT should instead warn when a plan exceeds the SDK window of the selected link environment, using the optional link-environment dataset where it covers the target (#28) | Budget parity: per target and module type, budgets equal today's `platforms.py` figures at `ea5cd6c0` except the rows in Pending data corrections and in this table |
+| Memory budgets come from the catalog for every module type: on-chip RAM is the physical region size from `target.memories()`, except `atomiq110`'s HBLRAM (see below the table), NVM is `target.usable_nvm()`, and external memories come from `target.external_memories()`; no link environment is a budget source (decided 2026-10-05, see #28). `usable_nvm()` subtracts the boot reservations and other cores' image slots of the selected boot configuration, because planning into them would overwrite the bootloader or radio firmware; it does not subtract stack and heap carve-outs. A plan within a physical RAM size can therefore exceed what a linker script or devicetree gives the program, for example the nsx default script's 496 KB of DTCM on Apollo510 or Zephyr's 2 MB `sram0` on `apollo510_evb` against 3 MB of SSRAM. The largest case is apollo4p: the nsx scripts link SSRAM0 only (`SHARED_SRAM`, 1048576 bytes, at nsx-ambiq-sdk `v5.2.24` `modules/nsx-core/src/apollo4p/gcc/linker_script.ld:12`; RFC 0001 appendix D) against a 2432 KB SRAM budget. The budgets stay physical (accepted, decided 2026-10-05, see #28); heliaAOT should instead warn when a plan exceeds the SDK window of the selected link environment, using the optional link-environment dataset where it covers the target (#28) | Budget parity: per target and module type, budgets equal today's `platforms.py` figures at `ea5cd6c0` except the rows in Pending data corrections and in this table |
 | `apollo510_evb` and `apollo510b_evb` DTCM changes from 507904 bytes (`platforms.py:498` and `:547`, `ea5cd6c0`; `MCU_TCM` in nsx-ambiq-sdk `v5.2.24` `modules/nsx-core/src/apollo510/gcc/linker_script_sbl.ld:12` and `apollo510b/gcc/linker_script_sbl.ld:12`) to the physical 524288 (DTCM 512 KB, RFC 0001 appendix D) | Budget parity, allow-listed: RAM budgets are physical sizes (decided 2026-10-05, see #28) |
 | `apollo330mp_evb` and `apollo510l_evb` DTCM changes from 245760 bytes (`platforms.py:458` and `:525`; `MCU_TCM` in nsx-ambiq-sdk `v5.2.24` `modules/nsx-core/src/apollo330P/gcc/linker_script_sbl.ld:11` and `apollo510L/gcc/linker_script_sbl.ld:11`) to the physical 262144 (DTCM 256 KB, RFC 0001 appendix D) | Budget parity, allow-listed: RAM budgets are physical sizes (decided 2026-10-05, see #28) |
 | `atomiq110` DTCM changes from 507904 bytes (`496 * 1024` at `platforms.py:593`; `MCU_TCM` in nsx-ambiq-sdk `v5.2.24` `modules/nsx-core/src/atomiq110/gcc/linker_script_nbl.ld:19`) to the physical 524288 (DTCM 512 KB, RFC 0001 appendix D) | Budget parity, allow-listed: RAM budgets are physical sizes (decided 2026-10-05, see #28) |
@@ -120,7 +120,7 @@ today's for every name.
 | `apollo510b_evb` gains a PSRAM region and the `PSRAM` capability (64 MB, same measurement) | Budget and capability parity, allow-listed |
 | Capabilities are derived; `BLE` and `USB` leave built-in lists. `MCU` is a heliaAOT policy tag its adapter adds, not a derived capability. `PSRAM` follows `target.has_external_memory("psram")` | Capability parity: per target, the adapter's set equals today's list minus `BLE` and `USB`, plus the `apollo510b_evb` `PSRAM` row |
 | `min_alignment` and `preferred_memory_order` come from heliaAOT tables keyed by `target.soc.id` | Policy-table parity: values per target unchanged |
-| The nsx manifest SoC list uses neuralspotx spelling (`apollo510L`, not `apollo510l`) | Manifest parity: `compatibility.socs` equals `catalogue.socs()` ids for the listed SoCs |
+| The nsx manifest SoC list uses neuralspotx spelling (`apollo510L`, not `apollo510l`) | Manifest parity: `compatibility.socs` equals `catalog.socs()` ids for the listed SoCs |
 
 Two MRAM budgets do not change under `usable_nvm()`. `apollo510_evb` and
 `apollo510b_evb` keep 4128768: 4 MB of NVM less the 64 KB NVM-SBL
@@ -132,7 +132,7 @@ only atomiq110 board is the FPGA, and keeps sbl scripts for future silicon
 (nsx-ambiq-sdk `v5.2.24` `cmake/socs/atomiq110.cmake:20-23`).
 
 `atomiq110` SRAM does not change either: it stays 3145728 (3072 KB of
-SSRAM, `platforms.py:592` at `ea5cd6c0`). The catalogue records HBLRAM on
+SSRAM, `platforms.py:592` at `ea5cd6c0`). The catalog records HBLRAM on
 atomiq110 as a physical region of 13312 KB at 0x60000000 (nsx-ambiq-sdk
 `v5.2.24`
 `modules/nsx-ambiqsuite/sdk/mcu/atomiq110/regs/am_reg_base_addresses.h:41-42`),
@@ -178,7 +178,7 @@ table does not allow-list.
 | Output that changes | Parity test (#13) |
 |---|---|
 | Shield board ids (`apollo4p_evb_disp_shield_rev2` and the others) become compositions and keep resolving, to a board target whose `id` is the base board and whose `aliases` keep the shield id | Board-id parity: every neuralspotx board id resolves to a target whose `id` equals it, except compositions, which resolve to board plus add-ons; `atomiq110_fpga_turbo` resolves to an implementation target, not a board |
-| Exact-case Soc and board ids are unchanged | Id parity: every non-composition neuralspotx board id and every SoC fact-file id is a catalogue id, exact case; the catalogue may also hold ids neuralspotx lacks (`apollo3_blue_evb`, `apollo3_blue_thin_evb`) |
+| Exact-case Soc and board ids are unchanged | Id parity: every non-composition neuralspotx board id and every SoC fact-file id is a catalog id, exact case; the catalog may also hold ids neuralspotx lacks (`apollo3_blue_evb`, `apollo3_blue_thin_evb`) |
 
 ## Custom definitions in every tool
 
@@ -187,14 +187,14 @@ one-release shim in each tool that reads the old key and warns:
 `jlink_device` on a custom SoC moves to the Part or Board override;
 `preferred_memory_order` and `min_alignment` move to the tool's
 `extensions` entry (proposal). If open question 4 rejects `extensions`,
-each tool keeps a sidecar file keyed by catalogue id instead. Covered by
+each tool keeps a sidecar file keyed by catalog id instead. Covered by
 each tool's custom-format parity test in #13.
 
 ## Relationship to helia-aot#278
 
 | #278 phase | Where it lands |
 |---|---|
-| 0: `resolve_platform` stops mutating the registry (#331) | heliaAOT, unchanged; the package's immutable catalogue removes the class of bug for adopters. |
+| 0: `resolve_platform` stops mutating the registry (#331) | heliaAOT, unchanged; the package's immutable catalog removes the class of bug for adopters. |
 | 1: Soc/Board split, `NpuSpec`, ISA derivation | This package. `SocPlatform` stays heliaAOT's flattened view, built by an adapter. |
 | 2: `platform.soc:` config surface | heliaAOT accepts the overlay format (`platform.overlay`) and a `platform.soc:` shorthand that builds a one-entry overlay. |
 | 3: NPU variant cross-check | heliaAOT, reading `NpuInstance.npu.accelerator_config` from here. |
@@ -209,6 +209,6 @@ model, memory regions with technology, attachment and characterization,
 operating points instead of a speeds list, ordered cores and accelerators
 with an explicit access matrix instead of one cpu string, provenance on
 every fact, an
-immutable catalogue with overlays instead of registration, and overlays
+immutable catalog with overlays instead of registration, and overlays
 may add aliases (#278 allowed built-in aliases only), still never
 shadowing a built-in id or alias.
