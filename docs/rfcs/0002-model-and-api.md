@@ -752,7 +752,7 @@ class CatalogIdentity:                          # frozen; to_dict() has these ke
 class SourceIdentity:                           # frozen; to_dict() has these keys
     label: str                                  # entry_point:<distribution>, env:<file> or overlay:<file>, no directory
     schema_version: int                         # as declared; the current one for a mapping that omits it
-    sha256: str                                 # the parsed mapping, records removed on declared keys only
+    sha256: str                                 # the parsed mapping, records removed on declared keys only; schema_version as read
     distribution_version: str | None            # entry points only
 ```
 

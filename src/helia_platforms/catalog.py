@@ -353,7 +353,7 @@ def _load_documents(
         applied += tuple(
             SourceIdentity(
                 label=_public_label(source or f"overlay:{origin}"),
-                schema_version=data.get("schema_version", fmt.SCHEMA_VERSION),
+                schema_version=_digest.read_version(data),
                 sha256=_digest.source_sha256(data),
                 distribution_version=distribution_version,
             )

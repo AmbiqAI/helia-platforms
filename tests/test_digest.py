@@ -220,3 +220,16 @@ def test_identity_to_dict_is_json(document):
     assert set(found) == {"package_version", "schema_version", "catalog_digest", "sources"}
     assert set(found["sources"][0]) == {"label", "schema_version", "sha256", "distribution_version"}
     assert _EMPTY.identity().sources == ()
+
+
+@pytest.mark.parametrize("declared", [1, 1.0, None], ids=["int", "float", "omitted"])
+def test_the_recorded_version_and_hash_ignore_how_the_version_is_written(document, declared):
+    reference = load_overlay(document).identity().sources[0]
+    if declared is None:
+        del document["schema_version"]
+    else:
+        document["schema_version"] = declared
+    (found,) = load_overlay(document).identity().sources
+    assert type(found.schema_version) is int
+    assert found.to_dict()["schema_version"] == 1
+    assert found.sha256 == reference.sha256

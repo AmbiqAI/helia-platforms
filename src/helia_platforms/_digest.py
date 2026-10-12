@@ -108,10 +108,18 @@ def source_sha256(document: Mapping[str, Any]) -> str:
     """Hash a parsed overlay document as ADR 0004 point 4 specifies.
 
     Records are removed and ``{value, provenance}`` forms unwrapped only on keys the
-    format declares; ``extensions`` values are hashed unchanged.
+    format declares; ``extensions`` values are hashed unchanged. ``schema_version`` is
+    hashed as the integer the document is read at, so omitting it or writing ``1.0``
+    hashes as declaring ``1`` (a file and the same mapping then hash alike).
     """
     top = {k: v for k, v in document.items() if k not in fmt.IGNORED_TOP_LEVEL}
+    top["schema_version"] = read_version(document)
     return sha256(_strip(top, fmt.Document, facts=False))
+
+
+def read_version(document: Mapping[str, Any]) -> int:
+    """The schema version a checked document is read at: as declared, else the current one."""
+    return int(document.get("schema_version", fmt.SCHEMA_VERSION))
 
 
 def _strip(value: Any, tp: Any, facts: bool) -> Any:  # noqa: PLR0911
