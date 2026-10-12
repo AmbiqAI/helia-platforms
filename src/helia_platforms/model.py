@@ -38,6 +38,8 @@ class Provenance:
 
 
 UNVERIFIED = Provenance(status="unverified")
+#: The ``_Carrier`` fields that hold records rather than data.
+RECORD_FIELDS = frozenset({"provenance", "field_provenance"})
 
 
 @_frozen
@@ -132,7 +134,7 @@ class MemoryCharacterization:
 class MemoryRegion(_Carrier):
     KEY: ClassVar[str] = "name"
     name: str
-    technology: Literal["sram", "mram", "rram", "psram", "flash", "nvm"]
+    technology: Literal["sram", "mram", "rram", "psram", "flash", "nvm", "dram"]
     attachment: Literal["tcm", "system", "external"]
     size: int
     base: int | None = None
@@ -141,6 +143,7 @@ class MemoryRegion(_Carrier):
     writeable: bool | None = None
     cacheable: bool | None = None
     characterization: MemoryCharacterization | None = None
+    stands_in_for: tuple[str, ...] = ()  # Soc regions an FVP region emulates (ADR 0007)
 
 
 @_frozen
@@ -266,16 +269,6 @@ class Soc(_Carrier):
 
 
 @_frozen
-class Substitution(_Carrier):
-    KEY: ClassVar[str] = "name"
-    name: str
-    replaces: tuple[str, ...]
-    size: int
-    base: int | None = None
-    characterization: MemoryCharacterization | None = None
-
-
-@_frozen
 class AccessKey:
     master: str
     target: str
@@ -286,7 +279,6 @@ class Subset:
     memories_removed: tuple[str, ...] = ()
     memories_resized: Mapping[str, int] = field(default_factory=_empty)
     memories_rebased: Mapping[str, int] = field(default_factory=_empty)
-    substitutions: Mapping[str, Substitution] = field(default_factory=_empty)
     peripherals_removed: tuple[str, ...] = ()
     cores_removed: tuple[str, ...] = ()
     npus_removed: tuple[str, ...] = ()
@@ -314,9 +306,10 @@ class MemoryInterface:
 class Implementation(_Carrier):
     """A realization of a Soc (RFC 0002 "Implementation and Part").
 
-    ``clock_domains``, ``operating_points`` and ``boot_configs`` hold only
-    what the Implementation writes; they merge with the Soc's (ADR 0002
-    section 2.5). ``None`` means it writes none.
+    ``clock_domains``, ``operating_points``, ``boot_configs`` and ``access``
+    hold only what the Implementation writes; they merge with the Soc's (ADR
+    0002 section 2.5). ``memories``, kind ``fvp`` only, replaces the Soc's
+    whole list (ADR 0007). ``None`` means it writes none.
     """
 
     id: str
@@ -324,6 +317,8 @@ class Implementation(_Carrier):
     kind: Literal["silicon", "fpga", "fvp", "rtl"]
     model: str | None = None
     subset: Subset = field(default_factory=Subset)
+    memories: tuple[MemoryRegion, ...] | None = None
+    access: tuple[Access, ...] | None = None
     clock_domains: tuple[ClockDomain, ...] | None = None
     operating_points: tuple[OperatingPoint, ...] | None = None
     boot_configs: Mapping[str, BootConfig] | None = None
@@ -394,7 +389,7 @@ class AddOn(_Carrier):
 @_frozen
 class MemoryDevice(_Carrier):
     id: str
-    technology: Literal["sram", "mram", "rram", "psram", "flash", "nvm"]
+    technology: Literal["sram", "mram", "rram", "psram", "flash", "nvm", "dram"]
     capacity: int
     driver_family: str | None = None
     modes: tuple[str, ...] = ()
@@ -418,7 +413,7 @@ BY_NAME: dict[str, type] = {
         Provenance, Core, CoreOptions, CoreInstance, Npu, NpuInstance, AcceleratorInstance,
         MemoryCharacterization, MemoryRegion, Access, DefaultAccess, DomainPoint, ClockDomain,
         OperatingPoint, AppStart, Reservation, BootConfig, BuildFacts, SdkFacts, Soc,
-        Substitution, AccessKey, Subset, MemoryInterface, Implementation, ImageSlot, Part,
-        Board, AddOn, MemoryDevice, Composition,
+        AccessKey, Subset, MemoryInterface, Implementation, ImageSlot, Part, Board, AddOn,
+        MemoryDevice, Composition,
     )
 }  # fmt: skip

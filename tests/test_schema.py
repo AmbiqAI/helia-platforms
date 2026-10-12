@@ -106,7 +106,7 @@ CORPUS = {
     "size bool": (_edit(f"{SOC}.memories.tcm.size", True), False),
     "unknown key": (_edit(f"{SOC}.memroies", {}), False),
     "unknown top": (_edit("platforms", {}), False),
-    "bad enum": (_edit(f"{SOC}.memories.tcm.technology", "dram"), False),
+    "bad enum": (_edit(f"{SOC}.memories.tcm.technology", "sdram"), False),
     "upper name": (
         _edit(f"{SOC}.memories.DTCM", BASE_DOCUMENT["socs"]["soc_a"]["memories"]["tcm"]),
         False,
