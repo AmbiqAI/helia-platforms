@@ -1,0 +1,537 @@
+{
+  "boards": {
+    "apollo2_evb": {
+      "board": {
+        "path": "src/neuralspotx/boards/apollo2_evb/board.yaml",
+        "values": {
+          "cpu": {
+            "abi": "thumbv7em-fpv4sp-hard",
+            "core": "cortex-m4",
+            "float_abi": "hard"
+          },
+          "soc": "apollo2",
+          "toolchains": [
+            "arm-none-eabi-gcc"
+          ]
+        }
+      },
+      "debug": {
+        "path": "src/neuralspotx/boards/apollo2_evb/debug.cmake",
+        "values": {}
+      },
+      "linker": {
+        "defaults": {
+          "armclang": "modules/nsx-core/src/apollo2/armclang/linker_script.sct",
+          "gcc": "modules/nsx-core/src/apollo2/gcc/linker_script.ld"
+        },
+        "path": "src/neuralspotx/boards/apollo2_evb/memory.cmake"
+      }
+    },
+    "apollo330mP_evb": {
+      "board": {
+        "path": "src/neuralspotx/boards/apollo330mP_evb/board.yaml",
+        "values": {
+          "cpu": {
+            "abi": "thumbv8.1m-fpv5-hard",
+            "core": "cortex-m55",
+            "float_abi": "hard"
+          },
+          "soc": "apollo330P",
+          "toolchains": [
+            "arm-none-eabi-gcc",
+            "armclang",
+            "atfe"
+          ]
+        }
+      },
+      "debug": {
+        "path": "src/neuralspotx/boards/apollo330mP_evb/debug.cmake",
+        "values": {
+          "NSX_SEGGER_DEVICE": [
+            "Apollo330P_510L"
+          ]
+        }
+      },
+      "linker": {
+        "defaults": {
+          "armclang": "modules/nsx-core/src/apollo330P/armclang/linker_script_sbl.sct",
+          "gcc": "modules/nsx-core/src/apollo330P/gcc/linker_script_sbl.ld"
+        },
+        "path": "src/neuralspotx/boards/apollo330mP_evb/memory.cmake"
+      }
+    },
+    "apollo3_evb": {
+      "board": {
+        "path": "src/neuralspotx/boards/apollo3_evb/board.yaml",
+        "values": {
+          "cpu": {
+            "abi": "thumbv7em-fpv4sp-hard",
+            "core": "cortex-m4",
+            "float_abi": "hard"
+          },
+          "soc": "apollo3",
+          "toolchains": [
+            "arm-none-eabi-gcc"
+          ]
+        }
+      },
+      "debug": {
+        "path": "src/neuralspotx/boards/apollo3_evb/debug.cmake",
+        "values": {}
+      },
+      "linker": {
+        "defaults": {
+          "gcc": "modules/nsx-core/src/apollo3/gcc/linker_script.ld"
+        },
+        "path": "src/neuralspotx/boards/apollo3_evb/memory.cmake"
+      }
+    },
+    "apollo3_evb_cygnus": {
+      "board": {
+        "path": "src/neuralspotx/boards/apollo3_evb_cygnus/board.yaml",
+        "values": {
+          "cpu": {
+            "abi": "thumbv7em-fpv4sp-hard",
+            "core": "cortex-m4",
+            "float_abi": "hard"
+          },
+          "soc": "apollo3",
+          "toolchains": [
+            "arm-none-eabi-gcc"
+          ]
+        }
+      },
+      "debug": {
+        "path": "src/neuralspotx/boards/apollo3_evb_cygnus/debug.cmake",
+        "values": {}
+      },
+      "linker": {
+        "defaults": {
+          "gcc": "modules/nsx-core/src/apollo3/gcc/linker_script.ld"
+        },
+        "path": "src/neuralspotx/boards/apollo3_evb_cygnus/memory.cmake"
+      }
+    },
+    "apollo3p_evb": {
+      "board": {
+        "path": "src/neuralspotx/boards/apollo3p_evb/board.yaml",
+        "values": {
+          "cpu": {
+            "abi": "thumbv7em-fpv4sp-hard",
+            "core": "cortex-m4",
+            "float_abi": "hard"
+          },
+          "soc": "apollo3p",
+          "toolchains": [
+            "arm-none-eabi-gcc"
+          ]
+        }
+      },
+      "debug": {
+        "path": "src/neuralspotx/boards/apollo3p_evb/debug.cmake",
+        "values": {}
+      },
+      "linker": {
+        "defaults": {
+          "armclang": "modules/nsx-core/src/apollo3p/armclang/linker_script.sct",
+          "gcc": "modules/nsx-core/src/apollo3p/gcc/linker_script.ld"
+        },
+        "path": "src/neuralspotx/boards/apollo3p_evb/memory.cmake"
+      }
+    },
+    "apollo3p_evb_cygnus": {
+      "board": {
+        "path": "src/neuralspotx/boards/apollo3p_evb_cygnus/board.yaml",
+        "values": {
+          "cpu": {
+            "abi": "thumbv7em-fpv4sp-hard",
+            "core": "cortex-m4",
+            "float_abi": "hard"
+          },
+          "soc": "apollo3p",
+          "toolchains": [
+            "arm-none-eabi-gcc"
+          ]
+        }
+      },
+      "debug": {
+        "path": "src/neuralspotx/boards/apollo3p_evb_cygnus/debug.cmake",
+        "values": {}
+      },
+      "linker": {
+        "defaults": {
+          "armclang": "modules/nsx-core/src/apollo3p/armclang/linker_script.sct",
+          "gcc": "modules/nsx-core/src/apollo3p/gcc/linker_script.ld"
+        },
+        "path": "src/neuralspotx/boards/apollo3p_evb_cygnus/memory.cmake"
+      }
+    },
+    "apollo4l_blue_evb": {
+      "board": {
+        "path": "src/neuralspotx/boards/apollo4l_blue_evb/board.yaml",
+        "values": {
+          "cpu": {
+            "abi": "thumbv7em-fpv4sp-hard",
+            "core": "cortex-m4",
+            "float_abi": "hard"
+          },
+          "soc": "apollo4l",
+          "toolchains": [
+            "arm-none-eabi-gcc"
+          ]
+        }
+      },
+      "debug": {
+        "path": "src/neuralspotx/boards/apollo4l_blue_evb/debug.cmake",
+        "values": {
+          "NSX_SEGGER_DEVICE": [
+            "AMA4B2KL-KXR"
+          ]
+        }
+      },
+      "linker": {
+        "defaults": {
+          "armclang": "modules/nsx-core/src/apollo4l/armclang/linker_script.sct",
+          "gcc": "modules/nsx-core/src/apollo4l/gcc/linker_script.ld"
+        },
+        "path": "src/neuralspotx/boards/apollo4l_blue_evb/memory.cmake"
+      }
+    },
+    "apollo4l_evb": {
+      "board": {
+        "path": "src/neuralspotx/boards/apollo4l_evb/board.yaml",
+        "values": {
+          "cpu": {
+            "abi": "thumbv7em-fpv4sp-hard",
+            "core": "cortex-m4",
+            "float_abi": "hard"
+          },
+          "soc": "apollo4l",
+          "toolchains": [
+            "arm-none-eabi-gcc"
+          ]
+        }
+      },
+      "debug": {
+        "path": "src/neuralspotx/boards/apollo4l_evb/debug.cmake",
+        "values": {
+          "NSX_SEGGER_DEVICE": [
+            "AMAP42KL-KBR"
+          ]
+        }
+      },
+      "linker": {
+        "defaults": {
+          "armclang": "modules/nsx-core/src/apollo4l/armclang/linker_script.sct",
+          "gcc": "modules/nsx-core/src/apollo4l/gcc/linker_script.ld"
+        },
+        "path": "src/neuralspotx/boards/apollo4l_evb/memory.cmake"
+      }
+    },
+    "apollo4p_blue_kbr_evb": {
+      "board": {
+        "path": "src/neuralspotx/boards/apollo4p_blue_kbr_evb/board.yaml",
+        "values": {
+          "cpu": {
+            "abi": "thumbv7em-fpv4sp-hard",
+            "core": "cortex-m4",
+            "float_abi": "hard"
+          },
+          "soc": "apollo4p",
+          "toolchains": [
+            "arm-none-eabi-gcc"
+          ]
+        }
+      },
+      "debug": {
+        "path": "src/neuralspotx/boards/apollo4p_blue_kbr_evb/debug.cmake",
+        "values": {
+          "NSX_SEGGER_DEVICE": [
+            "AMA4B2KP-KBR"
+          ]
+        }
+      },
+      "linker": {
+        "defaults": {
+          "armclang": "modules/nsx-core/src/apollo4p/armclang/linker_script.sct",
+          "gcc": "modules/nsx-core/src/apollo4p/gcc/linker_script.ld"
+        },
+        "path": "src/neuralspotx/boards/apollo4p_blue_kbr_evb/memory.cmake"
+      }
+    },
+    "apollo4p_blue_kxr_evb": {
+      "board": {
+        "path": "src/neuralspotx/boards/apollo4p_blue_kxr_evb/board.yaml",
+        "values": {
+          "cpu": {
+            "abi": "thumbv7em-fpv4sp-hard",
+            "core": "cortex-m4",
+            "float_abi": "hard"
+          },
+          "soc": "apollo4p",
+          "toolchains": [
+            "arm-none-eabi-gcc"
+          ]
+        }
+      },
+      "debug": {
+        "path": "src/neuralspotx/boards/apollo4p_blue_kxr_evb/debug.cmake",
+        "values": {
+          "NSX_SEGGER_DEVICE": [
+            "AMA4B2KP-KXR"
+          ]
+        }
+      },
+      "linker": {
+        "defaults": {
+          "armclang": "modules/nsx-core/src/apollo4p/armclang/linker_script.sct",
+          "gcc": "modules/nsx-core/src/apollo4p/gcc/linker_script.ld"
+        },
+        "path": "src/neuralspotx/boards/apollo4p_blue_kxr_evb/memory.cmake"
+      }
+    },
+    "apollo4p_evb": {
+      "board": {
+        "path": "src/neuralspotx/boards/apollo4p_evb/board.yaml",
+        "values": {
+          "cpu": {
+            "abi": "thumbv7em-fpv4sp-hard",
+            "core": "cortex-m4",
+            "float_abi": "hard"
+          },
+          "soc": "apollo4p",
+          "toolchains": [
+            "arm-none-eabi-gcc"
+          ]
+        }
+      },
+      "debug": {
+        "path": "src/neuralspotx/boards/apollo4p_evb/debug.cmake",
+        "values": {
+          "NSX_SEGGER_DEVICE": [
+            "AMAP42KP-KBR"
+          ]
+        }
+      },
+      "linker": {
+        "defaults": {
+          "armclang": "modules/nsx-core/src/apollo4p/armclang/linker_script.sct",
+          "gcc": "modules/nsx-core/src/apollo4p/gcc/linker_script.ld"
+        },
+        "path": "src/neuralspotx/boards/apollo4p_evb/memory.cmake"
+      }
+    },
+    "apollo4p_evb_disp_shield_rev2": {
+      "board": {
+        "path": "src/neuralspotx/boards/apollo4p_evb_disp_shield_rev2/board.yaml",
+        "values": {
+          "cpu": {
+            "abi": "thumbv7em-fpv4sp-hard",
+            "core": "cortex-m4",
+            "float_abi": "hard"
+          },
+          "soc": "apollo4p",
+          "toolchains": [
+            "arm-none-eabi-gcc"
+          ]
+        }
+      },
+      "debug": {
+        "path": "src/neuralspotx/boards/apollo4p_evb_disp_shield_rev2/debug.cmake",
+        "values": {
+          "NSX_SEGGER_DEVICE": [
+            "AMAP42KP-KBR"
+          ]
+        }
+      },
+      "linker": {
+        "defaults": {
+          "armclang": "modules/nsx-core/src/apollo4p/armclang/linker_script.sct",
+          "gcc": "modules/nsx-core/src/apollo4p/gcc/linker_script.ld"
+        },
+        "path": "src/neuralspotx/boards/apollo4p_evb_disp_shield_rev2/memory.cmake"
+      }
+    },
+    "apollo510_evb": {
+      "board": {
+        "path": "src/neuralspotx/boards/apollo510_evb/board.yaml",
+        "values": {
+          "cpu": {
+            "abi": "thumbv8.1m-fpv5-hard",
+            "core": "cortex-m55",
+            "float_abi": "hard"
+          },
+          "soc": "apollo510",
+          "toolchains": [
+            "arm-none-eabi-gcc",
+            "armclang",
+            "atfe"
+          ]
+        }
+      },
+      "debug": {
+        "path": "src/neuralspotx/boards/apollo510_evb/debug.cmake",
+        "values": {}
+      },
+      "linker": {
+        "defaults": {
+          "armclang": "modules/nsx-core/src/apollo510/armclang/linker_script_sbl.sct",
+          "gcc": "modules/nsx-core/src/apollo510/gcc/linker_script_sbl.ld"
+        },
+        "path": "src/neuralspotx/boards/apollo510_evb/memory.cmake"
+      }
+    },
+    "apollo510b_evb": {
+      "board": {
+        "path": "src/neuralspotx/boards/apollo510b_evb/board.yaml",
+        "values": {
+          "cpu": {
+            "abi": "thumbv8.1m-fpv5-hard",
+            "core": "cortex-m55",
+            "float_abi": "hard"
+          },
+          "soc": "apollo510b",
+          "toolchains": [
+            "arm-none-eabi-gcc",
+            "armclang",
+            "atfe"
+          ]
+        }
+      },
+      "debug": {
+        "path": "src/neuralspotx/boards/apollo510b_evb/debug.cmake",
+        "values": {}
+      },
+      "linker": {
+        "defaults": {
+          "armclang": "modules/nsx-core/src/apollo510b/armclang/linker_script_sbl.sct",
+          "gcc": "modules/nsx-core/src/apollo510b/gcc/linker_script_sbl.ld"
+        },
+        "path": "src/neuralspotx/boards/apollo510b_evb/memory.cmake"
+      }
+    },
+    "apollo510dL_evb": {
+      "board": {
+        "path": "src/neuralspotx/boards/apollo510dL_evb/board.yaml",
+        "values": {
+          "cpu": {
+            "abi": "thumbv8.1m-fpv5-hard",
+            "core": "cortex-m55",
+            "float_abi": "hard"
+          },
+          "soc": "apollo510L",
+          "toolchains": [
+            "arm-none-eabi-gcc",
+            "armclang",
+            "atfe"
+          ]
+        }
+      },
+      "debug": {
+        "path": "src/neuralspotx/boards/apollo510dL_evb/debug.cmake",
+        "values": {}
+      },
+      "linker": {
+        "defaults": {
+          "armclang": "modules/nsx-core/src/apollo510L/armclang/linker_script_sbl.sct",
+          "gcc": "modules/nsx-core/src/apollo510L/gcc/linker_script_sbl.ld"
+        },
+        "path": "src/neuralspotx/boards/apollo510dL_evb/memory.cmake"
+      }
+    },
+    "apollo5b_evb": {
+      "board": {
+        "path": "src/neuralspotx/boards/apollo5b_evb/board.yaml",
+        "values": {
+          "cpu": {
+            "abi": "thumbv8.1m-fpv5-hard",
+            "core": "cortex-m55",
+            "float_abi": "hard"
+          },
+          "soc": "apollo5b",
+          "toolchains": [
+            "arm-none-eabi-gcc",
+            "armclang",
+            "atfe"
+          ]
+        }
+      },
+      "debug": {
+        "path": "src/neuralspotx/boards/apollo5b_evb/debug.cmake",
+        "values": {}
+      },
+      "linker": {
+        "defaults": {
+          "armclang": "modules/nsx-core/src/apollo5b/armclang/linker_script_sbl.sct",
+          "gcc": "modules/nsx-core/src/apollo5b/gcc/linker_script_sbl.ld"
+        },
+        "path": "src/neuralspotx/boards/apollo5b_evb/memory.cmake"
+      }
+    },
+    "atomiq110_fpga_turbo": {
+      "board": {
+        "path": "src/neuralspotx/boards/atomiq110_fpga_turbo/board.yaml",
+        "values": {
+          "cpu": {
+            "abi": "thumbv8.1m-fpv5-hard",
+            "core": "cortex-m55",
+            "float_abi": "hard"
+          },
+          "soc": "atomiq110",
+          "toolchains": [
+            "arm-none-eabi-gcc",
+            "armclang",
+            "atfe"
+          ]
+        }
+      },
+      "debug": {
+        "path": "src/neuralspotx/boards/atomiq110_fpga_turbo/debug.cmake",
+        "values": {
+          "NSX_SEGGER_CPUFREQ": [
+            "48000000"
+          ],
+          "NSX_SEGGER_DEVICE": [
+            "Atomiq110"
+          ],
+          "NSX_SEGGER_SWOFREQ": [
+            "1920000"
+          ]
+        }
+      },
+      "linker": {
+        "defaults": {
+          "armclang": "modules/nsx-core/src/atomiq110/armclang/linker_script_nbl.sct",
+          "gcc": "modules/nsx-core/src/atomiq110/gcc/linker_script_nbl.ld"
+        },
+        "path": "src/neuralspotx/boards/atomiq110_fpga_turbo/memory.cmake"
+      }
+    }
+  },
+  "metadata": {
+    "extractor_version": 1,
+    "sources": [
+      {
+        "commit": "2dbe12a2799fd8c3df85f1a103b0adca340c901f",
+        "repository": "AmbiqAI/neuralspotx",
+        "revision": "neuralspotx-v0.8.1"
+      }
+    ]
+  },
+  "soc_families": {
+    "path": "src/neuralspotx/data/registry.lock.yaml",
+    "values": {
+      "apollo2": "v5.2.24",
+      "apollo3": "v5.2.24",
+      "apollo330P": "v5.2.24",
+      "apollo3p": "v5.2.24",
+      "apollo4l": "v5.2.24",
+      "apollo4p": "v5.2.24",
+      "apollo510": "v5.2.24",
+      "apollo510L": "v5.2.24",
+      "apollo510b": "v5.2.24",
+      "apollo5b": "v5.2.24",
+      "atomiq110": "v5.2.25"
+    }
+  }
+}
