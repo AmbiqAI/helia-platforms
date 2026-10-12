@@ -148,6 +148,30 @@ def test_extensions_reject_values_json_cannot_hold(document, value, message):
     assert message in found
 
 
+@pytest.mark.parametrize("value", [float("inf"), float("-inf"), float("nan")])
+def test_non_finite_numbers_are_rejected(document, value):
+    soc(document)["memories"]["tcm"]["characterization"] = {"read_latency_ns": value}
+    document["boards"]["board_a"]["extensions"] = {"tool": [value]}
+    found = problems(document)
+    assert len(found) == 2
+    assert all("is not a finite number" in p for p in found)
+
+
+@pytest.mark.parametrize(
+    "where",
+    [
+        lambda d, s: soc(d).update(series=s),
+        lambda d, s: d["boards"]["board_a"].update(extensions={"tool": s}),
+        lambda d, s: d["boards"]["board_a"].update(extensions={"tool": {s: 1}}),
+    ],
+    ids=["typed-field", "extensions-value", "extensions-key"],
+)
+def test_lone_surrogates_are_rejected(document, where):
+    where(document, "a\ud800")
+    (found,) = problems(document)
+    assert "is not valid Unicode text" in found
+
+
 def test_extensions_reject_a_value_that_contains_itself(document):
     loop: list = [1]
     loop.append({"again": loop})

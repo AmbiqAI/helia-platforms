@@ -8,6 +8,7 @@ import yaml
 from conftest import RECORD
 from helia_platforms import _digest, _parse
 from helia_platforms.catalogue import _EMPTY, _load_documents, load_overlay
+from helia_platforms.errors import FormatError
 
 
 def builtin_grade(document):
@@ -98,6 +99,30 @@ def test_data_change_changes_digest(builtin_document, change):
     before = digest_of(copy.deepcopy(builtin_document))
     change(builtin_document)
     assert digest_of(builtin_document) != before
+
+
+def test_an_integer_and_the_same_float_give_the_same_digest(builtin_document):
+    def digest(mhz):
+        document = copy.deepcopy(builtin_document)
+        document["implementations"] = {
+            "impl": {
+                "soc": "soc_a",
+                "kind": "fpga",
+                "subset": {"max_domain_mhz": {"cpu": mhz}},
+                "provenance": RECORD,
+                "release_status": "public",
+            }
+        }
+        return digest_of(document)
+
+    assert digest(96) == digest(96.0)
+
+
+@pytest.mark.parametrize("value", [float("inf"), float("nan"), "a\ud800"])
+def test_values_canonical_cannot_encode_fail_to_load(document, value):
+    document["boards"]["board_a"]["extensions"] = {"tool": value}
+    with pytest.raises(FormatError, match=r"boards\.board_a\.extensions\.tool"):
+        load_overlay(document)
 
 
 def test_digest_covers_built_in_entries_only(builtin_document):
