@@ -39,10 +39,16 @@ def to_bytes(value: Any) -> int:
     return int(value)
 
 
+class Address(str):
+    """A path segment that came from an integer item, printed in hex."""
+
+    __slots__ = ()
+
+
 def segment(item: Any) -> str:
     """The path segment of a by-value list item (an address prints in hex)."""
     if isinstance(item, int) and not isinstance(item, bool):
-        return hex(item)
+        return Address(hex(item))
     return str(item)
 
 

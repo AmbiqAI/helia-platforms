@@ -15,7 +15,7 @@ from typing import Any
 import pytest
 from typer.testing import CliRunner
 
-from conftest import BASE_DOCUMENT, RECORD
+from conftest import BASE_DOCUMENT, RECORD, REGISTER, SDK_SOURCE, as_builtin
 from helia_platforms import _digest, catalog, cli, model
 from helia_platforms._build import freeze
 from helia_platforms._tree import MergeError
@@ -628,18 +628,6 @@ def test_sources_are_keyed_by_table(tmp_path, document):
 
 # ---- semantic rules (RFC 0002 "Overlays, validation, export, CLI") ------------------
 
-_ENTITY_TABLES = ("cores", "socs", "implementations", "parts", "boards", "addons", "memory_devices")
-
-
-def as_builtin(document):
-    """The document made fit for a built-in load: every entity public and recorded."""
-    for kind in _ENTITY_TABLES:
-        for entry in document.get(kind, {}).values():
-            entry.setdefault("provenance", RECORD)
-            if kind != "cores":
-                entry["release_status"] = "public"
-    return document
-
 
 def builtin_problems(document) -> str:
     with pytest.raises(FormatError) as exc:
@@ -949,7 +937,7 @@ def test_access_to_a_peripheral_that_is_not_a_memory_controller_is_an_error(docu
 def test_removing_a_peripheral_removes_the_memory_controller_and_its_access(document):
     soc(document)["access"].append({"master": "npu_0", "target": "mspi0", "access": "direct"})
     soc(document)["memory_controllers"] = [
-        {"value": "mspi0", "provenance": {"status": "sdk"}},
+        {"value": "mspi0", "provenance": {**RECORD, "status": "sdk", "source": [SDK_SOURCE]}},
         "iom0",
     ]
     document["socs"]["soc_b"] = {"based_on": "soc_a", "peripherals_removed": ["mspi0"]}
@@ -1078,6 +1066,7 @@ def plugins(tmp_path, monkeypatch) -> list[FakeEntryPoint]:
     device = {"technology": "psram", "capacity": "8M", "release_status": "public"}
     data = tmp_path / "data"
     write(data / "ip.yaml", {"cores": cores})
+    write(data / "sources.yaml", REGISTER)
     write(data / "socs" / "soc_a.yaml", {"socs": {"soc_a": soc_a}})
     write(
         data / "memory_devices.yaml",

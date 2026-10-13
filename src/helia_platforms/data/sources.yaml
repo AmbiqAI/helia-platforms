@@ -1,0 +1,5 @@
+# yaml-language-server: $schema=../schema/helia-platforms-v1.schema.json
+# The source register (ADR 0003 section 2): documents of record and repositories.
+schema_version: 1
+documents: {}
+repositories: {}

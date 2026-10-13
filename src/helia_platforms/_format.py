@@ -399,6 +399,36 @@ class Composition(TypedDict):
     addons: NotRequired[Ids]
 
 
+# ---- the source register and the release allow-list (ADR 0003) ----------------------
+
+Revision = Annotated[str, Pattern(r"^[0-9A-Za-z][0-9A-Za-z._-]*$", "a revision")]
+RepositoryName = Annotated[
+    str, Pattern(r"^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)?$", "owner/name or a bare name")
+]
+Sha1 = Annotated[str, Pattern(r"^[0-9a-f]{40}$", "a full 40-hex commit SHA")]
+
+
+class RegisterDocument(TypedDict):
+    """One revision of a document of record (ADR 0003 section 2)."""
+
+    document_id: Required[str]
+    date: Required[Annotated[str, Pattern(r"^[0-9]{4}-[0-9]{2}(-[0-9]{2})?$", "YYYY-MM[-DD]")]]
+    pages: Required[Annotated[int, Minimum(1)]]
+    sha256: Required[Annotated[str, Pattern(r"^[0-9a-f]{64}$", "a 64-hex SHA256")]]
+
+
+class RegisterRepository(TypedDict):
+    url: Required[str]
+    host: NotRequired[str]  # the system hosting a repository that is not on GitHub
+    tags: NotRequired[dict[Revision, Sha1]]
+
+
+class AllowedUnverified(TypedDict):
+    fact: Required[Annotated[str, Pattern(r"^fact:.+$", "a fact: reference")]]
+    reason: Required[str]
+    issue: Required[Annotated[str, Pattern(r"^#[0-9]+$", "an issue, #N")]]
+
+
 # ---- the document -------------------------------------------------------------
 
 
@@ -413,6 +443,9 @@ class Document(TypedDict, total=False):
     memory_devices: dict[Id, MemoryDevice]
     compositions: dict[Id, Composition]
     shorthands: dict[Id, Ids]
+    documents: dict[Id, dict[Revision, RegisterDocument]]
+    repositories: dict[RepositoryName, RegisterRepository]
+    unverified_allowed: list[AllowedUnverified]
 
 
 #: Top-level keys that hold entity tables, in load order.
@@ -427,7 +460,7 @@ ENTITY_TABLES: dict[str, type] = {
 }
 
 #: Keys only built-in files may carry (ADR 0002 section 1).
-BUILTIN_ONLY_KEYS = frozenset({"shorthands"})
+BUILTIN_ONLY_KEYS = frozenset({"shorthands", "documents", "repositories", "unverified_allowed"})
 
 #: Ignored at the top level of a JSON file (section 2.1).
 IGNORED_TOP_LEVEL = frozenset({"$schema"})

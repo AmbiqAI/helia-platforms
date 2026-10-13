@@ -16,7 +16,7 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
-from helia_platforms import __version__, _digest, _parse, _structural, _walk, model
+from helia_platforms import __version__, _digest, _parse, _provenance, _structural, _walk, model
 from helia_platforms import _format as fmt
 from helia_platforms._build import build_entity
 from helia_platforms._tree import (
@@ -347,6 +347,7 @@ def _load_documents(
     merged: dict[str, dict[str, tuple[Any, str]]] = {}
     compositions: dict[str, tuple[Any, str]] = {}
     shorthands: dict[str, tuple[Any, str]] = {}
+    register: dict[str, Any] = {"documents": {}, "repositories": {}, "unverified_allowed": []}
     for data, origin in documents:
         found = _structural.check_document(data, origin, require_version=require_version)
         if found:
@@ -355,6 +356,9 @@ def _load_documents(
         for key, table in data.items():
             if key in fmt.BUILTIN_ONLY_KEYS and not builtin:
                 problems.append(f"{origin}: {key}: only built-in files may carry {key!r}")
+                continue
+            if key in register:
+                problems += _add_to_register(register, key, table, origin)
                 continue
             target = (
                 merged.setdefault(key, {})
@@ -385,7 +389,20 @@ def _load_documents(
             for data, origin in documents
         )
     loader = _Loader(base, builtin, source, applied)
+    loader.register = _provenance.Register(
+        register["documents"], register["repositories"], tuple(register["unverified_allowed"])
+    )
     return loader.load(merged, compositions, shorthands)
+
+
+def _add_to_register(register: dict[str, Any], key: str, table: Any, origin: str) -> list[str]:
+    """Merge one file's register or allow-list into the load's; a key defined twice is a problem."""
+    if key == "unverified_allowed":
+        register[key] += table
+        return []
+    twice = [f"{origin}: {key}.{name}: defined twice" for name in table if name in register[key]]
+    register[key].update(table)
+    return twice
 
 
 def _public_label(label: str) -> str:
@@ -412,6 +429,7 @@ class _Loader:
         self.tables: dict[str, dict[str, Any]] = {k: dict(v) for k, v in base._tables.items()}
         self.sources: dict[tuple[str, str], str] = dict(base.sources)
         self.resolved: dict[tuple[str, str], Tree | None] = {}
+        self.register = _provenance.Register()
 
     def fail(self, origin: str, where: str, message: str) -> None:
         self.problems.append(f"{origin}: {where}: {message}")
@@ -450,6 +468,7 @@ class _Loader:
             _applied=self.applied,
         )
         self.check_references(catalog, entries, compositions, shorthands)
+        self.check_provenance(catalog, {key: origin for key, (_, origin) in new.items()})
         # Problems first: a warning escalated to an error must not hide them.
         if self.problems:
             raise FormatError("invalid catalog", tuple(self.problems))
@@ -457,6 +476,30 @@ class _Loader:
         for message in self.warnings:
             warnings.warn(message, PlatformWarning, stacklevel=4)  # the caller of load_overlay
         return catalog
+
+    def check_provenance(self, catalog: Catalog, new: dict[tuple[str, str], str]) -> None:
+        """ADR 0003: every record in this load; for built-ins, the register and the gate too."""
+        from helia_platforms.resolve import _names  # noqa: PLC0415 (resolve imports this module)
+
+        names = _names(catalog)
+        # A shorthand never resolves to one target, so it cannot name a measured board.
+        facts = _provenance.Facts(
+            self.trees, lambda name: names.get(name.casefold(), ("shorthands",))[0] != "shorthands"
+        )
+        register = self.register if self.builtin else None
+        report = self.fail if self.builtin else self.warn
+        for (table, entry_id), origin in new.items():
+            seen: set[int] = set()
+            for path, record in self.trees[(table, entry_id)].records.items():
+                if record is None or id(record) in seen:
+                    continue
+                seen.add(id(record))
+                where = ".".join((table, entry_id, *path, "provenance"))
+                for problem in _provenance.record_problems(record, register, facts):
+                    report(origin, where, problem)
+        if self.builtin:
+            for where, problem in _provenance.gate_problems(new, self.register, facts):
+                self.fail("builtin", where, problem)
 
     def label(self, origin: str) -> str:
         if self.source is not None:
