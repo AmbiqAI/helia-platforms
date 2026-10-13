@@ -86,10 +86,12 @@ def test_a_composition_resolves_to_its_board_with_its_add_ons(document):
             "population": {"mspi1": "psram_8m"},
         }
     }
-    document["compositions"] = {"board_a_shield": {"board": "board_a", "addons": ["shield"]}}
-    target = resolve("board_a_shield", catalog=quiet(document))
+    document["compositions"] = {"Board_A_Shield": {"board": "board_a", "addons": ["shield"]}}
+    catalog = quiet(document)
+    target = resolve("board_a_shield", catalog=catalog)
     assert (target.id, [a.id for a in target.addons]) == ("board_a", ["shield"])
-    assert "board_a_shield" in target.aliases
+    assert target.aliases == ("Board_A_Shield",)  # as the catalog writes it
+    assert resolve("BOARD_A_SHIELD", catalog=catalog) == target
     assert [r.name for r in target.external_memories()] == ["psram0", "psram1"]
 
 
@@ -202,6 +204,22 @@ def test_clocks(catalog):
     assert target.operating_point(domain="cpu").name == "lp"
     with pytest.raises(PlatformError, match="no operating point 'turbo'"):
         target.cpu_mhz("turbo")
+
+
+def test_npu_clocks_skip_a_point_that_leaves_the_npu_domain_unset(document):
+    document["socs"]["soc_a"]["operating_points"]["sleep"] = {"domains": {"cpu": "lp"}}
+    target = resolve("board_a", catalog=quiet(document))
+    assert dict(target.npu_clocks()) == {"lp": 96, "hp": 192}
+
+
+def test_the_boot_warning_points_at_the_caller_from_either_entry_point(catalog):
+    for call in (
+        lambda: resolve("board_a", boot="nbl", catalog=catalog),
+        lambda: catalog.resolve("board_a", boot="nbl"),
+    ):
+        with pytest.warns(PlatformWarning) as record:
+            call()
+        assert record[0].filename == __file__
 
 
 def test_boot_follows_the_board_provisioning(catalog):

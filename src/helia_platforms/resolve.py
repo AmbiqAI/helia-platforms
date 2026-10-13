@@ -38,18 +38,22 @@ def resolve(
     Case-insensitive. A Soc id resolves to the bare Soc, never to a board. A shorthand
     raises ``AmbiguousPlatform``; anything else unknown raises ``UnknownPlatform``.
     """
-    catalog = catalog if catalog is not None else builtin()
+    return _resolve(name, addons, boot, catalog if catalog is not None else builtin())
+
+
+def _resolve(name: str, addons: Sequence[str], boot: str | None, catalog: Catalog) -> Target:
+    """``resolve`` for both entry points, so a warning has the same depth from each caller."""
     found = _names(catalog).get(name.casefold())
     if found is None:
         raise UnknownPlatform(name, suggest(name, catalog=catalog))
     table, entry_id, _ = found
     if table == "shorthands":
         raise AmbiguousPlatform(name, catalog.shorthands[entry_id])
-    composed: tuple[str, ...] = ()
-    if table == "compositions":
-        composition = catalog.compositions[entry_id]
-        table, entry_id, composed = "boards", composition.board, composition.addons
-    return _target(catalog, table, entry_id, (*composed, *addons), boot, via=name)
+    if table != "compositions":
+        return _target(catalog, table, entry_id, addons, boot)
+    composition = catalog.compositions[entry_id]
+    addon_ids = (*composition.addons, *addons)
+    return _target(catalog, "boards", composition.board, addon_ids, boot, composition=entry_id)
 
 
 def resolve_board(name: str, *, catalog: Catalog | None = None) -> model.Board:
@@ -95,7 +99,7 @@ def find(catalog: Catalog, **predicates: str) -> tuple[Target, ...]:
     found = []
     for table in _KIND_OF:
         for entry_id in catalog._tables.get(table, {}):
-            target = _target(catalog, table, entry_id, (), None, via=entry_id)
+            target = _target(catalog, table, entry_id, (), None)
             if all(tests[k](target, v) for k, v in predicates.items()):
                 found.append(target)
     return tuple(found)
@@ -108,8 +112,9 @@ def _target(
     addon_ids: Sequence[str],
     boot: str | None,
     *,
-    via: str,
+    composition: str | None = None,
 ) -> Target:
+    """The target of one entry; ``composition`` is the alias it was reached by, as written."""
     kind = _KIND_OF[table]
     entry = catalog._entry(table, entry_id)
     board = entry if kind == "board" else None
@@ -126,9 +131,7 @@ def _target(
     chain += [*addons, *(device for _, device in devices)]
     status = _EMBARGOED if any(e.release_status == _EMBARGOED for e in chain) else "public"
     origin = "builtin" if catalog.sources.get((table, entry_id)) == "builtin" else "overlay"
-    aliases = tuple(getattr(entry, "aliases", ()))
-    if via.casefold() in {c.casefold() for c in catalog.compositions}:
-        aliases += (via,)
+    aliases = (*getattr(entry, "aliases", ()), *([composition] if composition else []))
     return Target(
         id=entry_id,
         kind=kind,
@@ -206,7 +209,7 @@ def _select_boot(
                 f"{entry_id}: boot {boot!r} differs from the board's provisioning "
                 f"{board.provisioning!r}",
                 PlatformWarning,
-                stacklevel=4,
+                stacklevel=5,  # _select_boot, _target, _resolve, resolve: the caller is next
             )
         return soc.boot_configs[boot]
     name = provisioned or soc.default_boot

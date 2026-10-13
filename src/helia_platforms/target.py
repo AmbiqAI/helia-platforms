@@ -243,10 +243,11 @@ class Target:
         return self._mhz(self._npu(npu).clock_domain, point)
 
     def npu_clocks(self, npu: int | str = 0) -> Mapping[str, int]:
-        """That NPU's clock in each system operating point, by point name."""
+        """That NPU's clock in each system operating point that sets it, by point name."""
         domain = self._npu(npu).clock_domain
+        points = self.soc.operating_points
         return MappingProxyType(
-            {p.name: self._mhz(domain, p.name) for p in self.soc.operating_points}
+            {p.name: self._mhz(domain, p.name) for p in points if domain in p.domains}
         )
 
     # -- boot -----------------------------------------------------------------------------

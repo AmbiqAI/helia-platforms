@@ -158,9 +158,9 @@ class Catalog:
 
     def resolve(self, name: str, *, addons: Sequence[str] = (), boot: str | None = None) -> Target:
         """``helia_platforms.resolve.resolve`` against this catalog."""
-        from helia_platforms.resolve import resolve  # noqa: PLC0415 (resolve imports this module)
+        from helia_platforms.resolve import _resolve  # noqa: PLC0415 (resolve imports this module)
 
-        return resolve(name, addons=addons, boot=boot, catalog=self)
+        return _resolve(name, addons, boot, self)
 
     def suggest(self, name: str) -> tuple[str, ...]:
         """Resolvable names close to ``name``, best first."""
