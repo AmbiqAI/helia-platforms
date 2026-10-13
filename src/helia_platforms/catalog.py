@@ -863,7 +863,9 @@ def _unit_problems(soc: model.Soc, catalog: Catalog) -> list[str]:
     domains = {d.id for d in soc.clock_domains}
     cores = {c.id for c in soc.cores}
     known_cores = catalog._tables.get("cores", {})
-    if soc.cores and soc.cores[0].role != "application":
+    if not soc.cores:
+        problems.append("cores: a Soc needs at least one core")
+    elif soc.cores[0].role != "application":
         problems.append(f"core 0 ({soc.cores[0].id}) must have role application")
     for core in soc.cores:
         if core.core not in known_cores:
@@ -898,7 +900,7 @@ def _clock_problems(soc: model.Soc) -> list[str]:
 def _boot_problems(soc: model.Soc) -> list[str]:
     problems: list[str] = []
     cores = {c.id: c for c in soc.cores}
-    regions = {r.name for r in soc.memories}
+    regions = {r.name: r.size for r in soc.memories}
     if soc.default_boot is not None and soc.default_boot not in soc.boot_configs:
         problems.append(f"default_boot: no boot config {soc.default_boot!r}")
     for name, config in soc.boot_configs.items():
@@ -909,11 +911,19 @@ def _boot_problems(soc: model.Soc) -> list[str]:
                 problems.append(f"boot_configs.{name}.app_start: core {core!r} is not programmable")
             if start.region not in regions:
                 problems.append(f"boot_configs.{name}.app_start: no region {start.region!r}")
-        problems.extend(
-            f"boot_configs.{name}.reserved.{r.purpose}: no region {r.region!r}"
-            for r in config.reserved
-            if r.region not in regions
-        )
+        for i, r in enumerate(config.reserved):
+            where = f"boot_configs.{name}.reserved.{r.purpose}"
+            if r.region not in regions:
+                problems.append(f"{where}: no region {r.region!r}")
+            elif r.offset + r.size > regions[r.region]:
+                problems.append(f"{where}: runs past the end of region {r.region!r}")
+            problems.extend(
+                f"{where} overlaps reserved.{o.purpose} in region {r.region!r}"
+                for o in config.reserved[i + 1 :]
+                if o.region == r.region
+                and r.offset < o.offset + o.size
+                and o.offset < r.offset + r.size
+            )
     return problems
 
 
@@ -948,8 +958,14 @@ def _relation_problems(soc: model.Soc, catalog: Catalog) -> list[str]:
     if soc.derives_from is not None and soc.derives_from not in catalog._tables.get("socs", {}):
         problems.append(f"derives_from: no soc {soc.derives_from!r}")
     boards = catalog._tables.get("boards", {})
-    if soc.default_board is not None and soc.default_board not in boards:
-        problems.append(f"default_board: no board {soc.default_board!r}")
+    if soc.default_board is not None:
+        board = boards.get(soc.default_board)
+        part = catalog._tables.get("parts", {}).get(board.part) if board else None
+        if board is None:
+            problems.append(f"default_board: no board {soc.default_board!r}")
+        elif part is not None and part.soc != soc.id:
+            message = f"default_board: board {board.id!r} carries Soc {part.soc!r}, not {soc.id!r}"
+            problems.append(message)
     return problems
 
 

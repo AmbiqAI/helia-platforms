@@ -291,3 +291,16 @@ def as_builtin(document):
             if kind != "cores":
                 entry["release_status"] = "public"
     return document
+
+
+def test_external_region_names_skip_the_socs_own_names(document):
+    document["socs"]["soc_a"]["memories"]["psram0"] = {
+        "technology": "psram",
+        "attachment": "external",
+        "base": 0x70000000,
+        "size": "8M",
+    }
+    target = resolve("board_a", catalog=quiet(document))
+    assert [r.name for r in target.external_memories()] == ["psram1"]
+    assert target.region("psram1").base == 0x60000000
+    assert target.region("psram0").base == 0x70000000

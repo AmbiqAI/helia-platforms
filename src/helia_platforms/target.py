@@ -129,12 +129,17 @@ class Target:
 
     @functools.cached_property
     def _external(self) -> tuple[tuple[model.MemoryRegion, str], ...]:
-        """External regions with their interface's controller, named ``<technology><n>``."""
-        counts: dict[str, int] = {}
+        """External regions with their interface's controller, named ``<technology><n>``.
+
+        ``n`` counts up from 0, skipping names the Soc's own regions use.
+        """
+        taken = {r.name for r in self.soc.memories}
         regions = []
         for interface, device in self._devices:
-            n = counts.get(device.technology, 0)
-            counts[device.technology] = n + 1
+            n = 0
+            while f"{device.technology}{n}" in taken:
+                n += 1
+            taken.add(f"{device.technology}{n}")
             region = model.MemoryRegion(
                 name=f"{device.technology}{n}",
                 technology=device.technology,
@@ -196,7 +201,11 @@ class Target:
         )
 
     def classify_address(self, address: int, master: int | str = 0) -> str | None:
-        """The region at ``address`` as ``master`` sees it, or ``None``."""
+        """The physical region at ``address`` as ``master`` addresses it, or ``None``.
+
+        Reachability is not checked: an address belongs to its region whether or not
+        ``master`` has an access entry for it (RFC 0002 "Question surface").
+        """
         who = self._master(master)
         for region in (*self.soc.memories, *self.external_memories()):
             entry = self.reachable(who, region.name)
