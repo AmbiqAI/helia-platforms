@@ -7,22 +7,12 @@ import pytest
 import yaml
 
 import helia_platforms
-from conftest import RECORD
+from conftest import RECORD, as_builtin
 from helia_platforms import _digest, _parse
 from helia_platforms.catalog import _EMPTY, _load_documents, load_overlay
 from helia_platforms.errors import FormatError
 
-
-def builtin_grade(document):
-    """The base document with what built-in entries need: a record and public status."""
-    for kind, table in document.items():
-        if kind == "schema_version":
-            continue
-        for entry in table.values():
-            entry.setdefault("provenance", RECORD)
-            if kind != "cores":
-                entry["release_status"] = "public"
-    return document
+builtin_grade = as_builtin
 
 
 def digest_of(document):
@@ -137,7 +127,7 @@ def test_digest_covers_built_in_entries_only(builtin_document):
 
 
 def test_extensions_are_opaque(builtin_document):
-    board = load_overlay(builtin_document)._entry("boards", "board_a")
+    board = _load_documents([(builtin_document, "b")], builtin=True)._entry("boards", "board_a")
 
     def digest(extensions):
         entry = dataclasses.replace(board, extensions=MappingProxyType(extensions))

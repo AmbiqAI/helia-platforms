@@ -4,7 +4,7 @@ import warnings
 import pytest
 
 import helia_platforms
-from conftest import RECORD
+from conftest import as_builtin
 from helia_platforms import (
     AmbiguousPlatform,
     PlatformError,
@@ -282,15 +282,6 @@ def test_release_status_and_origin(document):
     assert resolve("soc_a", catalog=quiet(document)).release_status == "public"
     builtin = _load_documents([(as_builtin(document), "builtin.yaml")], builtin=True)
     assert resolve("board_a", catalog=builtin).origin == "builtin"
-
-
-def as_builtin(document):
-    for kind in ("cores", "socs", "implementations", "parts", "boards", "addons", "memory_devices"):
-        for entry in document.get(kind, {}).values():
-            entry.setdefault("provenance", RECORD)
-            if kind != "cores":
-                entry["release_status"] = "public"
-    return document
 
 
 def test_external_region_names_skip_the_socs_own_names(document):

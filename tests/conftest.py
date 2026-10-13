@@ -115,6 +115,40 @@ BASE_DOCUMENT: dict[str, Any] = {
 }
 
 
+#: A source register that lists the document RECORD cites (ADR 0003 section 2).
+REGISTER: dict[str, Any] = {
+    "documents": {
+        key: {
+            revision: {
+                "document_id": f"{key}-x",
+                "date": "2026-10",
+                "pages": 40,
+                "sha256": "0" * 64,
+            }
+        }
+        for key, revision in (("DS-TEST", "1.0"), ("DS-OTHER", "2.0"))
+    },
+    "repositories": {
+        "AmbiqAI/sdk": {"url": "https://github.com/AmbiqAI/sdk", "tags": {"v1.0.0": "a" * 40}}
+    },
+}
+#: An ``sdk`` source the register accepts.
+SDK_SOURCE = "repo:AmbiqAI/sdk@v1.0.0:cmake/facts.cmake#NSX_SOC"
+_ENTITY_TABLES = ("cores", "socs", "implementations", "parts", "boards", "addons", "memory_devices")
+
+
+def as_builtin(document: dict[str, Any]) -> dict[str, Any]:
+    """The document made fit for a built-in load: public, recorded, and with a register."""
+    for kind in _ENTITY_TABLES:
+        for entry in document.get(kind, {}).values():
+            entry.setdefault("provenance", RECORD)
+            if kind != "cores":
+                entry["release_status"] = "public"
+    for key, table in copy.deepcopy(REGISTER).items():
+        document.setdefault(key, table)
+    return document
+
+
 @pytest.fixture
 def document() -> dict[str, Any]:
     """A fresh copy of the base document, safe to mutate."""

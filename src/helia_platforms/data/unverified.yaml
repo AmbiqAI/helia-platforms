@@ -1,0 +1,4 @@
+# yaml-language-server: $schema=../schema/helia-platforms-v1.schema.json
+# The release allow-list (ADR 0003 section 4): built-in values that may stay unverified.
+schema_version: 1
+unverified_allowed: []
