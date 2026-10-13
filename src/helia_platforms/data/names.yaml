@@ -1,2 +1,6 @@
 # yaml-language-server: $schema=../schema/helia-platforms-v1.schema.json
+# Shorthands (RFC 0002): members are Soc ids from nsx-ambiq-sdk's apollo5 series.
 schema_version: 1
+shorthands:
+  AP5: [apollo510]
+  AP510: [apollo510]

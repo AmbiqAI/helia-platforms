@@ -1,0 +1,35 @@
+# yaml-language-server: $schema=../schema/helia-platforms-v1.schema.json
+# Core IP blocks (ADR 0002 section 1).
+schema_version: 1
+cores:
+  cortex-m55:
+    arch: armv8.1-m
+    pmu: armv8m
+    has_dsp_extension: true
+    provenance:
+      status: sdk
+      source:
+        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.24:cmake/socs/facts/apollo510.cmake:13"
+        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.24:cmake/socs/facts/apollo510.cmake:15"
+        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.24:cmake/socs/facts/apollo510.cmake:18"
+      verified_on: 2026-10-13
+      verified_by: evanchen11
+      notes: >-
+        NSX_SOC_ARCH_CLASS "armv8_1m", NSX_SOC_HAS_DSP TRUE, NSX_SOC_PMU_TIER "armv8m".
+        The Arm Cortex-M55 TRM is not in the register. DS-A510 p21 ("Armv8.1-M ISA with
+        DSP and Security Extensions") and p27 (PMU) agree.
+  cortex-m4:
+    arch: armv7e-m
+    pmu: dwt
+    has_dsp_extension: true
+    provenance:
+      status: sdk
+      source:
+        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.24:cmake/socs/facts/apollo4p.cmake:11"
+        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.24:cmake/socs/facts/apollo4p.cmake:13"
+        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.24:cmake/socs/facts/apollo4p.cmake:16"
+      verified_on: 2026-10-13
+      verified_by: evanchen11
+      notes: >-
+        NSX_SOC_ARCH_CLASS "armv7e_m", NSX_SOC_HAS_DSP TRUE, NSX_SOC_PMU_TIER "none"
+        (ADR 0006 spells a DWT-only tier dwt). No Soc references this core until #64-#68.
