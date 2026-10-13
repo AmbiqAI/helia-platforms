@@ -727,7 +727,7 @@ def load_overlay(source: str | Path | Mapping, *, base: Catalog | None = None) -
 
 class Catalog:
     schema_version: int                         # the file format and export shape (ADR 0004)
-    catalog_digest: str                       # sha256 of the data without provenance (ADR 0004)
+    catalog_digest: str                         # sha256 of the data without provenance (ADR 0004)
     compositions: Mapping[str, Composition]     # alias -> board id and add-on ids
     shorthands: Mapping[str, tuple[str, ...]]   # built-in only; the only source of AmbiguousPlatform
     sources: Mapping[tuple[str, str], str]      # (table, entry id) -> source label
@@ -740,8 +740,20 @@ class Catalog:
     def find(self, **predicates) -> tuple[Target, ...]   # core="cortex-m55", npu_model="u85", has_region="psram"
     def resolve(self, name: str) -> Target
     def suggest(self, name: str) -> tuple[str, ...]
-    def identity(self) -> CatalogIdentity     # package and schema versions, digest, sources (ADR 0004)
+    def identity(self) -> CatalogIdentity       # package and schema versions, digest, sources (ADR 0004)
     def to_dict(self) -> dict                   # the JSON export
+
+class CatalogIdentity:                          # frozen; to_dict() has these keys
+    package_version: str
+    schema_version: int
+    catalog_digest: str
+    sources: tuple[SourceIdentity, ...]         # applied on top of the built-in data, in order
+
+class SourceIdentity:                           # frozen; to_dict() has these keys
+    label: str                                  # entry_point:<distribution>, env:<file> or overlay:<file>, no directory
+    schema_version: int                         # as declared; the current one for a mapping that omits it
+    sha256: str                                 # the parsed mapping, records removed on declared keys only; schema_version as read
+    distribution_version: str | None            # entry points only
 ```
 
 `sources` is keyed by table and id because cores, add-ons and memory

@@ -16,7 +16,7 @@ import pytest
 from typer.testing import CliRunner
 
 from conftest import BASE_DOCUMENT, RECORD
-from helia_platforms import catalog, cli, model
+from helia_platforms import _digest, catalog, cli, model
 from helia_platforms._build import freeze
 from helia_platforms._tree import MergeError
 from helia_platforms.catalog import (
@@ -1058,10 +1058,11 @@ class FakeEntryPoint:
     name: str
     distribution: str
     result: Any
+    version: str = "1.2.0"
 
     @property
     def dist(self) -> SimpleNamespace:
-        return SimpleNamespace(name=self.distribution)
+        return SimpleNamespace(name=self.distribution, version=self.version)
 
     def load(self) -> Any:
         if isinstance(self.result, Exception):
@@ -1278,6 +1279,24 @@ def test_a_concurrent_first_call_waits_for_the_loading_one(plugins, monkeypatch)
     assert waiting, results  # the second call waited instead of being refused as recursion
     assert results["second"] is results["first"]
     assert len(calls) == 1
+
+
+def test_identity_records_each_side_loaded_source_without_its_directory(
+    plugins, tmp_path, monkeypatch
+):
+    board = {"boards": {"board_a": {**BASE_DOCUMENT["boards"]["board_a"], "part": "PART-A"}}}
+    part = {"parts": {"PART-A": BASE_DOCUMENT["parts"]["PART-A"]}}
+    plugins.append(FakeEntryPoint("a", "a-private", {"schema_version": 1, **part}, "2.0.1"))
+    env_file = write(tmp_path / "private" / "board.yaml", board)
+    monkeypatch.setenv("HELIA_PLATFORMS_PATH", str(env_file.parent))
+    identity = builtin().identity()
+    assert identity.catalog_digest == builtin(include_plugins=False).catalog_digest
+    assert [(s.label, s.distribution_version) for s in identity.sources] == [
+        ("entry_point:a-private", "2.0.1"),
+        ("env:board.yaml", None),
+    ]
+    assert identity.sources[1].sha256 == _digest.source_sha256(json.loads(env_file.read_text()))
+    assert builtin(include_plugins=False).identity().sources == ()
 
 
 def test_builtin_is_cached_and_discovers_once(plugins, tmp_path, monkeypatch):
