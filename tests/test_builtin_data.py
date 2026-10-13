@@ -45,3 +45,24 @@ def test_a_shorthand_names_its_socs(catalog, shorthand):
     with pytest.raises(AmbiguousPlatform) as exc:
         catalog.resolve(shorthand)
     assert exc.value.candidates == ("apollo510",)
+
+
+def test_records_cite_the_best_available_source(catalog):
+    """Datasheet where a page states the value; the SDK only for what only it sets."""
+    soc = catalog.resolve("apollo510_evb").soc
+    peripherals = {name: soc.field_provenance[f"peripherals.{name}"] for name in soc.peripherals}
+    assert {name for name, record in peripherals.items() if record.status != "datasheet"} == {
+        "fpio"
+    }
+    m55 = next(c for c in catalog.cores() if c.id == "cortex-m55")
+    assert (m55.provenance.status, m55.field_provenance["pmu"].status) == ("datasheet", "sdk")
+    board = catalog.resolve("apollo510_evb").board
+    assert board.field_provenance["interfaces.mspi0.controller"].source == ("doc:QS-A510@2.1:p10",)
+
+
+def test_the_app_start_offset_names_the_mram_base_it_is_derived_from(catalog):
+    sbl = catalog.resolve("apollo510_evb").boot
+    assert (
+        "fact:soc:apollo510:memories.mram.base"
+        in sbl.field_provenance["app_start.cm55_0.offset"].source
+    )

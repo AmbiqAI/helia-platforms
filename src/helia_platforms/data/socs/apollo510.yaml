@@ -122,8 +122,8 @@ socs:
           verified_on: 2026-10-08
           verified_by: evanchen11
           notes: >-
-            p35 gives NVM-SBL, NVM0-APPL and NVM1-APPL across 0x00400000-0x007FFFFF; p298
-            is the only page that names the NVM as MRAM.
+            p35 gives NVM-SBL, NVM0-APPL and NVM1-APPL across 0x00400000-0x007FFFFF. p298
+            is cited for the technology ("NVM (MRAM)"); p22, p29 and p36-37 also call it MRAM.
 
     default_access:
       master: cm55_0
@@ -138,17 +138,72 @@ socs:
           "All of the memory is memory mapped and accessible by the CPU." One core; DMA,
           GPU and display controller are bus masters (p53), omitted with accelerators (#88).
 
+    # Each name carries its record: a list item's own record is the only way to give one
+    # name (fpio) a different source from the rest.
     peripherals:
-      value: [adc, audadc, clkgen, crypto, dc, dsi, fpio, gpio, gpu, i2s0, i2s1, iom0, iom1,
-        iom2, iom3, iom4, iom5, iom6, iom7, ioslave, ioslavefd0, ioslavefd1, mcuctrl, mspi0,
-        mspi1, mspi2, mspi3, otp, pdm0, pwrctrl, rstgen, rtc, sdio0, sdio1, security, ssc,
-        stimer, timer, uart0, uart1, uart2, uart3, usb, usbphy, vcomp, wdt]
-      provenance:
-        status: sdk
-        source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.24:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo510.h:29547-29592"]
-        verified_on: 2026-10-13
-        verified_by: evanchen11
-        notes: Every <NAME>_BASE peripheral base address in the CMSIS header, lowercased.
+      - value: adc
+        provenance: &table4
+          status: datasheet
+          source:
+            - "doc:DS-A510@1.1.0:p36-38"
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.24:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo510.h:29547-29592"
+          verified_on: 2026-10-13
+          verified_by: evanchen11
+          notes: >-
+            Table 4 "Apollo510 SoC Peripheral Memory Map" lists the block. Its names are
+            descriptive ("I2C/SPI Manager0", "Display PHY", "GPADC"), so the ids are the
+            CMSIS header's <NAME>_BASE names, lowercased.
+      - {value: audadc, provenance: *table4}
+      - {value: clkgen, provenance: *table4}
+      - {value: crypto, provenance: *table4}
+      - {value: dc, provenance: *table4}
+      - {value: dsi, provenance: *table4}
+      - {value: gpio, provenance: *table4}
+      - {value: gpu, provenance: *table4}
+      - {value: i2s0, provenance: *table4}
+      - {value: i2s1, provenance: *table4}
+      - {value: iom0, provenance: *table4}
+      - {value: iom1, provenance: *table4}
+      - {value: iom2, provenance: *table4}
+      - {value: iom3, provenance: *table4}
+      - {value: iom4, provenance: *table4}
+      - {value: iom5, provenance: *table4}
+      - {value: iom6, provenance: *table4}
+      - {value: iom7, provenance: *table4}
+      - {value: ioslave, provenance: *table4}
+      - {value: ioslavefd0, provenance: *table4}
+      - {value: ioslavefd1, provenance: *table4}
+      - {value: mcuctrl, provenance: *table4}
+      - {value: mspi0, provenance: *table4}
+      - {value: mspi1, provenance: *table4}
+      - {value: mspi2, provenance: *table4}
+      - {value: mspi3, provenance: *table4}
+      - {value: otp, provenance: *table4}
+      - {value: pdm0, provenance: *table4}
+      - {value: pwrctrl, provenance: *table4}
+      - {value: rstgen, provenance: *table4}
+      - {value: rtc, provenance: *table4}
+      - {value: sdio0, provenance: *table4}
+      - {value: sdio1, provenance: *table4}
+      - {value: security, provenance: *table4}
+      - {value: ssc, provenance: *table4}
+      - {value: stimer, provenance: *table4}
+      - {value: timer, provenance: *table4}
+      - {value: uart0, provenance: *table4}
+      - {value: uart1, provenance: *table4}
+      - {value: uart2, provenance: *table4}
+      - {value: uart3, provenance: *table4}
+      - {value: usb, provenance: *table4}
+      - {value: usbphy, provenance: *table4}
+      - {value: vcomp, provenance: *table4}
+      - {value: wdt, provenance: *table4}
+      - value: fpio
+        provenance:
+          status: sdk
+          source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.24:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo510.h:29553"]
+          verified_on: 2026-10-13
+          verified_by: evanchen11
+          notes: FPIO_BASE 0x40011000, which DS-A510 Table 4 shows as Reserved (p37).
     memory_controllers:
       value: [mspi0, mspi1, mspi2, mspi3]
       provenance:
@@ -219,12 +274,12 @@ socs:
           offset: 64K
           provenance:
             status: derived
-            source: ["doc:DS-A510@1.1.0:p35"]
-            verified_on: 2026-10-08
+            source: ["doc:DS-A510@1.1.0:p35", "fact:soc:apollo510:memories.mram.base"]
+            verified_on: 2026-10-13
             verified_by: evanchen11
             notes: >-
-              NVM0-APPL starts at 0x00410000, and 0x00410000 - 0x00400000 (the mram base)
-              = 64K. QS-A510 p7 says the examples are programmed at 0x410000.
+              NVM0-APPL starts at 0x00410000 (p35), and 0x00410000 - 0x00400000 (the mram
+              base) = 64K. QS-A510 p7 says the examples are programmed at 0x410000.
         requires: sbl
         provenance:
           status: datasheet
@@ -355,15 +410,22 @@ boards:
       mspi0:
         controller:
           value: mspi0
-          provenance: &sdk_psram_if
-            status: sdk
-            source:
-              - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.24:modules/nsx-psram/CMakeLists.txt:51-55"
-              - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.24:modules/nsx-psram/CMakeLists.txt:60-64"
+          provenance:
+            status: datasheet
+            source: ["doc:QS-A510@2.1:p10"]
             verified_on: 2026-10-13
             verified_by: evanchen11
-            notes: nsx-psram maps apollo510_evb to MSPI0 and describes a Hex (x16) DDR PSRAM there.
-        modes: {value: [hex-ddr], provenance: *sdk_psram_if}
+            notes: '"9. MSPI0 - APS512XXB-AOB5NI-WA". nsx-psram maps apollo510_evb to MSPI0 too.'
+        modes:
+          value: [hex-ddr]
+          provenance:
+            status: sdk
+            source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.24:modules/nsx-psram/CMakeLists.txt:60-64"]
+            verified_on: 2026-10-13
+            verified_by: evanchen11
+            notes: >-
+              "Hex (x16) DDR PSRAM on MSPI0". QS-A510 p8 states x16 (Hex); running it in DDR
+              is the driver's configuration, which only the SDK sets.
         aperture_base: 0x60000000
         aperture_max: 256M
         provenance:
