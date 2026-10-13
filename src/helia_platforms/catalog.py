@@ -7,14 +7,14 @@ import functools
 import os
 import threading
 import warnings
-from collections.abc import Iterable, Iterator, Mapping
+from collections.abc import Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass, field
 from importlib import resources
 from importlib.metadata import entry_points
 from importlib.resources.abc import Traversable
 from pathlib import Path
 from types import MappingProxyType
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from helia_platforms import __version__, _digest, _parse, _structural, _walk, model
 from helia_platforms import _format as fmt
@@ -29,6 +29,9 @@ from helia_platforms._tree import (
     realize,
 )
 from helia_platforms.errors import FormatError, PlatformError, PlatformWarning
+
+if TYPE_CHECKING:
+    from helia_platforms.target import Target
 
 #: Entity tables in load order, with the model class each builds.
 _KINDS: dict[str, type] = {
@@ -152,6 +155,28 @@ class Catalog:
         return _digest.catalog_digest(
             tables, builtin("compositions", self.compositions), self.shorthands
         )
+
+    def resolve(self, name: str, *, addons: Sequence[str] = (), boot: str | None = None) -> Target:
+        """``helia_platforms.resolve.resolve`` against this catalog."""
+        from helia_platforms.resolve import resolve  # noqa: PLC0415 (resolve imports this module)
+
+        return resolve(name, addons=addons, boot=boot, catalog=self)
+
+    def suggest(self, name: str) -> tuple[str, ...]:
+        """Resolvable names close to ``name``, best first."""
+        from helia_platforms.resolve import suggest  # noqa: PLC0415 (resolve imports this module)
+
+        return suggest(name, catalog=self)
+
+    def find(self, **predicates: str) -> tuple[Target, ...]:
+        """Every board, part, implementation and Soc target matching all ``predicates``.
+
+        Predicates: ``core`` (core 0's IP id), ``npu_model``, ``has_region`` (a region
+        name) and ``kind``.
+        """
+        from helia_platforms.resolve import find  # noqa: PLC0415 (resolve imports this module)
+
+        return find(self, **predicates)
 
     def identity(self) -> CatalogIdentity:
         """The package and schema versions, the digest and each applied source, in order."""

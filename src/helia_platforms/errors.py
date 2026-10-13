@@ -25,5 +25,26 @@ class FormatError(PlatformError):
         super().__init__(message if not problems else "\n".join(problems))
 
 
+class UnknownPlatform(PlatformError):
+    """No board, part, implementation, Soc, alias or composition has this name."""
+
+    def __init__(
+        self, name: str, suggestions: tuple[str, ...] = (), *, what: str = "platform"
+    ) -> None:
+        self.name = name
+        self.suggestions = suggestions
+        hint = f"; did you mean {', '.join(suggestions)}?" if suggestions else ""
+        super().__init__(f"unknown {what} {name!r}{hint}")
+
+
+class AmbiguousPlatform(PlatformError):
+    """A shorthand names several targets; ``candidates`` lists them."""
+
+    def __init__(self, name: str, candidates: tuple[str, ...]) -> None:
+        self.name = name
+        self.candidates = candidates
+        super().__init__(f"{name!r} names several targets: {', '.join(candidates)}")
+
+
 class PlatformWarning(UserWarning):
     """A validation finding that does not make the catalog invalid."""
