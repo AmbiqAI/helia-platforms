@@ -13,13 +13,16 @@ from dataclasses import dataclass, field
 from typing import Any
 from urllib.parse import urlsplit
 
-from helia_platforms._tree import Path, Tree
+from helia_platforms._tree import Address, Path, Tree
 
+# Keys, revisions and repository names use the register's own grammar (_format).
+_KEY = r"[A-Za-z][A-Za-z0-9_-]{0,63}"
+_REV = r"[0-9A-Za-z][0-9A-Za-z._-]*"
 _DOC = re.compile(
-    r"^doc:(?P<key>[^@:]+)@(?P<rev>[^:]+):p(?P<lo>[1-9][0-9]*)(?:-(?P<hi>[1-9][0-9]*))?$"
+    rf"^doc:(?P<key>{_KEY})@(?P<rev>{_REV}):p(?P<lo>[1-9][0-9]*)(?:-(?P<hi>[1-9][0-9]*))?$"
 )
 _REPO = re.compile(
-    r"^repo:(?P<repo>[^@]+)@(?P<rev>[^:]+):(?P<path>[^:#/][^:#]*)"
+    rf"^repo:(?P<repo>[A-Za-z0-9._-]+(?:/[A-Za-z0-9._-]+)?)@(?P<rev>{_REV}):(?P<path>[^:#/\s][^:#\s]*)"
     r"(?::(?P<lo>[1-9][0-9]*)(?:-(?P<hi>[1-9][0-9]*))?)?(?:#(?P<symbol>[A-Za-z_][A-Za-z0-9_]*))?$"
 )
 _MEAS = re.compile(
@@ -28,7 +31,11 @@ _MEAS = re.compile(
 _FACT = re.compile(r"^fact:(?P<kind>[a-z_]+):(?P<id>[^:]+):(?P<path>[^:]+)$")
 _SHA = re.compile(r"^[0-9a-f]{40}$")
 _SHORT_SHA = re.compile(r"^[0-9a-f]{7,39}$")
-_LOGIN = re.compile(r"^(@[A-Za-z0-9-]+/[A-Za-z0-9_.-]+|[A-Za-z0-9](?:[A-Za-z0-9-]{0,38}))$")
+# GitHub: up to 39 characters, alphanumerics and single inner hyphens.
+_LOGIN = re.compile(
+    r"^(@[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*/[A-Za-z0-9_.-]+"
+    r"|(?=[A-Za-z0-9-]{1,39}$)[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*)$"
+)
 #: ``fact:`` entity kinds (ADR 0003 section 2), by the table that holds them.
 TABLE_OF = {
     "core": "cores",
@@ -62,44 +69,40 @@ class Register:
 
 @dataclass
 class Facts:
-    """Fact lookups over the catalog's trees, with addresses compared as integers."""
+    """Fact lookups over the catalog's trees; a reference may spell an address in any base."""
 
     trees: Mapping[tuple[str, str], Tree]
     resolvable: Callable[[str], bool]
-    _paths: dict[tuple[str, str], set[Path]] = field(default_factory=dict)
 
     def parse(self, reference: str) -> FactKey | None:
         match = _FACT.match(reference)
         if match is None or match["kind"] not in TABLE_OF:
             return None
-        return TABLE_OF[match["kind"]], match["id"], _canonical(match["path"].split("."))
+        return TABLE_OF[match["kind"]], match["id"], tuple(match["path"].split("."))
 
     def exists(self, key: FactKey) -> bool:
         table, entry_id, path = key
-        return any(p[: len(path)] == path for p in self.paths(table, entry_id))
-
-    def paths(self, table: str, entry_id: str) -> set[Path]:
-        if (table, entry_id) not in self._paths:
-            tree = self.trees.get((table, entry_id))
-            records = tree.records if tree else {}
-            self._paths[(table, entry_id)] = {_canonical(p) for p in records}
-        return self._paths[(table, entry_id)]
-
-    def record(self, key: FactKey) -> Any:
-        table, entry_id, path = key
         tree = self.trees.get((table, entry_id))
-        if tree is None:
-            return None
-        return next((r for p, r in tree.records.items() if _canonical(p) == path), None)
+        return tree is not None and any(under(p, path) for p in tree.records)
 
-    def leaves(self, table: str, entry_id: str, under: Path = ()) -> list[tuple[Path, Any]]:
-        """Each value (a path no other path extends) under ``under``, with its record."""
+    def leaves(self, table: str, entry_id: str, prefix: Path = ()) -> list[tuple[Path, Any]]:
+        """Each value (a path no other path extends) under ``prefix``, with its record."""
         tree = self.trees.get((table, entry_id))
         if tree is None:
             return []
-        paths = {_canonical(p): r for p, r in tree.records.items()}
-        inner = {p[:i] for p in paths for i in range(len(p))}
-        return [(p, r) for p, r in paths.items() if p not in inner and p[: len(under)] == under]
+        inner = {p[:i] for p in tree.records for i in range(len(p))}
+        return [(p, r) for p, r in tree.records.items() if p not in inner and under(p, prefix)]
+
+    def unverified_inputs(self, record: Any) -> list[str]:
+        """The ``fact:`` inputs of a derived record that reach an unverified value."""
+        if _status(record) != "derived":
+            return []
+        found = []
+        for reference in record.get("source") or []:
+            key = self.parse(str(reference))
+            if key and any(_status(r) == "unverified" for _, r in self.leaves(*key)):
+                found.append(str(reference))
+        return found
 
 
 def record_problems(
@@ -192,9 +195,20 @@ def reference_problems(  # noqa: PLR0911, PLR0912 (one branch per reference kind
             problems.append(f"{at}: target {match['target']!r} does not resolve")
         return problems
     if kind == "url":
-        parts = urlsplit(reference[len("url:") :])
-        if parts.scheme != "https" or not parts.hostname or "@" in parts.netloc or not parts.path:
-            return [f"{at} is not url:https://<host>/<path> without credentials"]
+        url = reference[len("url:") :]
+        try:
+            parts = urlsplit(url)
+            hostname = parts.hostname
+        except ValueError:
+            hostname = None
+        if (
+            hostname is None
+            or parts.scheme != "https"
+            or "@" in parts.netloc
+            or not parts.path
+            or any(c.isspace() or not c.isprintable() for c in url)
+        ):
+            return [f"{at} is not url:https://<host>/<path> without credentials or spaces"]
         return []
     if kind == "fact":
         key = facts.parse(reference)
@@ -218,13 +232,15 @@ def gate_problems(
         where = f"unverified_allowed[{index}]"
         if key is None or not facts.exists(key):
             problems.append((where, f"{entry['fact']} names no fact"))
-        elif not any(_status(r) == "unverified" for _, r in facts.leaves(*key)):
+        elif not any(
+            _status(r) == "unverified" or facts.unverified_inputs(r) for _, r in facts.leaves(*key)
+        ):
             problems.append((where, f"{entry['fact']} is no longer unverified; remove the entry"))
         else:
             allowed.append(key)
 
     def is_allowed(table: str, entry_id: str, path: Path) -> bool:
-        return any((t, i) == (table, entry_id) and path[: len(p)] == p for t, i, p in allowed)
+        return any((t, i) == (table, entry_id) and under(path, p) for t, i, p in allowed)
 
     for table, entry_id in entries:
         uncovered: dict[int, tuple[Path, int]] = {}
@@ -241,14 +257,11 @@ def gate_problems(
                 )
             )
         for path, record in facts.leaves(table, entry_id):
-            if _status(record) != "derived" or is_allowed(table, entry_id, path):
-                continue
-            for reference in record.get("source") or []:
-                key = facts.parse(str(reference))
-                if key and any(_status(r) == "unverified" for _, r in facts.leaves(*key)):
-                    problems.append(
-                        (_where(table, entry_id, path), f"derived from unverified {reference}")
-                    )
+            if not is_allowed(table, entry_id, path):
+                problems += [
+                    (_where(table, entry_id, path), f"derived from unverified {reference}")
+                    for reference in facts.unverified_inputs(record)
+                ]
     problems += _cycles(entries, facts)
     return list(dict.fromkeys(problems))
 
@@ -261,16 +274,17 @@ def _cycles(entries: Iterable[tuple[str, str]], facts: Facts) -> list[tuple[str,
     for table, entry_id in {(t, i) for t, i in entries}:
         tree = facts.trees[(table, entry_id)]
         for path, record in sorted(tree.records.items(), key=lambda item: len(item[0])):
-            owners.setdefault(id(record), (table, entry_id, _canonical(path)))
+            owners.setdefault(id(record), (table, entry_id, path))
             records[id(record)] = record
     for rid, record in records.items():
         if _status(record) != "derived":
             continue
+        # A reference to a group reaches every value under it.
         for reference in record.get("source") or []:
             key = facts.parse(str(reference))
-            target = facts.record(key) if key else None
-            if target is not None and _status(target) == "derived":
-                edges.setdefault(rid, set()).add(id(target))
+            for _, target in facts.leaves(*key) if key else ():
+                if _status(target) == "derived":
+                    edges.setdefault(rid, set()).add(id(target))
     problems, done, active = [], set(), set()
 
     def visit(node: int) -> None:
@@ -294,15 +308,19 @@ def _status(record: Any) -> str | None:
     return record.get("status") if isinstance(record, Mapping) else None
 
 
-def _canonical(path: Iterable[str]) -> Path:
-    """A path with each integer segment (an address) in one spelling."""
-    out = []
-    for segment in path:
-        try:
-            out.append(hex(int(segment, 0)))
-        except ValueError:
-            out.append(segment)
-    return tuple(out)
+def under(path: Path, prefix: Path) -> bool:
+    """Whether ``path`` starts with ``prefix``; only an address segment matches in any base."""
+    return len(path) >= len(prefix) and all(
+        a == b or (isinstance(a, Address) and _integer(b) == int(a, 16))
+        for a, b in zip(path, prefix, strict=False)
+    )
+
+
+def _integer(text: str) -> int | None:
+    try:
+        return int(text, 0)
+    except ValueError:
+        return None
 
 
 def _where(table: str, entry_id: str, path: Path) -> str:

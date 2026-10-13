@@ -174,3 +174,81 @@ def test_the_register_and_allow_list_are_built_in_only(document):
 
 def test_the_packaged_register_and_allow_list_load():
     assert builtin(include_plugins=False).socs() == ()
+
+
+@pytest.mark.parametrize("order", [("16", "0x10"), ("0x10", "16")])
+def test_numeric_looking_strings_are_distinct_facts(document, order):
+    records = {"16": {"status": "unverified"}, "0x10": RECORD}
+    document["memory_devices"]["psram_8m"]["modes"] = [
+        {"value": mode, "provenance": records[mode]} for mode in order
+    ]
+    assert "memory_devices.psram_8m.modes.16: resolves to unverified" in problems(document)
+
+
+def test_a_malformed_url_is_a_problem_not_a_crash(document):
+    reference = "url:https://[bad/page"
+    assert "is not url:https://" in problems(
+        with_size_record(document, sourced("derived", reference))
+    )
+
+
+def test_a_derived_value_naming_its_own_group_is_a_cycle(document):
+    with_size_record(document, sourced("derived", "fact:soc:soc_a:memories.tcm"))
+    assert "memories.tcm.size: its derived inputs form a cycle" in problems(document)
+
+
+def test_a_derived_consumer_of_an_unverified_input_may_be_allowed(document):
+    document["socs"]["soc_a"]["memories"]["nvm"]["size"] = {
+        "value": "4M",
+        "provenance": {"status": "unverified"},
+    }
+    with_size_record(document, sourced("derived", "fact:soc:soc_a:memories.nvm.size"))
+    document["unverified_allowed"] = [
+        {"fact": f"fact:soc:soc_a:memories.{name}.size", "reason": "pending", "issue": "#19"}
+        for name in ("nvm", "tcm")
+    ]
+    load_builtin(document)
+    document["socs"]["soc_a"]["memories"]["nvm"]["size"]["provenance"] = RECORD
+    document["unverified_allowed"] = document["unverified_allowed"][1:]
+    assert "memories.tcm.size is no longer unverified; remove the entry" in problems(document)
+
+
+def test_a_measurement_target_may_not_be_a_shorthand(document):
+    document["shorthands"] = {"AB": ["soc_a"]}
+    measured = sourced("measured", "meas:AB/xip-alias/2026-07-05", SDK_SOURCE)
+    assert "target 'AB' does not resolve" in problems(with_size_record(document, measured))
+
+
+MALFORMED = [
+    "doc:DS TEST@1.0:p1",
+    "doc:DS-TEST@1 0:p1",
+    "repo:Ambiq AI/sdk@v1.0.0:src/a.c",
+    "repo:AmbiqAI/sdk@v1 .0:src/a.c",
+    "repo:AmbiqAI/sdk@v1.0.0:src/a\nb.c",
+    "url:https://example.com/a b",
+    "url:https://example.com/a\tb",
+]
+
+
+@pytest.mark.parametrize("reference", MALFORMED)
+def test_malformed_components_are_rejected(document, reference):
+    message = f" is not {reference.split(':', 1)[0]}:"
+    assert message in problems(with_size_record(document, sourced("derived", reference)))
+
+
+@pytest.mark.parametrize("reference", MALFORMED)
+def test_malformed_components_warn_in_an_overlay(document, reference):
+    with_size_record(document, sourced("derived", reference))
+    with pytest.warns(PlatformWarning, match=f" is not {reference.split(':', 1)[0]}:"):
+        load_overlay(document)
+
+
+@pytest.mark.parametrize("login", ["abc-", "-abc", "a--b", "a" * 40])
+def test_impossible_github_logins_are_rejected(document, login):
+    record = {**RECORD, "verified_by": login}
+    assert "is not a GitHub login" in problems(with_size_record(document, record))
+
+
+@pytest.mark.parametrize("login", ["a", "abc-def", "a" * 39, "@AmbiqAI/hardware-review"])
+def test_possible_github_logins_load(document, login):
+    load_builtin(with_size_record(document, {**RECORD, "verified_by": login}))

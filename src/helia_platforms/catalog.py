@@ -482,7 +482,10 @@ class _Loader:
         from helia_platforms.resolve import _names  # noqa: PLC0415 (resolve imports this module)
 
         names = _names(catalog)
-        facts = _provenance.Facts(self.trees, lambda name: name.casefold() in names)
+        # A shorthand never resolves to one target, so it cannot name a measured board.
+        facts = _provenance.Facts(
+            self.trees, lambda name: names.get(name.casefold(), ("shorthands",))[0] != "shorthands"
+        )
         register = self.register if self.builtin else None
         report = self.fail if self.builtin else self.warn
         for (table, entry_id), origin in new.items():
