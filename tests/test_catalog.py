@@ -1482,3 +1482,50 @@ def test_cli_export_schema():
     result = runner.invoke(app, ["export", "--schema"])
     assert result.exit_code == 0
     assert '"$id": "tag:ambiq.com,2026:helia-platforms/schema/v1"' in result.output
+
+
+# ---- rules the resolver relies on (#98 review) ----------------------------------------
+
+
+def test_a_soc_needs_a_core(document):
+    soc(document)["cores"] = []
+    for key in ("operating_points", "default_operating_point", "boot_configs", "default_boot"):
+        del soc(document)[key]
+    del soc(document)["default_access"]
+    soc(document)["npus"] = []
+    assert "socs.soc_a: cores: a Soc needs at least one core" in problems_of(document)
+
+
+@pytest.mark.parametrize(
+    ("offset", "size", "message"),
+    [
+        ("32K", "64K", "boot_configs.sbl.reserved.sbl overlaps reserved.extra in region 'nvm'"),
+        ("4M", "64K", "boot_configs.sbl.reserved.extra: runs past the end of region 'nvm'"),
+    ],
+)
+def test_reservations_stay_inside_their_region_and_apart(document, offset, size, message):
+    reserved = soc(document)["boot_configs"]["sbl"]["reserved"]
+    reserved["extra"] = {"region": "nvm", "offset": offset, "size": size}
+    assert message in problems_of(document)
+
+
+def test_adjacent_reservations_are_allowed(document):
+    reserved = soc(document)["boot_configs"]["sbl"]["reserved"]
+    reserved["extra"] = {"region": "nvm", "offset": "64K", "size": "64K"}
+    load_quietly(document)
+
+
+def test_default_board_must_carry_the_soc(document):
+    document["socs"]["soc_b"] = copy.deepcopy(soc(document))
+    document["parts"]["PART-B"] = {"soc": "soc_b"}
+    document["boards"]["board_b"] = {
+        **copy.deepcopy(document["boards"]["board_a"]),
+        "part": "PART-B",
+    }
+    soc(document)["default_board"] = "board_b"
+    assert (
+        "socs.soc_a: default_board: board 'board_b' carries Soc 'soc_b', not 'soc_a'"
+        in problems_of(document)
+    )
+    soc(document)["default_board"] = "board_a"
+    load_quietly(document)
