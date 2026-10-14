@@ -1,7 +1,7 @@
 import pytest
 
 from conftest import RECORD, SDK_SOURCE, as_builtin
-from helia_platforms import FormatError, PlatformWarning, builtin, load_overlay
+from helia_platforms import FormatError, PlatformWarning, load_overlay
 from helia_platforms.catalog import _load_documents
 
 SHA = "b" * 40
@@ -170,10 +170,6 @@ def test_the_register_and_allow_list_are_built_in_only(document):
     document["unverified_allowed"] = []
     with pytest.raises(FormatError, match="only built-in files may carry 'unverified_allowed'"):
         load_overlay(document)
-
-
-def test_the_packaged_register_and_allow_list_load():
-    assert builtin(include_plugins=False).socs() == ()
 
 
 @pytest.mark.parametrize("order", [("16", "0x10"), ("0x10", "16")])

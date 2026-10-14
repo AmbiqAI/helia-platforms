@@ -1,5 +1,23 @@
 # yaml-language-server: $schema=../schema/helia-platforms-v1.schema.json
 # The source register (ADR 0003 section 2): documents of record and repositories.
 schema_version: 1
-documents: {}
-repositories: {}
+documents:
+  DS-A510:
+    1.1.0:
+      document_id: DS-A510-1p1p0
+      date: 2026-05
+      pages: 302
+      sha256: d73b34121df6cc09f689d6ee8a2ce6eef4c883d5296f26d55ceb11f7ff05e035
+  QS-A510:
+    "2.1":
+      document_id: QS-A510-2p1
+      date: 2025-11
+      pages: 24
+      sha256: 4350d3f28bf41a664ceefbdaa2cf6a78cdc3f40cf8f158c6b48a2ac8eee9032b
+repositories:
+  AmbiqAI/nsx-ambiq-sdk:
+    url: https://github.com/AmbiqAI/nsx-ambiq-sdk
+    tags:
+      v5.2.24: a9f4ec25a162f6f3700623feb691423bb5a51132
+  AmbiqAI/neuralspotx:
+    url: https://github.com/AmbiqAI/neuralspotx

@@ -14,9 +14,10 @@ optional generated dataset of link environments that ships separately.
 Pre-release; nothing is published yet. The runtime is in place: the file
 format and its JSON Schema, the frozen model, `load_overlay` and `builtin()`
 with side-loaded private catalogs, the structural and semantic validation, the
-catalog digest, and the CLI's `validate` and `export --schema` commands. The
-built-in data is still an empty stub (`src/helia_platforms/data/names.yaml`),
-and the resolver that consumers will query (RFC 0002) is not written yet.
+catalog digest, the provenance checks, the resolver that consumers query
+(RFC 0002), and the CLI's `validate` and `export --schema` commands. The
+built-in data holds one Soc so far: apollo510, with its parts and the
+apollo510_evb board.
 
 ## Quickstart
 

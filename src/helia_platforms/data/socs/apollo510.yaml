@@ -1,0 +1,455 @@
+# yaml-language-server: $schema=../../schema/helia-platforms-v1.schema.json
+# The apollo510 Soc, its parts and its boards. Owner decisions: #63.
+schema_version: 1
+socs:
+  apollo510:
+    release_status: public
+    default_board: apollo510_evb
+    provenance:
+      status: datasheet
+      source: ["doc:DS-A510@1.1.0:p14", "doc:DS-A510@1.1.0:p21", "doc:DS-A510@1.1.0:p35"]
+      verified_on: 2026-10-08
+      verified_by: evanchen11
+      notes: >-
+        Which cores, memory regions, clock modes and boot configurations the Soc has: one
+        Cortex-M55 (p14), LP and HP modes (p21), and the memory map with its SBL
+        partition (p35).
+    series:
+      value: apollo5
+      provenance: &sdk_facts
+        status: sdk
+        source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.24:cmake/socs/facts/apollo510.cmake:10"]
+        verified_on: 2026-10-13
+        verified_by: evanchen11
+
+    cores:
+      - id: cm55_0
+        role: application
+        core: cortex-m55
+        clock_domain: cpu
+        programmable_by:
+          value: customer
+          provenance:
+            status: sdk
+            source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.24:modules/nsx-core/src/apollo510/gcc/linker_script_sbl.ld:11"]
+            verified_on: 2026-10-13
+            verified_by: evanchen11
+            notes: >-
+              The default linker script places the application in MRAM at 0x00410000,
+              which DS-A510 p35 names NVM0-APPL, "NVM0 for application".
+        provenance:
+          status: datasheet
+          source: ["doc:DS-A510@1.1.0:p14"]
+          verified_on: 2026-10-08
+          verified_by: evanchen11
+          notes: '"Arm Cortex-M55 Application Processor with Helium technology". Also p21.'
+        options:
+          fpu:
+            value: fpv5-sp-d16
+            provenance:
+              status: sdk
+              source:
+                - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.24:cmake/nsx_toolchain_flags.cmake:208"
+                - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.24:cmake/nsx_toolchain_flags.cmake:221"
+              verified_on: 2026-10-13
+              verified_by: evanchen11
+              notes: >-
+                The gcc -mfpu the SDK passes for every Cortex-M55 build. The facts file
+                comment (apollo510.cmake:25-28) says no -mfpu is passed, which :221
+                contradicts. Double precision is fpu_dp.
+          fpu_dp: true
+          mve: fp
+          icache_kb: 64
+          dcache_kb: 64
+          provenance:
+            status: datasheet
+            source: ["doc:DS-A510@1.1.0:p21"]
+            verified_on: 2026-10-08
+            verified_by: evanchen11
+            notes: >-
+              "Half-Precision, Single-Precision and Double Precision Floating Point";
+              "Vector Processing supporting integer, half-precision and single-precision
+              vector arithmetic"; "64 kB Instruction Cache / 64 kB Data Cache".
+
+    memories:
+      itcm:
+        technology: sram
+        attachment: tcm
+        base: 0x00000000
+        size: 256K
+        executable: true
+        alternate_bases: [0x10000000]
+        provenance: &ds_tcm
+          status: datasheet
+          source: ["doc:DS-A510@1.1.0:p35", "doc:DS-A510@1.1.0:p298"]
+          verified_on: 2026-10-08
+          verified_by: evanchen11
+          notes: >-
+            p35 Table 3 gives base, size, the Executable column and the alias, which is
+            "accessible only from Secure SW when TrustZone is enabled". p298 gives the
+            technology ("SRAM (SSRAM and TCM)").
+      dtcm:
+        technology: sram
+        attachment: tcm
+        base: 0x20000000
+        size: 512K
+        executable: true
+        alternate_bases: [0x30000000]
+        provenance: *ds_tcm
+      ssram:
+        technology: sram
+        attachment: system
+        base: 0x20080000
+        size: 3M
+        executable: true
+        provenance:
+          status: datasheet
+          source: ["doc:DS-A510@1.1.0:p35", "doc:DS-A510@1.1.0:p298"]
+          verified_on: 2026-10-08
+          verified_by: evanchen11
+          notes: >-
+            p35 "System SRAM (3 MB)"; p96 splits it into SSRAM0-2 of 1 MB each, which the
+            catalog keeps as one region.
+      mram:
+        technology: mram
+        attachment: system
+        base: 0x00400000
+        size: 4M
+        executable: true
+        provenance:
+          status: datasheet
+          source: ["doc:DS-A510@1.1.0:p35", "doc:DS-A510@1.1.0:p298"]
+          verified_on: 2026-10-08
+          verified_by: evanchen11
+          notes: >-
+            p35 gives NVM-SBL, NVM0-APPL and NVM1-APPL across 0x00400000-0x007FFFFF. p298
+            is cited for the technology ("NVM (MRAM)"); p22, p29 and p36-37 also call it MRAM.
+
+    default_access:
+      master: cm55_0
+      access: direct
+      scope: on_die
+      provenance:
+        status: datasheet
+        source: ["doc:DS-A510@1.1.0:p22"]
+        verified_on: 2026-10-08
+        verified_by: evanchen11
+        notes: >-
+          "All of the memory is memory mapped and accessible by the CPU." One core; DMA,
+          GPU and display controller are bus masters (p53), omitted with accelerators (#88).
+
+    # Each name carries its record: a list item's own record is the only way to give one
+    # name (fpio) a different source from the rest.
+    peripherals:
+      - value: adc
+        provenance: &table4
+          status: datasheet
+          source:
+            - "doc:DS-A510@1.1.0:p36-38"
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.24:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo510.h:29547-29592"
+          verified_on: 2026-10-13
+          verified_by: evanchen11
+          notes: >-
+            Table 4 "Apollo510 SoC Peripheral Memory Map" lists the block. Its names are
+            descriptive ("I2C/SPI Manager0", "Display PHY", "GPADC"), so the ids are the
+            CMSIS header's <NAME>_BASE names, lowercased.
+      - {value: audadc, provenance: *table4}
+      - {value: clkgen, provenance: *table4}
+      - {value: crypto, provenance: *table4}
+      - {value: dc, provenance: *table4}
+      - {value: dsi, provenance: *table4}
+      - {value: gpio, provenance: *table4}
+      - {value: gpu, provenance: *table4}
+      - {value: i2s0, provenance: *table4}
+      - {value: i2s1, provenance: *table4}
+      - {value: iom0, provenance: *table4}
+      - {value: iom1, provenance: *table4}
+      - {value: iom2, provenance: *table4}
+      - {value: iom3, provenance: *table4}
+      - {value: iom4, provenance: *table4}
+      - {value: iom5, provenance: *table4}
+      - {value: iom6, provenance: *table4}
+      - {value: iom7, provenance: *table4}
+      - {value: ioslave, provenance: *table4}
+      - {value: ioslavefd0, provenance: *table4}
+      - {value: ioslavefd1, provenance: *table4}
+      - {value: mcuctrl, provenance: *table4}
+      - {value: mspi0, provenance: *table4}
+      - {value: mspi1, provenance: *table4}
+      - {value: mspi2, provenance: *table4}
+      - {value: mspi3, provenance: *table4}
+      - {value: otp, provenance: *table4}
+      - {value: pdm0, provenance: *table4}
+      - {value: pwrctrl, provenance: *table4}
+      - {value: rstgen, provenance: *table4}
+      - {value: rtc, provenance: *table4}
+      - {value: sdio0, provenance: *table4}
+      - {value: sdio1, provenance: *table4}
+      - {value: security, provenance: *table4}
+      - {value: ssc, provenance: *table4}
+      - {value: stimer, provenance: *table4}
+      - {value: timer, provenance: *table4}
+      - {value: uart0, provenance: *table4}
+      - {value: uart1, provenance: *table4}
+      - {value: uart2, provenance: *table4}
+      - {value: uart3, provenance: *table4}
+      - {value: usb, provenance: *table4}
+      - {value: usbphy, provenance: *table4}
+      - {value: vcomp, provenance: *table4}
+      - {value: wdt, provenance: *table4}
+      - value: fpio
+        provenance:
+          status: sdk
+          source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.24:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo510.h:29553"]
+          verified_on: 2026-10-13
+          verified_by: evanchen11
+          notes: FPIO_BASE 0x40011000, which DS-A510 Table 4 shows as Reserved (p37).
+    memory_controllers:
+      value: [mspi0, mspi1, mspi2, mspi3]
+      provenance:
+        status: datasheet
+        source: ["doc:DS-A510@1.1.0:p36"]
+        verified_on: 2026-10-13
+        verified_by: evanchen11
+        notes: >-
+          The four MSPI controllers have external memory apertures in Table 3. IOMs and
+          SDIOs are left off until a board wires memory to one.
+
+    clock_domains:
+      cpu:
+        lp:
+          mhz: 96
+          hal_mode:
+            value: AM_HAL_PWRCTRL_MCU_MODE_LOW_POWER
+            provenance: &hal_mcu_mode
+              status: sdk
+              source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.24:modules/nsx-ambiqsuite/sdk/mcu/apollo510/hal/am_hal_pwrctrl.h:212-213"]
+              verified_on: 2026-10-13
+              verified_by: evanchen11
+              notes: The "192 MHz or 250 MHz" comment on the HP enumerator is stale; see the clock record.
+          provenance: &ds_clk
+            status: datasheet
+            source: ["doc:DS-A510@1.1.0:p21"]
+            verified_on: 2026-10-08
+            verified_by: evanchen11
+            notes: >-
+              "96 MHz Low Power Mode", "250 MHz High Performance Mode". p68 Table 8 gives
+              250 MHz HFRC2 in HP; 192 MHz is only a clock source (p67), so the HAL's
+              192 MHz comments are stale.
+        hp:
+          mhz: 250
+          hal_mode:
+            value: AM_HAL_PWRCTRL_MCU_MODE_HIGH_PERFORMANCE
+            provenance: *hal_mcu_mode
+          provenance: *ds_clk
+    operating_points:
+      lp: {domains: {cpu: lp}, provenance: *ds_clk}
+      hp: {domains: {cpu: hp}, provenance: *ds_clk}
+    default_operating_point:
+      value: lp
+      provenance:
+        status: sdk
+        source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.24:modules/nsx-core/includes-api/nsx_system.h:189"]
+        verified_on: 2026-10-13
+        verified_by: evanchen11
+        notes: >-
+          A zero-initialised config is "minimal, low-power". DS-A510 p62: POR "sets the
+          CPU clock to 96 MHz".
+
+    boot_configs:
+      sbl:
+        reserved:
+          sbl:
+            region: mram
+            offset: 0
+            size: 64K
+            provenance:
+              status: datasheet
+              source: ["doc:DS-A510@1.1.0:p35"]
+              verified_on: 2026-10-08
+              verified_by: evanchen11
+              notes: '"0x00400000 - 0x0040FFFF NVM-SBL ... NVM reserved for Secure Boot Loader (64 kB)".'
+        app_start:
+          region: mram
+          offset: 64K
+          provenance:
+            status: derived
+            source: ["doc:DS-A510@1.1.0:p35", "fact:soc:apollo510:memories.mram.base"]
+            verified_on: 2026-10-13
+            verified_by: evanchen11
+            notes: >-
+              NVM0-APPL starts at 0x00410000 (p35), and 0x00410000 - 0x00400000 (the mram
+              base) = 64K. QS-A510 p7 says the examples are programmed at 0x410000.
+        requires: sbl
+        provenance:
+          status: datasheet
+          source: ["doc:DS-A510@1.1.0:p60"]
+          verified_on: 2026-10-08
+          verified_by: evanchen11
+          notes: '"implemented in the pre-installed SBL". p53: Secure Boot (SBR+SBL).'
+    default_boot:
+      value: sbl
+      provenance:
+        status: sdk
+        source:
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.24:cmake/socs/apollo510.cmake:23"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.24:cmake/socs/apollo510.cmake:28"
+        verified_on: 2026-10-13
+        verified_by: evanchen11
+        notes: >-
+          The default armclang (:23) and gcc (:28) linker scripts are the sbl scripts;
+          NSX_SEGGER_PF_ADDR 0x00410000 (facts/apollo510.cmake:56) agrees.
+
+    sdk:
+      c_define: AM_PART_APOLLO510
+      provenance:
+        status: sdk
+        source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.24:cmake/socs/facts/apollo510.cmake:37"]
+        verified_on: 2026-10-13
+        verified_by: evanchen11
+        notes: >-
+          The same list holds AM_PART_APOLLO5B (:36), which am_mcu_apollo.h marks
+          deprecated and maps to AM_PART_APOLLO510.
+      cmsis_header:
+        value: apollo510.h
+        provenance:
+          status: sdk
+          source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.24:modules/nsx-ambiqsuite/sdk/mcu/apollo510/am_mcu_apollo.h:137"]
+          verified_on: 2026-10-13
+          verified_by: evanchen11
+      trace_clock_mhz:
+        value: 96
+        provenance:
+          status: sdk
+          source:
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.24:cmake/socs/facts/apollo510.cmake:57"
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.24:modules/nsx-core/src/apollo510/nsx_system_platform.c:192-197"
+          verified_on: 2026-10-13
+          verified_by: evanchen11
+          notes: >-
+            NSX_SEGGER_CPUFREQ is the TPIU trace clock, not the CPU clock (:51-52); nsx
+            firmware selects DBGTPIUCLKSEL_HFRC_96MHz, "fixed, independent of CPU perf
+            mode". DS-A510 p72 lists HFRC_96MHz as a TPIU clock source.
+      hal_enums:
+        ssram_full_power:
+          value: AM_HAL_PWRCTRL_SRAM_3M
+          provenance:
+            status: sdk
+            source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.24:modules/nsx-ambiqsuite/sdk/mcu/apollo510/hal/am_hal_pwrctrl.h:380"]
+            verified_on: 2026-10-13
+            verified_by: evanchen11
+      build:
+        abi: thumbv8.1m-fpv5-hard
+        float_abi: hard
+        provenance:
+          status: sdk
+          source:
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.24:cmake/socs/facts/apollo510.cmake:24"
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.24:cmake/socs/facts/apollo510.cmake:30"
+          verified_on: 2026-10-13
+          verified_by: evanchen11
+        toolchains:
+          value: [arm-none-eabi-gcc, armclang, atfe]
+          provenance:
+            status: sdk
+            source: ["repo:AmbiqAI/neuralspotx@b930d59a0d6111361b355218f104dea35ff34da5:src/neuralspotx/boards/apollo510_evb/board.yaml:19-22"]
+            verified_on: 2026-10-13
+            verified_by: evanchen11
+            notes: apollo510_evb is the only neuralspotx board with soc apollo510 at this commit.
+
+parts:
+  AP510NFA-CBR:
+    release_status: public
+    soc: apollo510
+    package: "225-pin BGA, 6.6 x 6.6 mm"
+    radio: none
+    jlink_device:
+      value: AP510NFA-CBR
+      provenance:
+        status: sdk
+        source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.24:cmake/socs/facts/apollo510.cmake:54"]
+        verified_on: 2026-10-13
+        verified_by: evanchen11
+        notes: The SDK's SoC-level default; not checked against SEGGER's device list (#19).
+    provenance: &ds_order
+      status: datasheet
+      source: ["doc:DS-A510@1.1.0:p298"]
+      verified_on: 2026-10-08
+      verified_by: evanchen11
+      notes: >-
+        Table 76 "Ordering Information for Apollo510 SoC": part, package and "No
+        Connectivity". p231 gives the BGA size for CBR and IBR.
+  AP510NFA-IBR:
+    release_status: public
+    soc: apollo510
+    package: "225-pin BGA, 6.6 x 6.6 mm"
+    radio: none
+    provenance: *ds_order
+  AP510NFA-CCR:
+    release_status: public
+    soc: apollo510
+    package: "182-pin WLCSP, 4.9 x 4.7 mm"
+    radio: none
+    provenance: *ds_order
+
+boards:
+  apollo510_evb:
+    release_status: public
+    category: evaluation
+    revision: "2.2"
+    part: AP510NFA-CBR
+    provenance:
+      status: datasheet
+      source: ["doc:QS-A510@2.1:p6", "doc:QS-A510@2.1:p8"]
+      verified_on: 2026-10-08
+      verified_by: evanchen11
+      notes: >-
+        p6 "Apollo510 Evaluation Board (EVB), revision 2.2, part number AP510EVB"; p8
+        "Cortex-M55 based SoC in the BGA package (AP510NFA-CBR)".
+    interfaces:
+      mspi0:
+        controller:
+          value: mspi0
+          provenance:
+            status: datasheet
+            source: ["doc:QS-A510@2.1:p10"]
+            verified_on: 2026-10-13
+            verified_by: evanchen11
+            notes: '"9. MSPI0 - APS512XXB-AOB5NI-WA". nsx-psram maps apollo510_evb to MSPI0 too.'
+        modes:
+          value: [hex-ddr]
+          provenance:
+            status: sdk
+            source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.24:modules/nsx-psram/CMakeLists.txt:60-64"]
+            verified_on: 2026-10-13
+            verified_by: evanchen11
+            notes: >-
+              "Hex (x16) DDR PSRAM on MSPI0". QS-A510 p8 states x16 (Hex); running it in DDR
+              is the driver's configuration, which only the SDK sets.
+        aperture_base: 0x60000000
+        aperture_max: 256M
+        provenance:
+          status: datasheet
+          source: ["doc:DS-A510@1.1.0:p36"]
+          verified_on: 2026-10-08
+          verified_by: evanchen11
+          notes: '"0x60000000 - 0x6FFFFFFF MSPI0 Y External Memory (256 MB)".'
+    population:
+      mspi0:
+        value: APS512XX
+        provenance:
+          status: datasheet
+          source: ["doc:QS-A510@2.1:p10"]
+          verified_on: 2026-10-08
+          verified_by: evanchen11
+          notes: >-
+            p10 "MSPI0 - APS512XXB-AOB5NI-WA"; p8 lists the PSRAM as AP Memory
+            APS512XXN-AOB4BI-WBRZ.
+    provisioning:
+      value: sbl
+      provenance:
+        status: datasheet
+        source: ["doc:QS-A510@2.1:p12"]
+        verified_on: 2026-10-08
+        verified_by: evanchen11
+        notes: '"preprogrammed with a Secure Bootloader".'
