@@ -53,7 +53,7 @@ neuralspotx as a possible later consumer. The model and API are RFC 0002
   canonical id.
 - Capabilities are derived from structural facts, never declared.
 - A Soc is a specification; an FPGA or FVP is an Implementation, not a
-  board. An FVP declares its own memory map (ADR 0007, proposed in #82).
+  board. An FVP declares its own memory map (ADR 0007).
 - RAM budgets are physical region sizes; NVM is `usable_nvm()` after boot
   reservations and other cores' image slots (#28).
 - heliaAOT keeps the alias the user passed and records the canonical id.

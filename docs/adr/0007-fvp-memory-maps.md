@@ -1,7 +1,7 @@
 # 0007. Model an FVP's memories as its own list, not as substitutions
 
 Date: 2026-10-07
-Status: Proposed
+Status: Accepted
 
 ## Context
 

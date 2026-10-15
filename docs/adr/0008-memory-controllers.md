@@ -1,7 +1,7 @@
 # 0008. Mark a Soc's memory controllers in a list of their own
 
 Date: 2026-10-07
-Status: Proposed
+Status: Accepted
 
 ## Context
 

@@ -1,7 +1,7 @@
 # 0009. Spell catalog in American English in every name and document
 
 Date: 2026-10-12
-Status: Proposed
+Status: Accepted
 
 ## Context
 
