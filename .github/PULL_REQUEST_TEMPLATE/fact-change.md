@@ -48,8 +48,10 @@ say why it is unverified. -->
 
 ## Provenance checks (ADR 0003 section 4)
 
-<!-- No CI job runs these checks yet. Until one does, the author confirms
-each box and the reviewer checks it again. -->
+<!-- The `fact-changes` CI job checks the first, second and fourth boxes,
+and loading the catalog (pytest) checks the cycle, unverified-gate and
+register rules. The author still confirms each box and the reviewer checks
+the rename and snapshot boxes by hand. -->
 
 - [ ] Every changed value resolves to a record that differs from the merge
       base's in `status`, `source` (compared as a set) or `verified_on`.

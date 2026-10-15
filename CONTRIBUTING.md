@@ -32,6 +32,23 @@ for confirmation that the change adds no unreleased hardware, tool policy or
 energy data. Select it with `gh pr create --template fact-change.md`, or by
 adding `?quick_pull=1&template=fact-change.md` to the GitHub compare URL.
 
+The `fact-changes` CI job enforces ADR 0003 section 4 on every pull request.
+It loads the built-in data at the merge base and at the head, both from git
+and with the head's loader, and compares them by fact path. A value that
+changed must resolve to a record that changed in `status`, `source` (as a
+set) or `verified_on`, or, between two `unverified` records, in `notes`. A
+`derived` record must change when a `fact:` input it names changes. New fact
+paths are exempt. Run it locally against `main` with:
+
+```sh
+uv run python scripts/check_fact_changes.py --base origin/main
+```
+
+It exits 2 when either revision's data does not load with the head's loader,
+for example when a pull request adds a rule the merge base's data breaks.
+Split such a pull request: first the data change that satisfies the rule,
+then the rule.
+
 `.github/CODEOWNERS` gives each data file and directory, the schema
 directory and the snapshot directory its own entry.
 

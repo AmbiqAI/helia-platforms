@@ -307,7 +307,12 @@ def _drop_removed_controllers(values: dict, deltas: dict, written: dict) -> None
 
 def iter_paths(value: Any, tp: Any, path: Path = ()) -> list[Path]:
     """Every fact path in a normalized value, as ``normalize`` records them."""
-    paths = [path]
+    return [p for p, _ in iter_values(value, tp, path)]
+
+
+def iter_values(value: Any, tp: Any, path: Path = ()) -> list[tuple[Path, Any]]:
+    """Every fact path in a normalized value with the value at it; a list item's is itself."""
+    found = [(path, value)]
     bare, markers = _walk.unwrap(tp)
     if fmt.NOT_FACT in markers or fmt.OPAQUE in markers:
         return []
@@ -317,22 +322,22 @@ def iter_paths(value: Any, tp: Any, path: Path = ()) -> list[Path]:
         declared = _walk.fields(bare)
         for key, item in value.items():
             if key in declared:
-                paths += iter_paths(item, declared[key].type, (*path, key))
-        return paths
+                found += iter_values(item, declared[key].type, (*path, key))
+        return found
     origin = getattr(bare, "__origin__", None)
     if origin is dict and isinstance(value, dict):
         _, item_tp = get_args(bare)
         for key, item in value.items():
-            paths += iter_paths(item, item_tp, (*path, key))
+            found += iter_values(item, item_tp, (*path, key))
     elif origin is list and isinstance(value, list):
         (item_tp,) = get_args(bare)
         keyed = _walk.marker(markers, fmt.Keyed)
         for item in value:
             if keyed is not None:
-                paths += iter_paths(item, item_tp, (*path, item_key(item, keyed)))
+                found += iter_values(item, item_tp, (*path, item_key(item, keyed)))
             else:
-                paths.append((*path, segment(item)))
-    return paths
+                found.append(((*path, segment(item)), item))
+    return found
 
 
 # ---- an Implementation over its Soc ---------------------------------------------------
