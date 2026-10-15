@@ -194,8 +194,11 @@ class Catalog:
     def _realized(self, implementation: str) -> model.Soc:
         """The Soc as an Implementation realizes it: merged and clock-capped (``_tree.realize``)."""
         impl = self._tables["implementations"][implementation]
-        tree = realize(self._trees[("socs", impl.soc)], self._trees[("implementations", impl.id)])
-        return build_entity(model.Soc, fmt.Soc, tree, impl.soc)
+        return build_entity(model.Soc, fmt.Soc, self._realized_tree(implementation), impl.soc)
+
+    def _realized_tree(self, implementation: str) -> Tree:
+        impl = self._tables["implementations"][implementation]
+        return realize(self._trees[("socs", impl.soc)], self._trees[("implementations", impl.id)])
 
 
 _EMPTY = Catalog()

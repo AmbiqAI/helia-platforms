@@ -23,7 +23,7 @@ from helia_platforms.errors import (
     UnknownPlatform,
 )
 from helia_platforms.resolve import resolve, resolve_board, resolve_soc
-from helia_platforms.target import IsaFeatures, Target
+from helia_platforms.target import IsaFeatures, ProvenanceSummary, Target
 
 __all__ = [
     "AmbiguousPlatform",
@@ -33,6 +33,7 @@ __all__ = [
     "IsaFeatures",
     "PlatformError",
     "PlatformWarning",
+    "ProvenanceSummary",
     "SourceIdentity",
     "Target",
     "UnknownPlatform",

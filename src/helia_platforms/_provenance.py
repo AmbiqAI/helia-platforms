@@ -88,10 +88,7 @@ class Facts:
     def leaves(self, table: str, entry_id: str, prefix: Path = ()) -> list[tuple[Path, Any]]:
         """Each value (a path no other path extends) under ``prefix``, with its record."""
         tree = self.trees.get((table, entry_id))
-        if tree is None:
-            return []
-        inner = {p[:i] for p in tree.records for i in range(len(p))}
-        return [(p, r) for p, r in tree.records.items() if p not in inner and under(p, prefix)]
+        return [] if tree is None else leaves(tree, prefix)
 
     def unverified_inputs(self, record: Any) -> list[str]:
         """The ``fact:`` inputs of a derived record that reach an unverified value."""
@@ -103,6 +100,12 @@ class Facts:
             if key and any(_status(r) == "unverified" for _, r in self.leaves(*key)):
                 found.append(str(reference))
         return found
+
+
+def leaves(tree: Tree, prefix: Path = ()) -> list[tuple[Path, Any]]:
+    """Each value in ``tree`` (a path no other path extends) under ``prefix``, with its record."""
+    inner = {p[:i] for p in tree.records for i in range(len(p))}
+    return [(p, r) for p, r in tree.records.items() if p not in inner and under(p, prefix)]
 
 
 def record_problems(
@@ -302,6 +305,35 @@ def _cycles(entries: Iterable[tuple[str, str]], facts: Facts) -> list[tuple[str,
         if node not in done:
             visit(node)
     return problems
+
+
+#: ADR 0003 section 1's report order, worst first. ``derived`` ranks as its worst input.
+RANKS = ("unverified", "fitted", "sdk", "measured", "datasheet")
+_RANK_OF_KIND = {"doc": "datasheet", "meas": "measured", "repo": "sdk", "url": "sdk"}
+
+
+def rank(record: Any, facts: Facts, seen: frozenset[int] = frozenset()) -> str:
+    """The report rank of a record; a ``fact:`` input that is missing or cyclic is unverified."""
+    status = _status(record)
+    if status != "derived":
+        return status if status in RANKS else "unverified"
+    if id(record) in seen:
+        return "unverified"
+    ranks = []
+    for reference in record.get("source") or []:
+        kind = str(reference).split(":", 1)[0]
+        if kind != "fact":
+            ranks.append(_RANK_OF_KIND.get(kind, "unverified"))
+            continue
+        key = facts.parse(str(reference))
+        inputs = facts.leaves(*key) if key else []
+        ranks += [rank(r, facts, seen | {id(record)}) for _, r in inputs] or ["unverified"]
+    return worst(ranks)
+
+
+def worst(ranks: Iterable[str]) -> str:
+    """The worst of ``ranks`` in ``RANKS`` order; none at all is unverified."""
+    return min(ranks, key=RANKS.index, default="unverified")
 
 
 def _status(record: Any) -> str | None:

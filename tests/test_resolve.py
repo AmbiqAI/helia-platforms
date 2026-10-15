@@ -4,7 +4,7 @@ import warnings
 import pytest
 
 import helia_platforms
-from conftest import as_builtin
+from conftest import RECORD, SDK_SOURCE, as_builtin
 from helia_platforms import (
     AmbiguousPlatform,
     PlatformError,
@@ -295,3 +295,100 @@ def test_external_region_names_skip_the_socs_own_names(document):
     assert [r.name for r in target.external_memories()] == ["psram1"]
     assert target.region("psram1").base == 0x60000000
     assert target.region("psram0").base == 0x70000000
+
+
+# ---- provenance (ADR 0003 section 1) --------------------------------------------------
+
+
+def builtin_target(document, name="board_a"):
+    catalog = _load_documents([(as_builtin(document), "builtin.yaml")], builtin=True)
+    return resolve(name, catalog=catalog)
+
+
+def sourced(status, *sources):
+    return {**RECORD, "status": status, "source": list(sources)}
+
+
+def test_provenance_groups_fields_and_collection_items_along_the_chain(document):
+    groups = builtin_target(document).provenance().groups
+    assert {
+        "soc.series",
+        "soc.memories.tcm",
+        "soc.access.npu_0@ssram",
+        "soc.clock_domains.cpu",
+        "soc.boot_configs.sbl",
+        "part.silicon_revision",
+        "board.interfaces.mspi0",
+        "board.population.mspi0",
+        "cores.cortex-m55",
+        "memory_devices.psram_8m",
+    } <= set(groups)
+    soc_groups = builtin_target(document, "soc_a").provenance().groups
+    assert not any(g.startswith(("board.", "part.")) for g in soc_groups)
+
+
+def test_provenance_is_the_worst_status_in_each_group(document):
+    tcm = document["socs"]["soc_a"]["memories"]["tcm"]
+    tcm["size"] = {"value": "512K", "provenance": sourced("sdk", SDK_SOURCE)}
+    summary = builtin_target(document).provenance()
+    assert summary.groups["soc.memories.tcm"] == "sdk"
+    assert summary.groups["soc.memories.ssram"] == "datasheet"
+    assert summary.worst == "sdk"
+
+
+def test_a_value_with_no_record_in_an_overlay_is_unverified(document):
+    del document["socs"]["soc_a"]["provenance"]
+    summary = resolve("board_a", catalog=quiet(document)).provenance()
+    assert set(summary.groups.values()) == {"unverified"}
+    assert summary.worst == "unverified"
+
+
+@pytest.mark.parametrize(
+    ("sources", "expected"),
+    [
+        (["doc:DS-TEST@1.0:p1"], "datasheet"),
+        (["doc:DS-TEST@1.0:p1", SDK_SOURCE], "sdk"),
+        (["fact:soc:soc_a:memories.nvm"], "datasheet"),
+        (["fact:soc:soc_a:memories.nvm.base", "meas:board_a/xip-alias/2026-10-01"], "measured"),
+        (["fact:soc:soc_a:memories.missing"], "unverified"),
+    ],
+)
+def test_a_derived_value_ranks_as_its_worst_input(document, sources, expected):
+    tcm = document["socs"]["soc_a"]["memories"]["tcm"]
+    tcm["size"] = {"value": "512K", "provenance": sourced("derived", *sources)}
+    groups = resolve("board_a", catalog=quiet(document)).provenance().groups
+    assert groups["soc.memories.tcm"] == expected
+
+
+def test_a_derived_input_ranks_by_its_own_record(document):
+    memories = document["socs"]["soc_a"]["memories"]
+    memories["nvm"]["size"] = {"value": "4M", "provenance": sourced("sdk", SDK_SOURCE)}
+    memories["tcm"]["size"] = {
+        "value": "512K",
+        "provenance": sourced("derived", "fact:soc:soc_a:memories.nvm.size"),
+    }
+    assert builtin_target(document).provenance().groups["soc.memories.tcm"] == "sdk"
+
+
+def test_a_derived_cycle_ranks_unverified(document):
+    memories = document["socs"]["soc_a"]["memories"]
+    for name, other in (("tcm", "nvm"), ("nvm", "tcm")):
+        memories[name]["base"] = {
+            "value": memories[name]["base"],
+            "provenance": sourced("derived", f"fact:soc:soc_a:memories.{other}.base"),
+        }
+    groups = resolve("board_a", catalog=quiet(document)).provenance().groups
+    assert groups["soc.memories.tcm"] == groups["soc.memories.nvm"] == "unverified"
+
+
+def test_an_implementation_target_groups_the_realized_soc(document):
+    with_fpga(document, memories_resized={"ssram": "1M"})
+    fpga = document["implementations"]["soc_a_fpga"]
+    fpga["subset"]["provenance"] = sourced("sdk", SDK_SOURCE)
+    fpga["clock_domains"] = {"cpu": {"lp": {"mhz": 48}}}
+    groups = builtin_target(document, "soc_a_fpga").provenance().groups
+    assert groups["soc.memories.ssram"] == "sdk"
+    assert groups["soc.memories.tcm"] == "datasheet"
+    assert "soc.clock_domains.cpu" in groups
+    assert "implementation.kind" in groups
+    assert not any(g.startswith("implementation.clock_domains") for g in groups)

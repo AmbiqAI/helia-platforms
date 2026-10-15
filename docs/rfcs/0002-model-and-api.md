@@ -879,6 +879,19 @@ region that stands in for it: `region("hblram")` on the Corstone-320
 target returns its DDR region
 ([ADR 0007](../adr/0007-fvp-memory-maps.md)).
 
+`provenance()` returns a `ProvenanceSummary`: `groups`, a mapping from
+group name to the worst status of the values in the group, and `worst`,
+the worst over all groups. Statuses rank as ADR 0003 section 1 orders
+them, and a `derived` value ranks as its worst input, so `derived` never
+appears. A group is one top-level field of the Soc (as the
+implementation realizes it), the implementation, the part or the board,
+or one item of a field that is a mapping or keyed list:
+`soc.memories.sram`, `soc.access.npu_0@ssram`, `soc.sdk`,
+`board.interfaces.mspi0`. Each core IP block, add-on and memory device
+on the target is one group: `cores.cortex-m55`, `addons.<id>`,
+`memory_devices.<id>`. The implementation's groups leave out the
+Soc-shaped keys it writes, which the `soc.` groups already cover.
+
 ### Overlays, validation, export, CLI
 
 `load_overlay` parses an overlay (syntax per ADR #7), validates it against

@@ -3,16 +3,20 @@
 from __future__ import annotations
 
 import functools
-from collections.abc import Mapping
+from collections.abc import Iterator, Mapping
 from dataclasses import dataclass, field
 from types import MappingProxyType
-from typing import Literal, TypeVar
+from typing import Literal, TypeVar, cast
 
-from helia_platforms import model
+from helia_platforms import _format as fmt
+from helia_platforms import _provenance, _walk, model
+from helia_platforms._tree import _FVP_ONLY, _SOC_SHAPED, Record, Tree, _collection
 from helia_platforms.catalog import Catalog, _expanded_access
 from helia_platforms.errors import PlatformError
 
 Kind = Literal["board", "part", "implementation", "soc"]
+#: ADR 0003 section 1's report statuses; a ``derived`` value ranks as its worst input.
+RankedStatus = Literal["unverified", "fitted", "sdk", "measured", "datasheet"]
 #: Technologies a region can hold non-volatile code in (``usable_nvm``).
 _NVM = frozenset({"mram", "rram", "flash", "nvm"})
 
@@ -29,6 +33,18 @@ class IsaFeatures:
     supports_fp64: bool
     has_pmu: bool
     pmu_kind: str
+
+
+@dataclass(frozen=True)
+class ProvenanceSummary:
+    """The worst provenance status in each group of a target's facts (``Target.provenance()``)."""
+
+    groups: Mapping[str, RankedStatus]
+
+    @property
+    def worst(self) -> RankedStatus:
+        """The worst status over every group."""
+        return cast(RankedStatus, _provenance.worst(self.groups.values()))
 
 
 @dataclass(frozen=True)
@@ -312,6 +328,47 @@ class Target:
     def sdk(self) -> model.SdkFacts | None:
         return self.soc.sdk
 
+    # -- provenance -----------------------------------------------------------------------
+
+    def provenance(self) -> ProvenanceSummary:
+        """The worst status in each group, ranked in ADR 0003 section 1's order.
+
+        A group is one top-level field of the Soc, implementation, part or board, or one
+        item of a collection field (``soc.memories.sram``). Each core IP block, add-on
+        and memory device is one group (``memory_devices.<id>``).
+        """
+        facts = _provenance.Facts(self._catalog._trees, lambda _: True)
+        ranks: dict[str, list[str]] = {}
+        for group, record in self._records():
+            ranks.setdefault(group, []).append(_provenance.rank(record, facts))
+        return ProvenanceSummary(
+            groups=MappingProxyType(
+                {g: cast(RankedStatus, _provenance.worst(r)) for g, r in ranks.items()}
+            )
+        )
+
+    def _records(self) -> Iterator[tuple[str, Record]]:
+        """(group, record) for each value on the reference chain, as ``provenance`` groups them."""
+        trees = self._catalog._trees
+        if self.implementation is None:
+            yield from _grouped("soc", trees[("socs", self.soc.id)], fmt.Soc)
+        else:
+            impl_id = self.implementation.id
+            yield from _grouped("soc", self._catalog._realized_tree(impl_id), fmt.Soc)
+            # The realized Soc already holds the Soc-shaped keys the implementation writes.
+            own = trees[("implementations", impl_id)]
+            yield from _grouped("implementation", own, fmt.Implementation, _REALIZED)
+        if self.part is not None:
+            yield from _grouped("part", trees[("parts", self.part.id)], fmt.Part)
+        if self.board is not None:
+            yield from _grouped("board", trees[("boards", self.board.id)], fmt.Board)
+        whole = [("cores", c) for c in dict.fromkeys(c.core for c in self.soc.cores)]
+        whole += [("addons", a.id) for a in self.addons]
+        whole += [("memory_devices", d) for d in dict.fromkeys(d.id for _, d in self._devices)]
+        for table, entry_id in whole:
+            for _, record in _provenance.leaves(trees[(table, entry_id)]):
+                yield f"{table}.{entry_id}", record
+
     # -- helpers --------------------------------------------------------------------------
 
     def _core(self, core: int | str) -> model.CoreInstance:
@@ -368,6 +425,22 @@ class Target:
                 f"{self.id}: boot {self.boot.name!r} has no app_start for {instance.id!r}"
             )
         return start
+
+
+_REALIZED = frozenset((*_SOC_SHAPED, *_FVP_ONLY))
+
+
+def _grouped(
+    prefix: str, tree: Tree, decl: type, skip: frozenset[str] = frozenset()
+) -> Iterator[tuple[str, Record]]:
+    """(group, record) per value: its top-level field, or the item of a collection field."""
+    declared = _walk.fields(decl)
+    for path, record in _provenance.leaves(tree):
+        if path[:1] and path[0] in skip:
+            continue
+        top = declared.get(path[0]) if path else None
+        collection = top is not None and _collection(top.type)[0] in ("map", "keyed")
+        yield ".".join((prefix, *path[: 2 if collection else 1])), record
 
 
 _Unit = TypeVar("_Unit", model.CoreInstance, model.NpuInstance)
