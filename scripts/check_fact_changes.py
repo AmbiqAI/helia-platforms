@@ -19,13 +19,16 @@ from typing import Any
 from helia_platforms import _format as fmt
 from helia_platforms import _parse, _provenance
 from helia_platforms._tree import Path as FactPath
-from helia_platforms._tree import iter_values
+from helia_platforms._tree import iter_values, segment
 from helia_platforms.catalog import _KINDS, Catalog, _load_documents
 from helia_platforms.errors import FormatError
 
 DATA = "src/helia_platforms/data"
 FactKey = tuple[str, str, FactPath]  # (table, entry id, path)
 RULE = "change its status, source or verified_on, or give the value a record of its own"
+LIST_RULE = (
+    "change the list's status, source or verified_on, or give each added item its own record"
+)
 
 
 def facts(catalog: Catalog) -> dict[FactKey, tuple[Any, Any]]:
@@ -37,6 +40,16 @@ def facts(catalog: Catalog) -> dict[FactKey, tuple[Any, Any]]:
         for path, value in pairs:
             if path not in inner:
                 found[(table, entry_id, path)] = (value, tree.records.get(path))
+    return found
+
+
+def value_lists(catalog: Catalog) -> dict[FactKey, tuple[list, Any, Any]]:
+    """Each list of plain values (not of objects), with its record and its entry's tree."""
+    found: dict[FactKey, tuple[list, Any, Any]] = {}
+    for (table, entry_id), tree in catalog._trees.items():
+        for path, value in iter_values(tree.values, getattr(fmt, _KINDS[table].__name__)):
+            if isinstance(value, list) and not any(isinstance(i, dict) for i in value):
+                found[(table, entry_id, path)] = (value, tree.records.get(path), tree)
     return found
 
 
@@ -59,6 +72,7 @@ def problems(base: Catalog, head: Catalog) -> list[str]:
         if key in old and old[key][0] != value and not record_changed(old[key][1], record):
             was = old[key][0]
             found[key] = f"{_where(key)}: changed from {was!r} to {value!r}; {RULE}"
+    found |= _list_problems(base, head)
     lookup = _provenance.Facts(head._trees, lambda _: True)
     for key, (_, record) in new.items():
         if key in found or key not in old or not isinstance(record, dict):
@@ -71,6 +85,39 @@ def problems(base: Catalog, head: Catalog) -> list[str]:
                 found[key] = f"{_where(key)}: its derived input {reference} changed; {RULE}"
                 break
     return list(found.values())
+
+
+def _list_problems(base: Catalog, head: Catalog) -> dict[FactKey, str]:
+    """A list's items are paths of their own, so an edit adds one path and drops another.
+
+    Compared as a set, a changed list needs a changed list record, or (for additions
+    only) a record of its own on each added item (ADR 0003 section 4).
+    """
+    old, new = value_lists(base), value_lists(head)
+    found: dict[FactKey, str] = {}
+    for key, (items, record, tree) in new.items():
+        if key not in old or any(isinstance(i, dict) for i in old[key][0]):
+            continue
+        was, old_record, _ = old[key]
+        added = [i for i in items if i not in was]
+        removed = [i for i in was if i not in items]
+        if not (added or removed) or record_changed(old_record, record):
+            continue
+        path = key[2]
+        bare = [
+            i
+            for i in added
+            if not record_changed(old_record, tree.records.get((*path, segment(i))))
+        ]
+        if removed or bare:
+            change = ", ".join(
+                [
+                    *(f"added {segment(i)}" for i in bare),
+                    *(f"removed {segment(i)}" for i in removed),
+                ]
+            )
+            found[key] = f"{_where(key)}: {change}; {LIST_RULE}"
+    return found
 
 
 def _values_under(found: dict[FactKey, tuple[Any, Any]], named: FactKey) -> dict[FactPath, Any]:
@@ -90,6 +137,8 @@ def _where(key: FactKey) -> str:
 def load_at(revision: str, repo: Path) -> Catalog:
     """The built-in catalog as the data files at ``revision`` declare it."""
     names = _git(repo, "ls-tree", "-r", "--name-only", revision, "--", DATA).splitlines()
+    if not any(n.endswith(".yaml") for n in names):
+        raise FormatError(f"no data files under {DATA} at {revision}")
     documents = []
     for name in sorted(n for n in names if n.endswith(".yaml")):
         origin = "helia_platforms/data/" + name.removeprefix(f"{DATA}/")
@@ -110,6 +159,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--head", default="HEAD", help="the pull request's head (default HEAD)")
     parser.add_argument("--repo", type=Path, default=Path.cwd(), help="the git checkout")
     args = parser.parse_args(argv)
+    # ls-tree paths are relative to the working directory; run from the top level.
+    args.repo = Path(_git(args.repo, "rev-parse", "--show-toplevel").strip())
     merge_base = _git(args.repo, "merge-base", args.base, args.head).strip()
     catalogs = []
     for label, revision in (("merge base", merge_base), ("head", args.head)):

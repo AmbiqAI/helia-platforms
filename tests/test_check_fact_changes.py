@@ -141,6 +141,38 @@ def test_a_record_change_alone_is_a_reverification(document):
     assert check(document, head) == []
 
 
+def test_a_changed_list_item_under_an_unchanged_record_fails(document):
+    tcm(document)["alternate_bases"] = [0x30000000]
+    head = copy.deepcopy(document)
+    tcm(head)["alternate_bases"] = [0x30080000]
+    (problem,) = check(document, head)
+    assert problem.startswith("socs.soc_a.memories.tcm.alternate_bases: added 0x30080000")
+    tcm(head)["provenance"] = {**RECORD, "verified_on": "2026-10-06"}
+    assert check(document, head) == []
+
+
+def test_a_removed_list_item_needs_a_changed_list_record(document):
+    head = copy.deepcopy(document)
+    head["socs"]["soc_a"]["memory_controllers"] = ["mspi0"]
+    (problem,) = check(document, head)
+    assert "removed iom0" in problem
+
+
+def test_an_added_list_item_may_carry_its_own_record(document):
+    head = copy.deepcopy(document)
+    peripherals = head["socs"]["soc_a"]["peripherals"]
+    peripherals.append("iom3")
+    assert len(check(document, head)) == 1
+    peripherals[-1] = {"value": "iom3", "provenance": sourced("sdk", SDK_SOURCE)}
+    assert check(document, head) == []
+
+
+def test_reordering_a_list_is_no_change(document):
+    head = copy.deepcopy(document)
+    head["socs"]["soc_a"]["peripherals"].reverse()
+    assert check(document, head) == []
+
+
 # ---- the command, against a git repository ------------------------------------------------
 
 
@@ -154,6 +186,10 @@ def commit(repo: Path, document, message: str) -> str:
     data = repo / checker.DATA
     data.mkdir(parents=True, exist_ok=True)
     (data / "catalog.yaml").write_text(yaml.safe_dump(as_builtin(copy.deepcopy(document))))
+    return commit_all(repo, message)
+
+
+def commit_all(repo: Path, message: str) -> str:
     git(repo, "add", "-A")
     identity = ("-c", "user.name=t", "-c", "user.email=t@example.com", "-c", "commit.gpgsign=false")
     git(repo, *identity, "commit", "-qm", message)
@@ -177,6 +213,22 @@ def test_the_command_compares_the_merge_base_with_the_head(repo, document, capsy
     assert checker.main(["--repo", str(repo), "--base", main, "--head", head]) == 1
     assert "changed from 524288 to 262144" in capsys.readouterr().out
     assert checker.main(["--repo", str(repo), "--base", base, "--head", base]) == 0
+
+
+def test_the_command_finds_the_data_from_a_subdirectory(repo, document, monkeypatch):
+    base = commit(repo, document, "base")
+    tcm(document)["size"] = "256K"
+    head = commit(repo, document, "change")
+    monkeypatch.chdir(repo / "src")
+    assert checker.main(["--base", base, "--head", head]) == 1
+
+
+def test_a_revision_with_no_data_does_not_load(repo, document, capsys):
+    (repo / "README").write_text("no data yet")
+    base = commit_all(repo, "empty")
+    head = commit(repo, document, "data")
+    assert checker.main(["--repo", str(repo), "--base", base, "--head", head]) == 2
+    assert "no data files" in capsys.readouterr().err
 
 
 def test_the_command_reports_a_revision_that_does_not_load(repo, document, capsys):

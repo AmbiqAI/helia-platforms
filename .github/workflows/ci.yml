@@ -69,8 +69,10 @@ jobs:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
+      # The head, not the test merge commit, so the loader is the head's (CONTRIBUTING).
       - uses: actions/checkout@v5
         with:
+          ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
       - uses: astral-sh/setup-uv@v6
         with:

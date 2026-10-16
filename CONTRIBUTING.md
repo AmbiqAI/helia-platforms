@@ -38,7 +38,10 @@ and with the head's loader, and compares them by fact path. A value that
 changed must resolve to a record that changed in `status`, `source` (as a
 set) or `verified_on`, or, between two `unverified` records, in `notes`. A
 `derived` record must change when a `fact:` input it names changes. New fact
-paths are exempt. Run it locally against `main` with:
+paths are exempt. A list of plain values, such as `peripherals`,
+`alternate_bases` or `modes`, is compared as a set. A changed list needs a
+changed list record, except that an added item may instead carry a record of
+its own. Run it locally against `main` with:
 
 ```sh
 uv run python scripts/check_fact_changes.py --base origin/main
