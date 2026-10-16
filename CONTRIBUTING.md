@@ -32,6 +32,10 @@ for confirmation that the change adds no unreleased hardware, tool policy or
 energy data. Select it with `gh pr create --template fact-change.md`, or by
 adding `?quick_pull=1&template=fact-change.md` to the GitHub compare URL.
 
+To review a data change, run `uv run helia-platforms show <id> --provenance`
+on the pull request's branch. It prints every resolved value of the target with
+the record it resolves to.
+
 `.github/CODEOWNERS` gives each data file and directory, the schema
 directory and the snapshot directory its own entry.
 

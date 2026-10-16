@@ -916,7 +916,7 @@ reservations. `helia_platforms.export` writes the JSON catalog,
 filtered and scrubbed by effective release status, the JSON Schema and
 Markdown pages.
 `helia-platforms` CLI: `list [socs|boards|parts|implementations]`,
-`show <id> [--sources]`, `windows <id> [--family --profile --environment <file>]`
+`show <id> [--sources] [--provenance] [--addon <id>] [--boot <name>]`, `windows <id> [--family --profile --environment <file>]`
 (reads the optional link-environment dataset or a supplied environment),
 `validate <overlay>`, `check-sources` (compare against the committed SDK
 and Zephyr snapshots; [ADR 0006](../adr/0006-drift-test-snapshots.md)),
