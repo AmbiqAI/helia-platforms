@@ -19,6 +19,6 @@ NNNN, Rejected.
 | 0004 | Version the schema separately and ship data corrections as patches | Accepted |
 | 0005 | Gate PyPI publication and choose the path to public | Accepted |
 | 0006 | Check the catalogue against committed source snapshots | Accepted |
-| 0007 | Model an FVP's memories as its own list, not as substitutions | Proposed |
-| 0008 | Mark a Soc's memory controllers in a list of their own | Proposed |
-| 0009 | Spell catalog in American English in every name and document | Proposed |
+| 0007 | Model an FVP's memories as its own list, not as substitutions | Accepted |
+| 0008 | Mark a Soc's memory controllers in a list of their own | Accepted |
+| 0009 | Spell catalog in American English in every name and document | Accepted |
