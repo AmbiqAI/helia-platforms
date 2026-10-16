@@ -139,3 +139,87 @@ def test_show_on_the_built_in_data():
     result = run("show", "apollo510_evb")
     assert result.exit_code == 0, result.output
     assert "psram0" in result.output and "capacity: measured" in result.output
+
+
+def add_radio(document):
+    document["socs"]["soc_a"]["cores"].append(
+        {
+            "id": "radio_m4",
+            "role": "radio",
+            "core": "cortex-m4",
+            "clock_domain": "cpu",
+            "options": {"fpu": "fpv4-sp-d16", "mve": "none"},
+            "programmable_by": "vendor",
+        }
+    )
+
+
+def test_show_computes_the_flash_address_of_each_core_with_a_start(overlay):
+    document = copy.deepcopy(BASE_DOCUMENT)
+    add_radio(document)
+    nbl = document["socs"]["soc_a"]["boot_configs"]["nbl"]
+    nbl["app_start"] = {"radio_m4": {"region": "nvm", "offset": "2M"}}
+    result = run("show", "board_a", "--boot", "nbl", "--overlay", str(overlay(document)))
+    assert result.exit_code == 0, result.output
+    lines = result.output.splitlines()
+    assert "  flash load address         0x00600000 (core 1, computed)" in lines
+    assert "(core 0, computed)" not in result.output.replace("usable nvm", "")
+
+
+def test_show_reports_a_start_region_with_no_base(overlay):
+    document = copy.deepcopy(BASE_DOCUMENT)
+    del document["socs"]["soc_a"]["memories"]["nvm"]["base"]
+    result = run("show", "board_a", "--overlay", str(overlay(document)))
+    assert result.exit_code == 0, result.output
+    assert "flash load address" in result.output
+    assert "region 'nvm' has no base" in result.output
+
+
+def test_show_gives_each_access_field_its_own_status(overlay):
+    document = copy.deepcopy(BASE_DOCUMENT)
+    sdk = {**RECORD, "status": "sdk", "source": [SDK_SOURCE]}
+    access = document["socs"]["soc_a"]["access"]
+    access[0]["port"] = {"value": 0, "provenance": sdk}
+    access[1]["guidance"] = {"value": "discouraged", "provenance": sdk}
+    access.append(
+        {
+            "master": "cm55_0",
+            "target": "nvm",
+            "access": "direct",
+            "address": {"value": 0x00400000, "provenance": sdk},
+        }
+    )
+    result = run("show", "board_a", "--overlay", str(overlay(document)))
+    assert result.exit_code == 0, result.output
+    lines = result.output.splitlines()
+    for start, end in (
+        ("npu_0 -> ssram", "[datasheet; port: sdk]"),
+        ("npu_0 -> tcm", "[datasheet; guidance: sdk]"),
+        ("cm55_0 -> nvm", "[datasheet; address: sdk]"),
+    ):
+        line = next(line for line in lines if line.strip().startswith(start))
+        assert line.endswith(end), line
+
+
+def test_show_gives_each_operating_point_domain_its_own_status(overlay):
+    document = copy.deepcopy(BASE_DOCUMENT)
+    sdk = {**RECORD, "status": "sdk", "source": [SDK_SOURCE]}
+    lp = document["socs"]["soc_a"]["operating_points"]["lp"]
+    lp["domains"]["cpu"] = {"value": "lp", "provenance": sdk}
+    result = run("show", "board_a", "--overlay", str(overlay(document)))
+    assert result.exit_code == 0, result.output
+    line = next(line for line in result.output.splitlines() if "point lp" in line)
+    assert "[datasheet; cpu: sdk]" in line
+
+
+def test_show_sources_include_the_core_ip_blocks(overlay, tmp_path):
+    document = copy.deepcopy(BASE_DOCUMENT)
+    path = overlay(document)
+    raw = yaml.safe_load(path.read_text())
+    raw["cores"] = {"cortex-m33": {"arch": "armv8-m", "pmu": "dwt", "has_dsp_extension": True}}
+    raw["socs"]["soc_a"]["cores"][0]["core"] = "cortex-m33"
+    path.write_text(yaml.safe_dump(raw))
+    result = run("show", "board_a", "--sources", "--overlay", str(path))
+    assert result.exit_code == 0, result.output
+    flat = " ".join(result.output.split())
+    assert f"source of core cortex-m33 overlay:{tmp_path / 'fixture.yaml'}" in flat

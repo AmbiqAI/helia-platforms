@@ -15,6 +15,7 @@ from typing import Any
 
 from helia_platforms import model
 from helia_platforms.catalog import Catalog
+from helia_platforms.errors import PlatformError
 from helia_platforms.target import Target
 
 #: ``list`` tables, in the order they print.
@@ -198,6 +199,7 @@ def _identity(target: Target, sources: bool) -> list[_Row]:
 def _source_labels(target: Target) -> list[tuple[str, str]]:
     catalog = target._catalog
     chain = [("socs", target.soc.id)]
+    chain += [("cores", c.core) for c in target.soc.cores]
     chain += [("implementations", target.implementation.id)] if target.implementation else []
     chain += [("parts", target.part.id)] if target.part else []
     chain += [("boards", target.board.id)] if target.board else []
@@ -311,12 +313,13 @@ def _access(target: Target) -> list[_Row]:
         text = f"{d.master} {d.access} to every on-die region and memory controller"
         rows.append(_Row("default", text, _values(d, "", ["master", "access", "scope"])))
     for entry in soc.access:
-        text = entry.access
+        text, names = entry.access, ["access"]
         for name in ("port", "guidance", "address"):
             value = getattr(entry, name)
             if value is not None:
                 text += f", {name} {value:#x}" if name == "address" else f", {name} {value}"
-        rows.append(_Row(f"{entry.master} -> {entry.target}", text, _values(entry, "", ["access"])))
+                names.append(name)
+        rows.append(_Row(f"{entry.master} -> {entry.target}", text, _values(entry, "", names)))
     return rows
 
 
@@ -331,7 +334,7 @@ def _clocks(target: Target) -> list[_Row]:
     for op in soc.operating_points:
         default = " (default)" if op.name == soc.default_operating_point else ""
         domains = ", ".join(f"{d} {p}" for d, p in op.domains.items())
-        records = _values(op, "", ["domains"])
+        records = _values(op, "domains.", op.domains)
         if default:
             records += [("default", _record(soc, "default_operating_point"))]
         rows.append(_Row(f"point {op.name}", f"{domains}{default}", records))
@@ -368,9 +371,14 @@ def _boot(target: Target) -> list[_Row]:
             )
             names = ["core", "region", "offset", "size", "supplier"]
             rows.append(_Row(f"image slot {slot.name}", text, _values(slot, "", names)))
-    if target.boot is not None and target.boot.app_start:
-        address = target.flash_load_address()
-        rows.append(_Row("flash load address", f"{address:#010x} (core 0, computed)"))
+    for index, core in enumerate(soc.cores):
+        if target.boot is None or core.id not in target.boot.app_start:
+            continue
+        try:
+            text = f"{target.flash_load_address(index):#010x} (core {index}, computed)"
+        except PlatformError as error:
+            text = f"none (core {index}): {error}"
+        rows.append(_Row("flash load address", text))
     return rows
 
 
