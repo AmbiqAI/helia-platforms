@@ -63,3 +63,22 @@ jobs:
         with:
           name: dist
           path: dist/
+
+  # ADR 0003 section 4: compare the built-in data at the merge base with the head.
+  fact-changes:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      # The head, not the test merge commit, so the loader is the head's (CONTRIBUTING).
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - run: uv sync --locked
+      - env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: uv run python scripts/check_fact_changes.py --base "$BASE" --head "$HEAD"
