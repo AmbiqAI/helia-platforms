@@ -41,7 +41,9 @@ set) or `verified_on`, or, between two `unverified` records, in `notes`. A
 paths are exempt. A list of plain values, such as `peripherals`,
 `alternate_bases` or `modes`, is compared as a set. A changed list needs a
 changed list record, except that an added item may instead carry a record of
-its own. Run it locally against `main` with:
+its own. The order of `cores`, `npus` and `accelerators` is a fact, because
+index 0 is primary, so moving an item both revisions keep needs a changed
+record too. Run it locally against `main` with:
 
 ```sh
 uv run python scripts/check_fact_changes.py --base origin/main

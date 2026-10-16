@@ -11,6 +11,7 @@ import yaml
 
 import check_fact_changes as checker
 from conftest import RECORD, SDK_SOURCE, as_builtin
+from helia_platforms import resolve
 from helia_platforms.catalog import _load_documents
 
 
@@ -170,6 +171,41 @@ def test_an_added_list_item_may_carry_its_own_record(document):
 def test_reordering_a_list_is_no_change(document):
     head = copy.deepcopy(document)
     head["socs"]["soc_a"]["peripherals"].reverse()
+    assert check(document, head) == []
+
+
+def test_a_derived_group_record_is_checked_when_every_value_has_its_own(document):
+    own = sourced("sdk", SDK_SOURCE)
+    derived = sourced("derived", "fact:soc:soc_a:memories.nvm.base")
+    region = tcm(document)
+    for name, value in list(region.items()):
+        region[name] = {"value": value, "provenance": own}
+    region["provenance"] = derived
+    head = copy.deepcopy(document)
+    head["socs"]["soc_a"]["memories"]["nvm"]["base"] = {"value": 0x00500000, "provenance": own}
+    (problem,) = check(document, head)
+    assert problem.startswith("socs.soc_a.memories.tcm: its derived input")
+    tcm(head)["provenance"] = {**derived, "verified_on": "2026-10-06"}
+    assert check(document, head) == []
+
+
+def test_reordering_npus_changes_the_primary_and_needs_a_changed_record(document):
+    npus = document["socs"]["soc_a"]["npus"]
+    npus.append({**copy.deepcopy(npus[0]), "id": "npu_1"})
+    head = copy.deepcopy(document)
+    head["socs"]["soc_a"]["npus"].reverse()
+    assert resolve("soc_a", catalog=load(document)).npus()[0].id == "npu_0"
+    assert resolve("soc_a", catalog=load(head)).npus()[0].id == "npu_1"
+    (problem,) = check(document, head)
+    assert problem.startswith("socs.soc_a.npus: order changed from ['npu_0', 'npu_1']")
+    head["socs"]["soc_a"]["provenance"] = {**RECORD, "verified_on": "2026-10-06"}
+    assert check(document, head) == []
+
+
+def test_appending_an_npu_keeps_the_order(document):
+    head = copy.deepcopy(document)
+    npus = head["socs"]["soc_a"]["npus"]
+    npus.append({**copy.deepcopy(npus[0]), "id": "npu_1"})
     assert check(document, head) == []
 
 

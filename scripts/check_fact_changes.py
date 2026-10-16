@@ -4,7 +4,8 @@
 The built-in data is read from git at the merge base and at the head, loaded with
 this checkout's loader and compared by fact path. A changed value needs a changed
 record, and a changed ``fact:`` input needs a changed record on each ``derived``
-value that names it. A new fact path is exempt.
+value or group that names it. Plain-value lists compare as sets, and ordered lists
+also compare by position. A new fact path is exempt.
 """
 
 from __future__ import annotations
@@ -17,15 +18,16 @@ from pathlib import Path
 from typing import Any
 
 from helia_platforms import _format as fmt
-from helia_platforms import _parse, _provenance
+from helia_platforms import _parse, _provenance, _walk
 from helia_platforms._tree import Path as FactPath
-from helia_platforms._tree import iter_values, segment
+from helia_platforms._tree import item_key, iter_values, segment
 from helia_platforms.catalog import _KINDS, Catalog, _load_documents
 from helia_platforms.errors import FormatError
 
 DATA = "src/helia_platforms/data"
 FactKey = tuple[str, str, FactPath]  # (table, entry id, path)
 RULE = "change its status, source or verified_on, or give the value a record of its own"
+ORDER_RULE = "index 0 is primary, so change the list's status, source or verified_on"
 LIST_RULE = (
     "change the list's status, source or verified_on, or give each added item its own record"
 )
@@ -73,18 +75,66 @@ def problems(base: Catalog, head: Catalog) -> list[str]:
             was = old[key][0]
             found[key] = f"{_where(key)}: changed from {was!r} to {value!r}; {RULE}"
     found |= _list_problems(base, head)
+    found |= _order_problems(base, head)
     lookup = _provenance.Facts(head._trees, lambda _: True)
-    for key, (_, record) in new.items():
-        if key in found or key not in old or not isinstance(record, dict):
+    for key, record in derived_records(head).items():
+        table, entry_id, path = key
+        base_tree = base._trees.get((table, entry_id))
+        if base_tree is None or path not in base_tree.records:
+            continue  # a new fact path
+        if record_changed(base_tree.records[path], record):
             continue
-        if record.get("status") != "derived" or record_changed(old[key][1], record):
-            continue
+        if any(t == table and i == entry_id and p[: len(path)] == path for t, i, p in found):
+            continue  # already reported against a value it covers
         for reference in record.get("source") or []:
             named = lookup.parse(str(reference))
             if named is not None and _values_under(old, named) != _values_under(new, named):
                 found[key] = f"{_where(key)}: its derived input {reference} changed; {RULE}"
                 break
     return list(found.values())
+
+
+def derived_records(catalog: Catalog) -> dict[FactKey, dict]:
+    """Each derived record at the path that declares it, whether a value's or a group's.
+
+    A group's record is the same object at every path under it, so a path declares
+    its record when its parent holds another one. A YAML alias reuses one object in
+    unrelated groups, which this still tells apart.
+    """
+    found: dict[FactKey, dict] = {}
+    for (table, entry_id), tree in catalog._trees.items():
+        for path, record in tree.records.items():
+            if not isinstance(record, dict) or record.get("status") != "derived":
+                continue
+            if not path or tree.records.get(path[:-1]) is not record:
+                found[(table, entry_id, path)] = record
+    return found
+
+
+def _order_problems(base: Catalog, head: Catalog) -> dict[FactKey, str]:
+    """An item's position in an ordered list is a fact: index 0 is primary (ADR 0002 2.4).
+
+    An item kept in both revisions at another index needs a changed list record.
+    Only top-level fields are ordered lists today (cores, npus, accelerators).
+    """
+    found: dict[FactKey, str] = {}
+    for (table, entry_id), tree in head._trees.items():
+        base_tree = base._trees.get((table, entry_id))
+        if base_tree is None:
+            continue
+        for name, declared in _walk.fields(getattr(fmt, _KINDS[table].__name__)).items():
+            _, markers = _walk.unwrap(declared.type)
+            keyed = _walk.marker(markers, fmt.Keyed)
+            if fmt.ORDERED not in markers or keyed is None:
+                continue
+            was = [item_key(i, keyed) for i in base_tree.values.get(name) or []]
+            now = [item_key(i, keyed) for i in tree.values.get(name) or []]
+            moved = [k for k in now if k in was and was.index(k) != now.index(k)]
+            path = (name,)
+            if moved and not record_changed(base_tree.records.get(path), tree.records.get(path)):
+                key = (table, entry_id, path)
+                found[key] = f"{_where(key)}: order changed from {was} to {now}; {ORDER_RULE}"
+    return found
 
 
 def _list_problems(base: Catalog, head: Catalog) -> dict[FactKey, str]:
