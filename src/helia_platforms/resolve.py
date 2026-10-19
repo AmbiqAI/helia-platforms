@@ -202,8 +202,9 @@ def _select_boot(
         None,
     )
     if boot is not None:
-        if boot not in soc.boot_configs:
+        if boot.casefold() not in soc.boot_configs:
             raise PlatformError(f"{entry_id} has no boot configuration {boot!r}")
+        boot = boot.casefold()
         if board is not None and board.provisioning not in (None, boot):
             warnings.warn(
                 f"{entry_id}: boot {boot!r} differs from the board's provisioning "

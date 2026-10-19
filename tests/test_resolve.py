@@ -206,6 +206,26 @@ def test_clocks(catalog):
         target.cpu_mhz("turbo")
 
 
+def test_names_inside_an_entry_fold_case(catalog):
+    """ADR 0002 section 2.3: the estimator's ``npu_mhz("HP")`` finds point ``hp``."""
+    target = resolve("board_a", boot="SBL", catalog=catalog)
+    assert target.boot is not None and target.boot.name == "sbl"
+    assert (target.cpu_mhz("HP", core="CM55_0"), target.npu_mhz("Hp", npu="NPU_0")) == (192, 192)
+    assert target.operating_point("LP", domain="CPU").name == "lp"
+    assert target.region("TCM").name == "tcm" and target.region("PSRAM0").name == "psram0"
+    assert target.has_region("NVM")
+    assert target.reachable("CM55_0", "TCM") is not None
+    assert target.memories("CM55_0") == target.memories(0)
+
+
+def test_the_trace_clock_is_whole_mhz(document):
+    document["boards"]["board_a"]["trace_clock_mhz"] = 48
+    target = resolve("board_a", catalog=quiet(document))
+    assert target.trace_clock_mhz == 48 and type(target.trace_clock_mhz) is int
+    document["boards"]["board_a"]["trace_clock_mhz"] = 24.576
+    assert resolve("board_a", catalog=quiet(document)).trace_clock_mhz == 24.576
+
+
 def test_npu_clocks_skip_a_point_that_leaves_the_npu_domain_unset(document):
     document["socs"]["soc_a"]["operating_points"]["sleep"] = {"domains": {"cpu": "lp"}}
     target = resolve("board_a", catalog=quiet(document))
