@@ -1,0 +1,5690 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "tag:ambiq.com,2026:helia-platforms/export/v1",
+  "title": "helia-platforms catalog export",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "identity": {
+      "$ref": "#/$defs/ExportIdentity"
+    },
+    "catalog": {
+      "allOf": [
+        {
+          "$ref": "tag:ambiq.com,2026:helia-platforms/schema/v1"
+        },
+        {
+          "properties": {
+            "schema_version": {
+              "const": 1
+            }
+          }
+        }
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "identity",
+    "catalog"
+  ],
+  "$defs": {
+    "ExportIdentity": {
+      "type": "object",
+      "properties": {
+        "package_version": {
+          "type": "string"
+        },
+        "schema_version": {
+          "const": 1
+        },
+        "catalog_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ExportSource"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "package_version",
+        "schema_version",
+        "catalog_digest",
+        "sources"
+      ]
+    },
+    "ExportSource": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "schema_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "distribution_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "label",
+        "schema_version",
+        "sha256",
+        "distribution_version"
+      ]
+    },
+    "file-format": {
+      "$id": "tag:ambiq.com,2026:helia-platforms/schema/v1",
+      "title": "helia-platforms catalog file",
+      "type": "object",
+      "properties": {
+        "$schema": {
+          "type": "string"
+        },
+        "schema_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "cores": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/Core"
+          }
+        },
+        "socs": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/Soc"
+          }
+        },
+        "implementations": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/Implementation"
+          }
+        },
+        "parts": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/Part"
+          }
+        },
+        "boards": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/Board"
+          }
+        },
+        "addons": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/AddOn"
+          }
+        },
+        "memory_devices": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/MemoryDevice"
+          }
+        },
+        "compositions": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/Composition"
+          }
+        },
+        "shorthands": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+          },
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+            },
+            "uniqueItems": true
+          }
+        },
+        "documents": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string",
+              "pattern": "^[0-9A-Za-z][0-9A-Za-z._-]*$"
+            },
+            "additionalProperties": {
+              "$ref": "#/$defs/RegisterDocument"
+            }
+          }
+        },
+        "repositories": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)?$"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/RegisterRepository"
+          }
+        },
+        "unverified_allowed": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AllowedUnverified"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "schema_version"
+      ],
+      "$defs": {
+        "AcceleratorInstance": {
+          "type": "object",
+          "properties": {
+            "provenance": {
+              "$ref": "#/$defs/Provenance"
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+            },
+            "kind": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string"
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "driven_by": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string",
+                      "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "clock_domain": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string",
+                      "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "ip": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string"
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "base_address": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "irq": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "kind",
+            "driven_by",
+            "clock_domain"
+          ]
+        },
+        "Access": {
+          "type": "object",
+          "properties": {
+            "provenance": {
+              "$ref": "#/$defs/Provenance"
+            },
+            "master": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string",
+                      "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "target": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string",
+                      "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "access": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "direct",
+                    "none"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "enum": [
+                        "direct",
+                        "none"
+                      ]
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "requires_awake": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "value": {
+                            "type": "string",
+                            "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                          },
+                          "provenance": {
+                            "$ref": "#/$defs/Provenance"
+                          }
+                        },
+                        "required": [
+                          "value",
+                          "provenance"
+                        ],
+                        "additionalProperties": false
+                      }
+                    ]
+                  },
+                  "uniqueItems": true
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "array",
+                      "items": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "value": {
+                                "type": "string",
+                                "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                              },
+                              "provenance": {
+                                "$ref": "#/$defs/Provenance"
+                              }
+                            },
+                            "required": [
+                              "value",
+                              "provenance"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      },
+                      "uniqueItems": true
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "guidance": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "preferred",
+                    "allowed",
+                    "discouraged"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "enum": [
+                        "preferred",
+                        "allowed",
+                        "discouraged"
+                      ]
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "reason": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string"
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "address": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "port": {
+              "anyOf": [
+                {
+                  "enum": [
+                    0,
+                    1
+                  ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "enum": [
+                        0,
+                        1
+                      ]
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "characterization": {
+              "$ref": "#/$defs/MemoryCharacterization"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "master",
+            "target",
+            "access"
+          ]
+        },
+        "AccessKey": {
+          "type": "object",
+          "properties": {
+            "master": {
+              "type": "string",
+              "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+            },
+            "target": {
+              "type": "string",
+              "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "master",
+            "target"
+          ]
+        },
+        "AddOn": {
+          "type": "object",
+          "properties": {
+            "provenance": {
+              "$ref": "#/$defs/Provenance"
+            },
+            "based_on": {
+              "type": "string",
+              "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+            },
+            "aliases": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+              },
+              "uniqueItems": true
+            },
+            "release_status": {
+              "enum": [
+                "public",
+                "embargoed"
+              ]
+            },
+            "fits_boards": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "value": {
+                            "type": "string",
+                            "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+                          },
+                          "provenance": {
+                            "$ref": "#/$defs/Provenance"
+                          }
+                        },
+                        "required": [
+                          "value",
+                          "provenance"
+                        ],
+                        "additionalProperties": false
+                      }
+                    ]
+                  },
+                  "uniqueItems": true
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "array",
+                      "items": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "value": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+                              },
+                              "provenance": {
+                                "$ref": "#/$defs/Provenance"
+                              }
+                            },
+                            "required": [
+                              "value",
+                              "provenance"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      },
+                      "uniqueItems": true
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "occupies": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "value": {
+                            "type": "string",
+                            "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                          },
+                          "provenance": {
+                            "$ref": "#/$defs/Provenance"
+                          }
+                        },
+                        "required": [
+                          "value",
+                          "provenance"
+                        ],
+                        "additionalProperties": false
+                      }
+                    ]
+                  },
+                  "uniqueItems": true
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "array",
+                      "items": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "value": {
+                                "type": "string",
+                                "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                              },
+                              "provenance": {
+                                "$ref": "#/$defs/Provenance"
+                              }
+                            },
+                            "required": [
+                              "value",
+                              "provenance"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      },
+                      "uniqueItems": true
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "population": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string",
+                "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+              },
+              "additionalProperties": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "value": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+                      },
+                      "provenance": {
+                        "$ref": "#/$defs/Provenance"
+                      }
+                    },
+                    "required": [
+                      "value",
+                      "provenance"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            },
+            "revision": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string"
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "extensions": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_]*$"
+              },
+              "additionalProperties": {}
+            }
+          },
+          "additionalProperties": false,
+          "if": {
+            "required": [
+              "based_on"
+            ]
+          },
+          "else": {
+            "required": [
+              "fits_boards",
+              "occupies",
+              "population"
+            ]
+          }
+        },
+        "AllowedUnverified": {
+          "type": "object",
+          "properties": {
+            "fact": {
+              "type": "string",
+              "pattern": "^fact:.+$"
+            },
+            "reason": {
+              "type": "string"
+            },
+            "issue": {
+              "type": "string",
+              "pattern": "^#[0-9]+$"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "fact",
+            "reason",
+            "issue"
+          ]
+        },
+        "AppStart": {
+          "type": "object",
+          "properties": {
+            "provenance": {
+              "$ref": "#/$defs/Provenance"
+            },
+            "region": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string",
+                      "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "offset": {
+              "anyOf": [
+                {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    {
+                      "type": "string",
+                      "pattern": "^[0-9]+[KMG]$"
+                    }
+                  ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        {
+                          "type": "string",
+                          "pattern": "^[0-9]+[KMG]$"
+                        }
+                      ]
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "region",
+            "offset"
+          ]
+        },
+        "Board": {
+          "type": "object",
+          "properties": {
+            "provenance": {
+              "$ref": "#/$defs/Provenance"
+            },
+            "based_on": {
+              "type": "string",
+              "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+            },
+            "aliases": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+              },
+              "uniqueItems": true
+            },
+            "release_status": {
+              "enum": [
+                "public",
+                "embargoed"
+              ]
+            },
+            "category": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "engineering",
+                    "evaluation",
+                    "custom"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "enum": [
+                        "engineering",
+                        "evaluation",
+                        "custom"
+                      ]
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "part": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "revision": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string"
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "interfaces": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string",
+                "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+              },
+              "additionalProperties": {
+                "$ref": "#/$defs/MemoryInterface"
+              }
+            },
+            "population": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string",
+                "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+              },
+              "additionalProperties": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "value": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+                      },
+                      "provenance": {
+                        "$ref": "#/$defs/Provenance"
+                      }
+                    },
+                    "required": [
+                      "value",
+                      "provenance"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            },
+            "provisioning": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string",
+                      "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "jlink_device": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string"
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "trace_clock_mhz": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "extensions": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_]*$"
+              },
+              "additionalProperties": {}
+            }
+          },
+          "additionalProperties": false,
+          "if": {
+            "required": [
+              "based_on"
+            ]
+          },
+          "else": {
+            "required": [
+              "category",
+              "part"
+            ]
+          }
+        },
+        "BootConfig": {
+          "type": "object",
+          "properties": {
+            "provenance": {
+              "$ref": "#/$defs/Provenance"
+            },
+            "app_start": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/AppStart"
+                },
+                {
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string",
+                    "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                  },
+                  "additionalProperties": {
+                    "$ref": "#/$defs/AppStart"
+                  }
+                }
+              ]
+            },
+            "requires": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "sbl",
+                    "none",
+                    "custom"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "enum": [
+                        "sbl",
+                        "none",
+                        "custom"
+                      ]
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "reserved": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string",
+                "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+              },
+              "additionalProperties": {
+                "$ref": "#/$defs/Reservation"
+              }
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "app_start",
+            "requires"
+          ]
+        },
+        "BuildFacts": {
+          "type": "object",
+          "properties": {
+            "provenance": {
+              "$ref": "#/$defs/Provenance"
+            },
+            "abi": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string"
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "float_abi": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string"
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "toolchains": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "value": {
+                            "type": "string"
+                          },
+                          "provenance": {
+                            "$ref": "#/$defs/Provenance"
+                          }
+                        },
+                        "required": [
+                          "value",
+                          "provenance"
+                        ],
+                        "additionalProperties": false
+                      }
+                    ]
+                  },
+                  "uniqueItems": true
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "array",
+                      "items": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "value": {
+                                "type": "string"
+                              },
+                              "provenance": {
+                                "$ref": "#/$defs/Provenance"
+                              }
+                            },
+                            "required": [
+                              "value",
+                              "provenance"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      },
+                      "uniqueItems": true
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        "Composition": {
+          "type": "object",
+          "properties": {
+            "board": {
+              "type": "string",
+              "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+            },
+            "addons": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+              },
+              "uniqueItems": true
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "board"
+          ]
+        },
+        "Core": {
+          "type": "object",
+          "properties": {
+            "provenance": {
+              "$ref": "#/$defs/Provenance"
+            },
+            "based_on": {
+              "type": "string",
+              "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+            },
+            "arch": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string"
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "pmu": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string"
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "has_dsp_extension": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "boolean"
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "if": {
+            "required": [
+              "based_on"
+            ]
+          },
+          "else": {
+            "required": [
+              "arch",
+              "pmu",
+              "has_dsp_extension"
+            ]
+          }
+        },
+        "CoreInstance": {
+          "type": "object",
+          "properties": {
+            "provenance": {
+              "$ref": "#/$defs/Provenance"
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+            },
+            "role": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "application",
+                    "radio",
+                    "dsp",
+                    "other"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "enum": [
+                        "application",
+                        "radio",
+                        "dsp",
+                        "other"
+                      ]
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "core": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "options": {
+              "$ref": "#/$defs/CoreOptions"
+            },
+            "clock_domain": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string",
+                      "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "programmable_by": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "customer",
+                    "vendor",
+                    "either"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "enum": [
+                        "customer",
+                        "vendor",
+                        "either"
+                      ]
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "role",
+            "core",
+            "options",
+            "clock_domain"
+          ]
+        },
+        "CoreOptions": {
+          "type": "object",
+          "properties": {
+            "provenance": {
+              "$ref": "#/$defs/Provenance"
+            },
+            "fpu": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "none",
+                    "fpv4-sp-d16",
+                    "fpv5-sp-d16"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "enum": [
+                        "none",
+                        "fpv4-sp-d16",
+                        "fpv5-sp-d16"
+                      ]
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "mve": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "none",
+                    "int",
+                    "fp"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "enum": [
+                        "none",
+                        "int",
+                        "fp"
+                      ]
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "fpu_dp": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "boolean"
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "icache_kb": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "dcache_kb": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "fpu",
+            "mve"
+          ]
+        },
+        "DefaultAccess": {
+          "type": "object",
+          "properties": {
+            "provenance": {
+              "$ref": "#/$defs/Provenance"
+            },
+            "master": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string",
+                      "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "access": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "direct"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "enum": [
+                        "direct"
+                      ]
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "scope": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "on_die"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "enum": [
+                        "on_die"
+                      ]
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "master",
+            "access",
+            "scope"
+          ]
+        },
+        "DomainPoint": {
+          "type": "object",
+          "properties": {
+            "provenance": {
+              "$ref": "#/$defs/Provenance"
+            },
+            "mhz": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "hal_mode": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string"
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "mhz"
+          ]
+        },
+        "ImageSlot": {
+          "type": "object",
+          "properties": {
+            "provenance": {
+              "$ref": "#/$defs/Provenance"
+            },
+            "core": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string",
+                      "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "region": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string",
+                      "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "offset": {
+              "anyOf": [
+                {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    {
+                      "type": "string",
+                      "pattern": "^[0-9]+[KMG]$"
+                    }
+                  ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        {
+                          "type": "string",
+                          "pattern": "^[0-9]+[KMG]$"
+                        }
+                      ]
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "size": {
+              "anyOf": [
+                {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    {
+                      "type": "string",
+                      "pattern": "^[0-9]+[KMG]$"
+                    }
+                  ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        {
+                          "type": "string",
+                          "pattern": "^[0-9]+[KMG]$"
+                        }
+                      ]
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "supplier": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "vendor",
+                    "customer"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "enum": [
+                        "vendor",
+                        "customer"
+                      ]
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "core",
+            "region",
+            "offset",
+            "size",
+            "supplier"
+          ]
+        },
+        "Implementation": {
+          "type": "object",
+          "properties": {
+            "provenance": {
+              "$ref": "#/$defs/Provenance"
+            },
+            "based_on": {
+              "type": "string",
+              "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+            },
+            "aliases": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+              },
+              "uniqueItems": true
+            },
+            "release_status": {
+              "enum": [
+                "public",
+                "embargoed"
+              ]
+            },
+            "soc": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "kind": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "silicon",
+                    "fpga",
+                    "fvp",
+                    "rtl"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "enum": [
+                        "silicon",
+                        "fpga",
+                        "fvp",
+                        "rtl"
+                      ]
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "model": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string"
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "subset": {
+              "$ref": "#/$defs/Subset"
+            },
+            "memories": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string",
+                "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+              },
+              "additionalProperties": {
+                "$ref": "#/$defs/MemoryRegion"
+              }
+            },
+            "access": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Access"
+              }
+            },
+            "clock_domains": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string",
+                "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+              },
+              "additionalProperties": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string",
+                  "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                },
+                "additionalProperties": {
+                  "$ref": "#/$defs/DomainPoint"
+                }
+              }
+            },
+            "operating_points": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string",
+                "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+              },
+              "additionalProperties": {
+                "$ref": "#/$defs/OperatingPoint"
+              }
+            },
+            "boot_configs": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string",
+                "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+              },
+              "additionalProperties": {
+                "$ref": "#/$defs/BootConfig"
+              }
+            },
+            "default_boot": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string",
+                      "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "provisioning": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string",
+                      "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "jlink_device": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string"
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "trace_clock_mhz": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "interfaces": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string",
+                "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+              },
+              "additionalProperties": {
+                "$ref": "#/$defs/MemoryInterface"
+              }
+            },
+            "population": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string",
+                "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+              },
+              "additionalProperties": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "value": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+                      },
+                      "provenance": {
+                        "$ref": "#/$defs/Provenance"
+                      }
+                    },
+                    "required": [
+                      "value",
+                      "provenance"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            },
+            "extensions": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_]*$"
+              },
+              "additionalProperties": {}
+            }
+          },
+          "additionalProperties": false,
+          "if": {
+            "required": [
+              "based_on"
+            ]
+          },
+          "else": {
+            "required": [
+              "soc",
+              "kind"
+            ]
+          }
+        },
+        "MemoryCharacterization": {
+          "type": "object",
+          "properties": {
+            "provenance": {
+              "$ref": "#/$defs/Provenance"
+            },
+            "read_latency_ns": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "write_latency_ns": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "max_outstanding": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "burst_bytes": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "ports": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "axi_clock_hz": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "bandwidth_fraction": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        "MemoryDevice": {
+          "type": "object",
+          "properties": {
+            "provenance": {
+              "$ref": "#/$defs/Provenance"
+            },
+            "based_on": {
+              "type": "string",
+              "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+            },
+            "aliases": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+              },
+              "uniqueItems": true
+            },
+            "release_status": {
+              "enum": [
+                "public",
+                "embargoed"
+              ]
+            },
+            "technology": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "sram",
+                    "mram",
+                    "rram",
+                    "psram",
+                    "flash",
+                    "nvm",
+                    "dram"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "enum": [
+                        "sram",
+                        "mram",
+                        "rram",
+                        "psram",
+                        "flash",
+                        "nvm",
+                        "dram"
+                      ]
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "capacity": {
+              "anyOf": [
+                {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    {
+                      "type": "string",
+                      "pattern": "^[0-9]+[KMG]$"
+                    }
+                  ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        {
+                          "type": "string",
+                          "pattern": "^[0-9]+[KMG]$"
+                        }
+                      ]
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "driver_family": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string"
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "modes": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "value": {
+                            "type": "string"
+                          },
+                          "provenance": {
+                            "$ref": "#/$defs/Provenance"
+                          }
+                        },
+                        "required": [
+                          "value",
+                          "provenance"
+                        ],
+                        "additionalProperties": false
+                      }
+                    ]
+                  },
+                  "uniqueItems": true
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "array",
+                      "items": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "value": {
+                                "type": "string"
+                              },
+                              "provenance": {
+                                "$ref": "#/$defs/Provenance"
+                              }
+                            },
+                            "required": [
+                              "value",
+                              "provenance"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      },
+                      "uniqueItems": true
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "characterization": {
+              "$ref": "#/$defs/MemoryCharacterization"
+            }
+          },
+          "additionalProperties": false,
+          "if": {
+            "required": [
+              "based_on"
+            ]
+          },
+          "else": {
+            "required": [
+              "technology",
+              "capacity"
+            ]
+          }
+        },
+        "MemoryInterface": {
+          "type": "object",
+          "properties": {
+            "provenance": {
+              "$ref": "#/$defs/Provenance"
+            },
+            "controller": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string",
+                      "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "modes": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "value": {
+                            "type": "string"
+                          },
+                          "provenance": {
+                            "$ref": "#/$defs/Provenance"
+                          }
+                        },
+                        "required": [
+                          "value",
+                          "provenance"
+                        ],
+                        "additionalProperties": false
+                      }
+                    ]
+                  },
+                  "uniqueItems": true
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "array",
+                      "items": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "value": {
+                                "type": "string"
+                              },
+                              "provenance": {
+                                "$ref": "#/$defs/Provenance"
+                              }
+                            },
+                            "required": [
+                              "value",
+                              "provenance"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      },
+                      "uniqueItems": true
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "aperture_base": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "aperture_max": {
+              "anyOf": [
+                {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    {
+                      "type": "string",
+                      "pattern": "^[0-9]+[KMG]$"
+                    }
+                  ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        {
+                          "type": "string",
+                          "pattern": "^[0-9]+[KMG]$"
+                        }
+                      ]
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "controller"
+          ]
+        },
+        "MemoryRegion": {
+          "type": "object",
+          "properties": {
+            "provenance": {
+              "$ref": "#/$defs/Provenance"
+            },
+            "technology": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "sram",
+                    "mram",
+                    "rram",
+                    "psram",
+                    "flash",
+                    "nvm",
+                    "dram"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "enum": [
+                        "sram",
+                        "mram",
+                        "rram",
+                        "psram",
+                        "flash",
+                        "nvm",
+                        "dram"
+                      ]
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "attachment": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "tcm",
+                    "system",
+                    "external"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "enum": [
+                        "tcm",
+                        "system",
+                        "external"
+                      ]
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "size": {
+              "anyOf": [
+                {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    {
+                      "type": "string",
+                      "pattern": "^[0-9]+[KMG]$"
+                    }
+                  ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        {
+                          "type": "string",
+                          "pattern": "^[0-9]+[KMG]$"
+                        }
+                      ]
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "base": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "alternate_bases": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "value": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "provenance": {
+                            "$ref": "#/$defs/Provenance"
+                          }
+                        },
+                        "required": [
+                          "value",
+                          "provenance"
+                        ],
+                        "additionalProperties": false
+                      }
+                    ]
+                  },
+                  "uniqueItems": true
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "array",
+                      "items": {
+                        "anyOf": [
+                          {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "value": {
+                                "type": "integer",
+                                "minimum": 0
+                              },
+                              "provenance": {
+                                "$ref": "#/$defs/Provenance"
+                              }
+                            },
+                            "required": [
+                              "value",
+                              "provenance"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      },
+                      "uniqueItems": true
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "executable": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "boolean"
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "writeable": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "boolean"
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "cacheable": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "boolean"
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "characterization": {
+              "$ref": "#/$defs/MemoryCharacterization"
+            },
+            "stands_in_for": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "value": {
+                            "type": "string",
+                            "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                          },
+                          "provenance": {
+                            "$ref": "#/$defs/Provenance"
+                          }
+                        },
+                        "required": [
+                          "value",
+                          "provenance"
+                        ],
+                        "additionalProperties": false
+                      }
+                    ]
+                  },
+                  "uniqueItems": true
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "array",
+                      "items": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "value": {
+                                "type": "string",
+                                "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                              },
+                              "provenance": {
+                                "$ref": "#/$defs/Provenance"
+                              }
+                            },
+                            "required": [
+                              "value",
+                              "provenance"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      },
+                      "uniqueItems": true
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "technology",
+            "attachment",
+            "size"
+          ]
+        },
+        "Npu": {
+          "type": "object",
+          "properties": {
+            "provenance": {
+              "$ref": "#/$defs/Provenance"
+            },
+            "vendor": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string"
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "family": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string"
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "model": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string"
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "macs_per_cycle": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "vendor",
+            "family",
+            "model",
+            "macs_per_cycle"
+          ]
+        },
+        "NpuInstance": {
+          "type": "object",
+          "properties": {
+            "provenance": {
+              "$ref": "#/$defs/Provenance"
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+            },
+            "npu": {
+              "$ref": "#/$defs/Npu"
+            },
+            "driven_by": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string",
+                      "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "clock_domain": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string",
+                      "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "axi_width_bits": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "base_address": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "irq": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "npu",
+            "driven_by",
+            "clock_domain"
+          ]
+        },
+        "OperatingPoint": {
+          "type": "object",
+          "properties": {
+            "provenance": {
+              "$ref": "#/$defs/Provenance"
+            },
+            "domains": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string",
+                "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+              },
+              "additionalProperties": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "value": {
+                        "type": "string",
+                        "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                      },
+                      "provenance": {
+                        "$ref": "#/$defs/Provenance"
+                      }
+                    },
+                    "required": [
+                      "value",
+                      "provenance"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            },
+            "hal_mode": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string"
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "cpu_mhz": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "npu_mhz": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        "Part": {
+          "type": "object",
+          "properties": {
+            "provenance": {
+              "$ref": "#/$defs/Provenance"
+            },
+            "based_on": {
+              "type": "string",
+              "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+            },
+            "aliases": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+              },
+              "uniqueItems": true
+            },
+            "release_status": {
+              "enum": [
+                "public",
+                "embargoed"
+              ]
+            },
+            "soc": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "implementation": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "silicon_revision": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string"
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "package": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string"
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "radio": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string"
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "jlink_device": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string"
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "image_slots": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string",
+                "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+              },
+              "additionalProperties": {
+                "$ref": "#/$defs/ImageSlot"
+              }
+            },
+            "image_slots_removed": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+              },
+              "uniqueItems": true
+            }
+          },
+          "additionalProperties": false,
+          "if": {
+            "required": [
+              "based_on"
+            ]
+          },
+          "else": {
+            "required": [
+              "soc"
+            ]
+          }
+        },
+        "Provenance": {
+          "type": "object",
+          "properties": {
+            "status": {
+              "enum": [
+                "datasheet",
+                "sdk",
+                "measured",
+                "fitted",
+                "derived",
+                "unverified"
+              ]
+            },
+            "source": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            },
+            "verified_on": {
+              "type": "string",
+              "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+            },
+            "verified_by": {
+              "type": "string"
+            },
+            "notes": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "status"
+          ]
+        },
+        "RegisterDocument": {
+          "type": "object",
+          "properties": {
+            "document_id": {
+              "type": "string"
+            },
+            "date": {
+              "type": "string",
+              "pattern": "^[0-9]{4}-[0-9]{2}(-[0-9]{2})?$"
+            },
+            "pages": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "document_id",
+            "date",
+            "pages",
+            "sha256"
+          ]
+        },
+        "RegisterRepository": {
+          "type": "object",
+          "properties": {
+            "url": {
+              "type": "string"
+            },
+            "host": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string",
+                "pattern": "^[0-9A-Za-z][0-9A-Za-z._-]*$"
+              },
+              "additionalProperties": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{40}$"
+              }
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "url"
+          ]
+        },
+        "Reservation": {
+          "type": "object",
+          "properties": {
+            "provenance": {
+              "$ref": "#/$defs/Provenance"
+            },
+            "region": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string",
+                      "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "offset": {
+              "anyOf": [
+                {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    {
+                      "type": "string",
+                      "pattern": "^[0-9]+[KMG]$"
+                    }
+                  ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        {
+                          "type": "string",
+                          "pattern": "^[0-9]+[KMG]$"
+                        }
+                      ]
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "size": {
+              "anyOf": [
+                {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    {
+                      "type": "string",
+                      "pattern": "^[0-9]+[KMG]$"
+                    }
+                  ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        {
+                          "type": "string",
+                          "pattern": "^[0-9]+[KMG]$"
+                        }
+                      ]
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "region",
+            "offset",
+            "size"
+          ]
+        },
+        "SdkFacts": {
+          "type": "object",
+          "properties": {
+            "provenance": {
+              "$ref": "#/$defs/Provenance"
+            },
+            "c_define": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string"
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "cmsis_header": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string"
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "trace_clock_mhz": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "hal_enums": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "value": {
+                        "type": "string"
+                      },
+                      "provenance": {
+                        "$ref": "#/$defs/Provenance"
+                      }
+                    },
+                    "required": [
+                      "value",
+                      "provenance"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            },
+            "build": {
+              "$ref": "#/$defs/BuildFacts"
+            }
+          },
+          "additionalProperties": false
+        },
+        "Soc": {
+          "type": "object",
+          "properties": {
+            "provenance": {
+              "$ref": "#/$defs/Provenance"
+            },
+            "based_on": {
+              "type": "string",
+              "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+            },
+            "aliases": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+              },
+              "uniqueItems": true
+            },
+            "release_status": {
+              "enum": [
+                "public",
+                "embargoed"
+              ]
+            },
+            "series": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string"
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "cores": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/CoreInstance"
+              }
+            },
+            "memories": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string",
+                "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+              },
+              "additionalProperties": {
+                "$ref": "#/$defs/MemoryRegion"
+              }
+            },
+            "clock_domains": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string",
+                "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+              },
+              "additionalProperties": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string",
+                  "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                },
+                "additionalProperties": {
+                  "$ref": "#/$defs/DomainPoint"
+                }
+              }
+            },
+            "revision": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string"
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "npus": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/NpuInstance"
+              }
+            },
+            "accelerators": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/AcceleratorInstance"
+              }
+            },
+            "access": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Access"
+              }
+            },
+            "default_access": {
+              "$ref": "#/$defs/DefaultAccess"
+            },
+            "peripherals": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "value": {
+                            "type": "string",
+                            "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                          },
+                          "provenance": {
+                            "$ref": "#/$defs/Provenance"
+                          }
+                        },
+                        "required": [
+                          "value",
+                          "provenance"
+                        ],
+                        "additionalProperties": false
+                      }
+                    ]
+                  },
+                  "uniqueItems": true
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "array",
+                      "items": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "value": {
+                                "type": "string",
+                                "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                              },
+                              "provenance": {
+                                "$ref": "#/$defs/Provenance"
+                              }
+                            },
+                            "required": [
+                              "value",
+                              "provenance"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      },
+                      "uniqueItems": true
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "memory_controllers": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "value": {
+                            "type": "string",
+                            "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                          },
+                          "provenance": {
+                            "$ref": "#/$defs/Provenance"
+                          }
+                        },
+                        "required": [
+                          "value",
+                          "provenance"
+                        ],
+                        "additionalProperties": false
+                      }
+                    ]
+                  },
+                  "uniqueItems": true
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "array",
+                      "items": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "value": {
+                                "type": "string",
+                                "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                              },
+                              "provenance": {
+                                "$ref": "#/$defs/Provenance"
+                              }
+                            },
+                            "required": [
+                              "value",
+                              "provenance"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      },
+                      "uniqueItems": true
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "operating_points": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string",
+                "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+              },
+              "additionalProperties": {
+                "$ref": "#/$defs/OperatingPoint"
+              }
+            },
+            "default_operating_point": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string",
+                      "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "boot_configs": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string",
+                "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+              },
+              "additionalProperties": {
+                "$ref": "#/$defs/BootConfig"
+              }
+            },
+            "default_boot": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string",
+                      "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "sdk": {
+              "$ref": "#/$defs/SdkFacts"
+            },
+            "derives_from": {
+              "type": "string",
+              "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+            },
+            "default_board": {
+              "type": "string",
+              "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+            },
+            "extensions": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_]*$"
+              },
+              "additionalProperties": {}
+            },
+            "memories_removed": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+              },
+              "uniqueItems": true
+            },
+            "memories_resized": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string",
+                "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+              },
+              "additionalProperties": {
+                "anyOf": [
+                  {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      {
+                        "type": "string",
+                        "pattern": "^[0-9]+[KMG]$"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "value": {
+                        "anyOf": [
+                          {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          {
+                            "type": "string",
+                            "pattern": "^[0-9]+[KMG]$"
+                          }
+                        ]
+                      },
+                      "provenance": {
+                        "$ref": "#/$defs/Provenance"
+                      }
+                    },
+                    "required": [
+                      "value",
+                      "provenance"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            },
+            "memories_rebased": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string",
+                "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+              },
+              "additionalProperties": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "value": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "provenance": {
+                        "$ref": "#/$defs/Provenance"
+                      }
+                    },
+                    "required": [
+                      "value",
+                      "provenance"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            },
+            "cores_removed": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+              },
+              "uniqueItems": true
+            },
+            "npus_removed": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+              },
+              "uniqueItems": true
+            },
+            "accelerators_removed": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+              },
+              "uniqueItems": true
+            },
+            "peripherals_removed": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+              },
+              "uniqueItems": true
+            },
+            "clock_domains_removed": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^(?!(?:value|provenance)(?:\\.|$))[a-z][a-z0-9_]*(?:\\.(?!(?:value|provenance)$)[a-z][a-z0-9_]*)?$"
+              },
+              "uniqueItems": true
+            },
+            "boot_configs_removed": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+              },
+              "uniqueItems": true
+            },
+            "operating_points_removed": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+              },
+              "uniqueItems": true
+            },
+            "access_removed": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/AccessKey"
+              }
+            }
+          },
+          "additionalProperties": false,
+          "if": {
+            "required": [
+              "based_on"
+            ]
+          },
+          "else": {
+            "required": [
+              "series",
+              "cores",
+              "memories",
+              "clock_domains"
+            ]
+          }
+        },
+        "Subset": {
+          "type": "object",
+          "properties": {
+            "provenance": {
+              "$ref": "#/$defs/Provenance"
+            },
+            "memories_removed": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "value": {
+                            "type": "string",
+                            "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                          },
+                          "provenance": {
+                            "$ref": "#/$defs/Provenance"
+                          }
+                        },
+                        "required": [
+                          "value",
+                          "provenance"
+                        ],
+                        "additionalProperties": false
+                      }
+                    ]
+                  },
+                  "uniqueItems": true
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "array",
+                      "items": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "value": {
+                                "type": "string",
+                                "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                              },
+                              "provenance": {
+                                "$ref": "#/$defs/Provenance"
+                              }
+                            },
+                            "required": [
+                              "value",
+                              "provenance"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      },
+                      "uniqueItems": true
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "memories_resized": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string",
+                "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+              },
+              "additionalProperties": {
+                "anyOf": [
+                  {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      {
+                        "type": "string",
+                        "pattern": "^[0-9]+[KMG]$"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "value": {
+                        "anyOf": [
+                          {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          {
+                            "type": "string",
+                            "pattern": "^[0-9]+[KMG]$"
+                          }
+                        ]
+                      },
+                      "provenance": {
+                        "$ref": "#/$defs/Provenance"
+                      }
+                    },
+                    "required": [
+                      "value",
+                      "provenance"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            },
+            "memories_rebased": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string",
+                "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+              },
+              "additionalProperties": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "value": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "provenance": {
+                        "$ref": "#/$defs/Provenance"
+                      }
+                    },
+                    "required": [
+                      "value",
+                      "provenance"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            },
+            "peripherals_removed": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "value": {
+                            "type": "string",
+                            "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                          },
+                          "provenance": {
+                            "$ref": "#/$defs/Provenance"
+                          }
+                        },
+                        "required": [
+                          "value",
+                          "provenance"
+                        ],
+                        "additionalProperties": false
+                      }
+                    ]
+                  },
+                  "uniqueItems": true
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "array",
+                      "items": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "value": {
+                                "type": "string",
+                                "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                              },
+                              "provenance": {
+                                "$ref": "#/$defs/Provenance"
+                              }
+                            },
+                            "required": [
+                              "value",
+                              "provenance"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      },
+                      "uniqueItems": true
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "cores_removed": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "value": {
+                            "type": "string",
+                            "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                          },
+                          "provenance": {
+                            "$ref": "#/$defs/Provenance"
+                          }
+                        },
+                        "required": [
+                          "value",
+                          "provenance"
+                        ],
+                        "additionalProperties": false
+                      }
+                    ]
+                  },
+                  "uniqueItems": true
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "array",
+                      "items": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "value": {
+                                "type": "string",
+                                "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                              },
+                              "provenance": {
+                                "$ref": "#/$defs/Provenance"
+                              }
+                            },
+                            "required": [
+                              "value",
+                              "provenance"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      },
+                      "uniqueItems": true
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "npus_removed": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "value": {
+                            "type": "string",
+                            "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                          },
+                          "provenance": {
+                            "$ref": "#/$defs/Provenance"
+                          }
+                        },
+                        "required": [
+                          "value",
+                          "provenance"
+                        ],
+                        "additionalProperties": false
+                      }
+                    ]
+                  },
+                  "uniqueItems": true
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "array",
+                      "items": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "value": {
+                                "type": "string",
+                                "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                              },
+                              "provenance": {
+                                "$ref": "#/$defs/Provenance"
+                              }
+                            },
+                            "required": [
+                              "value",
+                              "provenance"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      },
+                      "uniqueItems": true
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "accelerators_removed": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "value": {
+                            "type": "string",
+                            "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                          },
+                          "provenance": {
+                            "$ref": "#/$defs/Provenance"
+                          }
+                        },
+                        "required": [
+                          "value",
+                          "provenance"
+                        ],
+                        "additionalProperties": false
+                      }
+                    ]
+                  },
+                  "uniqueItems": true
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "array",
+                      "items": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "value": {
+                                "type": "string",
+                                "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                              },
+                              "provenance": {
+                                "$ref": "#/$defs/Provenance"
+                              }
+                            },
+                            "required": [
+                              "value",
+                              "provenance"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      },
+                      "uniqueItems": true
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "clock_domains_removed": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^(?!(?:value|provenance)(?:\\.|$))[a-z][a-z0-9_]*(?:\\.(?!(?:value|provenance)$)[a-z][a-z0-9_]*)?$"
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "value": {
+                            "type": "string",
+                            "pattern": "^(?!(?:value|provenance)(?:\\.|$))[a-z][a-z0-9_]*(?:\\.(?!(?:value|provenance)$)[a-z][a-z0-9_]*)?$"
+                          },
+                          "provenance": {
+                            "$ref": "#/$defs/Provenance"
+                          }
+                        },
+                        "required": [
+                          "value",
+                          "provenance"
+                        ],
+                        "additionalProperties": false
+                      }
+                    ]
+                  },
+                  "uniqueItems": true
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "array",
+                      "items": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "pattern": "^(?!(?:value|provenance)(?:\\.|$))[a-z][a-z0-9_]*(?:\\.(?!(?:value|provenance)$)[a-z][a-z0-9_]*)?$"
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "value": {
+                                "type": "string",
+                                "pattern": "^(?!(?:value|provenance)(?:\\.|$))[a-z][a-z0-9_]*(?:\\.(?!(?:value|provenance)$)[a-z][a-z0-9_]*)?$"
+                              },
+                              "provenance": {
+                                "$ref": "#/$defs/Provenance"
+                              }
+                            },
+                            "required": [
+                              "value",
+                              "provenance"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      },
+                      "uniqueItems": true
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "boot_configs_removed": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "value": {
+                            "type": "string",
+                            "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                          },
+                          "provenance": {
+                            "$ref": "#/$defs/Provenance"
+                          }
+                        },
+                        "required": [
+                          "value",
+                          "provenance"
+                        ],
+                        "additionalProperties": false
+                      }
+                    ]
+                  },
+                  "uniqueItems": true
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "array",
+                      "items": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "value": {
+                                "type": "string",
+                                "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                              },
+                              "provenance": {
+                                "$ref": "#/$defs/Provenance"
+                              }
+                            },
+                            "required": [
+                              "value",
+                              "provenance"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      },
+                      "uniqueItems": true
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "operating_points_removed": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "value": {
+                            "type": "string",
+                            "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                          },
+                          "provenance": {
+                            "$ref": "#/$defs/Provenance"
+                          }
+                        },
+                        "required": [
+                          "value",
+                          "provenance"
+                        ],
+                        "additionalProperties": false
+                      }
+                    ]
+                  },
+                  "uniqueItems": true
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "array",
+                      "items": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "value": {
+                                "type": "string",
+                                "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                              },
+                              "provenance": {
+                                "$ref": "#/$defs/Provenance"
+                              }
+                            },
+                            "required": [
+                              "value",
+                              "provenance"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      },
+                      "uniqueItems": true
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "access_removed": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/AccessKey"
+              }
+            },
+            "max_cpu_mhz": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "max_npu_mhz": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "max_domain_mhz": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string",
+                "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+              },
+              "additionalProperties": {
+                "anyOf": [
+                  {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "value": {
+                        "type": "number",
+                        "minimum": 0
+                      },
+                      "provenance": {
+                        "$ref": "#/$defs/Provenance"
+                      }
+                    },
+                    "required": [
+                      "value",
+                      "provenance"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    }
+  }
+}

@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, NoReturn
 
 import typer
 
 from helia_platforms import __version__, _show
+from helia_platforms import export as _export
 from helia_platforms.catalog import Catalog, builtin, load_overlay
 from helia_platforms.errors import FormatError, PlatformError
 from helia_platforms.schema import render
@@ -146,16 +147,59 @@ def show(  # noqa: PLR0917 (typer reads each parameter as an argument or option)
 
 
 @app.command()
-def export(
+def export(  # noqa: PLR0917 (typer reads each parameter as an option)
     schema: Annotated[
         bool, typer.Option("--schema", help="Write the JSON Schema of the file format.")
     ] = False,
+    export_schema: Annotated[
+        bool, typer.Option("--export-schema", help="Write the JSON Schema of the export.")
+    ] = False,
+    json_file: Annotated[
+        Path | None,
+        typer.Option(
+            "--json", help="Write the export to this file; - for standard output.", dir_okay=False
+        ),
+    ] = None,
+    provenance: Annotated[
+        bool,
+        typer.Option("--provenance", help="Keep every provenance record (internal use only)."),
+    ] = False,
+    check: Annotated[
+        bool,
+        typer.Option("--check", help="Fail if the --json file differs from a fresh export."),
+    ] = False,
+    include_plugins: Annotated[
+        bool,
+        typer.Option("--include-plugins", help="Add side-loaded catalogs (internal use only)."),
+    ] = False,
+    overlay: Overlays = None,
 ) -> None:
-    """Write an export to standard output."""
-    if not schema:
-        typer.echo("nothing to export: pass --schema", err=True)
-        raise typer.Exit(2)
-    typer.echo(render(), nl=False)
+    """Write a JSON Schema or the JSON export (RFC 0003)."""
+    if sum((schema, export_schema, json_file is not None)) != 1:
+        _usage("pass exactly one of --schema, --export-schema and --json")
+    if json_file is None and (provenance or check or include_plugins or overlay):
+        _usage("--provenance, --check, --include-plugins and --overlay need --json")
+    if json_file is None:
+        typer.echo(render(export=export_schema), nl=False)
+        return
+    catalog = _catalog(not include_plugins, overlay)
+    text = _export.render(_export.document(catalog, provenance=provenance))
+    if str(json_file) == "-":
+        if check:
+            _usage("--check needs a --json file, not -")
+        typer.echo(text, nl=False)
+    elif check:
+        current = json_file.read_text(encoding="utf-8") if json_file.is_file() else None
+        if current != text:
+            typer.echo(f"{json_file} differs from a fresh export", err=True)
+            raise typer.Exit(1)
+    else:
+        json_file.write_text(text, encoding="utf-8")
+
+
+def _usage(message: str) -> NoReturn:
+    typer.echo(message, err=True)
+    raise typer.Exit(2)
 
 
 def main() -> None:
