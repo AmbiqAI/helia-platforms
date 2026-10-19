@@ -21,3 +21,5 @@ repositories:
       v5.2.24: a9f4ec25a162f6f3700623feb691423bb5a51132
   AmbiqAI/neuralspotx:
     url: https://github.com/AmbiqAI/neuralspotx
+    tags:
+      neuralspotx-v0.8.1: 2dbe12a2799fd8c3df85f1a103b0adca340c901f
