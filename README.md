@@ -15,7 +15,8 @@ Pre-release; nothing is published yet. The runtime is in place: the file
 format and its JSON Schema, the frozen model, `load_overlay` and `builtin()`
 with side-loaded private catalogs, the structural and semantic validation, the
 catalog digest, the provenance checks, the resolver that consumers query
-(RFC 0002), and the CLI's `validate` and `export --schema` commands. The
+(RFC 0002), and the CLI's `list`, `show`, `validate` and `export --schema`
+commands. The
 built-in data holds one Soc so far: apollo510, with its parts and the
 apollo510_evb board.
 
@@ -27,10 +28,13 @@ Requires [uv](https://docs.astral.sh/uv/).
 uv sync --group dev && uv run pre-commit install && uv run pytest
 ```
 
-Check the CLI:
+Look at the catalog from the CLI:
 
 ```sh
-uv run helia-platforms --version
+uv run helia-platforms list
+uv run helia-platforms show apollo510_evb               # every value with its provenance status
+uv run helia-platforms show apollo510_evb --provenance  # and the full record under each row
+uv run helia-platforms show my_board --overlay my_board.yaml
 ```
 
 ## Where things live

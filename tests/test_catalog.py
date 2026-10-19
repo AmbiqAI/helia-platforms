@@ -1450,7 +1450,7 @@ def test_cli_validate_reports_an_unbuildable_entry_and_continues(tmp_path):
 
 
 def test_cli_validate_reports_any_platform_error(tmp_path, monkeypatch):
-    def fail(path):
+    def fail(path, base):
         raise PlatformError("cannot load")
 
     monkeypatch.setattr(cli, "load_overlay", fail)
@@ -1459,6 +1459,21 @@ def test_cli_validate_reports_any_platform_error(tmp_path, monkeypatch):
     result = runner.invoke(app, ["validate", str(path)])
     assert result.exit_code == 1
     assert f"{path}: cannot load" in result.output
+
+
+def test_cli_validate_loads_each_file_over_the_built_in_catalog(tmp_path):
+    board = tmp_path / "board.yaml"
+    board.write_text("schema_version: 1\nboards:\n  b: {category: custom, part: AP510NFA-IBR}\n")
+    result = runner.invoke(app, ["validate", "--builtin-only", str(board)])
+    assert result.exit_code == 0, result.output
+    assert f"{board}: ok" in result.output
+    clash = tmp_path / "clash.yaml"
+    clash.write_text(
+        "schema_version: 1\nboards:\n  apollo510_evb: {category: custom, part: AP510NFA-IBR}\n"
+    )
+    result = runner.invoke(app, ["validate", "--builtin-only", str(clash)])
+    assert result.exit_code == 1
+    assert "would shadow boards.apollo510_evb from builtin" in result.output
 
 
 def test_cli_validate_rejects_a_directory(tmp_path):

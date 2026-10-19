@@ -54,6 +54,10 @@ for example when a pull request adds a rule the merge base's data breaks.
 Split such a pull request: first the data change that satisfies the rule,
 then the rule.
 
+To review a data change, run `uv run helia-platforms show <id> --provenance`
+on the pull request's branch. It prints every resolved value of the target with
+the record it resolves to.
+
 `.github/CODEOWNERS` gives each data file and directory, the schema
 directory and the snapshot directory its own entry.
 
