@@ -139,7 +139,10 @@ def show(  # noqa: PLR0917 (typer reads each parameter as an argument or option)
     except PlatformError as exc:
         typer.echo(str(exc), err=True)
         raise typer.Exit(1) from None
-    typer.echo(_show.render_target(target, provenance=provenance, sources=sources), nl=False)
+    typer.echo(
+        _show.render_target(target, provenance=provenance, sources=sources, requested_boot=boot),
+        nl=False,
+    )
 
 
 @app.command()

@@ -33,6 +33,22 @@ def run(*args: str):
     return runner.invoke(app, [*args, "--builtin-only"])
 
 
+def rows(output: str, label: str) -> list[str]:
+    """Each row with ``label``, its wrapped lines joined and its spacing collapsed."""
+    found: list[str] = []
+    matching = False
+    for line in output.splitlines():
+        if line.startswith(" " * 29) and matching:
+            found[-1] += " " + line.strip()
+        elif line.startswith("  ") and not line.startswith("   "):
+            matching = line[2:].startswith(f"{label} ")
+            if matching:
+                found.append(" ".join(line.split()))
+        else:
+            matching = False
+    return found
+
+
 def test_list_prints_every_kind_with_its_source(overlay, tmp_path):
     result = run("list", "--overlay", str(overlay()))
     assert result.exit_code == 0, result.output
@@ -66,9 +82,9 @@ def test_show_prints_a_status_beside_each_row(overlay):
     result = run("show", "board_a", "--overlay", str(overlay(document)))
     assert result.exit_code == 0, result.output
     lines = result.output.splitlines()
-    tcm_line = next(line for line in lines if line.strip().startswith("tcm "))
-    assert "sram tcm, 0x20000000, 512K" in tcm_line
-    assert tcm_line.endswith("[datasheet; size: sdk]")
+    (tcm,) = rows(result.output, "tcm")
+    assert "technology sram, attachment tcm, base 0x20000000, size 512K" in tcm
+    assert tcm.endswith("[datasheet; size: sdk]")
     # board_a carries no record, so an overlay value resolves to unverified.
     assert any(line.startswith("  board ") and line.endswith("[unverified]") for line in lines)
     assert "  usable nvm                 4032K (4128768 bytes; core 0, computed)" in lines
@@ -111,7 +127,7 @@ def test_show_an_implementation_target(overlay):
     }
     result = run("show", "soc_a_fpga", "--overlay", str(overlay(document)))
     assert result.exit_code == 0, result.output
-    assert "soc_a_fpga (fpga)" in result.output
+    assert "soc_a_fpga, soc soc_a, kind fpga" in result.output
     assert not any(line.strip().startswith("ssram ") for line in result.output.splitlines())
 
 
@@ -193,13 +209,13 @@ def test_show_gives_each_access_field_its_own_status(overlay):
     )
     result = run("show", "board_a", "--overlay", str(overlay(document)))
     assert result.exit_code == 0, result.output
-    lines = result.output.splitlines()
+    entries = rows(result.output, "entry")
     for start, end in (
-        ("npu_0 -> ssram", "[datasheet; port: sdk]"),
-        ("npu_0 -> tcm", "[datasheet; guidance: sdk]"),
-        ("cm55_0 -> nvm", "[datasheet; address: sdk]"),
+        ("entry master npu_0, target ssram", "[datasheet; port: sdk]"),
+        ("entry master npu_0, target tcm", "[datasheet; guidance: sdk]"),
+        ("entry master cm55_0, target nvm", "[datasheet; address: sdk]"),
     ):
-        line = next(line for line in lines if line.strip().startswith(start))
+        line = next(line for line in entries if line.startswith(start))
         assert line.endswith(end), line
 
 
@@ -211,7 +227,7 @@ def test_show_gives_each_operating_point_domain_its_own_status(overlay):
     result = run("show", "board_a", "--overlay", str(overlay(document)))
     assert result.exit_code == 0, result.output
     line = next(line for line in result.output.splitlines() if "point lp" in line)
-    assert "[datasheet; cpu: sdk]" in line
+    assert line.endswith("[sdk; domains.npu: datasheet]"), line
 
 
 def test_show_sources_include_the_core_ip_blocks(overlay, tmp_path):
