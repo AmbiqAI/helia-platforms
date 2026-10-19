@@ -199,3 +199,25 @@ def test_sources_list_the_composition(catalog):
     labels = dict(_show._source_labels(target))
     assert labels["composition board_a_shield"].startswith("overlay:")
     assert "addon shield" in labels
+
+
+def test_a_float_prints_in_full():
+    document = full_document()
+    tcm = document["socs"]["soc_a"]["memories"]["tcm"]
+    tcm["characterization"] = {"bandwidth_fraction": 0.9999999, "read_latency_ns": 1.0}
+    catalog = load_overlay(document, base=builtin(include_plugins=False))
+    (row,) = row_texts(catalog.resolve("board_a"), "tcm")
+    assert (
+        "characterization.read_latency_ns 1, characterization.bandwidth_fraction 0.9999999" in row
+    )
+
+
+def test_a_record_on_a_removed_access_pair_covers_the_pair():
+    document = full_document()
+    subset = document["implementations"]["soc_a_fpga"]["subset"]
+    subset["access_removed"] = [{"master": "npu_0", "target": "tcm"}]
+    subset["provenance"] = SDK
+    catalog = load_overlay(document, base=builtin(include_plugins=False))
+    (row,) = row_texts(catalog.resolve("soc_a_fpga"), "subset")
+    assert "subset.access_removed.npu_0@tcm.master npu_0" in row
+    assert row.endswith("[sdk]"), row

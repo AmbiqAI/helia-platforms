@@ -17,6 +17,7 @@ from typing import Any
 
 from helia_platforms import _format as fmt
 from helia_platforms import model
+from helia_platforms._build import provenance
 from helia_platforms._tree import Path, iter_values, realize, segment
 from helia_platforms.catalog import Catalog
 from helia_platforms.errors import PlatformError
@@ -50,41 +51,47 @@ class _Row:
 
 @dataclass(frozen=True)
 class _At:
-    """An object's place: its entry, the record carrier holding it, and the entry's fact paths.
+    """A model object, its entry and path there, and the entry's fact paths and records."""
 
-    ``base`` is the carrier's path and ``path`` the object's; records key relative to ``base``.
-    """
-
-    carrier: Any
+    obj: Any
     table: str
     entry: str
-    base: Path
     path: Path
     stated: frozenset[Path]
+    records: Mapping[Path, Any]
 
-    def child(self, carrier: Any, *path: str) -> _At:
-        """A carrier inside this object, with records of its own."""
-        where = (*self.path, *path)
-        return dataclasses.replace(self, carrier=carrier, base=where, path=where)
+    def child(self, obj: Any, *path: str) -> _At:
+        """``obj``, which sits at ``path`` below this object."""
+        return dataclasses.replace(self, obj=obj, path=(*self.path, *path))
 
     def inner(self, *path: str) -> _At:
-        """An object inside this one whose records the same carrier holds."""
+        """A place below this object, for a row whose fields this object holds."""
         return dataclasses.replace(self, path=(*self.path, *path))
+
+    def record(self, path: Path) -> model.Provenance:
+        """The record covering ``path``: its own, else the nearest parent's (``_build``'s rule)."""
+        for cut in range(len(path), -1, -1):
+            if path[:cut] in self.records:
+                return provenance(self.records[path[:cut]]) or model.UNVERIFIED
+        return model.UNVERIFIED
 
 
 class _Entries:
-    """Each entry's stated fact paths, computed once per entry."""
+    """Each entry's stated fact paths and records, read once per entry."""
 
     def __init__(self, target: Target) -> None:
         self._target = target
         self._stated: dict[tuple[str, str], frozenset[Path]] = {}
+        self._records: dict[tuple[str, str], Mapping[Path, Any]] = {}
 
-    def at(self, table: str, entry: str, carrier: Any) -> _At:
+    def at(self, table: str, entry: str, obj: Any) -> _At:
         if (table, entry) not in self._stated:
-            values = _tree(self._target, table, entry).values
-            paths = iter_values(values, fmt.ENTITY_TABLES[table])
+            tree = _tree(self._target, table, entry)
+            paths = iter_values(tree.values, fmt.ENTITY_TABLES[table])
             self._stated[table, entry] = frozenset(p for p, _ in paths)
-        return _At(carrier, table, entry, (), (), self._stated[table, entry])
+            self._records[table, entry] = tree.records
+        stated, records = self._stated[table, entry], self._records[table, entry]
+        return _At(obj, table, entry, (), stated, records)
 
 
 def _tree(target: Target, table: str, entry: str) -> Any:
@@ -135,8 +142,8 @@ def _text(name: str, value: Any) -> str:
         return size(value)
     if isinstance(value, int) and name in _OFFSETS:
         return f"{value:#x}"
-    if isinstance(value, float):
-        return f"{value:g}"
+    if isinstance(value, float):  # in full, so 0.9999999 and 1.0 stay distinct
+        return str(int(value)) if value.is_integer() else repr(value)
     return str(value)
 
 
@@ -181,9 +188,7 @@ def _row(
             if where not in at.stated:
                 continue
             groups.setdefault(group, []).append(text)
-            relative = ".".join(where[len(at.base) :])
-            record = at.carrier.field_provenance.get(relative, at.carrier.provenance)
-            facts.append(_Fact(".".join(path), record, (at.table, at.entry, where)))
+            facts.append(_Fact(".".join(path), at.record(where), (at.table, at.entry, where)))
     chunks = [f"{group} {' '.join(texts)}" for group, texts in groups.items()]
     text = ", ".join([lead, *chunks] if lead else chunks) + (f" ({note})" if note else "")
     return _Row(label, text, facts)
@@ -404,7 +409,7 @@ def _memories(target: Target, at: _Entries) -> list[_Row]:
         target._external, _populations(target, at), strict=True
     ):
         populated.add((owner.entry, interface))
-        row = _row(region.name, populator, populator.carrier, ["population"])
+        row = _row(region.name, populator, populator.obj, ["population"])
         row.facts = [f for f in row.facts if f.where[2] == ("population", interface)]
         iface = _interface(owner, interface)
         base = "no base" if region.base is None else f"at {region.base:#010x}"
@@ -412,7 +417,7 @@ def _memories(target: Target, at: _Entries) -> list[_Row]:
         row.text = f"population.{interface} {device.id}, {iface.text} ({computed})"
         rows.append(_Row(row.label, row.text, row.facts + iface.facts))
     for owner in _interface_owners(target, at):
-        for name in owner.carrier.interfaces:
+        for name in owner.obj.interfaces:
             if (owner.entry, name) not in populated:
                 row = _interface(owner, name)
                 rows.append(_Row(f"interface {name}", f"{row.text} (unpopulated)", row.facts))
@@ -428,7 +433,7 @@ def _memories(target: Target, at: _Entries) -> list[_Row]:
 
 
 def _interface(owner: _At, name: str) -> _Row:
-    interface = owner.carrier.interfaces[name]
+    interface = owner.obj.interfaces[name]
     return _row("", owner.inner("interfaces", name), interface, _INTERFACE)
 
 
@@ -454,7 +459,7 @@ def _populations(target: Target, at: _Entries) -> list[tuple[_At, _At, str, mode
         pairs += [(board, at.at("addons", a.id, a)) for a in target.addons]
     found = []
     for owner, populator in pairs:
-        for interface, device_id in populator.carrier.population.items():
+        for interface, device_id in populator.obj.population.items():
             device = target._catalog._entry("memory_devices", device_id)
             found.append((owner, populator, interface, device))
     return found
@@ -511,7 +516,7 @@ def _boot(target: Target, at: _Entries, requested: str | None) -> list[_Row]:
             )
     selectors = [_row("soc", soc, target.soc, ["default_boot"])]
     for owner in _interface_owners(target, at):
-        selectors.append(_row(owner.table[:-1], owner, owner.carrier, ["provisioning"]))
+        selectors.append(_row(owner.table[:-1], owner, owner.obj, ["provisioning"]))
     rows += [r for r in selectors if r.facts]
     if target.boot is not None:
         rows.append(_selection(target.boot.name, selectors, requested))
