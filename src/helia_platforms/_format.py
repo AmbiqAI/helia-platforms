@@ -46,6 +46,7 @@ SIZE = _Flag("SIZE")  # bytes, or "<integer><K|M|G>" (section 2.6)
 BY_VALUE = _Flag("BY_VALUE")  # a list of names or values, keyed by the value itself
 NOT_FACT = _Flag("NOT_FACT")  # a key that is not a fact (section 2.7)
 FILE_ONLY = _Flag("FILE_ONLY")  # a delta or shorthand key with no runtime field
+ORDERED = _Flag("ORDERED")  # a keyed list whose order is a fact, index 0 primary (section 2.4)
 OPAQUE = _Flag("OPAQUE")  # any JSON-compatible value, never read (section 2.8)
 
 SIZE_RE = r"^[0-9]+[KMG]$"
@@ -267,12 +268,12 @@ class Core(_Inheritable):
 
 class Soc(_Entity):
     series: Required[str]
-    cores: Required[Annotated[list[CoreInstance], Keyed(("id",))]]
+    cores: Required[Annotated[list[CoreInstance], Keyed(("id",)), ORDERED]]
     memories: Required[dict[Name, MemoryRegion]]
     clock_domains: Required[ClockDomains]
     revision: NotRequired[str]
-    npus: NotRequired[Annotated[list[NpuInstance], Keyed(("id",))]]
-    accelerators: NotRequired[Annotated[list[AcceleratorInstance], Keyed(("id",))]]
+    npus: NotRequired[Annotated[list[NpuInstance], Keyed(("id",)), ORDERED]]
+    accelerators: NotRequired[Annotated[list[AcceleratorInstance], Keyed(("id",)), ORDERED]]
     access: NotRequired[Annotated[list[Access], Keyed(("master", "target"))]]
     default_access: NotRequired[DefaultAccess]
     peripherals: NotRequired[Names]
