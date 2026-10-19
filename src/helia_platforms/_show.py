@@ -407,7 +407,8 @@ def _memories(target: Target, at: _Entries) -> list[_Row]:
         row = _row(region.name, populator, populator.carrier, ["population"])
         row.facts = [f for f in row.facts if f.where[2] == ("population", interface)]
         iface = _interface(owner, interface)
-        computed = f"{size(region.size)} at {region.base:#010x}, computed"
+        base = "no base" if region.base is None else f"at {region.base:#010x}"
+        computed = f"{size(region.size)} {base}, computed"
         row.text = f"population.{interface} {device.id}, {iface.text} ({computed})"
         rows.append(_Row(row.label, row.text, row.facts + iface.facts))
     for owner in _interface_owners(target, at):
@@ -419,9 +420,10 @@ def _memories(target: Target, at: _Entries) -> list[_Row]:
         device = target._catalog._entry("memory_devices", device_id)
         device_at = at.at("memory_devices", device_id, device)
         rows.append(_row(f"device {device_id}", device_at, device, _DEVICE))
-    nvm = target.usable_nvm()
-    for name, free in nvm.items():
-        rows.append(_Row(f"usable {name}", f"{size(free)} ({free} bytes; core 0, computed)"))
+    for index in range(len(target.soc.cores)):
+        for name, free in target.usable_nvm(index).items():
+            text = f"{size(free)} ({free} bytes; core {index}, computed)"
+            rows.append(_Row(f"usable {name}", text))
     return rows
 
 

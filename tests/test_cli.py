@@ -241,3 +241,36 @@ def test_show_sources_include_the_core_ip_blocks(overlay, tmp_path):
     assert result.exit_code == 0, result.output
     flat = " ".join(result.output.split())
     assert f"source of core cortex-m33 overlay:{tmp_path / 'fixture.yaml'}" in flat
+
+
+def test_show_an_external_region_whose_interface_has_no_base(overlay):
+    document = copy.deepcopy(BASE_DOCUMENT)
+    del document["boards"]["board_a"]["interfaces"]["mspi0"]["aperture_base"]
+    result = run("show", "board_a", "--overlay", str(overlay(document)))
+    assert result.exit_code == 0, result.output
+    (psram,) = rows(result.output, "psram0")
+    assert "(8M no base, computed)" in psram
+
+
+def test_show_prints_usable_nvm_for_each_core(overlay):
+    document = copy.deepcopy(BASE_DOCUMENT)
+    add_radio(document)
+    soc = document["socs"]["soc_a"]
+    for master in ("cm55_0", "radio_m4"):
+        soc["access"].append({"master": master, "target": "nvm", "access": "direct"})
+    document["parts"]["PART-A"]["image_slots"] = {
+        "radio": {
+            "core": "radio_m4",
+            "region": "nvm",
+            "offset": "3M",
+            "size": "1M",
+            "supplier": "vendor",
+        }
+    }
+    result = run("show", "board_a", "--overlay", str(overlay(document)))
+    assert result.exit_code == 0, result.output
+    # Each core loses the SBL's 64K; core 0 also loses the radio's 1M image slot.
+    assert rows(result.output, "usable") == [
+        "usable nvm 3008K (3080192 bytes; core 0, computed)",
+        "usable nvm 4032K (4128768 bytes; core 1, computed)",
+    ]
