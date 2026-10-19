@@ -44,30 +44,6 @@ def root(
         typer.echo(__version__)
 
 
-@app.command()
-def validate(
-    files: Annotated[
-        list[Path], typer.Argument(help="Overlay files to check.", exists=True, dir_okay=False)
-    ],
-) -> None:
-    """Check overlay files against the file format and the semantic rules."""
-    failed = False
-    for path in files:
-        try:
-            load_overlay(path)
-        except FormatError as exc:
-            failed = True
-            for problem in exc.problems:
-                typer.echo(problem, err=True)
-        except PlatformError as exc:
-            failed = True
-            typer.echo(f"{path}: {exc}", err=True)
-        else:
-            typer.echo(f"{path}: ok")
-    if failed:
-        raise typer.Exit(1)
-
-
 BuiltinOnly = Annotated[
     bool,
     typer.Option(
@@ -95,6 +71,32 @@ def _catalog(builtin_only: bool, overlays: list[Path] | None) -> Catalog:
         typer.echo(str(exc), err=True)
         raise typer.Exit(1) from None
     return catalog
+
+
+@app.command()
+def validate(
+    files: Annotated[
+        list[Path], typer.Argument(help="Overlay files to check.", exists=True, dir_okay=False)
+    ],
+    builtin_only: BuiltinOnly = False,
+) -> None:
+    """Check each overlay file, loaded over the built-in catalog, against the format and rules."""
+    base = _catalog(builtin_only, None)
+    failed = False
+    for path in files:
+        try:
+            load_overlay(path, base=base)
+        except FormatError as exc:
+            failed = True
+            for problem in exc.problems:
+                typer.echo(problem, err=True)
+        except PlatformError as exc:
+            failed = True
+            typer.echo(f"{path}: {exc}", err=True)
+        else:
+            typer.echo(f"{path}: ok")
+    if failed:
+        raise typer.Exit(1)
 
 
 @app.command("list")

@@ -124,7 +124,9 @@ def test_show_suggests_close_names_for_an_unknown_one(overlay):
 def test_show_lists_the_candidates_of_a_shorthand():
     result = run("show", "AP510")
     assert result.exit_code == 1
-    assert "names several targets" in result.output
+    assert "'AP510' is a family shorthand and names no single target; use one of apollo510" in (
+        result.output
+    )
 
 
 def test_a_bad_overlay_prints_its_problems(tmp_path):

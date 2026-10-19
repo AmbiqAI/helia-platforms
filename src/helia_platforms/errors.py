@@ -38,12 +38,15 @@ class UnknownPlatform(PlatformError):
 
 
 class AmbiguousPlatform(PlatformError):
-    """A shorthand names several targets; ``candidates`` lists them."""
+    """A name is a family shorthand, which never resolves; ``candidates`` lists its members."""
 
     def __init__(self, name: str, candidates: tuple[str, ...]) -> None:
         self.name = name
         self.candidates = candidates
-        super().__init__(f"{name!r} names several targets: {', '.join(candidates)}")
+        super().__init__(
+            f"{name!r} is a family shorthand and names no single target; "
+            f"use one of {', '.join(candidates)}"
+        )
 
 
 class PlatformWarning(UserWarning):
