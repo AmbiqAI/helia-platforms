@@ -456,6 +456,31 @@ class Document(TypedDict, total=False):
     unverified_allowed: list[AllowedUnverified]
 
 
+# ---- the JSON export (RFC 0003 "Schema and versioning") ---------------------------
+
+Digest = Annotated[str, Pattern(r"^sha256:[0-9a-f]{64}$", "a sha256 digest")]
+
+
+class ExportSource(TypedDict):
+    label: Required[str]
+    schema_version: Required[Annotated[int, Minimum(1)]]
+    sha256: Required[Digest]
+    distribution_version: Required[str | None]
+
+
+class ExportIdentity(TypedDict):
+    package_version: Required[str]
+    schema_version: Required[Annotated[int, Minimum(1)]]
+    catalog_digest: Required[Digest]
+    sources: Required[list[ExportSource]]
+
+
+class Export(TypedDict):
+    schema_version: Required[Annotated[int, Minimum(1)]]
+    identity: Required[ExportIdentity]
+    catalog: Required[Document]
+
+
 #: Top-level keys that hold entity tables, in load order.
 ENTITY_TABLES: dict[str, type] = {
     "cores": Core,

@@ -11,6 +11,8 @@ from helia_platforms import _walk
 
 SCHEMA_ID = f"tag:ambiq.com,2026:helia-platforms/schema/v{fmt.SCHEMA_VERSION}"
 SCHEMA_FILE = f"helia-platforms-v{fmt.SCHEMA_VERSION}.schema.json"
+EXPORT_SCHEMA_ID = f"tag:ambiq.com,2026:helia-platforms/export/v{fmt.SCHEMA_VERSION}"
+EXPORT_SCHEMA_FILE = f"helia-platforms-export-v{fmt.SCHEMA_VERSION}.schema.json"
 
 
 class _Generator:
@@ -95,6 +97,8 @@ class _Generator:
             return {"type": "string", **({"pattern": pattern.regex} if pattern else {})}
         if bare is bool:
             return {"type": "boolean"}
+        if bare is type(None):
+            return {"type": "null"}
         if bare is int:
             return self.number("integer", markers)
         raise TypeError(f"no schema for {bare!r}")
@@ -119,11 +123,42 @@ def generate() -> dict[str, Any]:
     }
 
 
-def render() -> str:
-    """The schema as committed: two-space JSON with a trailing newline."""
-    return json.dumps(generate(), indent=2) + "\n"
+def generate_export() -> dict[str, Any]:
+    """The JSON Schema of the whole export, with the file-format schema bundled for ``catalog``.
+
+    Each ``schema_version`` must be this version (RFC 0003 "Schema and versioning").
+    """
+    generator = _Generator()
+    version = {"const": fmt.SCHEMA_VERSION}
+    export = {
+        "type": "object",
+        "properties": {
+            "schema_version": version,
+            "identity": generator.ref(fmt.ExportIdentity),
+            "catalog": {
+                "allOf": [{"$ref": SCHEMA_ID}, {"properties": {"schema_version": version}}]
+            },
+        },
+        "additionalProperties": False,
+        "required": list(_walk.fields(fmt.Export)),
+    }
+    generator.defs["ExportIdentity"]["properties"]["schema_version"] = version
+    file_format = {k: v for k, v in generate().items() if k != "$schema"}
+    return {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": EXPORT_SCHEMA_ID,
+        "title": "helia-platforms catalog export",
+        **export,
+        "$defs": {**dict(sorted(generator.defs.items())), "file-format": file_format},
+    }
 
 
-def committed() -> str:
-    """The schema file shipped in the wheel."""
-    return resources.files(__name__).joinpath(SCHEMA_FILE).read_text()
+def render(*, export: bool = False) -> str:
+    """A schema as committed: two-space JSON with a trailing newline."""
+    return json.dumps(generate_export() if export else generate(), indent=2) + "\n"
+
+
+def committed(*, export: bool = False) -> str:
+    """A schema file shipped in the wheel."""
+    name = EXPORT_SCHEMA_FILE if export else SCHEMA_FILE
+    return resources.files(__name__).joinpath(name).read_text()

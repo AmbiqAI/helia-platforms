@@ -187,6 +187,12 @@ class Catalog:
             sources=self._applied,
         )
 
+    def to_dict(self) -> dict[str, Any]:
+        """The JSON export, filtered by release status (RFC 0003; ``helia_platforms.export``)."""
+        from helia_platforms import export  # noqa: PLC0415 (export reads this module's tables)
+
+        return export.document(self)
+
     def _entry(self, kind: str, entry_id: str) -> Any:
         """One entry by table name and exact id; raises KeyError when absent."""
         return self._tables[kind][entry_id]
