@@ -4051,6 +4051,69 @@
         "url"
       ]
     },
+    "RemovedAccess": {
+      "type": "object",
+      "properties": {
+        "provenance": {
+          "$ref": "#/$defs/Provenance"
+        },
+        "master": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "value": {
+                  "type": "string",
+                  "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                },
+                "provenance": {
+                  "$ref": "#/$defs/Provenance"
+                }
+              },
+              "required": [
+                "value",
+                "provenance"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        },
+        "target": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "value": {
+                  "type": "string",
+                  "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                },
+                "provenance": {
+                  "$ref": "#/$defs/Provenance"
+                }
+              },
+              "required": [
+                "value",
+                "provenance"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "master",
+        "target"
+      ]
+    },
     "Reservation": {
       "type": "object",
       "properties": {
@@ -5502,7 +5565,7 @@
         "access_removed": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/AccessKey"
+            "$ref": "#/$defs/RemovedAccess"
           }
         },
         "max_cpu_mhz": {
