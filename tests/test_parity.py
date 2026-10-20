@@ -1,5 +1,6 @@
 """Parity with each consumer's current data, except an allow-list with reasons (#13)."""
 
+import dataclasses
 import json
 from pathlib import Path
 
@@ -19,16 +20,19 @@ def helia_aot(target: Target) -> dict:
     """The ``targets.json`` facts heliaAOT's adapter derives (RFC 0003 "How consumers migrate").
 
     ``min_alignment`` and ``preferred_memory_order`` are heliaAOT policy and are not compared.
+    heliaAOT 0.33.0 has no PSRAM capability; PSRAM is only a memory there.
     """
     memories: dict[str, int] = {}
     for region in target.memories():
-        if region.attachment == "external":
-            kind = "PSRAM" if region.technology == "psram" else None
-        else:
-            kind = region.name.upper() if region.attachment == "tcm" else "SRAM"
-            kind = kind if region.technology == "sram" else None
-        if kind:
-            memories[kind] = memories.get(kind, 0) + region.size
+        if region.attachment == "external" or region.technology != "sram":
+            continue
+        if region.name == "hblram":  # out of the budget until its placement is confirmed (#19)
+            continue
+        kind = region.name.upper() if region.attachment == "tcm" else "SRAM"
+        memories[kind] = memories.get(kind, 0) + region.size
+    psram = [r.size for r in target.external_memories() if r.technology == "psram"]
+    if psram:
+        memories["PSRAM"] = sum(psram)
     memories["MRAM"] = sum(target.usable_nvm().values())
     return {
         "cpu": target.core.id,
@@ -51,12 +55,13 @@ def helia_aot_record(record: dict) -> dict:
     }
 
 
-def differences(consumer: str) -> set[tuple[str, str]]:
-    """``(target, field)`` for each value the catalog gives differently from ``consumer``."""
+def compare(consumer: str) -> tuple[set[tuple[str, str]], set[tuple[str, str]]]:
+    """``(target, field)`` for each value compared with ``consumer``, and for each that differs."""
     assert consumer == "helia-aot"
     records = json.loads((PARITY / "helia-aot" / "targets.json").read_text())["targets"]
+    assert records, "the fixture holds no targets"
     catalog = builtin(include_plugins=False)
-    found = set()
+    compared, found = set(), set()
     for record in records:
         try:
             ours = helia_aot(catalog.resolve(record["name"]))
@@ -64,12 +69,15 @@ def differences(consumer: str) -> set[tuple[str, str]]:
             found.add((record["name"], "target"))
             continue
         theirs = helia_aot_record(record)
-        found |= {
-            (record["name"], key)
-            for key in ours.keys() | theirs.keys()
-            if ours.get(key) != theirs.get(key)
-        }
-    return found
+        keys = {(record["name"], key) for key in ours.keys() | theirs.keys()}
+        compared |= keys
+        found |= {(name, key) for name, key in keys if ours.get(key) != theirs.get(key)}
+    return compared, found
+
+
+def differences(consumer: str) -> set[tuple[str, str]]:
+    """``(target, field)`` for each value the catalog gives differently from ``consumer``."""
+    return compare(consumer)[1]
 
 
 def allowed(consumer: str) -> set[tuple[str, str]]:
@@ -90,3 +98,29 @@ def test_every_allow_list_entry_has_a_reason_and_an_issue():
     for entry in ALLOW["allowed"]:
         assert entry["reason"].strip() and entry["issue"].strip(), entry
         assert entry["consumer"] in ALLOW["consumers"], entry
+
+
+@pytest.mark.parametrize("consumer", sorted(ALLOW["consumers"]))
+def test_values_are_compared(consumer):
+    compared, found = compare(consumer)
+    assert {"cpu", "speeds_mhz", "memories.SRAM", "memories.MRAM"} <= {key for _, key in compared}
+    assert compared - found  # some values agree, so the projection lines up
+
+
+def test_hblram_is_left_out_and_psram_counted_whatever_core_0_reaches():
+    """RFC 0002 0002-migration.md, heliaAOT budgets: HBLRAM waits on #19."""
+    target = builtin(include_plugins=False).resolve("apollo510_evb")
+    ssram = target.region("ssram")
+    hblram = dataclasses.replace(ssram, name="hblram", size=13312 << 10)
+    on_chip = tuple(r for r in target.memories() if r.attachment != "external")
+
+    class Reduced:  # core 0 reaches HBLRAM but no external memory
+        def __getattr__(self, name):
+            return getattr(target, name)
+
+        def memories(self):
+            return (*on_chip, hblram)
+
+    ours = helia_aot(Reduced())  # type: ignore[arg-type]
+    assert ours["memories.SRAM"] == ssram.size
+    assert ours["memories.PSRAM"] == 64 << 20
