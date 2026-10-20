@@ -123,6 +123,7 @@ class Target:
 
     def reachable(self, master: str, target: str) -> model.Access | None:
         """``master``'s ``Access`` entry for ``target`` (an external region's: its controller's)."""
+        master, target = master.casefold(), target.casefold()
         controller = self._controller_of(target)
         key = controller if controller is not None else target
         return next((a for a in self._access if a.master == master and a.target == key), None)
@@ -178,6 +179,7 @@ class Target:
 
     def region(self, name: str) -> model.MemoryRegion:
         """A region by name; on an FVP, also a Soc region one of its regions stands in for."""
+        name = name.casefold()
         for region in (*self.soc.memories, *self.external_memories()):
             if region.name == name:
                 return region
@@ -193,6 +195,7 @@ class Target:
         technology: str | None = None,
         attachment: str | None = None,
     ) -> bool:
+        name = None if name is None else name.casefold()
         return any(
             name in (None, r.name)
             and technology in (None, r.technology)
@@ -239,6 +242,7 @@ class Target:
         For a domain with no ``name``, the point the default system point selects.
         """
         if domain is not None:
+            domain = domain.casefold()
             if name is None:
                 default = self._system_point(None)
                 name = default.domains.get(domain)
@@ -302,11 +306,14 @@ class Target:
 
     @property
     def trace_clock_mhz(self) -> float | None:
-        """The board's measured trace clock, else the implementation's, else the SDK's."""
-        for owner in (self.board, self.implementation):
-            if owner is not None and owner.trace_clock_mhz is not None:
-                return owner.trace_clock_mhz
-        return self.soc.sdk.trace_clock_mhz if self.soc.sdk else None
+        """The board's measured trace clock, else the implementation's, else the SDK's.
+
+        A whole number of MHz is an ``int``; a fraction is kept, since SWO divides it.
+        """
+        for owner in (self.board, self.implementation, self.soc.sdk):
+            if owner is not None and (mhz := owner.trace_clock_mhz) is not None:
+                return int(mhz) if mhz == int(mhz) else mhz
+        return None
 
     @property
     def sdk(self) -> model.SdkFacts | None:
@@ -321,7 +328,7 @@ class Target:
         return _pick(self.soc.npus, npu, f"{self.id}: no NPU")
 
     def _master(self, master: int | str) -> str:
-        return self._core(master).id if isinstance(master, int) else master
+        return self._core(master).id if isinstance(master, int) else master.casefold()
 
     def _core_ip(self, instance: model.CoreInstance) -> model.Core:
         return self._catalog._entry("cores", instance.core)
@@ -330,13 +337,14 @@ class Target:
         return next((c for r, c in self._external if r.name == name), None)
 
     def _domain(self, domain: str) -> model.ClockDomain:
-        found = next((d for d in self.soc.clock_domains if d.id == domain), None)
+        found = next((d for d in self.soc.clock_domains if d.id == domain.casefold()), None)
         if found is None:
             raise PlatformError(f"{self.id} has no clock domain {domain!r}")
         return found
 
     def _domain_point(self, domain: str, name: str | None) -> model.DomainPoint:
-        point = next((p for p in self._domain(domain).points if p.name == name), None)
+        folded = None if name is None else name.casefold()
+        point = next((p for p in self._domain(domain).points if p.name == folded), None)
         if point is None:
             raise PlatformError(f"{self.id}: domain {domain!r} has no point {name!r}")
         return point
@@ -345,7 +353,7 @@ class Target:
         name = name if name is not None else self.soc.default_operating_point
         if name is None:
             raise PlatformError(f"{self.id} has no default operating point; name one")
-        point = next((p for p in self.soc.operating_points if p.name == name), None)
+        point = next((p for p in self.soc.operating_points if p.name == name.casefold()), None)
         if point is None:
             raise PlatformError(f"{self.id} has no operating point {name!r}")
         return point
@@ -379,6 +387,6 @@ def _pick(items: tuple[_Unit, ...], key: int | str, missing: str) -> _Unit:
             return items[key]
     else:
         for item in items:
-            if item.id == key:
+            if item.id == key.casefold():
                 return item
     raise PlatformError(f"{missing} {key!r}")
