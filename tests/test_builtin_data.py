@@ -10,7 +10,7 @@ def catalog() -> Catalog:
 
 def test_the_packaged_data_loads(catalog):
     assert [s.id for s in catalog.socs()] == ["apollo510"]
-    assert {c.id for c in catalog.cores()} == {"cortex-m4", "cortex-m55"}
+    assert [c.id for c in catalog.cores()] == ["cortex-m55"]
     assert {p.id for p in catalog.parts()} == {"AP510NFA-CBR", "AP510NFA-IBR", "AP510NFA-CCR"}
     assert [b.id for b in catalog.boards()] == ["apollo510_evb"]
     assert [d.id for d in catalog.memory_devices()] == ["APS512XX"]
