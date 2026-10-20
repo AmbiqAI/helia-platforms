@@ -83,14 +83,14 @@ def check(catalog: Catalog, directory: Path) -> Result:
     found = list(_Comparison(catalog, snapshots).findings())
     exceptions = load_exceptions(directory / "exceptions.yaml")
     missing = [f for f in found if f.rule == MISSING]
-    left, excepted = [], []
+    left, excepted, used = [], [], set()
     for finding in found:
-        cover = next((e for e in exceptions if e.covers(finding)), None)
-        if cover is None:
-            left.append(finding)
+        covers = [e for e in exceptions if e.covers(finding)]
+        if covers:
+            excepted.append((finding, covers[0]))
+            used |= {id(e) for e in covers}  # an overlapping exception is in use too
         else:
-            excepted.append((finding, cover))
-    used = {id(e) for _, e in excepted}
+            left.append(finding)
     stale = [
         e
         for e in exceptions
@@ -172,15 +172,13 @@ class _Comparison:
         ]
         if (fpu := _one(facts, "NSX_FPU")) not in (None, ""):
             equal.append(("fpu", "NSX_FPU", core.options.fpu, fpu))
-        if "__FPU_DP" in (cmsis := block["cmsis"]["values"]):
-            fpu_dp = bool(cmsis["__FPU_DP"])
-            yield from _equal(
-                SDK,
-                ("socs", name, "cmsis", "values", "__FPU_DP"),
-                "fpu_dp",
-                core.options.fpu_dp,
-                fpu_dp,
-            )
+        yield from _equal(
+            SDK,
+            ("socs", name, "cmsis", "values", "__FPU_DP"),
+            "fpu_dp",
+            core.options.fpu_dp,
+            bool(block["cmsis"]["values"].get("__FPU_DP", 0)),  # CMSIS reads an absent one as 0
+        )
         for rule, key, ours, theirs in equal:
             yield from _equal(SDK, (*at, key), rule, ours, theirs)
         if sdk.c_define not in facts.get("NSX_SOC_COMPILE_DEFINITIONS", []):
@@ -251,34 +249,46 @@ class _Comparison:
             target.soc.id.casefold(),
             values["soc"].casefold(),
         )
-        soc_block = next((b for k, b in self.sdk.items() if k == values["soc"]), None)
-        if soc_block is None:
+        soc_name = self._sdk_name(values["soc"])
+        if soc_name is None:
             return
-        facts = {**soc_block["facts"]["values"], **block["debug"]["values"]}
-        source = "debug" if "NSX_SEGGER_CPUFREQ" in block["debug"]["values"] else "facts"
-        yield from _equal(
-            NSX,
-            (*at, source, "NSX_SEGGER_CPUFREQ"),
-            "trace clock",
-            target.trace_clock_mhz,
-            _mhz(facts),
-        )
-        address = _one(facts, "NSX_SEGGER_PF_ADDR")
-        if address is not None:
+        debug = block.get("debug", {}).get("values", {})
+        snapshot, path, facts = self._supplier(at, debug, soc_name, "NSX_SEGGER_CPUFREQ")
+        yield from _equal(snapshot, path, "trace clock", target.trace_clock_mhz, _mhz(facts))
+        snapshot, path, facts = self._supplier(at, debug, soc_name, "NSX_SEGGER_PF_ADDR")
+        if (address := _one(facts, "NSX_SEGGER_PF_ADDR")) is not None:
             try:
                 ours: int | str = target.flash_load_address()
             except PlatformError as exc:
                 ours = str(exc)
+            yield from _equal(snapshot, path, "flash load address", ours, int(address, 16))
+        if "linker" not in block:
+            return  # no memory.cmake, so the board names no default scripts
+        board_defaults = block["linker"]["defaults"]
+        sdk_defaults = {
+            toolchain: f"{group['path']}/{group['default']}"
+            for toolchain, group in self.sdk[soc_name]["linker"].items()
+            if "default" in group
+        }
+        for toolchain in sorted(board_defaults.keys() | sdk_defaults.keys()):
             yield from _equal(
-                NSX, (*at, "NSX_SEGGER_PF_ADDR"), "flash load address", ours, int(address, 16)
+                NSX,
+                (*at, "linker", "defaults", toolchain),
+                "default scripts",
+                sdk_defaults.get(toolchain),
+                board_defaults.get(toolchain),
             )
-        sdk_linker = soc_block["linker"]
-        for toolchain, script in block["linker"]["defaults"].items():
-            sdk_default = sdk_linker.get(toolchain)
-            theirs = sdk_default and f"{sdk_default['path']}/{sdk_default['default']}"
-            yield from _equal(
-                NSX, (*at, "linker", "defaults", toolchain), "default scripts", theirs, script
-            )
+
+    def _supplier(
+        self, at: tuple[str, ...], debug: Mapping[str, Any], soc: str, key: str
+    ) -> tuple[str, tuple[str, ...], Mapping[str, Any]]:
+        """Where a board's ``key`` comes from: its ``debug.cmake``, else its Soc's SDK facts."""
+        if key in debug:
+            return NSX, (*at, "debug", "values", key), debug
+        return SDK, ("socs", soc, "facts", "values", key), self.sdk[soc]["facts"]["values"]
+
+    def _sdk_name(self, soc: str) -> str | None:
+        return next((k for k in self.sdk if k.casefold() == soc.casefold()), None)
 
     # -- Zephyr --------------------------------------------------------------------------
 
@@ -298,8 +308,8 @@ class _Comparison:
         )
         nodes = block["devicetree"]["memory"]
         regions = [((node,), n["base"], n["size"]) for node, n in nodes.items()]
-        sdk = next((b for k, b in self.sdk.items() if k.casefold() == soc.casefold()), None)
-        apertures = _apertures(sdk) if sdk else []
+        sdk_name = self._sdk_name(soc)
+        apertures = _apertures(self.sdk[sdk_name]) if sdk_name is not None else []
         yield from self.containment(
             ZEPHYR, (*at, "devicetree", "memory"), regions, target.soc, apertures
         )
@@ -310,8 +320,6 @@ class _Comparison:
         """Each ``sdk`` record citing a snapshotted repository cites a revision held."""
         seen: set[str] = set()
         for (kind, entry_id), tree in sorted(self.catalog._trees.items()):
-            if self.catalog.sources.get((kind, entry_id)) != "builtin":
-                continue
             for path, record in sorted(tree.records.items()):
                 if not record or record.get("status") != "sdk":
                     continue
@@ -321,7 +329,7 @@ class _Comparison:
                         continue
                     seen.add(source)
                     if match["rev"] not in self.revisions.get(match["repo"], set()):
-                        where = f"{kind}.{entry_id}.{'.'.join(path)}" if path else entry_id
+                        where = ".".join((kind, entry_id, *path))
                         yield Finding(
                             _snapshot_of(match["repo"]),
                             ("metadata", "sources"),
@@ -384,12 +392,15 @@ def _linker_regions(block: Mapping[str, Any]) -> Iterator[tuple[tuple[str, ...],
 
 
 def _apertures(block: Mapping[str, Any]) -> list[tuple[int, int]]:
-    """The memory-controller XIP apertures the register header defines, as ``(lo, hi)``."""
+    """The memory-controller XIP apertures the register header defines, as ``[lo, hi)``.
+
+    ``*_APERTURE_END_ADDR`` is already exclusive: MSPI1's end is MSPI2's start.
+    """
     defines = block["registers"]["values"]
     found = []
     for name, start in defines.items():
         if (match := _APERTURE.match(name)) and f"{match[1]}_APERTURE_END_ADDR" in defines:
-            found.append((start, defines[f"{match[1]}_APERTURE_END_ADDR"] + 1))
+            found.append((start, defines[f"{match[1]}_APERTURE_END_ADDR"]))
     return found
 
 

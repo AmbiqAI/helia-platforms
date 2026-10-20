@@ -2,6 +2,7 @@
 
 import json
 import shutil
+import warnings
 from pathlib import Path
 
 import pytest
@@ -9,7 +10,7 @@ import yaml
 from typer.testing import CliRunner
 
 from helia_platforms import _check_sources
-from helia_platforms.catalog import builtin
+from helia_platforms.catalog import builtin, load_overlay
 from helia_platforms.cli import app
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -69,7 +70,8 @@ def test_the_flash_load_address_follows_the_board_provisioning(snapshots):
 
     edit(snapshots, _check_sources.SDK, change)
     (found,) = [f for f in findings(snapshots) if f.rule == "flash load address"]
-    assert found.at == ("boards", "apollo510_evb", "NSX_SEGGER_PF_ADDR")
+    at = ("socs", "apollo510", "facts", "values", "NSX_SEGGER_PF_ADDR")  # where it comes from
+    assert (found.snapshot, found.at) == (_check_sources.SDK, at)
     assert found.message == "catalog 0x410000, snapshot 0x400000"
 
 
@@ -79,7 +81,101 @@ def test_a_board_debug_override_wins_over_the_soc_facts(snapshots):
 
     edit(snapshots, _check_sources.NSX, change)
     (found,) = [f for f in findings(snapshots) if f.rule == "trace clock"]
-    assert found.at == ("boards", "apollo510_evb", "debug", "NSX_SEGGER_CPUFREQ")
+    at = ("boards", "apollo510_evb", "debug", "values", "NSX_SEGGER_CPUFREQ")
+    assert (found.snapshot, found.at) == (_check_sources.NSX, at)
+
+
+def except_(directory: Path, snapshot: str, at: list[str], rule: str) -> None:
+    path = directory / "exceptions.yaml"
+    document = yaml.safe_load(path.read_text())
+    entry = {"snapshot": snapshot, "at": at, "rule": rule, "reason": "x", "issue": "#1"}
+    document["exceptions"].append(entry)
+    path.write_text(yaml.safe_dump(document))
+
+
+@pytest.mark.parametrize(
+    ("snapshot", "change", "at"),
+    [
+        pytest.param(
+            _check_sources.NSX,
+            lambda d: d["boards"]["apollo510_evb"]["debug"]["values"].update(
+                NSX_SEGGER_CPUFREQ=["48000000"]
+            ),
+            ["boards", "apollo510_evb", "debug", "values", "NSX_SEGGER_CPUFREQ"],
+            id="board override",
+        ),
+        pytest.param(
+            _check_sources.SDK,
+            lambda d: d["socs"]["apollo510"]["facts"]["values"].update(
+                NSX_SEGGER_CPUFREQ=["48000000"]
+            ),
+            ["socs", "apollo510", "facts", "values", "NSX_SEGGER_CPUFREQ"],
+            id="sdk fallback",
+        ),
+    ],
+)
+def test_an_exception_at_the_supplying_path_covers_a_board_value(snapshots, snapshot, change, at):
+    edit(snapshots, snapshot, change)
+    except_(snapshots, snapshot, at, "trace clock")
+    result = _check_sources.check(builtin(include_plugins=False), snapshots)
+    assert result.ok, _check_sources.render(result)
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        pytest.param(lambda b, s: b.pop("debug"), id="no debug.cmake"),
+        pytest.param(lambda b, s: b.pop("linker"), id="no memory.cmake"),
+        pytest.param(lambda b, s: s["linker"]["gcc"].pop("default"), id="no sdk default"),
+    ],
+)
+def test_a_snapshot_may_omit_its_optional_sections(snapshots, change):
+    nsx = json.loads((snapshots / _check_sources.NSX).read_text())
+    sdk = json.loads((snapshots / _check_sources.SDK).read_text())
+    change(nsx["boards"]["apollo510_evb"], sdk["socs"]["apollo510"])
+    (snapshots / _check_sources.NSX).write_text(json.dumps(nsx))
+    (snapshots / _check_sources.SDK).write_text(json.dumps(sdk))
+    assert {f.rule for f in findings(snapshots)} <= {"default scripts"}
+
+
+def test_a_default_script_the_board_drops_is_reported(snapshots):
+    edit(
+        snapshots,
+        _check_sources.NSX,
+        lambda d: d["boards"]["apollo510_evb"]["linker"]["defaults"].pop("gcc"),
+    )
+    (found,) = findings(snapshots)
+    assert (found.rule, found.at[-1]) == ("default scripts", "gcc")
+
+
+def test_the_board_soc_is_matched_to_the_sdk_ignoring_case(snapshots):
+    edit(
+        snapshots,
+        _check_sources.NSX,
+        lambda d: d["boards"]["apollo510_evb"]["board"]["values"].update(soc="Apollo510"),
+    )
+
+    def change(data):
+        data["socs"]["apollo510"]["facts"]["values"]["NSX_SEGGER_PF_ADDR"] = ["0x00400000"]
+
+    edit(snapshots, _check_sources.SDK, change)
+    assert [f.rule for f in findings(snapshots)] == ["flash load address"]
+
+
+def test_a_missing_fpu_dp_define_reads_as_single_precision(snapshots):
+    edit(
+        snapshots,
+        _check_sources.SDK,
+        lambda d: d["socs"]["apollo510"]["cmsis"]["values"].pop("__FPU_DP"),
+    )
+    (found,) = findings(snapshots)
+    assert (found.rule, found.message) == ("fpu_dp", "catalog True, snapshot False")
+
+
+def test_overlapping_exceptions_are_all_in_use(snapshots):
+    except_(snapshots, _check_sources.SDK, ["socs"], _check_sources.MISSING)
+    result = _check_sources.check(builtin(include_plugins=False), snapshots)
+    assert result.ok, _check_sources.render(result)
 
 
 def test_register_defines_are_compared_with_region_bases_and_sizes(snapshots):
@@ -108,6 +204,17 @@ def test_a_region_may_span_adjoining_regions(snapshots):
 
     edit(snapshots, _check_sources.SDK, change)
     assert [f for f in findings(snapshots) if f.rule == "region containment"] == []
+
+
+def test_an_aperture_end_is_exclusive(snapshots):
+    def change(data):
+        memory = data["boards"]["apollo510_evb"]["devicetree"]["memory"]
+        memory["/memory@6ffff000"] = {"base": 0x6FFFF000, "size": 0x1000}  # MSPI0's last page
+        memory["/memory@70000000"] = {"base": 0x70000000, "size": 1}  # at MSPI0_APERTURE_END_ADDR
+
+    edit(snapshots, _check_sources.ZEPHYR, change)
+    (found,) = findings(snapshots)
+    assert (found.rule, found.at[-1]) == ("region containment", "/memory@70000000")
 
 
 def test_a_zephyr_node_in_an_xip_aperture_is_external_memory(snapshots):
@@ -139,6 +246,19 @@ def test_an_sdk_record_must_cite_a_snapshotted_revision(snapshots):
     edit(snapshots, _check_sources.SDK, change)
     revisions = [f for f in findings(snapshots) if f.rule == "sdk revision"]
     assert revisions and all("nsx-ambiq-sdk@v5.2.24" in f.message for f in revisions)
+
+
+def test_an_overlay_record_must_cite_a_snapshotted_revision(snapshots):
+    source = "repo:AmbiqAI/nsx-ambiq-sdk@v9.9.9:README.md:1"
+    record = {"status": "sdk", "source": [source]}
+    device = {"technology": "psram", "capacity": "8M", "provenance": record}
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        document = {"schema_version": 1, "memory_devices": {"extra": device}}
+        catalog = load_overlay(document, base=builtin(include_plugins=False))
+    found = _check_sources.check(catalog, snapshots).findings
+    assert [f.rule for f in found] == ["sdk revision"]
+    assert found[0].message.startswith("memory_devices.extra cites AmbiqAI/nsx-ambiq-sdk@v9.9.9")
 
 
 def test_an_id_the_catalog_lacks_needs_an_exception(snapshots):
