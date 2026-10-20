@@ -149,6 +149,13 @@ class AccessKey(TypedDict):
     target: Required[Name]
 
 
+class RemovedAccess(_Facts):
+    """A pair an implementation's subset removes: a fact, unlike a ``based_on`` delta's pair."""
+
+    master: Required[Name]
+    target: Required[Name]
+
+
 class DefaultAccess(_Facts):
     master: Required[Name]
     access: Required[Literal["direct"]]
@@ -315,7 +322,7 @@ class Subset(_Facts, total=False):
     clock_domains_removed: Annotated[list[DomainPointRef], BY_VALUE]
     boot_configs_removed: Names
     operating_points_removed: Names
-    access_removed: Annotated[list[AccessKey], Keyed(("master", "target"))]
+    access_removed: Annotated[list[RemovedAccess], Keyed(("master", "target"))]
     max_cpu_mhz: Mhz
     max_npu_mhz: Mhz
     max_domain_mhz: dict[Name, Mhz]

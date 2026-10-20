@@ -10,13 +10,14 @@ import threading
 import warnings
 from pathlib import Path
 from types import MappingProxyType, SimpleNamespace
-from typing import Any
+from typing import Any, get_args
 
 import pytest
 from typer.testing import CliRunner
 
 from conftest import BASE_DOCUMENT, RECORD, REGISTER, SDK_SOURCE, as_builtin
-from helia_platforms import _digest, catalog, cli, model
+from helia_platforms import _digest, _walk, catalog, cli, model
+from helia_platforms import _format as fmt
 from helia_platforms._build import freeze
 from helia_platforms._tree import MergeError
 from helia_platforms.catalog import (
@@ -124,6 +125,40 @@ def test_a_keyed_item_whose_key_carries_a_record(document):
     first = load_overlay(document)._entry("socs", "soc_a").access[0]
     assert first.master == "npu_0"
     assert first.field_provenance["master"].status == "sdk"
+
+
+def test_a_subset_record_reaches_its_removed_access_pairs(document):
+    subset = {
+        "access_removed": [{"master": "npu_0", "target": "tcm"}],
+        "provenance": {"status": "sdk", "source": [SDK_SOURCE]},
+    }
+    document["implementations"] = {"cut": {"soc": "soc_a", "kind": "fpga", "subset": subset}}
+    held = load_overlay(document)._entry("implementations", "cut").field_provenance
+    for key in ("master", "target"):
+        assert held[f"subset.access_removed.npu_0@tcm.{key}"].status == "sdk"
+
+
+def _objects_holding_facts(tp: Any, seen: set) -> set:
+    """Each declared object that ``iter_values`` descends into below ``tp`` (#106)."""
+    bare, markers = _walk.unwrap(tp)
+    if fmt.NOT_FACT in markers or fmt.OPAQUE in markers:
+        return set()
+    if _walk.is_object(bare):
+        if bare in seen:
+            return set()
+        seen.add(bare)
+        found = {bare}
+        for field in _walk.fields(bare).values():
+            found |= _objects_holding_facts(field.type, seen)
+        return found
+    return set().union(*(_objects_holding_facts(arg, seen) for arg in get_args(bare)))
+
+
+def test_every_object_iter_values_reads_facts_from_may_carry_a_record():
+    """Otherwise the loader gives its values no record while ``iter_values`` lists them."""
+    seen: set = set()
+    found = set().union(*(_objects_holding_facts(t, seen) for t in fmt.ENTITY_TABLES.values()))
+    assert {o.__name__ for o in found if not _walk.carries_facts(o)} == set()
 
 
 def test_integer_valued_floats_in_address_lists_become_integers(document):

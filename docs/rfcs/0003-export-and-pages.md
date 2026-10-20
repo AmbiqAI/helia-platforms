@@ -185,8 +185,10 @@ The command line enforces the path:
 The default export carries no provenance records. `catalog` omits every
 `provenance` key and writes plain values in place of the `{value,
 provenance}` form, as the projection that `catalog_digest` hashes does
-(ADR 0004 point 1). Pages show the worst status per group from
-`Target.provenance()`, which needs no record.
+(ADR 0004 point 1). Pages were to show the worst status per group from
+`Target.provenance()`, which needs no record; that query is deferred
+until the estimator adapter defines its roll-up (#58), so pages show no
+status until it exists (open question 3).
 
 `--provenance` writes the full records into `catalog` in the file
 format, for `--json` only. ADR 0005 point 2 requires an audit of the

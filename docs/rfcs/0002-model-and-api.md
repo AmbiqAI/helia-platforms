@@ -244,9 +244,11 @@ its own `interfaces` and `population`. The built-in `atomiq110_fpga_turbo`
   `:86`); 50 MHz has status `unverified` (owner statement). The provenance note records the owner's
   "about one tenth of the silicon clock"; it is not a scale factor.
 - `peripherals_removed`: IOM2 and above (`am_bsp.c:1177-1179`).
-- J-Link device in both spellings, `ATOMIQ110` (AmbiqSuite) and
-  `Atomiq110` (neuralspotx `debug.cmake`); no source says J-Link matches
-  names case-insensitively, so the spelling is to be reconciled (#19).
+- J-Link device `Atomiq110`, the spelling of the SDK facts file and
+  neuralspotx `debug.cmake`, with AmbiqSuite's `ATOMIQ110` recorded in the
+  provenance notes (decided on #68). No source says J-Link matches names
+  case-insensitively, and `Atomiq110` is not in SEGGER's stock database
+  (#19).
 - `trace_clock_mhz: 48`, status `measured`. The 48 MHz was measured once,
   on one FPGA image that the source does not name; whether the trace
   clock varies by FPGA image is open (#19). The 48 MHz reference with
@@ -557,7 +559,7 @@ implementations:
       nbl_fpga: {reserved: {}, app_start: {region: rram, offset: 0}, requires: none}
     default_boot: nbl_fpga
     provisioning: nbl_fpga
-    jlink_device: ATOMIQ110              # carrier facts: an FPGA needs no board
+    jlink_device: Atomiq110              # carrier facts: an FPGA needs no board
 ```
 
 A MemoryDevice (an illustrative customer part):
@@ -622,8 +624,9 @@ This is the one definition of both relations.
   keep the base entry's provenance; changed values take the overlay's
   provenance as declared, or status `unverified` where none is declared.
 - `derives_from` is a relation between built-in Socs: a variant that
-  shares another Soc's SDK headers (apollo510b and apollo5b derive from
-  apollo510). The validator requires equal physical regions.
+  shares another Soc's SDK headers (apollo510b derives from apollo510;
+  apollo5b, which also reads apollo510's headers, is not in the catalog,
+  #64). The validator requires equal physical regions.
 - An overlay `based_on` does not imply `derives_from`. `my_soc` above is
   based on apollo510 but does not derive from it, and its resized SSRAM
   would fail the `derives_from` rule.
@@ -689,7 +692,7 @@ below is the resolved object returned by `resolve()`.
 | NPU family, model, MACs, AXI width | `target.npu.npu.family`, `.model`, `.macs_per_cycle`; `target.npu.axi_width_bits` | package |
 | Which memories the NPU reaches and over which port class | `target.reachable(target.npu.id, region)`: the NPU's access entries, with `port` | package |
 | Memory read and write latency, outstanding transactions, burst, AXI clock | `target.reachable(target.npu.id, name).characterization` where present, which overrides the region's for that master; else `target.region(name).characterization`; with provenance | package |
-| Revision, origin, provenance roll-up | `target.soc.revision`, `target.origin`, `target.provenance()` | package |
+| Revision, origin, provenance roll-up | `target.soc.revision`, `target.origin`; the roll-up is deferred (`provenance()` below) | package |
 | Vela memory mode for a placement; system-config file | helia-npu, from the port classes above | helia-npu |
 | Burst-split codes, timing-adapter programming | helia-npu | helia-npu |
 | Which memory holds const, arena, cache in a run | estimator run configuration | estimator |
@@ -867,7 +870,7 @@ class Target:
     # debug and SDK
     jlink_device: str | None; trace_clock_mhz: int | None; sdk: SdkFacts   # board, else implementation, else part / SDK
     aliases: tuple[str, ...]
-    def provenance(self) -> ProvenanceSummary                 # worst status per group, for reports
+    # provenance(): deferred until the estimator adapter defines the roll-up it needs (#58)
 ```
 
 `core=` and `npu=` take an index or an id. `IsaFeatures` carries `has_dsp`, `has_mve`, `mve_flavour`, `supports_fp16`,
