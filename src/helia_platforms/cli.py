@@ -208,12 +208,12 @@ def export(  # noqa: PLR0917 (typer reads each parameter as an option)
             _usage("--check needs a --json file, not -")
         typer.echo(text, nl=False)
     elif check:
-        current = json_file.read_text(encoding="utf-8") if json_file.is_file() else None
-        if current != text:
+        current = json_file.read_bytes() if json_file.is_file() else None
+        if current != text.encode():
             typer.echo(f"{json_file} differs from a fresh export", err=True)
             raise typer.Exit(1)
     else:
-        json_file.write_text(text, encoding="utf-8")
+        json_file.write_bytes(text.encode())  # no newline translation
 
 
 def _publishable(

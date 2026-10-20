@@ -175,7 +175,11 @@ def _devices(
     implementation: model.Implementation | None,
     addons: tuple[model.AddOn, ...],
 ) -> tuple[tuple[model.MemoryInterface, model.MemoryDevice], ...]:
-    """(interface, device) for each population: the implementation's, the board's, then add-ons'."""
+    """(interface, device) for each population: the implementation's, the board's, then add-ons'.
+
+    Within one population, interfaces go in name order: a mapping's order is not a fact
+    (ADR 0004 point 1), and it decides the ``<technology><n>`` names.
+    """
     populations: list[tuple[Mapping[str, model.MemoryInterface], Mapping[str, str]]] = []
     if implementation is not None:
         populations.append((implementation.interfaces, implementation.population))
@@ -185,7 +189,7 @@ def _devices(
     return tuple(
         (interfaces[name], catalog._entry("memory_devices", device_id))
         for interfaces, population in populations
-        for name, device_id in population.items()
+        for name, device_id in sorted(population.items())
     )
 
 
@@ -202,8 +206,9 @@ def _select_boot(
         None,
     )
     if boot is not None:
-        if boot not in soc.boot_configs:
+        if boot.casefold() not in soc.boot_configs:
             raise PlatformError(f"{entry_id} has no boot configuration {boot!r}")
+        boot = boot.casefold()
         if board is not None and board.provisioning not in (None, boot):
             warnings.warn(
                 f"{entry_id}: boot {boot!r} differs from the board's provisioning "

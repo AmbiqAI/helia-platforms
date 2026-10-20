@@ -89,6 +89,34 @@ def test_records_survive_a_round_trip():
             assert entry == catalog._entry(kind, entry_id), (kind, entry_id)
 
 
+def test_exported_records_are_copies():
+    catalog = builtin(include_plugins=False)
+    before = export.render(export.document(catalog, provenance=True))
+    written = export.document(catalog, provenance=True)["catalog"]["socs"]["apollo510"]
+    written["provenance"]["source"].append("doc:changed@1:p1")
+    written["provenance"]["notes"] = "changed"
+    assert export.render(export.document(catalog, provenance=True)) == before
+
+
+def test_external_memory_names_survive_the_json_form(document):
+    """Sorted keys reorder a population; the ``<technology><n>`` names must not follow."""
+    board = document["boards"]["board_a"]
+    board["interfaces"]["iom0"] = {"controller": "iom0", "aperture_base": 0x70000000}
+    document["memory_devices"]["psram_2m"] = {"technology": "psram", "capacity": "2M"}
+    board["population"] = {"mspi0": "psram_8m", "iom0": "psram_2m"}  # not in name order
+    catalog = overlay(public(document))
+    back = overlay(json.loads(export.render(catalog.to_dict()))["catalog"])
+
+    def answers(target):
+        return [
+            (r.name, r.base, r.size, target.reachable("cm55_0", r.name).target)
+            for r in target.external_memories()
+        ]
+
+    assert answers(catalog.resolve("board_a")) == answers(back.resolve("board_a"))
+    assert answers(back.resolve("board_a"))[0] == ("psram0", 0x70000000, 2 << 20, "iom0")
+
+
 def test_values_survive_a_round_trip_without_records(document):
     catalog = overlay(public(document))
     back = overlay(catalog.to_dict()["catalog"])
@@ -246,6 +274,9 @@ def test_the_cli_writes_and_checks_the_export(tmp_path):
     assert "differs from a fresh export" in result.output
     missing = tmp_path / "missing.json"
     assert runner.invoke(app, ["export", "--json", str(missing), "--check"]).exit_code == 1
+    fresh = export.render(builtin(include_plugins=False).to_dict())
+    path.write_bytes(fresh.replace("\n", "\r\n").encode())  # what read_text would hide
+    assert runner.invoke(app, ["export", "--json", str(path), "--check"]).exit_code == 1
 
 
 def test_the_cli_export_names_an_overlay_in_identity(tmp_path):
