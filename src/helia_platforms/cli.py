@@ -7,7 +7,7 @@ from typing import Annotated, NoReturn
 
 import typer
 
-from helia_platforms import __version__, _show
+from helia_platforms import __version__, _pages, _show
 from helia_platforms import export as _export
 from helia_platforms.catalog import Catalog, builtin, load_overlay
 from helia_platforms.errors import FormatError, PlatformError
@@ -168,21 +168,40 @@ def export(  # noqa: PLR0917 (typer reads each parameter as an option)
         bool,
         typer.Option("--check", help="Fail if the --json file differs from a fresh export."),
     ] = False,
+    pages: Annotated[
+        Path | None,
+        typer.Option(
+            "--pages", help="Write the Markdown pages into this directory.", file_okay=False
+        ),
+    ] = None,
+    release: Annotated[
+        Path | None,
+        typer.Option(
+            "--release", help="Write the export and the pages archive here.", file_okay=False
+        ),
+    ] = None,
     include_plugins: Annotated[
         bool,
         typer.Option("--include-plugins", help="Add side-loaded catalogs (internal use only)."),
     ] = False,
     overlay: Overlays = None,
 ) -> None:
-    """Write a JSON Schema or the JSON export (RFC 0003)."""
-    if sum((schema, export_schema, json_file is not None)) != 1:
-        _usage("pass exactly one of --schema, --export-schema and --json")
-    if json_file is None and (provenance or check or include_plugins or overlay):
+    """Write a JSON Schema, the JSON export, the Markdown pages or the release assets (RFC 0003)."""
+    outputs = (schema, export_schema, json_file is not None, pages is not None, release is not None)
+    if sum(outputs) != 1:
+        _usage("pass exactly one of --schema, --export-schema, --json, --pages and --release")
+    if (pages or release) and (overlay or include_plugins or provenance):
+        _usage("--pages and --release are built from the built-in catalog only")
+    if (schema or export_schema) and (provenance or check or include_plugins or overlay):
         _usage("--provenance, --check, --include-plugins and --overlay need --json")
-    if json_file is None:
+    if schema or export_schema:
         typer.echo(render(export=export_schema), nl=False)
         return
     catalog = _catalog(not include_plugins, overlay)
+    if pages or release:
+        _publishable(catalog, pages, release, check=check)
+        return
+    assert json_file is not None
     text = _export.render(_export.document(catalog, provenance=provenance))
     if str(json_file) == "-":
         if check:
@@ -195,6 +214,30 @@ def export(  # noqa: PLR0917 (typer reads each parameter as an option)
             raise typer.Exit(1)
     else:
         json_file.write_bytes(text.encode())  # no newline translation
+
+
+def _publishable(
+    catalog: Catalog, pages: Path | None, release: Path | None, *, check: bool
+) -> None:
+    """Write or check pages or release assets, which name no source (RFC 0003 publishable path)."""
+    if catalog.identity().sources:
+        typer.echo(
+            "refusing to write: the catalog names a source besides the built-in data", err=True
+        )
+        raise typer.Exit(1)
+    try:
+        files = _pages.render(catalog) if pages else _pages.release(catalog)
+    except PlatformError as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(1) from None
+    directory = pages or release
+    assert directory is not None
+    if check:
+        if _pages.differences(directory, files):
+            typer.echo(f"{directory} differs from a fresh export", err=True)
+            raise typer.Exit(1)
+        return
+    _pages.write(directory, files)
 
 
 def _usage(message: str) -> NoReturn:
