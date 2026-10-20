@@ -188,7 +188,11 @@ class _Comparison:
                 "c_define",
                 f"{sdk.c_define!r} is not among the compile definitions",
             )
-        boards = [b for b in self.nsx.values() if b["board"]["values"]["soc"] == name]
+        boards = [
+            b
+            for b in self.nsx.values()
+            if b["board"]["values"]["soc"].casefold() == name.casefold()
+        ]
         for board in boards:
             theirs = sorted(board["board"]["values"]["toolchains"])
             yield from _equal(
@@ -216,21 +220,26 @@ class _Comparison:
         self,
         snapshot: str,
         at: tuple[str, ...],
-        regions: Iterable[tuple[tuple[str, ...], int, int]],
+        regions: Iterable[tuple[tuple[str, ...], int, int | None]],
         soc: model.Soc,
         apertures: list[tuple[int, int]],
     ) -> Iterator[Finding]:
-        """Each region inside one gap-free run of physical regions, or an external aperture."""
+        """Each region inside one gap-free run of physical regions, or an external aperture.
+
+        A region with no length (an unsized scatter execution region) is checked by its origin.
+        """
         runs = _runs(soc)
         for path, base, size in regions:
-            if any(lo <= base and base + size <= hi for lo, hi in apertures):
+            end = base + (1 if size is None else size)
+            if any(lo <= base and end <= hi for lo, hi in apertures):
                 continue  # external memory, which ADR 0006 does not compare
-            if not any(lo <= base and base + size <= hi for lo, hi in runs):
+            if not any(lo <= base and end <= hi for lo, hi in runs):
+                span = f"{base:#x} (no length)" if size is None else f"{base:#x}+{size:#x}"
                 yield Finding(
                     snapshot,
                     (*at, *path),
                     "region containment",
-                    f"{base:#x}+{size:#x} lies in no gap-free run of {soc.id}'s regions",
+                    f"{span} lies in no gap-free run of {soc.id}'s regions",
                 )
 
     # -- neuralspotx ---------------------------------------------------------------------
@@ -384,11 +393,13 @@ def _mhz(facts: Mapping[str, list[str]]) -> float | None:
     return whole if rest == 0 else int(hz) / 1_000_000
 
 
-def _linker_regions(block: Mapping[str, Any]) -> Iterator[tuple[tuple[str, ...], int, int]]:
+def _linker_regions(
+    block: Mapping[str, Any],
+) -> Iterator[tuple[tuple[str, ...], int, int | None]]:
     for toolchain, linker in block["linker"].items():
         for script, regions in linker["scripts"].items():
             for region, r in regions.items():
-                yield (toolchain, "scripts", script, region), r["origin"], r["length"]
+                yield (toolchain, "scripts", script, region), r["origin"], r.get("length")
 
 
 def _apertures(block: Mapping[str, Any]) -> list[tuple[int, int]]:

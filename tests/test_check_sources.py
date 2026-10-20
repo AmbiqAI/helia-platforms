@@ -162,6 +162,15 @@ def test_the_board_soc_is_matched_to_the_sdk_ignoring_case(snapshots):
     assert [f.rule for f in findings(snapshots)] == ["flash load address"]
 
 
+def test_board_toolchains_are_compared_ignoring_the_soc_case(snapshots):
+    def change(data):
+        values = data["boards"]["apollo510_evb"]["board"]["values"]
+        values.update(soc="Apollo510", toolchains=["armclang"])
+
+    edit(snapshots, _check_sources.NSX, change)
+    assert [f.rule for f in findings(snapshots)] == ["toolchains"]
+
+
 def test_a_missing_fpu_dp_define_reads_as_single_precision(snapshots):
     edit(
         snapshots,
@@ -195,6 +204,21 @@ def test_a_linker_region_outside_every_run_of_regions_is_reported(snapshots):
     edit(snapshots, _check_sources.SDK, change)
     (found,) = [f for f in findings(snapshots) if f.rule == "region containment"]
     assert found.at[-2:] == ("linker_script_sbl.ld", "MCU_MRAM")
+
+
+def test_an_unsized_scatter_region_is_checked_by_its_origin(snapshots):
+    def change(data):
+        soc = data["socs"]["apollo510"]
+        soc["facts"]["values"]["NSX_SOC_SERIES"] = ["apollo4"]
+        scripts = soc["linker"]["armclang"]["scripts"]["linker_script_sbl.sct"]
+        del scripts["MCU_TCM"]["length"]  # inside the TCM
+        scripts["MCU_MRAM"] = {"origin": 0x50000000}  # in no region and no aperture
+
+    edit(snapshots, _check_sources.SDK, change)
+    found = findings(snapshots)
+    assert sorted(f.rule for f in found) == ["region containment", "series"]  # the rest still ran
+    (outside,) = [f for f in found if f.rule == "region containment"]
+    assert outside.at[-1] == "MCU_MRAM" and outside.message.startswith("0x50000000 (no length)")
 
 
 def test_a_region_may_span_adjoining_regions(snapshots):
