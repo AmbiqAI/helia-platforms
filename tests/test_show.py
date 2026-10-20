@@ -221,3 +221,26 @@ def test_a_record_on_a_removed_access_pair_covers_the_pair():
     (row,) = row_texts(catalog.resolve("soc_a_fpga"), "subset")
     assert "subset.access_removed.npu_0@tcm.master npu_0" in row
     assert row.endswith("[sdk]"), row
+
+
+def test_each_population_row_shows_its_own_device_and_region():
+    """``show`` pairs each interface with the region resolution computed for it."""
+    document = full_document()
+    document["memory_devices"]["psram_2m"] = {"technology": "psram", "capacity": "2M"}
+    board = document["boards"]["board_a"]
+    board["interfaces"]["iom0"] = {
+        "controller": "iom0",
+        "aperture_base": 0x68000000,
+        "aperture_max": "2M",
+    }
+    board["population"] = {  # not in name order
+        "mspi0": "psram_8m",
+        "iom0": {"value": "psram_2m", "provenance": SDK},
+    }
+    target = load_overlay(document, base=builtin(include_plugins=False)).resolve("board_a")
+    (psram0,) = row_texts(target, "psram0")
+    assert psram0.startswith("population.iom0 psram_2m, controller iom0,")
+    assert "(2M at 0x68000000, computed)" in psram0 and psram0.endswith("population.iom0: sdk]")
+    (psram1,) = row_texts(target, "psram1")
+    assert psram1.startswith("population.mspi0 psram_8m, controller mspi0,")
+    assert "(8M at 0x60000000, computed)" in psram1 and psram1.endswith("[unverified]")
