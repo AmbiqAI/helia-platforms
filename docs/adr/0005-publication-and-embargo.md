@@ -209,6 +209,10 @@ another branch cannot deploy to it and the trusted publisher, which names
 in workflow content. The siblings' protected-branches policy is not
 enough here, because that policy depends on the rules on `main`, and this
 repository's `main` has only the Copilot review ruleset.
+Done 2026-10-19 (#45): the `pypi` environment has that policy, with `main`
+its only branch rule, and the repository variable is `false`
+(`gh api repos/AmbiqAI/helia-platforms/environments/pypi`,
+`gh variable list`). Repository admins can still bypass the policy.
 
 #27 can then merge whenever a private 0.1.0 tag is wanted; it uses no
 PyPI version. Also now: pin every action by commit SHA, as the siblings
