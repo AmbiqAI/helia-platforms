@@ -21,6 +21,7 @@ from helia_platforms._build import provenance
 from helia_platforms._tree import Path, iter_values, realize, segment
 from helia_platforms.catalog import Catalog
 from helia_platforms.errors import PlatformError
+from helia_platforms.resolve import in_order
 from helia_platforms.target import Target
 
 #: ``list`` tables, in the order they print.
@@ -459,7 +460,7 @@ def _populations(target: Target, at: _Entries) -> list[tuple[_At, _At, str, mode
         pairs += [(board, at.at("addons", a.id, a)) for a in target.addons]
     found = []
     for owner, populator in pairs:
-        for interface, device_id in populator.obj.population.items():
+        for interface, device_id in in_order(populator.obj.population):
             device = target._catalog._entry("memory_devices", device_id)
             found.append((owner, populator, interface, device))
     return found
