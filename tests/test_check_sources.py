@@ -64,6 +64,27 @@ def test_each_facts_value_is_compared(snapshots, key, value, rule):
     assert [f.rule for f in findings(snapshots)].count(rule) >= 1
 
 
+@pytest.mark.parametrize(
+    ("value", "read"),
+    [
+        *((v, True) for v in ("TRUE", "on", "Yes", "y", "1", "2", "0.5", "-1")),
+        *((v, False) for v in ("FALSE", "off", "No", "n", "0", "0.0", "IGNORE", "X-NOTFOUND", "")),
+        *((v, v) for v in ("MAYBE", "0x1")),  # no CMake boolean, so it equals neither
+    ],
+)
+def test_a_flag_is_read_as_cmake_reads_it(value, read):
+    assert _check_sources._flag({"NSX_SOC_HAS_MVE": [value]}, "NSX_SOC_HAS_MVE") == read
+
+
+@pytest.mark.parametrize(("value", "rules"), [("Y", []), ("N", ["mve"]), ("MAYBE", ["mve"])])
+def test_a_flag_is_compared_with_the_catalog(snapshots, value, rules):
+    def change(data):
+        data["socs"]["apollo510"]["facts"]["values"]["NSX_SOC_HAS_MVE"] = [value]  # catalog: true
+
+    edit(snapshots, _check_sources.SDK, change)
+    assert [f.rule for f in findings(snapshots)] == rules
+
+
 def test_the_flash_load_address_follows_the_board_provisioning(snapshots):
     def change(data):
         data["socs"]["apollo510"]["facts"]["values"]["NSX_SEGGER_PF_ADDR"] = ["0x00400000"]

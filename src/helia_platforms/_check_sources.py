@@ -35,6 +35,10 @@ REGISTERS: dict[str, dict[str, tuple[str, str]]] = {
         "mram": ("MRAM_BASEADDR", "MRAM_MAX_SIZE"),
     },
 }
+#: CMake's boolean constants, compared case-insensitively; a non-zero number is also true.
+_CMAKE_TRUE = {"1", "ON", "YES", "TRUE", "Y"}
+_CMAKE_FALSE = {"0", "OFF", "NO", "FALSE", "N", "IGNORE", "NOTFOUND", ""}
+_NUMBER = re.compile(r"[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?")
 _APERTURE = re.compile(r"^(MSPI\d+)_APERTURE_START_ADDR$")
 _REPO = re.compile(r"^repo:(?P<repo>[^@]+)@(?P<rev>[^:]+):")
 MISSING = "in the catalog"
@@ -380,9 +384,15 @@ def _spell(spelling: Mapping[str, str], facts: Mapping[str, list[str]], key: str
     return spelling.get(value, value) if value is not None else None
 
 
-def _flag(facts: Mapping[str, list[str]], key: str) -> bool | None:
+def _flag(facts: Mapping[str, list[str]], key: str) -> bool | str | None:
+    """``key`` as CMake's ``if(<constant>)`` reads it; any other value is returned as written."""
     value = _one(facts, key)
-    return None if value is None else value.upper() in {"TRUE", "ON", "1", "YES"}
+    if value is None:
+        return None
+    word = value.upper()
+    if word in _CMAKE_TRUE or word in _CMAKE_FALSE or word.endswith("-NOTFOUND"):
+        return word in _CMAKE_TRUE
+    return float(value) != 0 if _NUMBER.fullmatch(value) else value
 
 
 def _mhz(facts: Mapping[str, list[str]]) -> float | None:
