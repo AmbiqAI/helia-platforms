@@ -3,6 +3,7 @@
 import dataclasses
 import json
 from pathlib import Path
+from typing import cast
 
 import pytest
 import yaml
@@ -121,6 +122,6 @@ def test_hblram_is_left_out_and_psram_counted_whatever_core_0_reaches():
         def memories(self):
             return (*on_chip, hblram)
 
-    ours = helia_aot(Reduced())  # type: ignore[arg-type]
+    ours = helia_aot(cast(Target, Reduced()))
     assert ours["memories.SRAM"] == ssram.size
     assert ours["memories.PSRAM"] == 64 << 20
