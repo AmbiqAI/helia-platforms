@@ -189,18 +189,19 @@ exceptions:
     rule: in the catalog
     reason: atomiq110's data lands with #68, once #104 decides how its FPGA is modelled.
     issue: "#68"
+  # These stay as long as the catalog leaves apollo2 out.
   - snapshot: nsx-ambiq-sdk.json
     at: [socs, apollo2]
     rule: in the catalog
-    reason: No data issue covers apollo2; whether the catalog carries it is undecided.
+    reason: The catalog leaves apollo2 out, decided 2026-10-19 on #79.
     issue: "#79"
   - snapshot: neuralspotx.json
     at: [boards, apollo2_evb]
     rule: in the catalog
-    reason: No data issue covers apollo2; whether the catalog carries it is undecided.
+    reason: The catalog leaves apollo2 out, decided 2026-10-19 on #79.
     issue: "#79"
   - snapshot: zephyr.json
     at: [boards, apollo2_evb]
     rule: in the catalog
-    reason: No data issue covers apollo2; whether the catalog carries it is undecided.
+    reason: The catalog leaves apollo2 out, decided 2026-10-19 on #79.
     issue: "#79"
