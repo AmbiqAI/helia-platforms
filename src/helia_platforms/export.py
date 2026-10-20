@@ -156,7 +156,7 @@ def _with_records(  # noqa: PLR0911 (one branch per declared kind)
         declared = _walk.fields(bare)
         own = {}
         if _walk.carries_facts(bare) and record != inherited:
-            own, inherited = {"provenance": record}, record
+            own, inherited = {"provenance": copy.deepcopy(record)}, record
         return own | {
             key: _with_records(item, declared[key].type, (*path, key), records, inherited=inherited)
             for key, item in value.items()
@@ -189,4 +189,4 @@ def _items_differ(items: list, path: Path, records: Mapping[Path, Any], record: 
 
 
 def _wrap(item: Any, record: Any, inherited: Any) -> Any:
-    return item if record == inherited else {"value": item, "provenance": record}
+    return item if record == inherited else {"value": item, "provenance": copy.deepcopy(record)}
