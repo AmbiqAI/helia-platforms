@@ -185,8 +185,17 @@ def _devices(
     return tuple(
         (interfaces[name], catalog._entry("memory_devices", device_id))
         for interfaces, population in populations
-        for name, device_id in population.items()
+        for name, device_id in in_order(population)
     )
+
+
+def in_order(population: Mapping[str, str]) -> list[tuple[str, str]]:
+    """(interface, device id) in interface-name order, the order every caller walks a population.
+
+    A mapping's order is not a fact (ADR 0004 point 1), and this order decides the
+    ``<technology><n>`` names.
+    """
+    return sorted(population.items())
 
 
 def _select_boot(
