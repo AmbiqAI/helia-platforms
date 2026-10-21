@@ -1,4 +1,4 @@
-* @apage224
+* @apage224 @evanchen11
 
 # Each file or directory has its own line so that an owner can be assigned to
 # it without restructuring this file. The last matching line wins, so a path
@@ -7,19 +7,19 @@
 # and the six data file lines below it changed.
 
 # Built-in catalog data (ADR 0002 section 1).
-/src/helia_platforms/data/ @apage224
-/src/helia_platforms/data/socs/ @apage224
-/src/helia_platforms/data/ip.yaml @apage224
-/src/helia_platforms/data/addons.yaml @apage224
-/src/helia_platforms/data/memory_devices.yaml @apage224
-/src/helia_platforms/data/names.yaml @apage224
+/src/helia_platforms/data/ @apage224 @evanchen11
+/src/helia_platforms/data/socs/ @apage224 @evanchen11
+/src/helia_platforms/data/ip.yaml @apage224 @evanchen11
+/src/helia_platforms/data/addons.yaml @apage224 @evanchen11
+/src/helia_platforms/data/memory_devices.yaml @apage224 @evanchen11
+/src/helia_platforms/data/names.yaml @apage224 @evanchen11
 
 # Source register and the unverified release allow-list (ADR 0003).
-/src/helia_platforms/data/sources.yaml @apage224
-/src/helia_platforms/data/unverified.yaml @apage224
+/src/helia_platforms/data/sources.yaml @apage224 @evanchen11
+/src/helia_platforms/data/unverified.yaml @apage224 @evanchen11
 
 # JSON Schema files (ADR 0002 section 3).
-/src/helia_platforms/schema/ @apage224
+/src/helia_platforms/schema/ @apage224 @evanchen11
 
 # Source snapshots and their exceptions list (ADR 0006).
-/snapshots/ @apage224
+/snapshots/ @apage224 @evanchen11
