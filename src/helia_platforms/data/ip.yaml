@@ -8,7 +8,7 @@ cores:
       value: armv8m
       provenance:
         status: sdk
-        source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.24:cmake/socs/facts/apollo510.cmake:18"]
+        source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo510.cmake:18"]
         verified_on: 2026-10-13
         verified_by: evanchen11
         notes: >-

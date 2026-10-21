@@ -3,14 +3,9 @@
     "extractor_version": 1,
     "sources": [
       {
-        "commit": "a9f4ec25a162f6f3700623feb691423bb5a51132",
+        "commit": "ba0621638d57b71a7b0d4f76ddccf0706745ad77",
         "repository": "AmbiqAI/nsx-ambiq-sdk",
-        "revision": "v5.2.24"
-      },
-      {
-        "commit": "aefce2ca858795e783c76726ebe7d14d9d4bde7c",
-        "repository": "AmbiqAI/nsx-ambiq-sdk",
-        "revision": "v5.2.25"
+        "revision": "v5.2.26"
       }
     ]
   },
@@ -174,7 +169,7 @@
           "SRAM_BASEADDR": 268435456
         }
       },
-      "revision": "v5.2.24"
+      "revision": "v5.2.26"
     },
     "apollo3": {
       "cmsis": {
@@ -350,7 +345,7 @@
           "TCM_MAX_SIZE": 65536
         }
       },
-      "revision": "v5.2.24"
+      "revision": "v5.2.26"
     },
     "apollo330P": {
       "cmsis": {
@@ -649,7 +644,7 @@
           "SSRAM_MAX_SIZE": 1835008
         }
       },
-      "revision": "v5.2.24"
+      "revision": "v5.2.26"
     },
     "apollo3p": {
       "cmsis": {
@@ -845,7 +840,7 @@
           "TCM_MAX_SIZE": 65536
         }
       },
-      "revision": "v5.2.24"
+      "revision": "v5.2.26"
     },
     "apollo4l": {
       "cmsis": {
@@ -1033,7 +1028,7 @@
           "TCM_MAX_SIZE": 393216
         }
       },
-      "revision": "v5.2.24"
+      "revision": "v5.2.26"
     },
     "apollo4p": {
       "cmsis": {
@@ -1227,7 +1222,7 @@
           "TCM_MAX_SIZE": 393216
         }
       },
-      "revision": "v5.2.24"
+      "revision": "v5.2.26"
     },
     "apollo510": {
       "cmsis": {
@@ -1548,7 +1543,7 @@
           "SSRAM_MAX_SIZE": 3145728
         }
       },
-      "revision": "v5.2.24"
+      "revision": "v5.2.26"
     },
     "apollo510L": {
       "cmsis": {
@@ -1847,7 +1842,7 @@
           "SSRAM_MAX_SIZE": 1835008
         }
       },
-      "revision": "v5.2.24"
+      "revision": "v5.2.26"
     },
     "apollo510b": {
       "cmsis": {
@@ -2169,7 +2164,7 @@
           "SSRAM_MAX_SIZE": 3145728
         }
       },
-      "revision": "v5.2.24"
+      "revision": "v5.2.26"
     },
     "apollo5b": {
       "cmsis": {
@@ -2440,7 +2435,7 @@
           "SSRAM_MAX_SIZE": 3145728
         }
       },
-      "revision": "v5.2.24"
+      "revision": "v5.2.26"
     },
     "atomiq110": {
       "cmsis": {
@@ -2815,7 +2810,7 @@
           "XSPI2_XIP_BASEADDR_SECURE": 3489660928
         }
       },
-      "revision": "v5.2.25"
+      "revision": "v5.2.26"
     }
   }
 }

@@ -18,8 +18,8 @@ repositories:
   AmbiqAI/nsx-ambiq-sdk:
     url: https://github.com/AmbiqAI/nsx-ambiq-sdk
     tags:
-      v5.2.24: a9f4ec25a162f6f3700623feb691423bb5a51132
+      v5.2.26: ba0621638d57b71a7b0d4f76ddccf0706745ad77
   AmbiqAI/neuralspotx:
     url: https://github.com/AmbiqAI/neuralspotx
     tags:
-      neuralspotx-v0.8.1: 2dbe12a2799fd8c3df85f1a103b0adca340c901f
+      neuralspotx-v0.9.0: ffb7339b14b00134b4ed2834a1640d61042c0962
