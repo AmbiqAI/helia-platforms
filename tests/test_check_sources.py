@@ -69,14 +69,19 @@ def test_each_facts_value_is_compared(snapshots, key, value, rule):
     [
         *((v, True) for v in ("TRUE", "on", "Yes", "y", "1", "2", "0.5", "-1")),
         *((v, False) for v in ("FALSE", "off", "No", "n", "0", "0.0", "IGNORE", "X-NOTFOUND", "")),
-        *((v, v) for v in ("MAYBE", "0x1")),  # no CMake boolean, so it equals neither
+        *((v, True) for v in ("0x1", "0XFF", "-0x1p-3")),
+        *((v, False) for v in ("0x0", "0x0.0")),
+        *((v, v) for v in ("MAYBE", "0x", "1x")),  # no CMake boolean, so it equals neither
     ],
 )
 def test_a_flag_is_read_as_cmake_reads_it(value, read):
     assert _check_sources._flag({"NSX_SOC_HAS_MVE": [value]}, "NSX_SOC_HAS_MVE") == read
 
 
-@pytest.mark.parametrize(("value", "rules"), [("Y", []), ("N", ["mve"]), ("MAYBE", ["mve"])])
+@pytest.mark.parametrize(
+    ("value", "rules"),
+    [("Y", []), ("0x1", []), ("N", ["mve"]), ("0x0", ["mve"]), ("MAYBE", ["mve"])],
+)
 def test_a_flag_is_compared_with_the_catalog(snapshots, value, rules):
     def change(data):
         data["socs"]["apollo510"]["facts"]["values"]["NSX_SOC_HAS_MVE"] = [value]  # catalog: true

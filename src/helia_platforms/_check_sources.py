@@ -35,10 +35,12 @@ REGISTERS: dict[str, dict[str, tuple[str, str]]] = {
         "mram": ("MRAM_BASEADDR", "MRAM_MAX_SIZE"),
     },
 }
-#: CMake's boolean constants, compared case-insensitively; a non-zero number is also true.
+#: CMake's boolean constants, compared case-insensitively; a non-zero number is also true
+#: (CMake reads one with ``strtod``, so in decimal or hexadecimal).
 _CMAKE_TRUE = {"1", "ON", "YES", "TRUE", "Y"}
 _CMAKE_FALSE = {"0", "OFF", "NO", "FALSE", "N", "IGNORE", "NOTFOUND", ""}
 _NUMBER = re.compile(r"[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?")
+_HEX = re.compile(r"[+-]?0[xX]([0-9a-fA-F]+\.?[0-9a-fA-F]*|\.[0-9a-fA-F]+)([pP][+-]?\d+)?")
 _APERTURE = re.compile(r"^(MSPI\d+)_APERTURE_START_ADDR$")
 _REPO = re.compile(r"^repo:(?P<repo>[^@]+)@(?P<rev>[^:]+):")
 MISSING = "in the catalog"
@@ -392,6 +394,8 @@ def _flag(facts: Mapping[str, list[str]], key: str) -> bool | str | None:
     word = value.upper()
     if word in _CMAKE_TRUE or word in _CMAKE_FALSE or word.endswith("-NOTFOUND"):
         return word in _CMAKE_TRUE
+    if _HEX.fullmatch(value):
+        return float.fromhex(value) != 0
     return float(value) != 0 if _NUMBER.fullmatch(value) else value
 
 
