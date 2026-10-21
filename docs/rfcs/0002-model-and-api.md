@@ -191,7 +191,10 @@ An overlay region may omit `base` (size only, no `based_on`, as RFC 0001
 appendix E allowed). Such a region is excluded from the bounds and overlap
 check, `classify_address()` returns `None` for it, and `placement_ranges()`
 and `flash_load_address()` raise `PlatformError` when they need its
-address. Built-in regions always carry a base.
+address. This holds whatever the region's `attachment`. The exception is
+a device a board populates on an interface with no aperture: it has no
+address, and `placement_ranges()` leaves it out. Built-in regions always
+carry a base.
 
 ### Pre-silicon and silicon
 
@@ -358,8 +361,10 @@ flash), and customers add daughter boards.
   entry); devices populated on the interface inherit that controller's
   access entries ([0002-multicore.md](0002-multicore.md)). An interface
   without aperture fields yields devices with no base: they are not
-  addressable, `external_memories()` reports them without a base, and the
-  aperture validator skips them with a warning.
+  addressable, `external_memories()` reports them without a base,
+  `placement_ranges()` leaves them out, and the aperture validator skips
+  them with a warning. A PSRAM on an IOM, which has no XIP aperture, is
+  one: firmware reaches it only through its driver.
 - `MemoryDevice`: an external part with technology, capacity,
   `driver_family`, supported modes and optional characterization, each
   value with provenance. Capacity and driver family are separate facts.
@@ -846,7 +851,7 @@ class Target:
     def reachable(self, master: str, target: str) -> Access | None   # a region's own entry, else its controller's
     def npu_clocks(self, npu: int | str = 0) -> Mapping[str, int]   # derived from system operating points
     def memories(self, core: int | str = 0) -> tuple[MemoryRegion, ...]   # regions that core reaches, after subset, plus external regions whose interface it has an entry for
-    def placement_ranges(self, core: int | str = 0) -> Mapping[str, tuple[int, int]]   # (base, size) of reachable regions; raises for a region without a base
+    def placement_ranges(self, core: int | str = 0) -> Mapping[str, tuple[int, int]]   # (base, size) of reachable regions; leaves out a populated device with no base; raises for any other region without one
     def cpu_mhz(self, point: str | None = None, core: int | str = 0) -> int
     def npu_mhz(self, point: str | None = None, npu: int | str = 0) -> int
     def region(self, name: str) -> MemoryRegion   # on an FVP, also a Soc region name a stands_in_for lists

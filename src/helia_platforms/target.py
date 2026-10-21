@@ -169,9 +169,16 @@ class Target:
         return own + tuple(r for r, controller in self._external if controller in direct)
 
     def placement_ranges(self, core: int | str = 0) -> Mapping[str, tuple[int, int]]:
-        """``(base, size)`` of each region ``core`` reaches; raises for a region with no base."""
+        """``(base, size)`` of each region ``core`` reaches that has an address.
+
+        A populated device on an interface with no aperture is not addressable, so it is left
+        out; any other region with no base, which only an overlay can write, raises.
+        """
+        populated = {region.name for region, _ in self._external}
         ranges = {}
         for region in self.memories(core):
+            if region.base is None and region.name in populated:
+                continue
             if region.base is None:
                 raise PlatformError(f"{self.id}: region {region.name!r} has no base")
             ranges[region.name] = (region.base, region.size)

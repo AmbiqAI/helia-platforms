@@ -182,6 +182,30 @@ def test_memories_are_what_the_core_reaches_plus_populated_devices(catalog):
     assert resolve("soc_a", catalog=catalog).external_memories() == ()
 
 
+def test_placement_leaves_out_an_external_device_with_no_base(document):
+    del document["boards"]["board_a"]["interfaces"]["mspi0"]["aperture_base"]
+    target = resolve("board_a", catalog=quiet(document))
+    assert [(r.name, r.base) for r in target.external_memories()] == [("psram0", None)]
+    assert set(target.placement_ranges()) == {"tcm", "ssram", "nvm"}
+
+
+def test_placement_raises_for_an_on_chip_region_with_no_base(document):
+    del document["socs"]["soc_a"]["memories"]["nvm"]["base"]
+    target = resolve("board_a", catalog=quiet(document))
+    with pytest.raises(PlatformError, match="region 'nvm' has no base"):
+        target.placement_ranges()
+
+
+def test_placement_raises_for_a_soc_external_region_with_no_base(document):
+    soc = document["socs"]["soc_a"]
+    soc["memories"]["hbl"] = {"technology": "dram", "attachment": "external", "size": "8M"}
+    soc["access"].append({"master": "cm55_0", "target": "hbl", "access": "direct"})
+    target = resolve("board_a", catalog=quiet(document))
+    assert "hbl" in {r.name for r in target.memories()}
+    with pytest.raises(PlatformError, match="region 'hbl' has no base"):
+        target.placement_ranges()
+
+
 def test_an_implementation_subset_removes_memories(document):
     target = resolve("soc_a_fpga", catalog=quiet(with_fpga(document, memories_removed=["ssram"])))
     assert [r.name for r in target.memories()] == ["tcm", "nvm"]
