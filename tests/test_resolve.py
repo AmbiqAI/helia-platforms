@@ -196,6 +196,16 @@ def test_placement_raises_for_an_on_chip_region_with_no_base(document):
         target.placement_ranges()
 
 
+def test_placement_raises_for_a_soc_external_region_with_no_base(document):
+    soc = document["socs"]["soc_a"]
+    soc["memories"]["hbl"] = {"technology": "dram", "attachment": "external", "size": "8M"}
+    soc["access"].append({"master": "cm55_0", "target": "hbl", "access": "direct"})
+    target = resolve("board_a", catalog=quiet(document))
+    assert "hbl" in {r.name for r in target.memories()}
+    with pytest.raises(PlatformError, match="region 'hbl' has no base"):
+        target.placement_ranges()
+
+
 def test_an_implementation_subset_removes_memories(document):
     target = resolve("soc_a_fpga", catalog=quiet(with_fpga(document, memories_removed=["ssram"])))
     assert [r.name for r in target.memories()] == ["tcm", "nvm"]
