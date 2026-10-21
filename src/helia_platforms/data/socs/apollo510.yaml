@@ -352,10 +352,12 @@ socs:
           value: [arm-none-eabi-gcc, armclang, atfe]
           provenance:
             status: sdk
-            source: ["repo:AmbiqAI/neuralspotx@b930d59a0d6111361b355218f104dea35ff34da5:src/neuralspotx/boards/apollo510_evb/board.yaml:19-22"]
-            verified_on: 2026-10-13
+            source: ["repo:AmbiqAI/neuralspotx@neuralspotx-v0.8.1:src/neuralspotx/boards/apollo510_evb/board.yaml:19-22"]
+            verified_on: 2026-10-19
             verified_by: evanchen11
-            notes: apollo510_evb is the only neuralspotx board with soc apollo510 at this commit.
+            notes: >-
+              apollo510_evb is the only neuralspotx board with soc apollo510 at this tag, the
+              revision the snapshots pin (ADR 0006).
 
 parts:
   AP510NFA-CBR:

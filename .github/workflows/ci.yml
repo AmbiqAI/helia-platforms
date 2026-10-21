@@ -64,6 +64,17 @@ jobs:
           name: dist
           path: dist/
 
+  # ADR 0006 section 3: the built-in data against the committed snapshots, offline.
+  check-sources:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - run: uv sync --locked
+      - run: uv run helia-platforms check-sources --builtin-only
+
   # ADR 0003 section 4: compare the built-in data at the merge base with the head.
   fact-changes:
     if: github.event_name == 'pull_request'

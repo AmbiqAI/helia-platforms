@@ -7,7 +7,7 @@ from typing import Annotated, NoReturn
 
 import typer
 
-from helia_platforms import __version__, _pages, _show
+from helia_platforms import __version__, _check_sources, _pages, _show
 from helia_platforms import export as _export
 from helia_platforms.catalog import Catalog, builtin, load_overlay
 from helia_platforms.errors import FormatError, PlatformError
@@ -144,6 +144,21 @@ def show(  # noqa: PLR0917 (typer reads each parameter as an argument or option)
         _show.render_target(target, provenance=provenance, sources=sources, requested_boot=boot),
         nl=False,
     )
+
+
+@app.command("check-sources")
+def check_sources(
+    snapshots: Annotated[
+        Path,
+        typer.Option(help="The snapshot directory to compare with.", exists=True, file_okay=False),
+    ] = Path("snapshots"),
+    builtin_only: BuiltinOnly = False,
+) -> None:
+    """Compare the catalog with the committed SDK, neuralspotx and Zephyr snapshots (ADR 0006)."""
+    result = _check_sources.check(_catalog(builtin_only, None), snapshots)
+    typer.echo(_check_sources.render(result), nl=False, err=not result.ok)
+    if not result.ok:
+        raise typer.Exit(1)
 
 
 @app.command()
