@@ -1,10 +1,11 @@
-"""File-list test for the built wheel and sdist (ADR 0005, point 1).
+"""The built wheel and sdist: their file lists and the catalog they ship (ADR 0005, point 1).
 
-A published PyPI file cannot be replaced, so a stray file in either
-distribution must fail here first. The catalog half of the test waits for
-the loader and export (#69).
+A published PyPI file cannot be replaced, so a stray file or an entry that is
+not public must fail here first (#69).
 """
 
+import json
+import os
 import shutil
 import subprocess
 import tarfile
@@ -89,3 +90,53 @@ def test_sdist_file_list(dist_dir: Path) -> None:
     assert {n for n in names if n.startswith("src/")} == {
         f"src/{p}" for p in _tracked_package_files()
     }
+
+
+#: Run in the installed wheel: each entry that is not public, and whether filtering drops any.
+_CATALOG_CHECK = """
+import json
+import helia_platforms
+from helia_platforms import export
+from helia_platforms.catalog import builtin
+
+catalog = builtin(include_plugins=False)
+statuses = {}
+for kind in ("socs", "implementations", "parts", "boards"):  # effective: along the chain
+    for entry in getattr(catalog, kind)():
+        statuses[f"{kind}.{entry.id}"] = catalog.resolve(entry.id).release_status
+for kind in ("addons", "memory_devices"):
+    for entry in getattr(catalog, kind)():
+        statuses[f"{kind}.{entry.id}"] = entry.release_status
+filtered = export._document(catalog, filtered=True, provenance=True)
+unfiltered = export._document(catalog, filtered=False, provenance=True)
+print(json.dumps({
+    "module": helia_platforms.__file__,
+    "entries": len(statuses),
+    "not_public": sorted(k for k, v in statuses.items() if v != "public"),
+    "filter_drops_nothing": filtered == unfiltered,
+}))
+"""
+
+
+def test_the_wheel_ships_only_public_entries(dist_dir: Path, tmp_path: Path) -> None:
+    uv = shutil.which("uv")
+    assert uv is not None  # dist_dir skipped otherwise
+    venv = tmp_path / "venv"
+    subprocess.run([uv, "venv", "-q", str(venv)], check=True)
+    python = venv / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+    wheel = _only(dist_dir, "*.whl")
+    subprocess.run([uv, "pip", "install", "-q", "--python", str(python), str(wheel)], check=True)
+    env = {k: v for k, v in os.environ.items() if k != "HELIA_PLATFORMS_PATH"}
+    out = subprocess.run(
+        [str(python), "-I", "-c", _CATALOG_CHECK],
+        cwd=tmp_path,
+        env=env,
+        check=True,
+        stdout=subprocess.PIPE,
+        text=True,
+    ).stdout
+    result = json.loads(out)
+    assert Path(result["module"]).is_relative_to(venv)  # the wheel, not this checkout
+    assert result["entries"] > 0
+    assert result["not_public"] == []
+    assert result["filter_drops_nothing"]
