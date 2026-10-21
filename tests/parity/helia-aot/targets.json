@@ -1,0 +1,539 @@
+{
+  "export_schema_version": 1,
+  "generated_from": {
+    "version": "0.33.0"
+  },
+  "targets": [
+    {
+      "capabilities": [
+        "MCU",
+        "DSP",
+        "MVE",
+        "FP16"
+      ],
+      "cpu": "cortex-m55",
+      "memories": [
+        {
+          "bytes": 2031616,
+          "name": "MRAM"
+        },
+        {
+          "bytes": 1835008,
+          "name": "SRAM"
+        },
+        {
+          "bytes": 245760,
+          "name": "DTCM"
+        }
+      ],
+      "min_alignment": 16,
+      "name": "apollo330mp_evb",
+      "preferred_memory_order": [
+        "DTCM",
+        "SRAM",
+        "MRAM"
+      ],
+      "speeds_mhz": [
+        96,
+        192,
+        250
+      ],
+      "supports_fp16": true
+    },
+    {
+      "capabilities": [
+        "MCU",
+        "DSP"
+      ],
+      "cpu": "cortex-m4",
+      "memories": [
+        {
+          "bytes": 1048576,
+          "name": "MRAM"
+        },
+        {
+          "bytes": 327680,
+          "name": "SRAM"
+        },
+        {
+          "bytes": 65536,
+          "name": "DTCM"
+        }
+      ],
+      "min_alignment": 4,
+      "name": "apollo3_blue_evb",
+      "preferred_memory_order": [
+        "DTCM",
+        "SRAM",
+        "MRAM"
+      ],
+      "speeds_mhz": [
+        48,
+        96
+      ],
+      "supports_fp16": false
+    },
+    {
+      "capabilities": [
+        "MCU",
+        "DSP"
+      ],
+      "cpu": "cortex-m4",
+      "memories": [
+        {
+          "bytes": 2097152,
+          "name": "MRAM"
+        },
+        {
+          "bytes": 720896,
+          "name": "SRAM"
+        },
+        {
+          "bytes": 65536,
+          "name": "DTCM"
+        }
+      ],
+      "min_alignment": 4,
+      "name": "apollo3_blue_plus_evb",
+      "preferred_memory_order": [
+        "DTCM",
+        "SRAM",
+        "MRAM"
+      ],
+      "speeds_mhz": [
+        48,
+        96
+      ],
+      "supports_fp16": false
+    },
+    {
+      "capabilities": [
+        "MCU",
+        "DSP"
+      ],
+      "cpu": "cortex-m4",
+      "memories": [
+        {
+          "bytes": 1048576,
+          "name": "MRAM"
+        },
+        {
+          "bytes": 327680,
+          "name": "SRAM"
+        },
+        {
+          "bytes": 65536,
+          "name": "DTCM"
+        }
+      ],
+      "min_alignment": 4,
+      "name": "apollo3_blue_thin_evb",
+      "preferred_memory_order": [
+        "DTCM",
+        "SRAM",
+        "MRAM"
+      ],
+      "speeds_mhz": [
+        48,
+        96
+      ],
+      "supports_fp16": false
+    },
+    {
+      "capabilities": [
+        "MCU",
+        "DSP"
+      ],
+      "cpu": "cortex-m4",
+      "memories": [
+        {
+          "bytes": 1048576,
+          "name": "MRAM"
+        },
+        {
+          "bytes": 327680,
+          "name": "SRAM"
+        },
+        {
+          "bytes": 65536,
+          "name": "DTCM"
+        }
+      ],
+      "min_alignment": 4,
+      "name": "apollo3_evb",
+      "preferred_memory_order": [
+        "DTCM",
+        "SRAM",
+        "MRAM"
+      ],
+      "speeds_mhz": [
+        48,
+        96
+      ],
+      "supports_fp16": false
+    },
+    {
+      "capabilities": [
+        "MCU",
+        "DSP"
+      ],
+      "cpu": "cortex-m4",
+      "memories": [
+        {
+          "bytes": 2097152,
+          "name": "MRAM"
+        },
+        {
+          "bytes": 720896,
+          "name": "SRAM"
+        },
+        {
+          "bytes": 65536,
+          "name": "DTCM"
+        }
+      ],
+      "min_alignment": 4,
+      "name": "apollo3p_evb",
+      "preferred_memory_order": [
+        "DTCM",
+        "SRAM",
+        "MRAM"
+      ],
+      "speeds_mhz": [
+        48,
+        96
+      ],
+      "supports_fp16": false
+    },
+    {
+      "capabilities": [
+        "MCU",
+        "DSP"
+      ],
+      "cpu": "cortex-m4",
+      "memories": [
+        {
+          "bytes": 2048000,
+          "name": "MRAM"
+        },
+        {
+          "bytes": 1048576,
+          "name": "SRAM"
+        },
+        {
+          "bytes": 393216,
+          "name": "DTCM"
+        }
+      ],
+      "min_alignment": 4,
+      "name": "apollo4l_blue_evb",
+      "preferred_memory_order": [
+        "DTCM",
+        "SRAM",
+        "MRAM"
+      ],
+      "speeds_mhz": [
+        96,
+        192
+      ],
+      "supports_fp16": false
+    },
+    {
+      "capabilities": [
+        "MCU",
+        "DSP"
+      ],
+      "cpu": "cortex-m4",
+      "memories": [
+        {
+          "bytes": 2048000,
+          "name": "MRAM"
+        },
+        {
+          "bytes": 1048576,
+          "name": "SRAM"
+        },
+        {
+          "bytes": 393216,
+          "name": "DTCM"
+        }
+      ],
+      "min_alignment": 4,
+      "name": "apollo4l_evb",
+      "preferred_memory_order": [
+        "DTCM",
+        "SRAM",
+        "MRAM"
+      ],
+      "speeds_mhz": [
+        96,
+        192
+      ],
+      "supports_fp16": false
+    },
+    {
+      "capabilities": [
+        "MCU",
+        "DSP"
+      ],
+      "cpu": "cortex-m4",
+      "memories": [
+        {
+          "bytes": 2048000,
+          "name": "MRAM"
+        },
+        {
+          "bytes": 1048576,
+          "name": "SRAM"
+        },
+        {
+          "bytes": 393216,
+          "name": "DTCM"
+        }
+      ],
+      "min_alignment": 4,
+      "name": "apollo4p_blue_kbr_evb",
+      "preferred_memory_order": [
+        "DTCM",
+        "SRAM",
+        "MRAM"
+      ],
+      "speeds_mhz": [
+        96,
+        192
+      ],
+      "supports_fp16": false
+    },
+    {
+      "capabilities": [
+        "MCU",
+        "DSP"
+      ],
+      "cpu": "cortex-m4",
+      "memories": [
+        {
+          "bytes": 2048000,
+          "name": "MRAM"
+        },
+        {
+          "bytes": 1048576,
+          "name": "SRAM"
+        },
+        {
+          "bytes": 393216,
+          "name": "DTCM"
+        }
+      ],
+      "min_alignment": 4,
+      "name": "apollo4p_blue_kxr_evb",
+      "preferred_memory_order": [
+        "DTCM",
+        "SRAM",
+        "MRAM"
+      ],
+      "speeds_mhz": [
+        96,
+        192
+      ],
+      "supports_fp16": false
+    },
+    {
+      "capabilities": [
+        "MCU",
+        "DSP"
+      ],
+      "cpu": "cortex-m4",
+      "memories": [
+        {
+          "bytes": 2048000,
+          "name": "MRAM"
+        },
+        {
+          "bytes": 1048576,
+          "name": "SRAM"
+        },
+        {
+          "bytes": 393216,
+          "name": "DTCM"
+        }
+      ],
+      "min_alignment": 4,
+      "name": "apollo4p_evb",
+      "preferred_memory_order": [
+        "DTCM",
+        "SRAM",
+        "MRAM"
+      ],
+      "speeds_mhz": [
+        96,
+        192
+      ],
+      "supports_fp16": false
+    },
+    {
+      "capabilities": [
+        "MCU",
+        "DSP",
+        "MVE",
+        "FP16"
+      ],
+      "cpu": "cortex-m55",
+      "memories": [
+        {
+          "bytes": 4128768,
+          "name": "MRAM"
+        },
+        {
+          "bytes": 3145728,
+          "name": "SRAM"
+        },
+        {
+          "bytes": 507904,
+          "name": "DTCM"
+        },
+        {
+          "bytes": 262144,
+          "name": "ITCM"
+        },
+        {
+          "bytes": 67108864,
+          "name": "PSRAM"
+        }
+      ],
+      "min_alignment": 16,
+      "name": "apollo510_evb",
+      "preferred_memory_order": [
+        "DTCM",
+        "SRAM",
+        "MRAM",
+        "PSRAM"
+      ],
+      "speeds_mhz": [
+        96,
+        250
+      ],
+      "supports_fp16": true
+    },
+    {
+      "capabilities": [
+        "MCU",
+        "DSP",
+        "MVE",
+        "FP16"
+      ],
+      "cpu": "cortex-m55",
+      "memories": [
+        {
+          "bytes": 4128768,
+          "name": "MRAM"
+        },
+        {
+          "bytes": 3145728,
+          "name": "SRAM"
+        },
+        {
+          "bytes": 507904,
+          "name": "DTCM"
+        },
+        {
+          "bytes": 262144,
+          "name": "ITCM"
+        },
+        {
+          "bytes": 67108864,
+          "name": "PSRAM"
+        }
+      ],
+      "min_alignment": 16,
+      "name": "apollo510b_evb",
+      "preferred_memory_order": [
+        "DTCM",
+        "SRAM",
+        "MRAM",
+        "PSRAM"
+      ],
+      "speeds_mhz": [
+        96,
+        250
+      ],
+      "supports_fp16": true
+    },
+    {
+      "capabilities": [
+        "MCU",
+        "DSP",
+        "MVE",
+        "FP16"
+      ],
+      "cpu": "cortex-m55",
+      "memories": [
+        {
+          "bytes": 2031616,
+          "name": "MRAM"
+        },
+        {
+          "bytes": 1835008,
+          "name": "SRAM"
+        },
+        {
+          "bytes": 245760,
+          "name": "DTCM"
+        }
+      ],
+      "min_alignment": 16,
+      "name": "apollo510l_evb",
+      "preferred_memory_order": [
+        "DTCM",
+        "SRAM",
+        "MRAM"
+      ],
+      "speeds_mhz": [
+        96,
+        192,
+        250
+      ],
+      "supports_fp16": true
+    },
+    {
+      "capabilities": [
+        "MCU",
+        "DSP",
+        "MVE",
+        "FP16",
+        "NPU"
+      ],
+      "cpu": "cortex-m55",
+      "memories": [
+        {
+          "bytes": 4194304,
+          "name": "MRAM"
+        },
+        {
+          "bytes": 3145728,
+          "name": "SRAM"
+        },
+        {
+          "bytes": 507904,
+          "name": "DTCM"
+        },
+        {
+          "bytes": 262144,
+          "name": "ITCM"
+        }
+      ],
+      "min_alignment": 16,
+      "name": "atomiq110",
+      "preferred_memory_order": [
+        "DTCM",
+        "SRAM",
+        "MRAM"
+      ],
+      "speeds_mhz": [
+        100,
+        250,
+        500
+      ],
+      "supports_fp16": true
+    }
+  ]
+}
