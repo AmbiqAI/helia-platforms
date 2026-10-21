@@ -868,7 +868,7 @@ class Target:
     def budget(self, environment: LinkEnvironment, core: int | str = 0) -> Mapping[str, int]   # reachable regions only (external ones through their interface's entry); raises if no id on the reference chain is in applies_to
     def classify_address(self, address: int, master: int | str = 0) -> str | None   # alternate_bases classify to the same region; per-master Access addresses resolved for master
     # debug and SDK
-    jlink_device: str | None; trace_clock_mhz: int | None; sdk: SdkFacts   # board, else implementation, else part / SDK
+    jlink_device: str | None; trace_clock_mhz: int | float | None; sdk: SdkFacts   # board, else implementation, else part / SDK; trace_clock_mhz is an int when whole, a measured fraction kept
     aliases: tuple[str, ...]
     # provenance(): deferred until the estimator adapter defines the roll-up it needs (#58)
 ```
