@@ -1,6 +1,6 @@
 # RFC 0002: private and future silicon
 
-Status: Draft, 2026-10-04. Part of [RFC 0002](0002-model-and-api.md),
+Status: Accepted, 2026-10-21 (drafted 2026-10-04). Part of [RFC 0002](0002-model-and-api.md),
 kept in its own file for length; it is as normative as the RFC. Terms are
 as defined in RFC 0002's glossary.
 

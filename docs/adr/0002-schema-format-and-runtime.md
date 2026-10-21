@@ -445,4 +445,7 @@ and helia-profiler (`.github/workflows/ci.yml:70` at `ed2f0a15`) test
    `MappingProxyType` field, and `validate_python` would build model
    objects without the loader's semantic rules.
 3. Whether the resolved JSON export (`Catalogue.to_dict()`) needs a
-   published schema of its own.
+   published schema of its own. Answered by
+   [RFC 0003](../rfcs/0003-export-and-pages.md), accepted 2026-10-21: yes,
+   one schema for the whole export, which reuses the file-format schema
+   for `catalog`.

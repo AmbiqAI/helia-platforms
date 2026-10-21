@@ -1,11 +1,11 @@
 # RFC 0002: the platform model and the API helia-platforms exposes
 
-Status: Draft, 2026-10-04. Builds on [RFC 0001](0001-platform-catalogue.md)
+Status: Accepted, 2026-10-21 (drafted 2026-10-04). Builds on [RFC 0001](0001-platform-catalogue.md)
 (the catalog and its data), on AmbiqAI/helia-aot#278 (the Soc/Board
 split, typed NPU spec and alias design, captured verbatim in
 [research/helia-aot-278.md](../research/helia-aot-278.md)), and on the
-[review of RFC 0001](0001-platform-catalogue-review.md). RFC 0001 stands
-until this RFC is accepted; on acceptance, the sections listed in
+[review of RFC 0001](0001-platform-catalogue-review.md). With this RFC
+accepted, the sections of RFC 0001 listed in
 [Changes relative to RFC 0001](#changes-relative-to-rfc-0001) are
 superseded. RFC 0001's appendix remains the reference for the data and its
 sources.
@@ -406,9 +406,11 @@ given a most-restrictive status: they are scrubbed and shipped, as below.
 The export filter uses the effective status and never ships an embargoed
 entry or a target whose effective status is embargoed, and it scrubs
 embargoed ids from every table and reference: shorthands, compositions,
-`fits_boards`, `default_board`, `applies_to` and aliases. A Composition or
-LinkEnvironment that references only embargoed entities is dropped, and so
-is a Core or Npu that no exported Soc references (ADR 0005).
+`fits_boards`, `default_board`, `applies_to` and aliases. A Composition is
+dropped when its board or any of its add-ons is scrubbed, a LinkEnvironment
+that references only embargoed entities is dropped, and so is a Core or Npu
+that no exported Soc references (ADR 0005,
+[RFC 0003](0003-export-and-pages.md)).
 
 ### Private and future silicon
 
@@ -745,11 +747,13 @@ class Catalog:
     def boards(self, soc: str | None = None) -> tuple[Board, ...]
     def cores(self) -> tuple[Core, ...]
     def npus(self) -> tuple[Npu, ...]
+    def addons(self) -> tuple[AddOn, ...]
+    def memory_devices(self) -> tuple[MemoryDevice, ...]
     def find(self, **predicates) -> tuple[Target, ...]   # core="cortex-m55", npu_model="u85", has_region="psram"
-    def resolve(self, name: str) -> Target
+    def resolve(self, name: str, *, addons: Sequence[str] = (), boot: str | None = None) -> Target
     def suggest(self, name: str) -> tuple[str, ...]
     def identity(self) -> CatalogIdentity       # package and schema versions, digest, sources (ADR 0004)
-    def to_dict(self) -> dict                   # the JSON export
+    def to_dict(self) -> dict                   # the JSON export (RFC 0003)
 
 class CatalogIdentity:                          # frozen; to_dict() has these keys
     package_version: str
@@ -772,8 +776,8 @@ devices each have their own namespace, so an id can recur across tables.
 ```python
 def resolve(name: str, *, addons: Sequence[str] = (), boot: str | None = None,
             catalog: Catalog | None = None) -> Target
-def resolve_board(name) -> Board                # a board id or alias; a Soc id returns Soc.default_board
-def resolve_soc(name) -> Soc
+def resolve_board(name: str, *, catalog: Catalog | None = None) -> Board   # a board id or alias; a Soc id returns Soc.default_board
+def resolve_soc(name: str, *, catalog: Catalog | None = None) -> Soc
 
 class UnknownPlatform(PlatformError):   suggestions: tuple[str, ...]
 class AmbiguousPlatform(PlatformError): candidates: tuple[str, ...]   # shorthands table only
@@ -803,7 +807,7 @@ one of them.
 
 ```python
 @dataclass(frozen=True) class Provenance: status, source, verified_on, verified_by, notes
-@dataclass(frozen=True) class Core:       id, arch, pmu, has_dsp_extension   # arch may be a non-Arm ISA
+@dataclass(frozen=True) class Core:       id, arch, pmu, has_dsp_extension, provenance   # arch may be a non-Arm ISA
 @dataclass(frozen=True) class CoreOptions: fpu, fpu_dp, mve, icache_kb, dcache_kb
 @dataclass(frozen=True) class CoreInstance: id, role, core, options: CoreOptions, clock_domain, programmable_by: str | None
 @dataclass(frozen=True) class Npu:        vendor, family, model, macs_per_cycle; accelerator_config (property)
@@ -823,15 +827,19 @@ one of them.
 @dataclass(frozen=True) class BootConfig: name, reserved: tuple[Reservation, ...], app_start: Mapping[str, AppStart], requires, provenance   # AppStart: region, offset; reserved in written key order
 @dataclass(frozen=True) class Reservation: region, offset, size, purpose, provenance
 @dataclass(frozen=True) class Part:       id, soc, implementation: str | None, silicon_revision, package, radio, jlink_device, image_slots, aliases, release_status, provenance
-@dataclass(frozen=True) class ImageSlot:  core, region, offset, size, supplier, provenance
+@dataclass(frozen=True) class ImageSlot:  name, core, region, offset, size, supplier, provenance
 @dataclass(frozen=True) class MemoryInterface: name, controller, modes, aperture_base, aperture_max
-@dataclass(frozen=True) class MemoryDevice: id, technology, capacity, driver_family, modes, characterization, release_status, provenance
+@dataclass(frozen=True) class MemoryDevice: id, technology, capacity, driver_family, modes, characterization, aliases, release_status, provenance
 @dataclass(frozen=True) class AddOn:      id, fits_boards, occupies, population: Mapping[str, str], revision, aliases, release_status, extensions, provenance
 @dataclass(frozen=True) class Board:      id, category, revision, part, interfaces, population: Mapping[str, str], provisioning, jlink_device, trace_clock_mhz, aliases, release_status, extensions, provenance
 @dataclass(frozen=True) class Composition: alias, board, addons; release_status (property, effective from what it references)
 @dataclass(frozen=True) class LinkEnvironment: owner, link_family, profile, applies_to: tuple[str, ...], regions: Mapping[str, WindowRegion], source, revision; release_status (property, effective)
 @dataclass(frozen=True) class WindowRegion: start, length, app_window, section_names
 ```
+
+A class that has `provenance` also has `field_provenance`: the records of
+single values that differ from the class's own record, keyed by their
+path within the object ([ADR 0003](../adr/0003-provenance-record.md)).
 
 ### `helia_platforms.target` (the resolved view)
 
@@ -921,14 +929,16 @@ has an entry for is excluded, per the multicore document;
 `app_start` keys name programmable cores; every `ImageSlot` owner is a
 programmable core; slots overlap neither each other nor boot
 reservations. `helia_platforms.export` writes the JSON catalog,
-filtered and scrubbed by effective release status, the JSON Schema and
-Markdown pages.
+filtered and scrubbed by effective release status, and the JSON Schemas
+([RFC 0003](0003-export-and-pages.md)). The Markdown pages and the release
+assets are built only from `builtin(include_plugins=False)`.
 `helia-platforms` CLI: `list [socs|boards|parts|implementations]`,
 `show <id> [--sources] [--provenance] [--addon <id>] [--boot <name>]`, `windows <id> [--family --profile --environment <file>]`
 (reads the optional link-environment dataset or a supplied environment),
 `validate <overlay>`, `check-sources` (compare against the committed SDK
 and Zephyr snapshots; [ADR 0006](../adr/0006-drift-test-snapshots.md)),
-`export`.
+`export --schema | --export-schema | --json <file> [--provenance] [--check] | --pages <dir> [--check] | --release <dir> [--check]`
+(with `--include-plugins` and `--overlay` for `--json` only).
 
 ### Adapters, in the consumers
 
@@ -965,7 +975,7 @@ in [0002-migration.md](0002-migration.md#relationship-to-helia-aot278).
 
 ## Changes relative to RFC 0001
 
-On acceptance of this RFC, these parts of RFC 0001 are superseded. The
+This RFC, accepted 2026-10-21, supersedes these parts of RFC 0001. The
 rest of RFC 0001, and its appendix as the reference for data and sources,
 stand.
 
