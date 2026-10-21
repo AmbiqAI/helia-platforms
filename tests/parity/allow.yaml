@@ -1,0 +1,87 @@
+# Parity with each consumer's current data (#13; RFC 0002 0002-migration.md). Each
+# consumer's file is a verbatim copy at `commit`. An allowed difference names the
+# target, the field, a reason and an issue; an entry that no longer differs fails.
+consumers:
+  helia-aot:
+    repository: AmbiqAI/helia-aot
+    commit: d31bf2226e58e4120eaf8e6da289b5ee91e2e06b
+    path: docs/src/data/generated/targets.json
+allowed:
+  - consumer: helia-aot
+    target: apollo510_evb
+    field: memories.DTCM
+    reason: >-
+      RAM budgets are physical sizes: DTCM goes from the nsx gcc sbl script's 507904
+      bytes to the physical 524288 (0002-migration.md, heliaAOT budgets).
+    issue: "#28"
+  # Targets the catalog does not resolve yet; each data PR removes its own.
+  - consumer: helia-aot
+    target: apollo330mp_evb
+    field: target
+    reason: Not in the built-in data yet.
+    issue: "#65"
+  - consumer: helia-aot
+    target: apollo510l_evb
+    field: target
+    reason: Not in the built-in data yet.
+    issue: "#65"
+  - consumer: helia-aot
+    target: apollo3_blue_evb
+    field: target
+    reason: Not in the built-in data yet.
+    issue: "#67"
+  - consumer: helia-aot
+    target: apollo3_blue_plus_evb
+    field: target
+    reason: Not in the built-in data yet.
+    issue: "#67"
+  - consumer: helia-aot
+    target: apollo3_blue_thin_evb
+    field: target
+    reason: Not in the built-in data yet.
+    issue: "#67"
+  - consumer: helia-aot
+    target: apollo3_evb
+    field: target
+    reason: Not in the built-in data yet.
+    issue: "#67"
+  - consumer: helia-aot
+    target: apollo3p_evb
+    field: target
+    reason: Not in the built-in data yet.
+    issue: "#67"
+  - consumer: helia-aot
+    target: apollo4l_blue_evb
+    field: target
+    reason: Not in the built-in data yet.
+    issue: "#91"
+  - consumer: helia-aot
+    target: apollo4p_blue_kbr_evb
+    field: target
+    reason: Not in the built-in data yet.
+    issue: "#91"
+  - consumer: helia-aot
+    target: apollo4p_blue_kxr_evb
+    field: target
+    reason: Not in the built-in data yet.
+    issue: "#91"
+  - consumer: helia-aot
+    target: apollo4l_evb
+    field: target
+    reason: Not in the built-in data yet.
+    issue: "#66"
+  - consumer: helia-aot
+    target: apollo4p_evb
+    field: target
+    reason: Not in the built-in data yet.
+    issue: "#66"
+  - consumer: helia-aot
+    target: apollo510b_evb
+    field: target
+    reason: Not in the built-in data yet.
+    issue: "#64"
+  - consumer: helia-aot
+    target: atomiq110
+    field: target
+    reason: Not in the built-in data yet.
+    issue: "#68"
