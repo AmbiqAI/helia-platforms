@@ -1,6 +1,6 @@
 # RFC 0002: multiple cores and accelerators
 
-Status: Draft, 2026-10-04. Part of [RFC 0002](0002-model-and-api.md),
+Status: Accepted, 2026-10-21 (drafted 2026-10-04). Part of [RFC 0002](0002-model-and-api.md),
 kept in its own file for length; it is as normative as the RFC. Terms are
 as defined in RFC 0002's glossary.
 
@@ -118,7 +118,7 @@ error, not a warning: the hardware to attach the device does not exist.
 ## Image slots and boot
 
 Per-part NVM reservations become `ImageSlot`s owned by a core:
-`ImageSlot` = `core`, `region`, `offset`, `size`, `supplier` (`vendor` or
+`ImageSlot` = `name`, `core`, `region`, `offset`, `size`, `supplier` (`vendor` or
 `customer`), provenance. On the Apollo510 Lite and Apollo330 Plus parts,
 NVM-M41 is the radio core's slot, sized per variant (16, 288 or 432 KB,
 DS-A510LS p33, DS-A330PS p33), supplier `vendor` by default. That the

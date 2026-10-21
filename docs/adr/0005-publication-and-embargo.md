@@ -187,8 +187,8 @@ tracking issue:
   repository, since creating a repository copies none of them, and the
   PyPI trusted publisher names the fresh repository.
 
-The repository owner (`@apage224`, the sole entry in
-`.github/CODEOWNERS:1`) signs off the checklist and decides whether to go
+The repository owner (`@apage224`, the first owner on every line of
+`.github/CODEOWNERS`) signs off the checklist and decides whether to go
 public; an organization admin creates the fresh repository.
 
 **4. Release workflow.** The publish gate (#36) lands now, before #27

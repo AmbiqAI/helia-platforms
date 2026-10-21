@@ -284,8 +284,8 @@ and, in the same PR, the catalogue, provenance and dataset changes that
 Snapshots are never edited by hand.
 
 Review: one approving review from a code owner of the snapshot directory
-(per-directory owners are #17; until then `.github/CODEOWNERS` names one
-owner for every path). When a changed value is one a consumer reads (a
+(per-directory owners are #17; until then `.github/CODEOWNERS` names the
+same owners, `@apage224` and `@evanchen11`, for every path). When a changed value is one a consumer reads (a
 window, a flash load address, a trace clock), a maintainer of that consumer
 also reviews. A fact sourced from a snapshot carries an `sdk` provenance
 record, as ADR 0003 (#6) defines it, citing the upstream repository at the snapshot's

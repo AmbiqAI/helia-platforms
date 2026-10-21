@@ -1,6 +1,6 @@
 # RFC 0003: the JSON export and the generated catalog pages
 
-Status: Draft, 2026-10-06. Builds on [RFC 0002](0002-model-and-api.md)
+Status: Accepted, 2026-10-21 (drafted 2026-10-06). Builds on [RFC 0002](0002-model-and-api.md)
 (`Catalog.to_dict()`, release status and `helia_platforms.export`) and
 on ADRs [0002](../adr/0002-schema-format-and-runtime.md),
 [0004](../adr/0004-schema-and-catalogue-versions.md) and
@@ -9,8 +9,8 @@ Section 4 of the [review of RFC 0001](0001-platform-catalogue-review.md)
 asks for "one machine-readable export (the successor of `targets.json`)
 and generated per-SoC and per-board pages". This note designs both,
 except resolved per-target records, which it defers (see "Deferred:
-resolved targets"). It does not edit RFC 0002; the edits RFC 0002 would
-take on acceptance are listed at the end. RFC 0002 line numbers below are
+resolved targets"). The edits it makes to RFC 0002 and ADR 0002 are listed
+at the end, and were made on acceptance. RFC 0002 line numbers below are
 at `4c7bfce`. Citations of #49's code are pinned to its merge commit
 `af7482b`.
 
@@ -427,6 +427,8 @@ the addition is a `feat:` (ADR 0004 point 2).
    consumer?
 
 ## Edits to other documents on acceptance
+
+Made on acceptance, 2026-10-21.
 
 - RFC 0002: the `to_dict()` comment (`:707`) and the
   `helia_platforms.export` sentence (`:853-855`) link here, and the
