@@ -99,29 +99,29 @@ exceptions:
     at: [boards, apollo3_evb, board, values, soc]
     rule: board soc
     reason: Zephyr names the Apollo3 Blue SoC apollo3_blue; nsx-ambiq-sdk and the catalog name it apollo3.
-    issue: "#67"
+    issue: "#129"
   - snapshot: zephyr.json
     at: [boards, apollo3p_evb, board, values, soc]
     rule: board soc
     reason: Zephyr names the Apollo3 Blue Plus SoC apollo3p_blue; nsx-ambiq-sdk and the catalog name it apollo3p.
-    issue: "#67"
+    issue: "#129"
   - snapshot: zephyr.json
     at: [boards, apollo3p_evb, devicetree, memory, /memory@52000000]
     rule: region containment
     reason: &xipmm >-
       An MSPI read/write (XIPMM) aperture, external memory (DS-A3P p82). The register
       header gives only its base, so check-sources finds no aperture to skip it by.
-    issue: "#67"
+    issue: "#129"
   - snapshot: zephyr.json
     at: [boards, apollo3p_evb, devicetree, memory, /memory@54000000]
     rule: region containment
     reason: *xipmm
-    issue: "#67"
+    issue: "#129"
   - snapshot: zephyr.json
     at: [boards, apollo3p_evb, devicetree, memory, /memory@56000000]
     rule: region containment
     reason: *xipmm
-    issue: "#67"
+    issue: "#129"
 
   # These stay as long as the catalog leaves apollo2 out.
   - snapshot: nsx-ambiq-sdk.json
