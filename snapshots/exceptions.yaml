@@ -60,16 +60,6 @@ exceptions:
     reason: apollo5b is dropped (owner decision on #64): no datasheet, guide or ordering number exists.
     issue: "#64"
   - snapshot: nsx-ambiq-sdk.json
-    at: [socs, apollo510L]
-    rule: in the catalog
-    reason: apollo510L and apollo330P's data lands with #65.
-    issue: "#65"
-  - snapshot: nsx-ambiq-sdk.json
-    at: [socs, apollo330P]
-    rule: in the catalog
-    reason: apollo510L and apollo330P's data lands with #65.
-    issue: "#65"
-  - snapshot: nsx-ambiq-sdk.json
     at: [socs, apollo4p]
     rule: in the catalog
     reason: apollo4p and apollo4l's data lands with #66.

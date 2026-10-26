@@ -9,10 +9,18 @@ def catalog() -> Catalog:
 
 
 def test_the_packaged_data_loads(catalog):
-    assert [s.id for s in catalog.socs()] == ["apollo510"]
-    assert [c.id for c in catalog.cores()] == ["cortex-m55"]
-    assert {p.id for p in catalog.parts()} == {"AP510NFA-CBR", "AP510NFA-IBR", "AP510NFA-CCR"}
-    assert [b.id for b in catalog.boards()] == ["apollo510_evb"]
+    assert {s.id for s in catalog.socs()} == {"apollo510", "apollo510L", "apollo330P"}
+    assert [c.id for c in catalog.cores()] == ["cortex-m55", "cortex-m4"]
+    assert {p.id for p in catalog.parts(soc="apollo510")} == {
+        "AP510NFA-CBR",
+        "AP510NFA-IBR",
+        "AP510NFA-CCR",
+    }
+    assert {b.id for b in catalog.boards()} == {
+        "apollo510_evb",
+        "apollo510dL_evb",
+        "apollo330mP_evb",
+    }
     assert [d.id for d in catalog.memory_devices()] == ["APS512XX"]
 
 
@@ -44,7 +52,7 @@ def test_the_soc_and_part_names_resolve(catalog):
 def test_a_shorthand_names_its_socs(catalog, shorthand):
     with pytest.raises(AmbiguousPlatform) as exc:
         catalog.resolve(shorthand)
-    assert exc.value.candidates == ("apollo510",)
+    assert exc.value.candidates == ("apollo510", "apollo510L")
 
 
 def test_records_cite_the_best_available_source(catalog):
@@ -66,3 +74,70 @@ def test_the_app_start_offset_names_the_mram_base_it_is_derived_from(catalog):
         "fact:soc:apollo510:memories.mram.base"
         in sbl.field_provenance["app_start.cm55_0.offset"].source
     )
+
+
+@pytest.mark.parametrize(
+    ("name", "board", "jlink"),
+    [
+        ("apollo510l_evb", "apollo510dL_evb", "AP510DLA-CBR"),
+        ("apollo330mp_evb", "apollo330mP_evb", "Apollo330P_510L"),
+    ],
+)
+def test_the_radio_core_evbs_answer_the_consumer_queries(catalog, name, board, jlink):
+    """#65's decisions: core-0 answers are those of a single-core part; NVM-M41 is the radio's."""
+    target = catalog.resolve(name)
+    assert target.board.id == board
+    assert target.capabilities == {"dsp", "fp16", "fp32", "fp64", "mve", "mve_fp", "pmu"}
+    assert {m.name: (m.base, m.size) for m in target.memories()} == {
+        "dtcm": (0x20000000, 256 * 1024),
+        "ssram": (0x20080000, 1792 * 1024),
+        "mram": (0x00400000, 2 * 1024 * 1024),
+    }
+    assert dict(target.usable_nvm()) == {"mram": 1589248}
+    assert target.flash_load_address() == 0x00410000
+    assert [(p.name, target.cpu_mhz(p.name)) for p in target.operating_points()] == [
+        ("lp", 96),
+        ("hp1", 192),
+        ("hp2", 250),
+    ]
+    assert target.default_operating_point.name == "lp"
+    assert (target.jlink_device, target.trace_clock_mhz) == (jlink, 48)
+    assert not target.external_memories()
+
+
+def test_the_radio_core_reaches_its_tcm_nvm_and_system_sram(catalog):
+    target = catalog.resolve("apollo510dL_evb")
+    radio = target.cores(role="radio")
+    assert [(c.id, c.core, c.programmable_by) for c in radio] == [
+        ("radio_m4", "cortex-m4", "vendor")
+    ]
+    assert [m.name for m in target.memories("radio_m4")] == ["ssram", "mram", "rs_tcm"]
+    assert [(p.name, p.mhz) for p in target.operating_points(domain="radio")] == [
+        ("lp", 48),
+        ("hp", 96),
+    ]
+    assert not target.isa("radio_m4").has_mve
+
+
+@pytest.mark.parametrize(
+    ("part", "usable"),
+    [
+        ("AP510NLA-CBR", 2 * 1024 * 1024 - 64 * 1024 - 16 * 1024),
+        ("AP330NPA-IBR", 2 * 1024 * 1024 - 64 * 1024 - 16 * 1024),
+        ("AP510BLA-ICR", 2 * 1024 * 1024 - 64 * 1024 - 288 * 1024),
+        ("AP330MPA-CCR", 2 * 1024 * 1024 - 64 * 1024 - 432 * 1024),
+    ],
+)
+def test_nvm_m41_is_left_out_on_every_part(catalog, part, usable):
+    """A no-radio part has no radio core; its 16 KB NVM-M41 is a boot reservation instead."""
+    target = catalog.resolve(part)
+    assert dict(target.usable_nvm()) == {"mram": usable}
+    has_radio = target.part.radio != "none"
+    assert bool(target.cores(role="radio")) == has_radio
+    assert target.has_region("rs_tcm") == has_radio
+
+
+def test_apollo330p_has_no_display_or_gpu(catalog):
+    peripherals = set(catalog.resolve("apollo330P").soc.peripherals)
+    assert not peripherals & {"dc", "dsi", "gpu", "i2s1"}
+    assert {"dc", "dsi", "gpu"} <= set(catalog.resolve("apollo510L").soc.peripherals)

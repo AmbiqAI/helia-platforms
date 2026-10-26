@@ -31,8 +31,13 @@ def public(document):
 
 
 def test_the_built_in_pages():
-    pages = _pages.render(builtin(include_plugins=False))
-    assert list(pages) == ["boards/apollo510_evb.md", "index.md", "socs/apollo510.md"]
+    catalog = builtin(include_plugins=False)
+    pages = _pages.render(catalog)
+    assert set(pages) == {
+        "index.md",
+        *(f"socs/{s.id}.md" for s in catalog.socs()),
+        *(f"boards/{b.id}.md" for b in catalog.boards()),
+    }
     soc, board = pages["socs/apollo510.md"], pages["boards/apollo510_evb.md"]
     assert soc.startswith("---\ntitle: apollo510\ndescription: ")
     assert "| dtcm | `0x20000000` | 512K | sram | tcm |" in soc
@@ -69,11 +74,8 @@ def test_the_release_assets_are_stable():
     zipped = first["helia-platforms-pages.zip"]
     assert isinstance(zipped, bytes)
     archive = zipfile.ZipFile(io.BytesIO(zipped))
-    assert sorted(archive.namelist()) == [
-        "pages/boards/apollo510_evb.md",
-        "pages/index.md",
-        "pages/socs/apollo510.md",
-    ]
+    pages = _pages.render(builtin(include_plugins=False))
+    assert sorted(archive.namelist()) == sorted(f"pages/{name}" for name in pages)
     assert json.loads(first["helia-platforms-export.json"])["identity"]["sources"] == []
 
 

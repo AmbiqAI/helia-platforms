@@ -20,17 +20,35 @@ allowed:
       RAM budgets are physical sizes: DTCM goes from the nsx gcc sbl script's 507904
       bytes to the physical 524288 (0002-migration.md, heliaAOT budgets).
     issue: "#28"
-  # Targets the catalog does not resolve yet; each data PR removes its own.
   - consumer: helia-aot
     target: apollo330mp_evb
-    field: target
-    reason: Not in the built-in data yet.
+    field: memories.DTCM
+    reason: >-
+      RAM budgets are physical sizes: DTCM goes from the nsx gcc sbl script's 245760
+      bytes to the physical 262144 (0002-migration.md, heliaAOT budgets).
+    issue: "#28"
+  - consumer: helia-aot
+    target: apollo330mp_evb
+    field: memories.MRAM
+    reason: >-
+      usable_nvm() leaves out the 64K SBL reservation and the 432K NVM-M41 radio slot:
+      2031616 bytes (the nsx window, which runs into NVM-M41) becomes 1589248.
     issue: "#65"
   - consumer: helia-aot
     target: apollo510l_evb
-    field: target
-    reason: Not in the built-in data yet.
+    field: memories.DTCM
+    reason: >-
+      RAM budgets are physical sizes: DTCM goes from the nsx gcc sbl script's 245760
+      bytes to the physical 262144 (0002-migration.md, heliaAOT budgets).
+    issue: "#28"
+  - consumer: helia-aot
+    target: apollo510l_evb
+    field: memories.MRAM
+    reason: >-
+      usable_nvm() leaves out the 64K SBL reservation and the 432K NVM-M41 radio slot:
+      2031616 bytes (the nsx window, which runs into NVM-M41) becomes 1589248.
     issue: "#65"
+  # Targets the catalog does not resolve yet; each data PR removes its own.
   - consumer: helia-aot
     target: apollo3_blue_evb
     field: target

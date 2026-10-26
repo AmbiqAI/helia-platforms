@@ -14,6 +14,30 @@ documents:
       date: 2025-11
       pages: 24
       sha256: 4350d3f28bf41a664ceefbdaa2cf6a78cdc3f40cf8f158c6b48a2ac8eee9032b
+  DS-A510LS:
+    0.9.0:
+      document_id: DS-A510LS-0p9p0
+      date: 2026-07
+      pages: 258
+      sha256: 1cd7cfe5a1b60aebffa6efe8b8dfa73769fcfc8e8e6ac2e4d815cda7fb7c8da3
+  DS-A330PS:
+    0.9.0:
+      document_id: DS-A330PS-0p9p0
+      date: 2026-07
+      pages: 247
+      sha256: 8793d3861a065c5d43e7c9049405b71f73c5632293703512c34a9032f858c417
+  QS-A510DL:
+    "2.0":
+      document_id: QS-A510DL-2p0
+      date: 2026-06
+      pages: 32
+      sha256: 268bf8b6ff2bebe19e636d7873a1e3c3922747cd919313b9f5a1b5018ab0e170
+  QS-A330MP:
+    "2.0":
+      document_id: QS-A330MP-2p0
+      date: 2026-06
+      pages: 32
+      sha256: 3ed362a2ef243b7d2e82324257a5b8aa04aef95ebbc3754d0139d1ea18f18ae1
 repositories:
   AmbiqAI/nsx-ambiq-sdk:
     url: https://github.com/AmbiqAI/nsx-ambiq-sdk
