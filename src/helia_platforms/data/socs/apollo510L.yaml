@@ -96,20 +96,30 @@ socs:
             "Arm Cortex-M4F Processor"; a "dedicated Cortex-M4 processor with a reduced
             feature set" in the Radio Subsystem (RSS) of the B and D Lite parts.
         options:
-          fpu: fpv4-sp-d16
-          fpu_dp: false
-          mve: none
+          fpu:
+            value: fpv4-sp-d16
+            provenance: &m4f
+              status: derived
+              source:
+                - "doc:DS-A510LS@0.9.0:p55"
+                - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/nsx_toolchain_flags.cmake:213-214"
+                - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo510L_cm4.h:168-169"
+              verified_on: 2026-10-26
+              verified_by: evanchen11
+              notes: >-
+                p55 "Arm Cortex-M4F Processor", "Floating point unit (FPU)", "Arm v7-M
+                architecture". A Cortex-M4F's FPU is single-precision FPv4-SP, which the
+                SDK spells fpv4-sp-d16 for Cortex-M4F; v7-M has no MVE. apollo510L_cm4.h
+                gives __FPU_PRESENT 1, __FPU_DP 0.
+          fpu_dp: {value: false, provenance: *m4f}
+          mve: {value: none, provenance: *m4f}
           icache_kb: 8
           provenance:
             status: datasheet
             source: ["doc:DS-A510LS@0.9.0:p55"]
             verified_on: 2026-10-08
             verified_by: evanchen11
-            notes: >-
-              "Arm Cortex-M4F Processor", "Floating point unit (FPU)", "Arm v7-M
-              architecture", "8 kB 2-way Associative Instruction Cache". A Cortex-M4F's FPU
-              is the single-precision FPv4-SP, and v7-M has no MVE; CMSIS apollo510L_cm4.h
-              :168-169 (__FPU_PRESENT 1, __FPU_DP 0) agrees. No data cache is stated.
+            notes: '"8 kB 2-way Associative Instruction Cache". No data cache is stated.'
 
     memories:
       dtcm:
@@ -239,9 +249,10 @@ socs:
           verified_on: 2026-10-26
           verified_by: evanchen11
           notes: >-
-            Table 5 "Apollo510 Lite SoC Peripheral Memory Map" lists the block at the CMSIS
-            <NAME>_BASE address; the ids are those names, lowercased. I2S1_BASE (:27513)
-            is Reserved in Table 5 and p2 lists "1x I2S", so i2s1 is left out.
+            Table 5 "Apollo510 Lite SoC Peripheral Memory Map" lists the block holding
+            each CMSIS <NAME>_BASE address, some under another name; the ids are those
+            names, lowercased. I2S1_BASE (:27513) is Reserved in Table 5 and p2 lists
+            "1x I2S", so i2s1 is left out.
       - {value: clkgen, provenance: *table5}
       - {value: cm55ipc, provenance: *table5}
       - {value: crypto, provenance: *table5}
@@ -302,8 +313,8 @@ socs:
         verified_by: evanchen11
         notes: >-
           The three MSPI controllers have external memory apertures in Table 4 (MSPI0
-          256 MB, MSPI1 and MSPI2 64 MB). IOMs and SDIOs are left off until a board wires
-          memory to one.
+          256 MB, MSPI1 and MSPI2 64 MB). IOMs and SDIOs are left off: the EVB's SDIO
+          eMMC is not modelled, as on apollo510_evb.
 
     clock_domains:
       cpu:
@@ -322,8 +333,8 @@ socs:
             verified_on: 2026-10-08
             verified_by: evanchen11
             notes: >-
-              Table 12: CPU CLKIN 96 MHz (LP, HFRC), 192 MHz (HP1, HFRC oscillator clock)
-              and 250 MHz (HP2, PLLVCO).
+              Table 12: CPU CLKIN 96 MHz (LP, HFRC or HFRC_DIV4), 192 MHz (HP1, HFRC
+              oscillator clock) and 250 MHz (HP2, PLLVCO).
         hp1:
           mhz: 192
           hal_mode:
@@ -642,7 +653,8 @@ boards:
       notes: >-
         p6 "Evaluation Board (EVB), revision 2.0, part number AP510DLEVB"; p8 the SoC "in
         the BGA package (AP510DLA-CBR)". p8: every revision 2.0 EVB has the PSRAM (U14)
-        de-populated, so the board has no interfaces or population.
+        de-populated, so the board has no MSPI interface or population (its SDIO eMMC is
+        not modelled).
     provisioning:
       value: sbl
       provenance:
