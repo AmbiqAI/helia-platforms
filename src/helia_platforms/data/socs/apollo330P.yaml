@@ -465,7 +465,7 @@ socs:
               the revision the snapshots pin (ADR 0006).
 
 implementations:
-  apollo330P_no_radio:
+  apollo330nP:
     release_status: public
     soc: apollo330P
     kind: silicon
@@ -519,29 +519,30 @@ parts:
   AP330NPA-CCR:
     release_status: public
     soc: apollo330P
-    implementation: apollo330P_no_radio
-    package: "110-pin CSP, 4.047 x 3.948 mm"
+    implementation: apollo330nP
+    package: "110-pin WLCSP, 4.047 x 3.948 mm"
     radio: none
     provenance: &ds_order
       status: datasheet
-      source: ["doc:DS-A330PS@0.9.0:p243"]
-      verified_on: 2026-10-08
+      source: ["doc:DS-A330PS@0.9.0:p15", "doc:DS-A330PS@0.9.0:p243"]
+      verified_on: 2026-10-26
       verified_by: evanchen11
       notes: >-
         Table 69 "Ordering Information for Apollo330 Plus Series SoCs": part, package
-        type, pin count, size and connectivity.
+        type, pin count, size and connectivity. Table 69 abbreviates the 110-pin package
+        "CSP"; p15 names it "11 x 10 WLCSP (110 pins / 68 GPIO)".
   AP330NPA-IBR:
     release_status: public
     soc: apollo330P
-    implementation: apollo330P_no_radio
+    implementation: apollo330nP
     package: "169-pin BGA, 5.3 x 5.3 mm"
     radio: none
     provenance: *ds_order
   AP330BPA-CCR:
     release_status: public
     soc: apollo330P
-    package: "110-pin CSP, 4.047 x 3.948 mm"
-    radio: BLE 5.4
+    package: "110-pin WLCSP, 4.047 x 3.948 mm"
+    radio: ble-5.4
     image_slots: &slot288
       nvm_m41:
         core: radio_m4
@@ -570,15 +571,15 @@ parts:
   AP330BPA-ICR:
     release_status: public
     soc: apollo330P
-    package: "110-pin CSP, 4.047 x 3.948 mm"
-    radio: BLE 5.4
+    package: "110-pin WLCSP, 4.047 x 3.948 mm"
+    radio: ble-5.4
     image_slots: *slot288
     provenance: *ds_order
   AP330MPA-CCR:
     release_status: public
     soc: apollo330P
-    package: "110-pin CSP, 4.047 x 3.948 mm"
-    radio: BLE 5.4, Bluetooth Classic
+    package: "110-pin WLCSP, 4.047 x 3.948 mm"
+    radio: ble-5.4, bt-classic
     image_slots: &slot432
       nvm_m41:
         core: radio_m4
@@ -598,25 +599,26 @@ parts:
         provenance: *slot_ds
     provenance: &ds_order_m
       status: datasheet
-      source: ["doc:DS-A330PS@0.9.0:p2", "doc:DS-A330PS@0.9.0:p243"]
-      verified_on: 2026-10-08
+      source: ["doc:DS-A330PS@0.9.0:p2", "doc:DS-A330PS@0.9.0:p15", "doc:DS-A330PS@0.9.0:p243"]
+      verified_on: 2026-10-26
       verified_by: evanchen11
       notes: >-
-        Part and package from Table 69 (p243). The radio is from p2, "Bluetooth Classic
-        (Apollo330M Plus)": p243 lists "BLE 5.4, Matter/Thread", which p2 footnotes
-        "Planned for future OTA update".
+        Part and package from Table 69 (p243); p15 names the 110-pin package WLCSP. The
+        radio is from p2, "Bluetooth Classic (Apollo330M Plus)": p243 lists "BLE 5.4,
+        Matter/Thread", which p2 footnotes "Planned for future OTA update", so 802.15.4
+        is left out until that ships.
   AP330MPA-IBR:
     release_status: public
     soc: apollo330P
     package: "169-pin BGA, 5.3 x 5.3 mm"
-    radio: BLE 5.4, Bluetooth Classic
+    radio: ble-5.4, bt-classic
     image_slots: *slot432
     provenance: *ds_order_m
   AP330MPA-CBR:
     release_status: public
     soc: apollo330P
     package: "169-pin BGA, 5.3 x 5.3 mm"
-    radio: BLE 5.4, Bluetooth Classic
+    radio: ble-5.4, bt-classic
     jlink_device:
       value: AP330MPA-CBR
       provenance:

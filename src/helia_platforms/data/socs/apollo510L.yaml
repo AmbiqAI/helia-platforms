@@ -467,7 +467,7 @@ socs:
               the revision the snapshots pin (ADR 0006).
 
 implementations:
-  apollo510L_no_radio:
+  apollo510nL:
     release_status: public
     soc: apollo510L
     kind: silicon
@@ -521,29 +521,30 @@ parts:
   AP510NLA-CCR:
     release_status: public
     soc: apollo510L
-    implementation: apollo510L_no_radio
-    package: "110-pin CSP, 4.047 x 3.948 mm"
+    implementation: apollo510nL
+    package: "110-pin WLCSP, 4.047 x 3.948 mm"
     radio: none
     provenance: &ds_order
       status: datasheet
-      source: ["doc:DS-A510LS@0.9.0:p254"]
-      verified_on: 2026-10-08
+      source: ["doc:DS-A510LS@0.9.0:p15", "doc:DS-A510LS@0.9.0:p254"]
+      verified_on: 2026-10-26
       verified_by: evanchen11
       notes: >-
         Table 70 "Ordering Information for Apollo510 Lite Series SoCs": part, package
-        type, pin count, size and connectivity.
+        type, pin count, size and connectivity. Table 70 abbreviates the 110-pin package
+        "CSP"; p15 names it "11 x 10 WLCSP (110 pins / 68 GPIO)".
   AP510NLA-CBR:
     release_status: public
     soc: apollo510L
-    implementation: apollo510L_no_radio
+    implementation: apollo510nL
     package: "169-pin BGA, 5.3 x 5.3 mm"
     radio: none
     provenance: *ds_order
   AP510BLA-ICR:
     release_status: public
     soc: apollo510L
-    package: "110-pin CSP, 4.047 x 3.948 mm"
-    radio: BLE 5.4
+    package: "110-pin WLCSP, 4.047 x 3.948 mm"
+    radio: ble-5.4
     image_slots:
       nvm_m41:
         core: radio_m4
@@ -572,8 +573,8 @@ parts:
   AP510DLA-CCR:
     release_status: public
     soc: apollo510L
-    package: "110-pin CSP, 4.047 x 3.948 mm"
-    radio: BLE 5.4, Bluetooth Classic
+    package: "110-pin WLCSP, 4.047 x 3.948 mm"
+    radio: ble-5.4, bt-classic
     image_slots: &slot432
       nvm_m41:
         core: radio_m4
@@ -593,17 +594,18 @@ parts:
         provenance: *slot_ds
     provenance: &ds_order_d
       status: datasheet
-      source: ["doc:DS-A510LS@0.9.0:p254"]
-      verified_on: 2026-10-08
+      source: ["doc:DS-A510LS@0.9.0:p15", "doc:DS-A510LS@0.9.0:p254"]
+      verified_on: 2026-10-26
       verified_by: evanchen11
       notes: >-
         Table 70 "Ordering Information for Apollo510 Lite Series SoCs". The table spells
         the connectivity "BLE 5.4, BT Classic"; p2 "Bluetooth Classic (Apollo510D Lite)".
+        p15 names the 110-pin package "11 x 10 WLCSP", which Table 70 abbreviates "CSP".
   AP510DLA-CBR:
     release_status: public
     soc: apollo510L
     package: "169-pin BGA, 5.3 x 5.3 mm"
-    radio: BLE 5.4, Bluetooth Classic
+    radio: ble-5.4, bt-classic
     jlink_device:
       value: AP510DLA-CBR
       provenance:
@@ -621,7 +623,7 @@ parts:
     release_status: public
     soc: apollo510L
     package: "169-pin BGA, 5.3 x 5.3 mm"
-    radio: BLE 5.4, Bluetooth Classic
+    radio: ble-5.4, bt-classic
     image_slots: *slot432
     provenance: *ds_order_d
 
