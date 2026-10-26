@@ -35,6 +35,7 @@ REGISTERS: dict[str, dict[str, tuple[str, str]]] = {
         "mram": ("MRAM_BASEADDR", "MRAM_MAX_SIZE"),
     },
 }
+REGISTERS["apollo510b"] = REGISTERS["apollo510"]  # the same regions in its own header
 #: CMake's boolean constants, compared case-insensitively; a non-zero number is also true
 #: (CMake reads one with ``strtod``, so in decimal or hexadecimal).
 _CMAKE_TRUE = {"1", "ON", "YES", "TRUE", "Y"}

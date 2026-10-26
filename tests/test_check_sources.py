@@ -168,6 +168,17 @@ def test_register_defines_are_compared_with_region_bases_and_sizes(snapshots):
     assert found.at[-1] == "DTCM_MAX_SIZE"
 
 
+@pytest.mark.parametrize("soc", ["apollo510b"])
+@pytest.mark.parametrize("define", ["DTCM_BASEADDR", "DTCM_MAX_SIZE", "MRAM_MAX_SIZE"])
+def test_each_apollo5_soc_compares_its_register_defines(snapshots, soc, define):
+    def change(data):
+        data["socs"][soc]["registers"]["values"][define] += 0x400
+
+    edit(snapshots, _check_sources.SDK, change)
+    (found,) = [f for f in findings(snapshots) if f.rule == "register"]
+    assert found.at[1:2] + found.at[-1:] == (soc, define)
+
+
 def test_a_linker_region_outside_every_run_of_regions_is_reported(snapshots):
     def change(data):
         scripts = data["socs"]["apollo510"]["linker"]["gcc"]["scripts"]
