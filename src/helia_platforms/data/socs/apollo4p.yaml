@@ -409,6 +409,16 @@ boards:
     interfaces:
       mspi0:
         controller: mspi0
+        modes:
+          value: [hex-ddr, octal-ddr]
+          provenance:
+            status: sdk
+            source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/boards/apollo4p_evb_disp_shield_rev2/bsp/am_bsp.h:103-104", "doc:DS-A4P@1.6.0:p115"]
+            verified_on: 2026-10-26
+            verified_by: evanchen11
+            notes: >-
+              The Display Kit BSP's PSRAM chip selects AM_HAL_MSPI_FLASH_OCTAL_DDR_CE0 and
+              _HEX_DDR_CE0. DS-A4P p115: "MSPI0 additionally supports hex (16-bit) mode".
         aperture_base: 0x14000000
         aperture_max: 64M
         provenance: &ds_aperture
@@ -423,6 +433,17 @@ boards:
             MSPI1, and "When MSPI0 is used in hex mode ... MSPI1 cannot be used".
       mspi1:
         controller: mspi1
+        modes:
+          value: [octal-ddr]
+          provenance:
+            status: datasheet
+            source: ["doc:QS-A4PDK@1.2:p12", "doc:DS-A4P@1.6.0:p117", "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/boards/apollo4p_evb_disp_shield_rev2/bsp/am_bsp.h:94-95"]
+            verified_on: 2026-10-26
+            verified_by: evanchen11
+            notes: >-
+              The Display Kit's flash is "Octal-SPI DDR-enabled" (QS-A4PDK p12), on MSPI1
+              (AM_BSP_MSPI_FLASH_MODULE 1). DS-A4P p117: all three MSPIs "support serial,
+              dual, quad or octal mode".
         aperture_base: 0x18000000
         aperture_max: 64M
         provenance: *ds_aperture

@@ -126,6 +126,8 @@ def test_the_display_shield_composition_adds_psram_and_flash(catalog):
     target = catalog.resolve("apollo4p_evb_disp_shield_rev2")
     assert (target.id, target.aliases) == ("apollo4p_evb", ("apollo4p_evb_disp_shield_rev2",))
     assert [a.id for a in target.addons] == ["apollo4p_disp_shield"]
+    modes = {name: i.modes for name, i in target.board.interfaces.items()}
+    assert modes == {"mspi0": ("hex-ddr", "octal-ddr"), "mspi1": ("octal-ddr",), "mspi2": ()}
     external = {(r.technology, r.base, r.size) for r in target.external_memories()}
     assert external == {("psram", 0x14000000, 32 * 1024 * 1024), ("flash", 0x18000000, 8 << 20)}
     assert target.has_external_memory("psram")
