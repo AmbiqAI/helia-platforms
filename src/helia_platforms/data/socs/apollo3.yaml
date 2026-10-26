@@ -351,8 +351,9 @@ parts:
       verified_on: 2026-10-26
       verified_by: evanchen11
       notes: >-
-        Table 1564 "Ordering Information": part, package and the BLE column. The AMAP31KK
-        parts are the "non-BLE configuration" (footnote 2). The version is p2's
+        Table 1564 "Ordering Information": part, package and the BLE column. Both AMAP31KK
+        parts have BLE "No"; footnote 2 on AMAP31KK-KBR calls it the "non-BLE
+        configuration". The version is p2's
         "Integrated Bluetooth 5 low-energy controller".
   AMA3B1KK-KCR-B0:
     release_status: public
