@@ -17,8 +17,8 @@ with side-loaded private catalogs, the structural and semantic validation, the
 catalog digest, the provenance checks, the resolver that consumers query
 (RFC 0002), and the CLI's `list`, `show`, `validate` and `export --schema`
 commands. The
-built-in data holds one Soc so far: apollo510, with its parts and the
-apollo510_evb board.
+built-in data holds two Socs so far: apollo510 and apollo510b, with their
+parts and the apollo510_evb and apollo510b_evb boards.
 
 ## Quickstart
 
