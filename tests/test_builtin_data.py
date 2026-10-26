@@ -9,11 +9,28 @@ def catalog() -> Catalog:
 
 
 def test_the_packaged_data_loads(catalog):
-    assert [s.id for s in catalog.socs()] == ["apollo510"]
-    assert [c.id for c in catalog.cores()] == ["cortex-m55"]
-    assert {p.id for p in catalog.parts()} == {"AP510NFA-CBR", "AP510NFA-IBR", "AP510NFA-CCR"}
-    assert [b.id for b in catalog.boards()] == ["apollo510_evb"]
-    assert [d.id for d in catalog.memory_devices()] == ["APS512XX"]
+    assert {s.id for s in catalog.socs()} == {"apollo510", "apollo4p", "apollo4l"}
+    assert {c.id for c in catalog.cores()} == {"cortex-m55", "cortex-m4"}
+    assert {p.id for p in catalog.parts()} == {
+        "AP510NFA-CBR",
+        "AP510NFA-IBR",
+        "AP510NFA-CCR",
+        "AMAP42KP-KBR",
+        "AMA4B2KP-KBR",
+        "AMA4B2KP-KXR",
+        "AMAP42KL-KBR",
+        "AMA4B2KL-KXR",
+    }
+    assert {b.id for b in catalog.boards()} == {
+        "apollo510_evb",
+        "apollo4p_evb",
+        "apollo4p_blue_kbr_evb",
+        "apollo4p_blue_kxr_evb",
+        "apollo4l_evb",
+        "apollo4l_blue_evb",
+    }
+    assert [a.id for a in catalog.addons()] == ["apollo4p_disp_shield"]
+    assert {d.id for d in catalog.memory_devices()} == {"APS512XX", "APS256XXN", "IS25WX064"}
 
 
 def test_apollo510_evb_answers_the_consumer_queries(catalog):
@@ -66,3 +83,61 @@ def test_the_app_start_offset_names_the_mram_base_it_is_derived_from(catalog):
         "fact:soc:apollo510:memories.mram.base"
         in sbl.field_provenance["app_start.cm55_0.offset"].source
     )
+
+
+APOLLO4P = {
+    "tcm": (0x10000000, 384 * 1024),
+    "ssram0": (0x10060000, 1024 * 1024),
+    "extram": (0x10160000, 384 * 1024),
+    "ssram1": (0x101C0000, 1024 * 1024),
+    "mram": (0x00000000, 2 * 1024 * 1024),
+}
+APOLLO4L = {
+    "tcm": (0x10000000, 384 * 1024),
+    "ssram0": (0x10060000, 1024 * 1024),
+    "mram": (0x00000000, 2 * 1024 * 1024),
+}
+
+
+@pytest.mark.parametrize(
+    ("board", "regions", "jlink"),
+    [
+        ("apollo4p_evb", APOLLO4P, "AMAP42KP-KBR"),
+        ("apollo4p_blue_kbr_evb", APOLLO4P, "AMA4B2KP-KBR"),
+        ("apollo4p_blue_kxr_evb", APOLLO4P, "AMA4B2KP-KXR"),
+        ("apollo4l_evb", APOLLO4L, "AMAP42KL-KBR"),
+        ("apollo4l_blue_evb", APOLLO4L, "AMA4B2KL-KXR"),
+    ],
+)
+def test_the_apollo4_evbs_answer_the_consumer_queries(catalog, board, regions, jlink):
+    """#66's proposal section 1.7, with no PSRAM on any of the five EVBs."""
+    target = catalog.resolve(board)
+    assert target.capabilities == {"dsp", "fp32", "pmu"}
+    assert {m.name: (m.base, m.size) for m in target.memories()} == regions
+    assert target.external_memories() == ()
+    assert dict(target.usable_nvm()) == {"mram": 2 * 1024 * 1024 - 96 * 1024}
+    assert target.flash_load_address() == 0x18000
+    assert (target.cpu_mhz(), target.cpu_mhz("hp")) == (96, 192)
+    assert target.default_operating_point.name == "lp"
+    assert (target.jlink_device, target.trace_clock_mhz) == (jlink, 96)
+
+
+def test_the_display_shield_composition_adds_psram_and_flash(catalog):
+    target = catalog.resolve("apollo4p_evb_disp_shield_rev2")
+    assert (target.id, target.aliases) == ("apollo4p_evb", ("apollo4p_evb_disp_shield_rev2",))
+    assert [a.id for a in target.addons] == ["apollo4p_disp_shield"]
+    external = {(r.technology, r.base, r.size) for r in target.external_memories()}
+    assert external == {("psram", 0x14000000, 32 * 1024 * 1024), ("flash", 0x18000000, 8 << 20)}
+    assert target.has_external_memory("psram")
+    assert catalog.resolve("apollo4p_evb").addons == ()
+
+
+def test_the_blue_parts_record_their_radio(catalog):
+    radios = {p.id: p.radio for p in catalog.parts() if p.soc in {"apollo4p", "apollo4l"}}
+    assert radios == {
+        "AMAP42KP-KBR": None,
+        "AMA4B2KP-KBR": "ble-5.4",
+        "AMA4B2KP-KXR": "ble-5.4",
+        "AMAP42KL-KBR": None,
+        "AMA4B2KL-KXR": "ble-5.1",
+    }

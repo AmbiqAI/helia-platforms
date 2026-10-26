@@ -352,8 +352,9 @@ marker keyed by id.
 External memory is composed, not fixed, because the same board ships with
 different populations across revisions (the Apollo330 Plus and Apollo510
 Lite EVB rev 2.0 leave the PSRAM footprint empty), shields add memory (the
-Apollo4 Plus display shield rev 1 and rev 2 carry different PSRAM and
-flash), and customers add daughter boards.
+Apollo4 Plus display shield carries a PSRAM and an octal flash, and the
+earlier Apollo4 display shield a different flash, QS-A4PDK p13), and
+customers add daughter boards.
 
 - `MemoryInterface` on the Board: name, controller (mspi0, mspi1, iom4),
   modes (octal DDR, hex), XIP aperture base and maximum size. The
@@ -384,7 +385,9 @@ AmbiqSuite's per-shield board directories (`apollo4p_evb_disp_shield_rev2`)
 and neuralspotx's matching board id become entries in the catalog's
 `compositions` table: an alias mapped to a board id and add-on ids.
 `resolve("apollo4p_evb_disp_shield_rev2")` returns the `apollo4p_evb`
-board target with the rev 2 display shield in `Target.addons`;
+board target with the display shield `apollo4p_disp_shield` in
+`Target.addons` (shield revision 1; the `_rev2` is the EVB revision,
+QS-A4PDK p18);
 `Target.id` is the board id, and the legacy id is kept in
 `Target.aliases`. heliaAOT artefact names use `Target.id`, except that
 for a plain alias heliaAOT keeps the name the user passed and records the

@@ -70,26 +70,6 @@ exceptions:
     reason: apollo510L and apollo330P's data lands with #65.
     issue: "#65"
   - snapshot: nsx-ambiq-sdk.json
-    at: [socs, apollo4p]
-    rule: in the catalog
-    reason: apollo4p and apollo4l's data lands with #66.
-    issue: "#66"
-  - snapshot: nsx-ambiq-sdk.json
-    at: [socs, apollo4l]
-    rule: in the catalog
-    reason: apollo4p and apollo4l's data lands with #66.
-    issue: "#66"
-  - snapshot: zephyr.json
-    at: [boards, apollo4p_evb]
-    rule: in the catalog
-    reason: apollo4p and apollo4l's data lands with #66.
-    issue: "#66"
-  - snapshot: zephyr.json
-    at: [boards, apollo4p_blue_kxr_evb]
-    rule: in the catalog
-    reason: The Apollo4 Blue boards' data lands with #91.
-    issue: "#91"
-  - snapshot: nsx-ambiq-sdk.json
     at: [socs, apollo3]
     rule: in the catalog
     reason: apollo3 and apollo3p's data lands with #67.
@@ -114,6 +94,13 @@ exceptions:
     rule: in the catalog
     reason: atomiq110's data lands with #68, once #104 decides how its FPGA is modelled.
     issue: "#68"
+  # The catalog puts the Blue Plus parts on apollo4p, as nsx-ambiq-sdk and neuralspotx
+  # do (decided on #66); Zephyr names a Soc of their own.
+  - snapshot: zephyr.json
+    at: [boards, apollo4p_blue_kxr_evb, board, values, soc]
+    rule: board soc
+    reason: Zephyr's apollo4p_blue Soc is apollo4p with the Blue Plus differences, which #91 models.
+    issue: "#91"
   # These stay as long as the catalog leaves apollo2 out.
   - snapshot: nsx-ambiq-sdk.json
     at: [socs, apollo2]

@@ -1,0 +1,489 @@
+# yaml-language-server: $schema=../../schema/helia-platforms-v1.schema.json
+# The apollo4p Soc, its parts and its boards. Owner decisions: #66.
+schema_version: 1
+socs:
+  apollo4p:
+    release_status: public
+    default_board: apollo4p_evb
+    provenance:
+      status: datasheet
+      source: ["doc:DS-A4P@1.6.0:p58", "doc:DS-A4P@1.6.0:p65", "doc:DS-A4P@1.6.0:p69"]
+      verified_on: 2026-10-08
+      verified_by: evanchen11
+      notes: >-
+        Which cores, memory regions and clock modes the Soc has: one Cortex-M4 (p58), LP
+        and HP modes (p65) and the on-chip memories (p69). The Blue Plus parts (DS-A4BP)
+        share this Soc, as in nsx-ambiq-sdk; #91 models how they differ.
+    series:
+      value: apollo4
+      provenance:
+        status: sdk
+        source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo4p.cmake:8"]
+        verified_on: 2026-10-26
+        verified_by: evanchen11
+
+    cores:
+      - id: cm4_0
+        role: application
+        core: cortex-m4
+        clock_domain: cpu
+        programmable_by:
+          value: customer
+          provenance:
+            status: sdk
+            source:
+              - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-core/src/apollo4p/gcc/linker_script.ld:10"
+              - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-core/src/apollo4p/armclang/linker_script.sct:6-8"
+            verified_on: 2026-10-26
+            verified_by: evanchen11
+            notes: >-
+              Both default scripts place the application, vector table first, in MRAM at
+              0x18000. DS-A4P p70: the bootloader hands off once "a valid reset vector is
+              establish at offset zero in the NVM".
+        provenance:
+          status: datasheet
+          source: ["doc:DS-A4P@1.6.0:p2"]
+          verified_on: 2026-10-08
+          verified_by: evanchen11
+          notes: >-
+            "32-bit Arm Cortex-M4 core with Floating Point Unit (FPU)" that can "serve as both
+            an application processor and a co-processor". It is the only application
+            processor; the Blue Plus parts add a BLE controller with a Cortex-M0 (DS-A4BP p96).
+        options:
+          fpu:
+            value: fpv4-sp-d16
+            provenance:
+              status: sdk
+              source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo4p.cmake:25"]
+              verified_on: 2026-10-26
+              verified_by: evanchen11
+              notes: NSX_FPU, the -mfpu the SDK passes. DS-A4P p58 names a "Floating Point Unit" only.
+          fpu_dp:
+            value: false
+            provenance:
+              status: sdk
+              source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo4p.h:174"]
+              verified_on: 2026-10-26
+              verified_by: evanchen11
+          mve:
+            value: none
+            provenance:
+              status: sdk
+              source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo4p.cmake:14"]
+              verified_on: 2026-10-26
+              verified_by: evanchen11
+          # icache_kb and dcache_kb are absent: DS-A4P p2 draws a 64 KB I-cache in the core,
+          # while p58 and p69 call the 64 kB cache an NVM cache (decided on #66).
+
+    # Bases are the register header's: no Apollo4 datasheet gives a TCM or SRAM base. No
+    # executable flags: DS-A4P p60 has only an Arm-level "Code" row (decided on #66).
+    memories:
+      tcm:
+        technology: sram
+        attachment: tcm
+        base: 0x10000000
+        size:
+          value: 384K
+          provenance: &ds_mem
+            status: datasheet
+            source: ["doc:DS-A4P@1.6.0:p69"]
+            verified_on: 2026-10-08
+            verified_by: evanchen11
+            notes: >-
+              "2048 kB Shared SRAM", "384 kB TCM", "384 kB Extended SRAM", "2 MB NVM" and
+              "Integrated NVM (MRAM)". p58: "384 kB Data TCM".
+        provenance:
+          status: sdk
+          source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/mcu/apollo4p/regs/am_reg_base_addresses.h:36-38"]
+          verified_on: 2026-10-26
+          verified_by: evanchen11
+          notes: The header's map (:28) gives TCM 384KB at 0x10000000 - 0x1005FFFF.
+      ssram0:
+        technology: sram
+        attachment: system
+        base: 0x10060000
+        size: 1M
+        provenance:
+          status: sdk
+          source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/mcu/apollo4p/regs/am_reg_base_addresses.h:44-45"]
+          verified_on: 2026-10-26
+          verified_by: evanchen11
+          notes: >-
+            DS-A4P p69 gives 2048 kB of shared SRAM in total, with no split or base. The
+            header splits it into SSRAM0 and SSRAM1 around the extended RAM (:28-31).
+      extram:
+        technology: sram
+        attachment: system
+        base: 0x10160000
+        size: {value: 384K, provenance: *ds_mem}
+        provenance:
+          status: sdk
+          source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/mcu/apollo4p/regs/am_reg_base_addresses.h:51-56"]
+          verified_on: 2026-10-26
+          verified_by: evanchen11
+          notes: The former DSP0 RAM, DSP0IRAM 128K plus DSP0DRAM 256K (:48-56).
+      ssram1:
+        technology: sram
+        attachment: system
+        base: 0x101C0000
+        size: 1M
+        provenance:
+          status: sdk
+          source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/mcu/apollo4p/regs/am_reg_base_addresses.h:61-62"]
+          verified_on: 2026-10-26
+          verified_by: evanchen11
+      mram:
+        technology: mram
+        attachment: system
+        base: 0x00000000
+        size: {value: 2M, provenance: *ds_mem}
+        provenance:
+          status: sdk
+          source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/mcu/apollo4p/regs/am_reg_base_addresses.h:77-78"]
+          verified_on: 2026-10-26
+          verified_by: evanchen11
+          notes: DS-A4P p60 gives only the Arm-level map, 0x00000000 - 0x1FFFFFFF "Internal NVM".
+
+    default_access:
+      master: cm4_0
+      access: direct
+      scope: on_die
+      provenance:
+        status: datasheet
+        source: ["doc:DS-A4P@1.6.0:p58"]
+        verified_on: 2026-10-08
+        verified_by: evanchen11
+        notes: '"All of the memory is memory mapped and accessible to the CPU."'
+
+    peripherals:
+      value: [adc, apbdma, audadc, clkgen, cpu, crypto, dc, dsi, dsp, fpio, gpio, gpu, i2s0,
+              i2s1, iom0, iom1, iom2, iom3, iom4, iom5, iom6, iom7, ioslave, mcuctrl, mspi0,
+              mspi1, mspi2, pdm0, pdm1, pdm2, pdm3, pwrctrl, rstgen, rtc, sdio, security, stimer,
+              timer, uart0, uart1, uart2, uart3, usbphy, usb, vcomp, wdt]
+      provenance:
+        status: sdk
+        source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo4p.h:26935-26980"]
+        verified_on: 2026-10-26
+        verified_by: evanchen11
+        notes: >-
+          Every <NAME>_BASE define, lowercased (46); DS-A4P p2 and p52 agree. The Blue Plus
+          parts have seven IOMs, and the KBR package pins out no MSPI1 (DS-A4BP p2, p48, p118).
+    memory_controllers:
+      value: [mspi0, mspi1, mspi2]
+      provenance:
+        status: datasheet
+        source: ["doc:DS-A4P@1.6.0:p115"]
+        verified_on: 2026-10-08
+        verified_by: evanchen11
+        notes: >-
+          The three MSPI modules are "memory mapped ... at address 0x14000000 (MSPI0),
+          0x18000000 (MSPI1) and 0x1C000000 (MSPI2)". IOMs and SDIO are left off until a
+          board wires memory to one.
+
+    clock_domains:
+      cpu:
+        lp:
+          mhz: 96
+          hal_mode:
+            value: AM_HAL_PWRCTRL_MCU_MODE_LOW_POWER
+            provenance: &hal_mcu_mode
+              status: sdk
+              source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/mcu/apollo4p/hal/am_hal_pwrctrl.h:223-224"]
+              verified_on: 2026-10-26
+              verified_by: evanchen11
+              notes: The enumerator comments say 96 MHz and 192 MHz.
+          provenance: &ds_clk
+            status: datasheet
+            source: ["doc:DS-A4P@1.6.0:p65"]
+            verified_on: 2026-10-08
+            verified_by: evanchen11
+            notes: >-
+              "Low Power / High Efficiency: 96 MHz", "High Performance: 192 MHz". p58 calls
+              192 MHz the "TurboSPOT Enhanced Mode".
+        hp:
+          mhz: 192
+          hal_mode:
+            value: AM_HAL_PWRCTRL_MCU_MODE_HIGH_PERFORMANCE
+            provenance: *hal_mcu_mode
+          provenance: *ds_clk
+    operating_points:
+      lp: {domains: {cpu: lp}, provenance: *ds_clk}
+      hp: {domains: {cpu: hp}, provenance: *ds_clk}
+    default_operating_point:
+      value: lp
+      provenance:
+        status: sdk
+        source:
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-core/includes-api/nsx_system.h:188"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-core/src/apollo4p/nsx_system_platform.c:51-56"
+        verified_on: 2026-10-26
+        verified_by: evanchen11
+        notes: >-
+          A zero-initialised config is "minimal, low-power", and NSX_PERF_LOW selects
+          AM_HAL_PWRCTRL_MCU_MODE_LOW_POWER. No DS-A4P page gives the power-on CPU clock.
+
+    boot_configs:
+      sbl:
+        reserved:
+          sbl:
+            region: mram
+            offset: 0
+            size: 96K
+            provenance: &app_start
+              status: derived
+              source:
+                - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-core/src/apollo4p/gcc/linker_script.ld:10"
+                - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo4p.cmake:51"
+                - "fact:soc:apollo4p:memories.mram.base"
+              verified_on: 2026-10-26
+              verified_by: evanchen11
+              notes: >-
+                Applications start at 0x18000 (MCU_MRAM ORIGIN; NSX_SEGGER_PF_ADDR), and
+                0x18000 - 0x0 (the mram base) = 96K; the reservation is the space below it,
+                not a documented SBL size. No Apollo4 PDF states either. AmbiqSuite's
+                am_defines.py gives 0xC000; #19 asks whether the SBL accepts images there.
+        app_start:
+          region: mram
+          offset: 96K
+          provenance: *app_start
+        requires: sbl
+        provenance:
+          status: datasheet
+          source: ["doc:DS-A4P@1.6.0:p70"]
+          verified_on: 2026-10-08
+          verified_by: evanchen11
+          notes: >-
+            "The root of trust for the secure boot is the boot ROM and the Ambiq secure
+            Bootloader". QS-A4P p10: parts are "preprogrammed with a Secure Bootloader".
+    default_boot:
+      value: sbl
+      provenance:
+        status: sdk
+        source:
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/apollo4p.cmake:22"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/apollo4p.cmake:25"
+        verified_on: 2026-10-26
+        verified_by: evanchen11
+        notes: The armclang (:22) and gcc (:25) scripts the SDK selects start at 0x18000.
+
+    sdk:
+      c_define: AM_PART_APOLLO4P
+      provenance:
+        status: sdk
+        source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo4p.cmake:32"]
+        verified_on: 2026-10-26
+        verified_by: evanchen11
+      cmsis_header:
+        value: apollo4p.h
+        provenance:
+          status: sdk
+          source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/mcu/apollo4p/am_mcu_apollo.h:99"]
+          verified_on: 2026-10-26
+          verified_by: evanchen11
+      trace_clock_mhz:
+        value: 96
+        provenance:
+          status: sdk
+          source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo4p.cmake:52"]
+          verified_on: 2026-10-26
+          verified_by: evanchen11
+          notes: >-
+            NSX_SEGGER_CPUFREQ is the TPIU trace clock (:46-47). nsx sets the TPIU through
+            the prebuilt BSP (nsx_system_platform.c:83), so the source it selects is not
+            visible; DS-A4P p68 allows up to 192 MHz.
+      build:
+        abi: thumbv7em-fpv4sp-hard
+        float_abi: hard
+        provenance:
+          status: sdk
+          source:
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo4p.cmake:22"
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo4p.cmake:26"
+          verified_on: 2026-10-26
+          verified_by: evanchen11
+        toolchains:
+          value: [arm-none-eabi-gcc]
+          provenance:
+            status: sdk
+            source: ["repo:AmbiqAI/neuralspotx@neuralspotx-v0.9.0:src/neuralspotx/boards/apollo4p_evb/board.yaml:19-20"]
+            verified_on: 2026-10-26
+            verified_by: evanchen11
+            notes: >-
+              Every neuralspotx apollo4p board at this tag, the shield board included, lists
+              gcc only. nsx-ambiq-sdk's board modules also list atfe and armclang.
+
+parts:
+  AMAP42KP-KBR:
+    release_status: public
+    soc: apollo4p
+    package: "146-pin BGA, 5.0 x 5.0 mm"
+    jlink_device:
+      value: AMAP42KP-KBR
+      provenance:
+        status: sdk
+        source:
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo4p.cmake:49"
+          - "repo:AmbiqAI/neuralspotx@neuralspotx-v0.9.0:src/neuralspotx/boards/apollo4p_evb/debug.cmake:4"
+        verified_on: 2026-10-26
+        verified_by: evanchen11
+        notes: >-
+          Not checked against SEGGER's device list (#19). Zephyr's apollo4p_evb board.cmake
+          passes AMAP42KK-KBR, the Apollo4 (non-Plus) part.
+    provenance:
+      status: datasheet
+      source: ["doc:DS-A4P@1.6.0:p241"]
+      verified_on: 2026-10-08
+      verified_by: evanchen11
+      notes: >-
+        Ordering table: "AMAP42KP-KBR 2 MB 2.75 MB 5.0 x 5.0 146-pin BGA". No DS-A4P page
+        mentions a radio, and none states its absence, so radio is left out.
+  AMA4B2KP-KBR:
+    release_status: public
+    soc: apollo4p
+    package: "131-pin BGA, 4.7 x 4.7 mm"
+    radio: &ble_plus
+      value: ble-5.4
+      provenance:
+        status: datasheet
+        source: ["doc:DS-A4BP@1.8.0:p49"]
+        verified_on: 2026-10-08
+        verified_by: evanchen11
+        notes: >-
+          "Bluetooth Low Energy 5.4 compatible radio with up to 5.1 feature support". The
+          spelling follows #64's ble-5.4. The BLE controller's Cortex-M0 (p96) is not modelled.
+    jlink_device:
+      value: AMA4B2KP-KBR
+      provenance:
+        status: datasheet
+        source: ["doc:QS-A4BP@1.4:p7"]
+        verified_on: 2026-10-08
+        verified_by: evanchen11
+        notes: >-
+          'select "AMA4B2KP-KBR"' in J-Link SWO Viewer. neuralspotx apollo4p_blue_kbr_evb
+          debug.cmake:4 agrees. Not checked against SEGGER's device list (#19).
+    provenance: &ds_order_blue
+      status: datasheet
+      source: ["doc:DS-A4BP@1.8.0:p252"]
+      verified_on: 2026-10-08
+      verified_by: evanchen11
+      notes: >-
+        Ordering table: KBR and KXR are both "2 MB 2.75 MB 4.7 x 4.7", 131-pin BGA. p48: the
+        packages differ in MSPI and PDM ports, which a part cannot express (#91).
+  AMA4B2KP-KXR:
+    release_status: public
+    soc: apollo4p
+    package: "131-pin BGA, 4.7 x 4.7 mm"
+    radio: *ble_plus
+    jlink_device:
+      value: AMA4B2KP-KXR
+      provenance:
+        status: sdk
+        source: ["repo:AmbiqAI/neuralspotx@neuralspotx-v0.9.0:src/neuralspotx/boards/apollo4p_blue_kxr_evb/debug.cmake:4"]
+        verified_on: 2026-10-26
+        verified_by: evanchen11
+        notes: >-
+          Not checked against SEGGER's device list (#19). Zephyr's apollo4p_blue_kxr_evb
+          board.cmake passes AMAP42KK-KBR.
+    provenance: *ds_order_blue
+
+boards:
+  apollo4p_evb:
+    release_status: public
+    category: evaluation
+    part: AMAP42KP-KBR
+    provenance:
+      status: datasheet
+      source: ["doc:QS-A4P@1.5:p6", "doc:QS-A4P@1.5:p10"]
+      verified_on: 2026-10-08
+      verified_by: evanchen11
+      notes: >-
+        p6 "Apollo4 Plus Evaluation Board (EVB), part number AMAP4PEVB"; p10 "Apollo4 Plus
+        SoC in the BGA package (AMAP42KP-KBR)". The guide covers EVB revisions 1 to 3, so
+        revision is left out. No PSRAM, flash or eMMC on the board itself (p10).
+    # The interfaces host the Display Kit (addons.yaml); the board populates none of them.
+    interfaces:
+      mspi0:
+        controller: mspi0
+        aperture_base: 0x14000000
+        aperture_max: 64M
+        provenance: &ds_aperture
+          status: datasheet
+          source: ["doc:DS-A4P@1.6.0:p115", "doc:DS-A4P@1.6.0:p69", "doc:QS-A4PDK@1.2:p10"]
+          verified_on: 2026-10-08
+          verified_by: evanchen11
+          notes: >-
+            p115 gives the XIP bases "0x14000000 (MSPI0), 0x18000000 (MSPI1) and 0x1C000000
+            (MSPI2)"; p69 "External flash with XiP (via MSPI) ... (up to 64 MB)", the family
+            limit used as each aperture's size. QS-A4PDK p10: the Display Kit uses MSPI0 and
+            MSPI1, and "When MSPI0 is used in hex mode ... MSPI1 cannot be used".
+      mspi1:
+        controller: mspi1
+        aperture_base: 0x18000000
+        aperture_max: 64M
+        provenance: *ds_aperture
+      mspi2:
+        controller: mspi2
+        aperture_base: 0x1C000000
+        aperture_max: 64M
+        provenance: *ds_aperture
+    provisioning:
+      value: sbl
+      provenance:
+        status: datasheet
+        source: ["doc:QS-A4P@1.5:p10"]
+        verified_on: 2026-10-08
+        verified_by: evanchen11
+        notes: '"preprogrammed with a Secure Bootloader"; "Default boot to non-secure mode".'
+  apollo4p_blue_kbr_evb:
+    release_status: public
+    category: evaluation
+    revision: "1.0"
+    part: AMA4B2KP-KBR
+    provenance:
+      status: datasheet
+      source: ["doc:QS-A4BP@1.4:p1", "doc:QS-A4BP@1.4:p6", "doc:QS-A4BP@1.4:p10"]
+      verified_on: 2026-10-08
+      verified_by: evanchen11
+      notes: >-
+        p1 "(EVB Revision 1.0)"; p6 "Apollo4 Blue Plus (KBR) Evaluation Board (EVB)"; p10
+        "Apollo4 Blue Plus (KBR) SoC in the BGA package (AMA4B2KP-KBR)". No memory device is
+        listed, and the Display Kit does not fit Blue EVBs (QS-A4PDK p10).
+    provisioning:
+      value: sbl
+      provenance:
+        status: datasheet
+        source: ["doc:QS-A4BP@1.4:p10"]
+        verified_on: 2026-10-08
+        verified_by: evanchen11
+        notes: '"preprogrammed with a Secure Bootloader".'
+  # No quick-start guide covers this board: its category and part come from neuralspotx.
+  apollo4p_blue_kxr_evb:
+    release_status: public
+    category:
+      value: evaluation
+      provenance:
+        status: sdk
+        source: ["repo:AmbiqAI/neuralspotx@neuralspotx-v0.9.0:src/neuralspotx/boards/apollo4p_blue_kxr_evb/board.yaml:11"]
+        verified_on: 2026-10-26
+        verified_by: evanchen11
+        notes: '"tier: evb".'
+    part:
+      value: AMA4B2KP-KXR
+      provenance:
+        status: sdk
+        source:
+          - "repo:AmbiqAI/neuralspotx@neuralspotx-v0.9.0:src/neuralspotx/boards/apollo4p_blue_kxr_evb/debug.cmake:4"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo4p.cmake:44-47"
+        verified_on: 2026-10-26
+        verified_by: evanchen11
+        notes: >-
+          The board's SEGGER device. The facts file says a board overrides NSX_SEGGER_DEVICE
+          "for its exact silicon package (e.g. a -KXR vs -KBR part)".
+    provenance:
+      status: sdk
+      source: ["repo:AmbiqAI/neuralspotx@neuralspotx-v0.9.0:src/neuralspotx/boards/apollo4p_blue_kxr_evb/board.yaml:9-13"]
+      verified_on: 2026-10-26
+      verified_by: evanchen11
+      notes: >-
+        A registered neuralspotx board with soc apollo4p. No revision, provisioning or memory
+        is stated; boot falls back to the Soc's sbl.

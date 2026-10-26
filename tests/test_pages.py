@@ -31,8 +31,11 @@ def public(document):
 
 
 def test_the_built_in_pages():
-    pages = _pages.render(builtin(include_plugins=False))
-    assert list(pages) == ["boards/apollo510_evb.md", "index.md", "socs/apollo510.md"]
+    catalog = builtin(include_plugins=False)
+    pages = _pages.render(catalog)
+    expected = {f"socs/{s.id}.md" for s in catalog.socs()} | {"index.md"}
+    assert set(pages) == expected | {f"boards/{b.id}.md" for b in catalog.boards()}
+    assert list(pages) == sorted(pages)
     soc, board = pages["socs/apollo510.md"], pages["boards/apollo510_evb.md"]
     assert soc.startswith("---\ntitle: apollo510\ndescription: ")
     assert "| dtcm | `0x20000000` | 512K | sram | tcm |" in soc
@@ -64,16 +67,13 @@ def test_a_target_that_is_not_public_stops_the_pages(document):
 
 
 def test_the_release_assets_are_stable():
-    first, second = (_pages.release(builtin(include_plugins=False)) for _ in range(2))
+    catalog = builtin(include_plugins=False)
+    first, second = (_pages.release(catalog) for _ in range(2))
     assert first == second
     zipped = first["helia-platforms-pages.zip"]
     assert isinstance(zipped, bytes)
     archive = zipfile.ZipFile(io.BytesIO(zipped))
-    assert sorted(archive.namelist()) == [
-        "pages/boards/apollo510_evb.md",
-        "pages/index.md",
-        "pages/socs/apollo510.md",
-    ]
+    assert sorted(archive.namelist()) == [f"pages/{page}" for page in _pages.render(catalog)]
     assert json.loads(first["helia-platforms-export.json"])["identity"]["sources"] == []
 
 
