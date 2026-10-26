@@ -177,7 +177,8 @@
           },
           "soc": "apollo4l",
           "toolchains": [
-            "arm-none-eabi-gcc"
+            "arm-none-eabi-gcc",
+            "atfe"
           ]
         }
       },
@@ -208,7 +209,8 @@
           },
           "soc": "apollo4l",
           "toolchains": [
-            "arm-none-eabi-gcc"
+            "arm-none-eabi-gcc",
+            "atfe"
           ]
         }
       },
@@ -512,26 +514,26 @@
     "extractor_version": 1,
     "sources": [
       {
-        "commit": "2dbe12a2799fd8c3df85f1a103b0adca340c901f",
+        "commit": "ffb7339b14b00134b4ed2834a1640d61042c0962",
         "repository": "AmbiqAI/neuralspotx",
-        "revision": "neuralspotx-v0.8.1"
+        "revision": "neuralspotx-v0.9.0"
       }
     ]
   },
   "soc_families": {
     "path": "src/neuralspotx/data/registry.lock.yaml",
     "values": {
-      "apollo2": "v5.2.24",
-      "apollo3": "v5.2.24",
-      "apollo330P": "v5.2.24",
-      "apollo3p": "v5.2.24",
-      "apollo4l": "v5.2.24",
-      "apollo4p": "v5.2.24",
-      "apollo510": "v5.2.24",
-      "apollo510L": "v5.2.24",
-      "apollo510b": "v5.2.24",
-      "apollo5b": "v5.2.24",
-      "atomiq110": "v5.2.25"
+      "apollo2": "v5.2.26",
+      "apollo3": "v5.2.26",
+      "apollo330P": "v5.2.26",
+      "apollo3p": "v5.2.26",
+      "apollo4l": "v5.2.26",
+      "apollo4p": "v5.2.26",
+      "apollo510": "v5.2.26",
+      "apollo510L": "v5.2.26",
+      "apollo510b": "v5.2.26",
+      "apollo5b": "v5.2.26",
+      "atomiq110": "v5.2.26"
     }
   }
 }

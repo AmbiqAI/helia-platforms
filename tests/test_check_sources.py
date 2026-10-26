@@ -290,12 +290,15 @@ def test_board_toolchains_and_default_scripts_are_compared(snapshots):
 
 
 def test_an_sdk_record_must_cite_a_snapshotted_revision(snapshots):
+    held = json.loads((snapshots / _check_sources.SDK).read_text())["metadata"]["sources"][0]
+
     def change(data):
-        data["metadata"]["sources"][0]["revision"] = "v5.2.26"
+        data["metadata"]["sources"][0]["revision"] = "v0.0.0"  # a revision no record cites
 
     edit(snapshots, _check_sources.SDK, change)
     revisions = [f for f in findings(snapshots) if f.rule == "sdk revision"]
-    assert revisions and all("nsx-ambiq-sdk@v5.2.24" in f.message for f in revisions)
+    cited = f"nsx-ambiq-sdk@{held['revision']}"
+    assert revisions and all(cited in f.message for f in revisions)
 
 
 def test_an_overlay_record_must_cite_a_snapshotted_revision(snapshots):

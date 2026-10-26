@@ -19,7 +19,7 @@ memory_devices:
         status: measured
         source:
           - "meas:apollo510_evb/xip-alias/2026-07-05"
-          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.24:modules/nsx-psram/CMakeLists.txt:106-110"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-psram/CMakeLists.txt:106-110"
         verified_on: 2026-10-13
         verified_by: evanchen11
         notes: >-
@@ -32,8 +32,8 @@ memory_devices:
       provenance:
         status: sdk
         source:
-          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.24:modules/nsx-ambiqsuite/sdk/boards/apollo510_evb/bsp/am_bsp.h:188"
-          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.24:modules/nsx-psram/CMakeLists.txt:121-129"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/boards/apollo510_evb/bsp/am_bsp.h:188"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-psram/CMakeLists.txt:123-131"
         verified_on: 2026-10-13
         verified_by: evanchen11
         notes: >-
@@ -45,7 +45,7 @@ memory_devices:
       provenance:
         status: sdk
         source:
-          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.24:modules/nsx-psram/CMakeLists.txt:60-64"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-psram/CMakeLists.txt:60-64"
         verified_on: 2026-10-13
         verified_by: evanchen11
         notes: "\"Hex (x16) DDR PSRAM on MSPI0\". QS-A510 p8 states x16 (Hex); DS-A510 p95 states DDR on MSPI0."

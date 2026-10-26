@@ -593,9 +593,9 @@ def test_recorded_pins_and_version_order() -> None:
     }
     recorded = cli._recorded(docs)
     assert (
-        recorded[("AmbiqAI/nsx-ambiq-sdk", "v5.2.24")] == "a9f4ec25a162f6f3700623feb691423bb5a51132"
+        recorded[("AmbiqAI/nsx-ambiq-sdk", "v5.2.26")] == "ba0621638d57b71a7b0d4f76ddccf0706745ad77"
     )
-    assert cli._pin(docs["neuralspotx"], "AmbiqAI/neuralspotx") == "neuralspotx-v0.8.1"
+    assert cli._pin(docs["neuralspotx"], "AmbiqAI/neuralspotx") == "neuralspotx-v0.9.0"
     assert sorted(["v5.2.10", "v5.2.9"], key=cli._version_key) == ["v5.2.9", "v5.2.10"]
 
 
