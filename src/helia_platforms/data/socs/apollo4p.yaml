@@ -33,7 +33,8 @@ socs:
             status: sdk
             source:
               - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-core/src/apollo4p/gcc/linker_script.ld:10"
-              - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-core/src/apollo4p/armclang/linker_script.sct:6-8"
+              - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-core/src/apollo4p/gcc/linker_script.ld:20"
+              - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-core/src/apollo4p/armclang/linker_script.sct:6-10"
             verified_on: 2026-10-26
             verified_by: evanchen11
             notes: >-
@@ -241,7 +242,7 @@ socs:
                 Applications start at 0x18000 (MCU_MRAM ORIGIN; NSX_SEGGER_PF_ADDR), and
                 0x18000 - 0x0 (the mram base) = 96K; the reservation is the space below it,
                 not a documented SBL size. No Apollo4 PDF states either. AmbiqSuite's
-                am_defines.py gives 0xC000; #19 asks whether the SBL accepts images there.
+                AmbiqSuite's am_defines.py gives 0xC000 (decided on #66); #19 asks whether the SBL accepts images there.
         app_start:
           region: mram
           offset: 96K
@@ -262,6 +263,8 @@ socs:
         source:
           - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/apollo4p.cmake:22"
           - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/apollo4p.cmake:25"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-core/src/apollo4p/gcc/linker_script.ld:10"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-core/src/apollo4p/armclang/linker_script.sct:6-8"
         verified_on: 2026-10-26
         verified_by: evanchen11
         notes: The armclang (:22) and gcc (:25) scripts the SDK selects start at 0x18000.
@@ -336,7 +339,8 @@ parts:
       verified_by: evanchen11
       notes: >-
         Ordering table: "AMAP42KP-KBR 2 MB 2.75 MB 5.0 x 5.0 146-pin BGA". No DS-A4P page
-        mentions a radio, and none states its absence, so radio is left out.
+        states that this part has a radio (p90-91 mention radio clocking only), and none
+        states its absence, so radio is left out.
   AMA4B2KP-KBR:
     release_status: public
     soc: apollo4p

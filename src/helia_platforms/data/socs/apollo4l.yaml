@@ -33,7 +33,8 @@ socs:
             status: sdk
             source:
               - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-core/src/apollo4l/gcc/linker_script.ld:10"
-              - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-core/src/apollo4l/armclang/linker_script.sct:6-8"
+              - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-core/src/apollo4l/gcc/linker_script.ld:20"
+              - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-core/src/apollo4l/armclang/linker_script.sct:6-10"
             verified_on: 2026-10-26
             verified_by: evanchen11
             notes: >-
@@ -144,8 +145,8 @@ socs:
         verified_on: 2026-10-26
         verified_by: evanchen11
         notes: >-
-          Every <NAME>_BASE define, lowercased (37): no usb, dc or dsi, as DS-A4L p2 and p42
-          state (display over MSPI). The Blue Lite part has seven IOMs (DS-A4BL p2, p39).
+          Every <NAME>_BASE define, lowercased (37): no usb, dc or dsi, which DS-A4L p2 and p42
+          also omit (display over MSPI). The Blue Lite part has seven IOMs (DS-A4BL p2, p39).
     memory_controllers:
       value: [mspi0, mspi1, mspi2]
       provenance:
@@ -220,7 +221,7 @@ socs:
                 Applications start at 0x18000 (MCU_MRAM ORIGIN; NSX_SEGGER_PF_ADDR), and
                 0x18000 - 0x0 (the mram base) = 96K; the reservation is the space below it,
                 not a documented SBL size. No Apollo4 PDF states either. AmbiqSuite's
-                am_defines.py gives 0xC000; #19 asks whether the SBL accepts images there.
+                AmbiqSuite's am_defines.py gives 0xC000 (decided on #66); #19 asks whether the SBL accepts images there.
         app_start:
           region: mram
           offset: 96K
@@ -241,6 +242,8 @@ socs:
         source:
           - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/apollo4l.cmake:22"
           - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/apollo4l.cmake:25"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-core/src/apollo4l/gcc/linker_script.ld:10"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-core/src/apollo4l/armclang/linker_script.sct:6-8"
         verified_on: 2026-10-26
         verified_by: evanchen11
         notes: The armclang (:22) and gcc (:25) scripts the SDK selects start at 0x18000.
@@ -311,8 +314,9 @@ parts:
       verified_on: 2026-10-08
       verified_by: evanchen11
       notes: >-
-        Ordering table: "AMAP42KL-KBR 2 MB 1.375 MB 5.0 x 5.0", 146-pin BGA. No DS-A4L page
-        states a radio or its absence, so radio is left out.
+        Ordering table: "AMAP42KL-KBR 2 MB 1.375 MB 5.0 x 5.0", 146-pin BGA. p75 mentions
+        "Bluetooth Low Energy supply regulators", apparently carried over from DS-A4BL; no
+        feature list (p2, p42) names a radio, so radio is left out.
   AMA4B2KL-KXR:
     release_status: public
     soc: apollo4l
