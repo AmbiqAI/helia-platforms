@@ -38,6 +38,12 @@ REGISTERS: dict[str, dict[str, tuple[str, str]]] = {
     "apollo3": {"tcm": ("TCM_BASEADDR", "TCM_MAX_SIZE"), "flash": ("FLASH_BASEADDR", "")},
     "apollo3p": {"tcm": ("TCM_BASEADDR", "TCM_MAX_SIZE"), "flash": ("FLASH_BASEADDR", "")},
 }
+#: The ``am_hal_flash.h`` sizes Apollo3 states and the regions whose sizes add up to each;
+#: its SRAM size covers TCM and SRAM together.
+HAL_FLASH: dict[str, dict[str, tuple[str, ...]]] = {
+    soc: {"AM_HAL_FLASH_TOTAL_SIZE": ("flash",), "AM_HAL_FLASH_SRAM_SIZE": ("tcm", "sram")}
+    for soc in ("apollo3", "apollo3p")
+}
 #: CMake's boolean constants, compared case-insensitively; a non-zero number is also true
 #: (CMake reads one with ``strtod``, so in decimal or hexadecimal).
 _CMAKE_TRUE = {"1", "ON", "YES", "TRUE", "Y"}
@@ -204,9 +210,19 @@ class _Comparison:
                 SDK, (*at, "NSX_SEGGER_PF_ADDR"), "flash load address", ours, int(address, 16)
             )
         yield from self.registers(name, block, soc)
+        yield from self.hal_flash(name, block, soc)
         yield from self.containment(
             SDK, ("socs", name, "linker"), _linker_regions(block), soc, _apertures(block)
         )
+
+    def hal_flash(self, name: str, block: Mapping[str, Any], soc: model.Soc) -> Iterator[Finding]:
+        defines = block.get("flash", {}).get("values", {})
+        sizes = {r.name: r.size for r in soc.memories}
+        for define, regions in HAL_FLASH.get(soc.id, {}).items():
+            if define in defines and all(r in sizes for r in regions):
+                ours = sum(sizes[r] for r in regions)
+                at = ("socs", name, "flash", "values", define)
+                yield from _equal(SDK, at, "flash header", ours, defines[define])
 
     def registers(self, name: str, block: Mapping[str, Any], soc: model.Soc) -> Iterator[Finding]:
         defines = block["registers"]["values"]

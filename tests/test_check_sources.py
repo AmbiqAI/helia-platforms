@@ -178,6 +178,17 @@ def test_apollo3_register_defines_are_compared(snapshots, soc):
     assert found.at[1:2] + found.at[-1:] == (soc, "TCM_MAX_SIZE")
 
 
+@pytest.mark.parametrize("soc", ["apollo3", "apollo3p"])
+@pytest.mark.parametrize("define", ["AM_HAL_FLASH_TOTAL_SIZE", "AM_HAL_FLASH_SRAM_SIZE"])
+def test_apollo3_flash_header_sizes_are_compared(snapshots, soc, define):
+    def change(data):
+        data["socs"][soc]["flash"]["values"][define] //= 2
+
+    edit(snapshots, _check_sources.SDK, change)
+    (found,) = [f for f in findings(snapshots) if f.rule == "flash header"]
+    assert found.at[1:2] + found.at[-1:] == (soc, define)
+
+
 def test_the_apollo3_armclang_exception_leaves_its_gcc_default_compared(snapshots):
     def change(data):
         data["boards"]["apollo3_evb"]["linker"]["defaults"]["gcc"] = "wrong.ld"
