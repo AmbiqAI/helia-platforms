@@ -277,6 +277,28 @@ def test_a_zephyr_node_in_an_xip_aperture_is_external_memory(snapshots):
     assert (found.rule, found.at[-1]) == ("region containment", "/memory@50000000")
 
 
+def test_an_xspi_aperture_and_its_secure_alias_are_external_memory(snapshots):
+    def registers(data):
+        values = data["socs"]["apollo510"]["registers"]["values"]
+        values.update(  # atomiq110's spelling (#120), at addresses no apollo510 region uses
+            XSPI0_APERTURE_START_ADDR=0x50000000,
+            XSPI0_APERTURE_END_ADDR=0x50100000,
+            XSPI0_APERTURE_START_SECURE_ADDR=0x50100000,
+            XSPI0_APERTURE_END_SECURE_ADDR=0x50200000,
+        )
+
+    def nodes(data):
+        memory = data["boards"]["apollo510_evb"]["devicetree"]["memory"]
+        memory["/memory@50000000"] = {"base": 0x50000000, "size": 0x1000}
+        memory["/memory@50100000"] = {"base": 0x50100000, "size": 0x1000}
+        memory["/memory@50200000"] = {"base": 0x50200000, "size": 0x1000}  # past both
+
+    edit(snapshots, _check_sources.SDK, registers)
+    edit(snapshots, _check_sources.ZEPHYR, nodes)
+    (found,) = findings(snapshots)
+    assert (found.rule, found.at[-1]) == ("region containment", "/memory@50200000")
+
+
 def test_board_toolchains_and_default_scripts_are_compared(snapshots):
     def change(data):
         board = data["boards"]["apollo510_evb"]

@@ -41,7 +41,8 @@ _CMAKE_TRUE = {"1", "ON", "YES", "TRUE", "Y"}
 _CMAKE_FALSE = {"0", "OFF", "NO", "FALSE", "N", "IGNORE", "NOTFOUND", ""}
 _NUMBER = re.compile(r"[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?")
 _HEX = re.compile(r"[+-]?0[xX]([0-9a-fA-F]+\.?[0-9a-fA-F]*|\.[0-9a-fA-F]+)([pP][+-]?\d+)?")
-_APERTURE = re.compile(r"^(MSPI\d+)_APERTURE_START_ADDR$")
+#: Apollo names its apertures MSPI<n>; atomiq110 names them XSPI<n>, with secure aliases (#120).
+_APERTURE = re.compile(r"^((?:MSPI|XSPI)\d+)_APERTURE_START(_SECURE)?_ADDR$")
 _REPO = re.compile(r"^repo:(?P<repo>[^@]+)@(?P<rev>[^:]+):")
 MISSING = "in the catalog"
 
@@ -419,13 +420,16 @@ def _linker_regions(
 def _apertures(block: Mapping[str, Any]) -> list[tuple[int, int]]:
     """The memory-controller XIP apertures the register header defines, as ``[lo, hi)``.
 
-    ``*_APERTURE_END_ADDR`` is already exclusive: MSPI1's end is MSPI2's start.
+    ``*_APERTURE_END_ADDR`` is already exclusive: MSPI1's end is MSPI2's start. A secure
+    alias (``*_APERTURE_START_SECURE_ADDR``) is an aperture of its own.
     """
     defines = block["registers"]["values"]
     found = []
     for name, start in defines.items():
-        if (match := _APERTURE.match(name)) and f"{match[1]}_APERTURE_END_ADDR" in defines:
-            found.append((start, defines[f"{match[1]}_APERTURE_END_ADDR"]))
+        if match := _APERTURE.match(name):
+            end = f"{match[1]}_APERTURE_END{match[2] or ''}_ADDR"
+            if end in defines:
+                found.append((start, defines[end]))
     return found
 
 
