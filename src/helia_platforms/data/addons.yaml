@@ -25,9 +25,15 @@ addons:
             confirmed fitted (#19).
     provenance:
       status: sdk
-      source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/boards/apollo3p_evb_cygnus/bsp/am_bsp_pins.h:917-941"]
+      source:
+        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/boards/apollo3p_evb_cygnus/bsp/am_bsp_pins.h:223"
+        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/boards/apollo3p_evb_cygnus/bsp/am_bsp_pins.h:917-941"
+        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/boards/apollo3p_evb_cygnus/bsp/am_bsp_pins.h:966"
+        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/boards/apollo3p_evb_cygnus/bsp/am_bsp.h:118"
       verified_on: 2026-10-26
       verified_by: evanchen11
       notes: >-
-        The BSP describes "the Cygnus board" apart from "the EVB" (the FT_BRIDGE pins). No
-        document for it is in the register, and its revision is not known.
+        The BSP describes "the Cygnus board's FTDI device" apart from "the EVB's FTDI
+        device" (:223, the FT_BRIDGE pins :917-941), and its PSRAM "using MSPI1" (:966,
+        AM_BSP_MSPI_PSRAM_INST 1). No document for it is in the register, and its
+        revision is not known.

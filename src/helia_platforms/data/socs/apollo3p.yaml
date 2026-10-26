@@ -290,7 +290,7 @@ socs:
           verified_by: evanchen11
           notes: >-
             NSX_SEGGER_CPUFREQ, which :46-47 call the TPIU trace clock. DS-A3P p160 lists the
-            TPIU clocks as HFRC divided by 2, 8, 16 or 32, so 48 MHz is HFRC (96 MHz) / 2.
+            TPIU clocks as HFRC divided by 2, 8, 16 or 32.
       build:
         abi: thumbv7em-fpv4sp-hard
         float_abi: hard
