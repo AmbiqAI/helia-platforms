@@ -68,10 +68,18 @@ def test_records_cite_the_best_available_source(catalog):
     assert board.field_provenance["interfaces.mspi0.controller"].source == ("doc:QS-A510@2.1:p10",)
 
 
-def test_the_app_start_offset_names_the_mram_base_it_is_derived_from(catalog):
-    sbl = catalog.resolve("apollo510_evb").boot
+@pytest.mark.parametrize(
+    ("board", "soc"),
+    [
+        ("apollo510_evb", "apollo510"),
+        ("apollo510dL_evb", "apollo510L"),
+        ("apollo330mP_evb", "apollo330P"),
+    ],
+)
+def test_the_app_start_offset_names_the_mram_base_it_is_derived_from(catalog, board, soc):
+    sbl = catalog.resolve(board).boot
     assert (
-        "fact:soc:apollo510:memories.mram.base"
+        f"fact:soc:{soc}:memories.mram.base"
         in sbl.field_provenance["app_start.cm55_0.offset"].source
     )
 

@@ -389,6 +389,7 @@ socs:
               source:
                 - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-core/src/apollo330P/gcc/linker_script_sbl.ld:10"
                 - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/mcu/apollo330P/regs/am_reg_base_addresses.h:54"
+                - "fact:soc:apollo330P:memories.mram.base"
               verified_on: 2026-10-26
               verified_by: evanchen11
               notes: >-
