@@ -100,7 +100,7 @@ exceptions:
     at: [boards, apollo4p_blue_kxr_evb, board, values, soc]
     rule: board soc
     reason: Zephyr's apollo4p_blue Soc is apollo4p with the Blue Plus differences, which #91 models.
-    issue: "#91"
+    issue: "#129"
   # These stay as long as the catalog leaves apollo2 out.
   - snapshot: nsx-ambiq-sdk.json
     at: [socs, apollo2]
