@@ -293,10 +293,11 @@ def test_an_exception_that_covers_nothing_is_stale(snapshots):
 def test_an_exception_under_an_id_the_catalog_lacks_is_not_stale():
     result = _check_sources.check(builtin(include_plugins=False), ROOT / "snapshots")
     held = [e for _, e in result.excepted]
+    socs = {s.id for s in builtin(include_plugins=False).socs()}
     containment = [
         e
         for e in _check_sources.load_exceptions(ROOT / "snapshots/exceptions.yaml")
-        if e.rule == "region containment"
+        if e.rule == "region containment" and e.at[:1] == ("socs",) and e.at[1] not in socs
     ]
     assert containment and not any(e in held for e in containment)
     assert result.stale == ()

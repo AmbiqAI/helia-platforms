@@ -4,3 +4,6 @@ schema_version: 1
 shorthands:
   AP5: [apollo510]
   AP510: [apollo510]
+compositions:
+  # neuralspotx's apollo3p_evb_cygnus board: the EVB with the Cygnus board on MSPI1 (#67).
+  apollo3p_evb_cygnus: {board: apollo3p_evb, addons: [cygnus]}

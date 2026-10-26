@@ -20,6 +20,87 @@ allowed:
       RAM budgets are physical sizes: DTCM goes from the nsx gcc sbl script's 507904
       bytes to the physical 524288 (0002-migration.md, heliaAOT budgets).
     issue: "#28"
+  - consumer: helia-aot
+    target: apollo3_blue_evb
+    field: memories.MRAM
+    reason: &a3_mram >-
+      NVM budgets are usable_nvm(): 1048576 bytes of flash less the 48 KB below the
+      0xC000 application start, 999424 (0002-migration.md, heliaAOT budgets).
+    issue: "#28"
+  - consumer: helia-aot
+    target: apollo3_blue_thin_evb
+    field: memories.MRAM
+    reason: *a3_mram
+    issue: "#28"
+  - consumer: helia-aot
+    target: apollo3_evb
+    field: memories.MRAM
+    reason: *a3_mram
+    issue: "#28"
+  - consumer: helia-aot
+    target: apollo3_blue_plus_evb
+    field: memories.MRAM
+    reason: &a3p_mram >-
+      NVM budgets are usable_nvm(): 2097152 bytes of flash less the 48 KB below the
+      0xC000 application start, 2048000 (0002-migration.md, heliaAOT budgets).
+    issue: "#28"
+  - consumer: helia-aot
+    target: apollo3p_evb
+    field: memories.MRAM
+    reason: *a3p_mram
+    issue: "#28"
+  - consumer: helia-aot
+    target: apollo3_blue_evb
+    field: memories.DTCM
+    reason: &a3_tcm >-
+      The catalog names Apollo3's one TCM region tcm (DS-A3 and DS-A3P Table 5) where
+      heliaAOT says DTCM. This projection keys a TCM by its name; the adapter maps it.
+    issue: "#13"
+  - consumer: helia-aot
+    target: apollo3_blue_evb
+    field: memories.TCM
+    reason: *a3_tcm
+    issue: "#13"
+  - consumer: helia-aot
+    target: apollo3_blue_plus_evb
+    field: memories.DTCM
+    reason: *a3_tcm
+    issue: "#13"
+  - consumer: helia-aot
+    target: apollo3_blue_plus_evb
+    field: memories.TCM
+    reason: *a3_tcm
+    issue: "#13"
+  - consumer: helia-aot
+    target: apollo3_blue_thin_evb
+    field: memories.DTCM
+    reason: *a3_tcm
+    issue: "#13"
+  - consumer: helia-aot
+    target: apollo3_blue_thin_evb
+    field: memories.TCM
+    reason: *a3_tcm
+    issue: "#13"
+  - consumer: helia-aot
+    target: apollo3_evb
+    field: memories.DTCM
+    reason: *a3_tcm
+    issue: "#13"
+  - consumer: helia-aot
+    target: apollo3_evb
+    field: memories.TCM
+    reason: *a3_tcm
+    issue: "#13"
+  - consumer: helia-aot
+    target: apollo3p_evb
+    field: memories.DTCM
+    reason: *a3_tcm
+    issue: "#13"
+  - consumer: helia-aot
+    target: apollo3p_evb
+    field: memories.TCM
+    reason: *a3_tcm
+    issue: "#13"
   # Targets the catalog does not resolve yet; each data PR removes its own.
   - consumer: helia-aot
     target: apollo330mp_evb
@@ -31,31 +112,6 @@ allowed:
     field: target
     reason: Not in the built-in data yet.
     issue: "#65"
-  - consumer: helia-aot
-    target: apollo3_blue_evb
-    field: target
-    reason: Not in the built-in data yet.
-    issue: "#67"
-  - consumer: helia-aot
-    target: apollo3_blue_plus_evb
-    field: target
-    reason: Not in the built-in data yet.
-    issue: "#67"
-  - consumer: helia-aot
-    target: apollo3_blue_thin_evb
-    field: target
-    reason: Not in the built-in data yet.
-    issue: "#67"
-  - consumer: helia-aot
-    target: apollo3_evb
-    field: target
-    reason: Not in the built-in data yet.
-    issue: "#67"
-  - consumer: helia-aot
-    target: apollo3p_evb
-    field: target
-    reason: Not in the built-in data yet.
-    issue: "#67"
   - consumer: helia-aot
     target: apollo4l_blue_evb
     field: target

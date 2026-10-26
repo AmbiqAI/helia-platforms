@@ -1,0 +1,33 @@
+# yaml-language-server: $schema=../schema/helia-platforms-v1.schema.json
+# Add-ons shared across boards (ADR 0002 section 1).
+schema_version: 1
+addons:
+  cygnus:
+    release_status: public
+    fits_boards: [apollo3p_evb]
+    occupies: [mspi1]
+    population:
+      mspi1:
+        value: APS6404L
+        provenance:
+          status: sdk
+          source:
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/boards/apollo3p_evb_cygnus/bsp/am_bsp_pins.h:966-1011"
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/boards/apollo3p_evb_cygnus/bsp/am_bsp.h:118"
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-psram/CMakeLists.txt:21-29"
+            - "repo:zephyrproject-rtos/zephyr@8f62a4ab82b5c2121c088842d3233f75b603ce35:samples/drivers/memc/boards/apollo3p_evb.overlay:21-54"
+          verified_on: 2026-10-26
+          verified_by: evanchen11
+          notes: >-
+            The cygnus BSP wires a PSRAM to MSPI1 (CE0 pad 69, D0-D3 and SCK pads 51-54 and
+            59) with AM_BSP_MSPI_PSRAM_INST 1, and nsx-psram builds its APS6404L driver for
+            the board. Zephyr's PSRAM sample wires an APS6404L on the same pads. Wired, not
+            confirmed fitted (#19).
+    provenance:
+      status: sdk
+      source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/boards/apollo3p_evb_cygnus/bsp/am_bsp_pins.h:917-941"]
+      verified_on: 2026-10-26
+      verified_by: evanchen11
+      notes: >-
+        The BSP describes "the Cygnus board" apart from "the EVB" (the FT_BRIDGE pins). No
+        document for it is in the register, and its revision is not known.

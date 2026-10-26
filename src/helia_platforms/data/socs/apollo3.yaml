@@ -1,0 +1,405 @@
+# yaml-language-server: $schema=../../schema/helia-platforms-v1.schema.json
+# The apollo3 Soc (Apollo3 Blue), its parts and its board. Owner decisions: #67.
+schema_version: 1
+socs:
+  apollo3:
+    release_status: public
+    default_board: apollo3_evb
+    provenance:
+      status: datasheet
+      source: ["doc:DS-A3@1.3.0:p2", "doc:DS-A3@1.3.0:p78", "doc:DS-A3@1.3.0:p169"]
+      verified_on: 2026-10-08
+      verified_by: evanchen11
+      notes: >-
+        Which cores, memory regions, clock modes and boot configurations the Soc has: one
+        Cortex-M4F with 48 MHz nominal and 96 MHz TurboSPOT clocks (p2), the memory map
+        (p78) and secure boot (p169).
+    series:
+      value: apollo3
+      provenance:
+        status: sdk
+        source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo3.cmake:8"]
+        verified_on: 2026-10-26
+        verified_by: evanchen11
+
+    cores:
+      - id: cm4_0
+        role: application
+        core: cortex-m4
+        clock_domain: cpu
+        programmable_by:
+          value: customer
+          provenance:
+            status: sdk
+            source:
+              - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-core/src/apollo3/gcc/linker_script.ld:10"
+              - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/mcu/apollo3/hal/am_hal_flash.h:89"
+            verified_on: 2026-10-26
+            verified_by: evanchen11
+            notes: The default linker script places the application in flash at 0xC000.
+        provenance:
+          status: datasheet
+          source: ["doc:DS-A3@1.3.0:p2"]
+          verified_on: 2026-10-08
+          verified_by: evanchen11
+          notes: >-
+            "High-performance ARM Cortex-M4 Processor". p2 also gives the BLE controller "a
+            dedicated second core"; that it is the application core is the catalog's reading.
+        options:
+          fpu:
+            value: fpv4-sp-d16
+            provenance:
+              status: sdk
+              source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo3.cmake:25"]
+              verified_on: 2026-10-26
+              verified_by: evanchen11
+              notes: DS-A3 p2 says "Floating point unit" and names no architecture or precision.
+          fpu_dp: false
+          mve: none
+          provenance:
+            status: sdk
+            source:
+              - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo3.cmake:14"
+              - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo3.h:134"
+            verified_on: 2026-10-26
+            verified_by: evanchen11
+            notes: >-
+              NSX_SOC_HAS_MVE FALSE and __FPU_DP 0. The 16 KB cache on DS-A3 p2 is the flash
+              cache (CACHECTRL), not a core cache, so icache_kb and dcache_kb are absent.
+
+    memories:
+      tcm:
+        technology: sram
+        attachment: tcm
+        base: 0x10000000
+        size: 64K
+        executable: true
+        provenance: &ds_map
+          status: datasheet
+          source: ["doc:DS-A3@1.3.0:p78"]
+          verified_on: 2026-10-08
+          verified_by: evanchen11
+          notes: >-
+            Table 5 "MCU System Memory Map" gives base, size and the Executable column: TCM
+            0x10000000-0x1000FFFF, main SRAM 0x10010000-0x1005FFFF, flash
+            0x00000000-0x000FFFFF. No region is mapped twice.
+      sram:
+        technology: sram
+        attachment: system
+        base: 0x10010000
+        size: 320K
+        executable: true
+        provenance: *ds_map
+      flash:
+        technology: flash
+        attachment: system
+        base: 0x00000000
+        size: 1M
+        executable: true
+        provenance: *ds_map
+
+    default_access:
+      master: cm4_0
+      access: direct
+      scope: on_die
+      provenance:
+        status: datasheet
+        source: ["doc:DS-A3@1.3.0:p78"]
+        verified_on: 2026-10-08
+        verified_by: evanchen11
+        notes: Table 5 is the Cortex-M4 memory map, and every region is in it.
+
+    # Each name carries its record, so the names Table 6 lacks can cite the SDK alone.
+    peripherals:
+      - value: adc
+        provenance: &table6
+          status: datasheet
+          source:
+            - "doc:DS-A3@1.3.0:p79-80"
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo3.h:8960-8985"
+          verified_on: 2026-10-26
+          verified_by: evanchen11
+          notes: >-
+            Table 6 "MCU Peripheral Device Memory Map" lists the block. Its names are
+            descriptive ("I2C / SPI Master0", "Secure Card"), so the ids are the CMSIS
+            header's <NAME>_BASE names, lowercased.
+      - value: apbdma
+        provenance:
+          status: sdk
+          source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo3.h:8961"]
+          verified_on: 2026-10-26
+          verified_by: evanchen11
+          notes: APBDMA_BASE 0x40011000, which DS-A3 Table 6 names "Fast GPIO Control" (p79).
+      - {value: bleif, provenance: *table6}
+      - {value: cachectrl, provenance: *table6}
+      - {value: clkgen, provenance: *table6}
+      - {value: ctimer, provenance: *table6}
+      - {value: gpio, provenance: *table6}
+      - {value: iom0, provenance: *table6}
+      - {value: iom1, provenance: *table6}
+      - {value: iom2, provenance: *table6}
+      - {value: iom3, provenance: *table6}
+      - {value: iom4, provenance: *table6}
+      - {value: iom5, provenance: *table6}
+      - {value: ioslave, provenance: *table6}
+      - {value: mcuctrl, provenance: *table6}
+      - value: mspi0
+        provenance:
+          status: sdk
+          source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo3.h:8975"]
+          verified_on: 2026-10-26
+          verified_by: evanchen11
+          notes: >-
+            CMSIS names the one MSPI MSPI_BASE (0x50014000); the id follows apollo3p's mspi0.
+            DS-A3 Table 6's row at 0x50014000 carries no device name (p80).
+      - {value: pdm, provenance: *table6}
+      - {value: pwrctrl, provenance: *table6}
+      - {value: rstgen, provenance: *table6}
+      - {value: rtc, provenance: *table6}
+      - value: scard
+        provenance:
+          status: datasheet
+          source:
+            - "doc:DS-A3@1.3.0:p79"
+            - "doc:DS-A3@1.3.0:p2"
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo3.h:8980"
+          verified_on: 2026-10-26
+          verified_by: evanchen11
+          notes: >-
+            Table 6 "Secure Card" at 0x40080000. DS-A3 p2: the ISO7816 interface is "Not
+            available on QFN package", so the AMA3B1KK-KQR part lacks it.
+      - value: security
+        provenance:
+          status: sdk
+          source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo3.h:8981"]
+          verified_on: 2026-10-26
+          verified_by: evanchen11
+          notes: SECURITY_BASE 0x40030000, which DS-A3 Table 6 shows as Reserved (p79).
+      - {value: uart0, provenance: *table6}
+      - {value: uart1, provenance: *table6}
+      - {value: vcomp, provenance: *table6}
+      - {value: wdt, provenance: *table6}
+    memory_controllers:
+      value: [mspi0]
+      provenance:
+        status: datasheet
+        source: ["doc:DS-A3@1.3.0:p78"]
+        verified_on: 2026-10-26
+        verified_by: evanchen11
+        notes: >-
+          Table 5's "External MSPI Flash" XIP window, 0x04000000-0x07FFFFFF; p2 lists one
+          MSPI ("1x 2/4/8-bit SPI master interface"). IOMs have no memory aperture.
+
+    clock_domains:
+      cpu:
+        lp:
+          mhz: 48
+          hal_mode:
+            value: AM_HAL_NORMAL_MODE
+            provenance: &hal_burst
+              status: sdk
+              source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/mcu/apollo3/hal/am_hal_burst.h:49-50"]
+              verified_on: 2026-10-26
+              verified_by: evanchen11
+              notes: am_hal_burst_mode_e, AM_HAL_BURST_MODE (:49) and AM_HAL_NORMAL_MODE (:50).
+          provenance: &ds_clk
+            status: datasheet
+            source: ["doc:DS-A3@1.3.0:p2"]
+            verified_on: 2026-10-08
+            verified_by: evanchen11
+            notes: '"48 MHz nominal clock frequency, with 96 MHz high performance TurboSPOT Mode".'
+        hp:
+          mhz: 96
+          hal_mode:
+            value: AM_HAL_BURST_MODE
+            provenance: *hal_burst
+          provenance: *ds_clk
+    operating_points:
+      lp: {domains: {cpu: lp}, provenance: *ds_clk}
+      hp: {domains: {cpu: hp}, provenance: *ds_clk}
+    default_operating_point:
+      value: lp
+      provenance:
+        status: sdk
+        source:
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-core/includes-api/nsx_system.h:188"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-core/src/apollo3/nsx_system_platform.c:46-51"
+        verified_on: 2026-10-26
+        verified_by: evanchen11
+        notes: >-
+          A zero-initialised config is "minimal, low-power"; on Apollo3
+          nsx_platform_set_perf_mode is a no-op, so nsx never leaves 48 MHz.
+
+    boot_configs:
+      sbl:
+        reserved:
+          sbl:
+            region: flash
+            offset: 0
+            size: 48K
+            provenance:
+              status: derived
+              source:
+                - "fact:soc:apollo3:boot_configs.sbl.app_start.cm4_0.offset"
+                - "fact:soc:apollo3:memories.flash.base"
+              verified_on: 2026-10-26
+              verified_by: evanchen11
+              notes: >-
+                Everything below the application start: 0xC000 - 0x00000000 (the flash base)
+                = 48K. No datasheet page states it; DS-A3 p169 describes a reset vector at
+                flash offset 0 for the path without the SBL.
+        app_start:
+          region: flash
+          offset: 48K
+          provenance:
+            status: sdk
+            source:
+              - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/mcu/apollo3/hal/am_hal_flash.h:89"
+              - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-core/src/apollo3/gcc/linker_script.ld:10"
+              - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-core/src/apollo3/armclang/linker_script.sct:46-48"
+              - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo3.cmake:51"
+            verified_on: 2026-10-26
+            verified_by: evanchen11
+            notes: >-
+              AM_HAL_FLASH_APPL_ADDR 0xC000, both linker scripts and NSX_SEGGER_PF_ADDR; the
+              flash base is 0, so the offset is the address. Zephyr's FLASH_LOAD_OFFSET
+              0xc000 agrees. No datasheet page states it.
+        requires: sbl
+        provenance:
+          status: datasheet
+          source: ["doc:DS-A3@1.3.0:p169"]
+          verified_on: 2026-10-08
+          verified_by: evanchen11
+          notes: '"Secure boot, if enabled, will be invoked on each boot and reset cycle."'
+    default_boot:
+      value: sbl
+      provenance:
+        status: sdk
+        source:
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/apollo3.cmake:21"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/apollo3.cmake:24"
+        verified_on: 2026-10-26
+        verified_by: evanchen11
+        notes: The only scripts the SDK selects, armclang (:21) and gcc (:24), start at 0xC000.
+
+    sdk:
+      c_define: AM_PART_APOLLO3
+      provenance:
+        status: sdk
+        source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo3.cmake:32"]
+        verified_on: 2026-10-26
+        verified_by: evanchen11
+      cmsis_header:
+        value: apollo3.h
+        provenance:
+          status: sdk
+          source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/mcu/apollo3/am_mcu_apollo.h:73"]
+          verified_on: 2026-10-26
+          verified_by: evanchen11
+      trace_clock_mhz:
+        value: 48
+        provenance:
+          status: sdk
+          source:
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo3.cmake:46-47"
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo3.cmake:52"
+          verified_on: 2026-10-26
+          verified_by: evanchen11
+          notes: >-
+            NSX_SEGGER_CPUFREQ, which :46-47 call the TPIU trace clock. DS-A3 p155 lists the
+            TPIU clocks as HFRC divided by 2, 8, 16 or 32, so 48 MHz is HFRC (96 MHz) / 2.
+      build:
+        abi: thumbv7em-fpv4sp-hard
+        float_abi: hard
+        provenance:
+          status: sdk
+          source:
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo3.cmake:22"
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo3.cmake:26"
+          verified_on: 2026-10-26
+          verified_by: evanchen11
+        toolchains:
+          value: [arm-none-eabi-gcc]
+          provenance:
+            status: sdk
+            source: ["repo:AmbiqAI/neuralspotx@neuralspotx-v0.9.0:src/neuralspotx/boards/apollo3_evb/board.yaml:19-20"]
+            verified_on: 2026-10-26
+            verified_by: evanchen11
+            notes: >-
+              neuralspotx's apollo3_evb_cygnus board lists the same. The SDK's board module
+              lists more (boards/apollo3_evb/nsx-module.yaml); ADR 0006 compares neuralspotx.
+
+parts:
+  AMA3B1KK-KBR-B0:
+    release_status: public
+    soc: apollo3
+    package: 81-pin BGA
+    radio: ble-5
+    jlink_device:
+      value: AMA3B1KK-KBR
+      provenance:
+        status: sdk
+        source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo3.cmake:49"]
+        verified_on: 2026-10-26
+        verified_by: evanchen11
+        notes: >-
+          The SDK's SoC-level default; Zephyr's apollo3_evb board.cmake:4 passes the same
+          device. Not checked against SEGGER's device list (#19).
+    provenance: &ds_order
+      status: datasheet
+      source: ["doc:DS-A3@1.3.0:p954"]
+      verified_on: 2026-10-08
+      verified_by: evanchen11
+      notes: >-
+        Table 1564 "Ordering Information": part, package and the BLE column. The AMAP31KK
+        parts are the "non-BLE configuration" (footnote 2).
+  AMA3B1KK-KCR-B0:
+    release_status: public
+    soc: apollo3
+    package: 66-pin CSP
+    radio: ble-5
+    provenance: *ds_order
+  AMA3B1KK-KCR-TB:
+    release_status: public
+    soc: apollo3
+    package: 66-pin WLCSP
+    radio: ble-5
+    provenance: *ds_order
+  AMA3B1KK-KQR:
+    release_status: public
+    soc: apollo3
+    package: 64-pin QFN
+    radio: ble-5
+    provenance: *ds_order
+  AMAP31KK-KBR:
+    release_status: public
+    soc: apollo3
+    package: 81-pin BGA
+    radio: none
+    provenance: *ds_order
+  AMAP31KK-KCR:
+    release_status: public
+    soc: apollo3
+    package: 66-pin WLCSP
+    radio: none
+    provenance: *ds_order
+
+boards:
+  apollo3_evb:
+    release_status: public
+    category: evaluation
+    part: AMA3B1KK-KBR-B0
+    aliases: [apollo3_blue_evb, apollo3_blue_thin_evb]
+    provenance:
+      status: sdk
+      source:
+        - "repo:zephyrproject-rtos/zephyr@8f62a4ab82b5c2121c088842d3233f75b603ce35:boards/ambiq/apollo3_evb/apollo3_evb.yaml:1-2"
+        - "repo:zephyrproject-rtos/zephyr@8f62a4ab82b5c2121c088842d3233f75b603ce35:boards/ambiq/apollo3_evb/board.cmake:4"
+        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:boards/apollo3_evb/board.cmake:26"
+      verified_on: 2026-10-26
+      verified_by: evanchen11
+      notes: >-
+        No quick-start guide is in the register. Zephyr names the board "Apollo3 Blue EVB"
+        with J-Link device AMA3B1KK-KBR, and the SDK builds it with AM_PACKAGE_BGA; the only
+        81-pin BGA BLE part on DS-A3 p954 is AMA3B1KK-KBR-B0. The aliases are heliaAOT's
+        names, which no other source has (#67).
