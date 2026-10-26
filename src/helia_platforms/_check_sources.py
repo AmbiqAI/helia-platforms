@@ -34,6 +34,14 @@ REGISTERS: dict[str, dict[str, tuple[str, str]]] = {
         "ssram": ("SSRAM_BASEADDR", "SSRAM_MAX_SIZE"),
         "mram": ("MRAM_BASEADDR", "MRAM_MAX_SIZE"),
     },
+    **{
+        soc: {
+            "dtcm": ("DTCM_BASEADDR", "DTCM_MAX_SIZE"),
+            "ssram": ("SSRAM_BASEADDR", "SSRAM_MAX_SIZE"),
+            "mram": ("MRAM_BASEADDR", "MRAM_MAX_SIZE"),
+        }
+        for soc in ("apollo510L", "apollo330P")
+    },
 }
 #: CMake's boolean constants, compared case-insensitively; a non-zero number is also true
 #: (CMake reads one with ``strtod``, so in decimal or hexadecimal).
