@@ -650,8 +650,11 @@ def test_exceptions_name_snapshot_values() -> None:
         assert set(entry) == {"snapshot", "at", "rule", "reason", "issue"}
         assert re.fullmatch(r"(?:[\w.-]+/[\w.-]+)?#\d+", entry["issue"])
         value: Any = json.loads((SNAPSHOTS / entry["snapshot"]).read_text())
-        for key in entry["at"]:
+        for key in entry["at"][:-1]:
             value = value[key]
+        # The last key may be one the snapshot lacks, when the finding is that absence;
+        # check-sources reports an exception that covers nothing as stale.
+        assert isinstance(value, dict), entry
 
 
 def test_extractor_dependencies_are_not_runtime_dependencies() -> None:

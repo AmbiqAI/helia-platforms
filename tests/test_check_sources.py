@@ -168,6 +168,25 @@ def test_register_defines_are_compared_with_region_bases_and_sizes(snapshots):
     assert found.at[-1] == "DTCM_MAX_SIZE"
 
 
+@pytest.mark.parametrize("soc", ["apollo3", "apollo3p"])
+def test_apollo3_register_defines_are_compared(snapshots, soc):
+    def change(data):
+        data["socs"][soc]["registers"]["values"]["TCM_MAX_SIZE"] = 0x8000
+
+    edit(snapshots, _check_sources.SDK, change)
+    (found,) = [f for f in findings(snapshots) if f.rule == "register"]
+    assert found.at[1:2] + found.at[-1:] == (soc, "TCM_MAX_SIZE")
+
+
+def test_the_apollo3_armclang_exception_leaves_its_gcc_default_compared(snapshots):
+    def change(data):
+        data["boards"]["apollo3_evb"]["linker"]["defaults"]["gcc"] = "wrong.ld"
+
+    edit(snapshots, _check_sources.NSX, change)
+    (found,) = [f for f in findings(snapshots) if f.rule == "default scripts"]
+    assert found.at[-1] == "gcc"
+
+
 def test_a_linker_region_outside_every_run_of_regions_is_reported(snapshots):
     def change(data):
         scripts = data["socs"]["apollo510"]["linker"]["gcc"]["scripts"]

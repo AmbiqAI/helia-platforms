@@ -34,6 +34,9 @@ REGISTERS: dict[str, dict[str, tuple[str, str]]] = {
         "ssram": ("SSRAM_BASEADDR", "SSRAM_MAX_SIZE"),
         "mram": ("MRAM_BASEADDR", "MRAM_MAX_SIZE"),
     },
+    # SRAM_BASEADDR is the start of TCM, not of the catalog's sram region, so it is left out.
+    "apollo3": {"tcm": ("TCM_BASEADDR", "TCM_MAX_SIZE"), "flash": ("FLASH_BASEADDR", "")},
+    "apollo3p": {"tcm": ("TCM_BASEADDR", "TCM_MAX_SIZE"), "flash": ("FLASH_BASEADDR", "")},
 }
 #: CMake's boolean constants, compared case-insensitively; a non-zero number is also true
 #: (CMake reads one with ``strtod``, so in decimal or hexadecimal).
