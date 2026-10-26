@@ -656,6 +656,20 @@ boards:
         the BGA package (AP510DLA-CBR)". p8: every revision 2.0 EVB has the PSRAM (U14)
         de-populated, so the board has no MSPI interface or population (its SDIO eMMC is
         not modelled).
+    jlink_device:
+      value: Apollo330P_510L
+      provenance:
+        status: measured
+        source:
+          - "meas:apollo510dL_evb/bench-flash/2026-10-26"
+          - "url:https://github.com/AmbiqAI/helia-platforms/issues/130"
+          - "repo:AmbiqAI/neuralspotx@neuralspotx-v0.9.0:src/neuralspotx/boards/apollo330mP_evb/debug.cmake:4-7"
+        verified_on: 2026-10-26
+        verified_by: evanchen11
+        notes: >-
+          Connect, flash and a helia-profiler run succeeded on the farm's apollo510L_evb
+          with J-Link V9.60; the part's AP510DLA-CBR did not. The name comes from the
+          host's AmbiqMicro.xml device file, not J-Link's stock database (#130).
     provisioning:
       value: sbl
       provenance:

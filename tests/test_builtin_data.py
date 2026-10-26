@@ -87,7 +87,7 @@ def test_the_app_start_offset_names_the_mram_base_it_is_derived_from(catalog, bo
 @pytest.mark.parametrize(
     ("name", "board", "jlink"),
     [
-        ("apollo510l_evb", "apollo510dL_evb", "AP510DLA-CBR"),
+        ("apollo510l_evb", "apollo510dL_evb", "Apollo330P_510L"),
         ("apollo330mp_evb", "apollo330mP_evb", "Apollo330P_510L"),
     ],
 )
