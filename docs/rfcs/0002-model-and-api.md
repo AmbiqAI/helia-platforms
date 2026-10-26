@@ -378,8 +378,10 @@ customers add daughter boards.
   (`fits_boards`), the interfaces it occupies (`occupies`) and its own
   `population` on those interfaces.
 - The resolved target is board plus selected add-ons plus overlay. The
-  validator rejects two devices on one interface, an add-on on a board it
-  does not fit, and a device larger than its aperture.
+  validator rejects two devices on one interface, an add-on on an
+  interface the board or another add-on already uses (an occupied
+  interface counts even without a device), an add-on on a board it does
+  not fit, and a device larger than its aperture.
 
 AmbiqSuite's per-shield board directories (`apollo4p_evb_disp_shield_rev2`)
 and neuralspotx's matching board id become entries in the catalog's

@@ -799,9 +799,9 @@ def test_an_add_on_may_not_put_a_second_device_on_a_board_interface(document):
     document["addons"] = {"shield": shield({"mspi1": "psram_8m"})}
     load_quietly(document)
     document["addons"] = {"shield": shield({"mspi0": "psram_8m"})}
-    assert (
-        "addons.shield: add-on 'shield' and board 'board_a' both put a device on 'mspi0'"
-    ) in problems_of(document)
+    assert "addons.shield: add-on 'shield' and board 'board_a' both use 'mspi0'" in problems_of(
+        document
+    )
 
 
 def test_an_add_on_uses_only_interfaces_its_boards_have(document):
@@ -839,9 +839,21 @@ def test_a_composition_puts_one_device_on_each_interface(document):
     document["compositions"] = {"one": {"board": "board_a", "addons": ["first"]}}
     load_quietly(document)
     document["compositions"]["two"] = {"board": "board_a", "addons": ["first", "second"]}
-    assert (
-        "compositions.two: add-on 'second' and add-on 'first' both put a device on 'mspi1'"
-    ) in problems_of(document)
+    assert "compositions.two: add-on 'second' and add-on 'first' both use 'mspi1'" in problems_of(
+        document
+    )
+
+
+def test_an_interface_an_add_on_occupies_without_a_device_is_still_taken(document):
+    with_mspi1(document)
+    document["addons"] = {
+        "display": {"fits_boards": ["board_a"], "occupies": ["mspi0", "mspi1"], "population": {}},
+        "flash": shield({"mspi1": "psram_8m"}),
+    }
+    document["compositions"] = {"both": {"board": "board_a", "addons": ["display", "flash"]}}
+    problems = problems_of(document)
+    assert "addons.display: add-on 'display' and board 'board_a' both use 'mspi0'" in problems
+    assert "compositions.both: add-on 'flash' and add-on 'display' both use 'mspi1'" in problems
 
 
 def test_default_access_grants_core_0_what_no_core_has_an_entry_for(document):

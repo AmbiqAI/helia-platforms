@@ -1088,17 +1088,19 @@ def _expanded_access(soc: model.Soc) -> tuple[model.Access, ...]:
 
 
 def _placement_problems(board: model.Board, addons: Iterable[model.AddOn]) -> list[str]:
-    """Add-ons on ``board`` that do not fit it or put a second device on an interface."""
+    """Add-ons on ``board`` that do not fit it or use an interface something else uses.
+
+    An add-on uses every interface it occupies, populated or not; the board uses the ones it
+    populates.
+    """
     problems: list[str] = []
     holders = {name: f"board {board.id!r}" for name in board.population}
     for addon in addons:
         if board.id not in addon.fits_boards:
             problems.append(f"add-on {addon.id!r} does not fit board {board.id!r}")
-        for name in addon.population:
+        for name in addon.occupies:
             if name in holders:
-                problems.append(
-                    f"add-on {addon.id!r} and {holders[name]} both put a device on {name!r}"
-                )
+                problems.append(f"add-on {addon.id!r} and {holders[name]} both use {name!r}")
             holders[name] = f"add-on {addon.id!r}"
     return problems
 
