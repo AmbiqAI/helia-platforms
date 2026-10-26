@@ -28,7 +28,7 @@ memory_devices:
           Measured by apage224 and added in AmbiqAI/nsx-ambiq-sdk#38: heliaPROFILER ran a
           model from PSRAM XIP, and XIP address aliasing showed 512 Mbit = 64 MB ("+32 MB
           holds distinct data; +64 MB falls off the MSPI aperture"). apollo510b_evb rev 2.0
-          was measured that morning (:87-93, :126). No document states the capacity.
+          (:66-67) was measured that morning (:87-93, :126). No document states the capacity.
     driver_family:
       value: aps25616ba
       provenance:

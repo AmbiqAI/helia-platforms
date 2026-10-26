@@ -124,7 +124,8 @@ socs:
           verified_by: evanchen11
           notes: >-
             p34 gives NVM-SBL, NVM0-APPL and NVM1-APPL across 0x00400000-0x007FFFFF. p263
-            is the only page that names the NVM as MRAM ("NVM (MRAM)", 4 MB).
+            Table 79 gives "NVM (MRAM)", 4 MB; p21 calls the NVM0/NVM1 split the
+            "MRAM0-MRAM1 boundary at address 0x600000".
 
     default_access:
       master: cm55_0
@@ -211,8 +212,8 @@ socs:
         verified_by: evanchen11
         notes: >-
           The two MSPI controllers have external memory apertures in Table 4's
-          continuation; MSPI2 and MSPI3 are Reserved there. p105: "both of the MSPI
-          modules, MSPI0 and MSPI1".
+          continuation, which lists no others. p105: "both of the MSPI modules, MSPI0
+          and MSPI1"; p94: MSPI2 and MSPI3 "are not pinned out".
 
     clock_domains:
       cpu:
@@ -388,7 +389,7 @@ parts:
       verified_by: evanchen11
       notes: >-
         Table 79 "Ordering Information for Apollo510B SoC": part, package and "BLE 5.4".
-        p2 and p199 say only "BGA"; QS-A510B p25 says "153-pin BGA".
+        Only p263 says WFBGA; p199 and QS-A510B p25 say "153-pin BGA".
 
 boards:
   apollo510b_evb:
