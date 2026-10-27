@@ -245,6 +245,11 @@ def _apply_deltas(
         and "default_operating_point" not in written
     ):
         del values["default_operating_point"]
+    if removed and not values.get("operating_points"):
+        problems.append(
+            "operating_points_removed drops every operating point, so the entry must "
+            "declare its own operating_points"
+        )
     return problems
 
 

@@ -381,6 +381,7 @@ def _units(target: Target, at: _Entries) -> list[_Row]:
     rows = []
     for npu in target.soc.npus:
         names = ["npu", "driven_by", "clock_domain", "axi_width_bits", "base_address", "irq"]
+        names.append("sram_port_hash")
         note = f"Vela config {npu.npu.accelerator_config}, computed"
         rows.append(_row(npu.id, soc.inner("npus", npu.id), npu, names, note=note))
     for unit in target.soc.accelerators:

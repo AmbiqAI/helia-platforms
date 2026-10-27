@@ -439,6 +439,16 @@ def test_removing_the_default_point_clears_it_as_a_cap_does(document):
     assert "default_operating_point" not in realized.field_provenance
 
 
+def test_removing_every_point_needs_the_implementations_own(document):
+    removed = {"operating_points_removed": ["lp", "hp"]}
+    found = problems_of(with_cut(copy.deepcopy(document), subset=removed))
+    assert "operating_points_removed drops every operating point" in found
+    realized = implementation(
+        document, subset=removed, operating_points={"fpga": {"cpu_mhz": 96, "npu_mhz": 96}}
+    )
+    assert [p.name for p in realized.operating_points] == ["fpga"]
+
+
 def test_an_overlay_that_removes_the_default_point_may_name_its_own(document):
     document["socs"]["soc_b"] = {
         "based_on": "soc_a",
