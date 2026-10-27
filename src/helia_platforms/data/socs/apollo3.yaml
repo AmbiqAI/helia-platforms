@@ -318,16 +318,6 @@ socs:
             - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo3.cmake:26"
           verified_on: 2026-10-26
           verified_by: evanchen11
-        toolchains:
-          value: [arm-none-eabi-gcc]
-          provenance:
-            status: sdk
-            source: ["repo:AmbiqAI/neuralspotx@neuralspotx-v0.9.0:src/neuralspotx/boards/apollo3_evb/board.yaml:19-20"]
-            verified_on: 2026-10-26
-            verified_by: evanchen11
-            notes: >-
-              neuralspotx's apollo3_evb_cygnus board lists the same. The SDK's board module
-              lists more (boards/apollo3_evb/nsx-module.yaml); ADR 0006 compares neuralspotx.
 
 parts:
   AMA3B1KK-KBR-B0:

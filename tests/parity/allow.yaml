@@ -209,28 +209,11 @@ allowed:
       The Apollo4 Blue boards' data lands with
     issue: "#91"
   - consumer: neuralspotx
-    target: apollo3_evb
-    field: target
-    reason: >-
-      apollo3 and apollo3p's data lands with
-    issue: "#67"
-  - consumer: neuralspotx
     target: apollo3_evb_cygnus
     field: target
     reason: >-
-      apollo3 and apollo3p's data lands with
-    issue: "#67"
-  - consumer: neuralspotx
-    target: apollo3p_evb
-    field: target
-    reason: >-
-      apollo3 and apollo3p's data lands with
-    issue: "#67"
-  - consumer: neuralspotx
-    target: apollo3p_evb_cygnus
-    field: target
-    reason: >-
-      apollo3 and apollo3p's data lands with
+      #67 leaves neuralspotx's Cygnus variant of apollo3_evb out: RFC 0001's review
+      excludes it, and its BSP defines no PSRAM.
     issue: "#67"
   - consumer: neuralspotx
     target: atomiq110_fpga_turbo

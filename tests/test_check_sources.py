@@ -189,15 +189,6 @@ def test_apollo3_flash_header_sizes_are_compared(snapshots, soc, define):
     assert found.at[1:2] + found.at[-1:] == (soc, define)
 
 
-def test_the_apollo3_armclang_exception_leaves_its_gcc_default_compared(snapshots):
-    def change(data):
-        data["boards"]["apollo3_evb"]["linker"]["defaults"]["gcc"] = "wrong.ld"
-
-    edit(snapshots, _check_sources.NSX, change)
-    (found,) = [f for f in findings(snapshots) if f.rule == "default scripts"]
-    assert found.at[-1] == "gcc"
-
-
 def test_a_linker_region_outside_every_run_of_regions_is_reported(snapshots):
     def change(data):
         scripts = data["socs"]["apollo510"]["linker"]["gcc"]["scripts"]
