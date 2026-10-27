@@ -283,16 +283,6 @@ socs:
             - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo4l.cmake:26"
           verified_on: 2026-10-26
           verified_by: evanchen11
-        toolchains:
-          value: [arm-none-eabi-gcc, atfe]
-          provenance:
-            status: sdk
-            source: ["repo:AmbiqAI/neuralspotx@neuralspotx-v0.9.0:src/neuralspotx/boards/apollo4l_evb/board.yaml:19-21"]
-            verified_on: 2026-10-26
-            verified_by: evanchen11
-            notes: >-
-              Both neuralspotx apollo4l boards at this tag list gcc and atfe; the revision the
-              proposal read listed gcc only. nsx-ambiq-sdk's board modules also list armclang.
 
 parts:
   AMAP42KL-KBR:

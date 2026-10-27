@@ -156,42 +156,6 @@ allowed:
       apollo510L and apollo330P's data lands with
     issue: "#65"
   - consumer: neuralspotx
-    target: apollo4p_evb
-    field: target
-    reason: >-
-      apollo4p and apollo4l's data lands with
-    issue: "#66"
-  - consumer: neuralspotx
-    target: apollo4l_evb
-    field: target
-    reason: >-
-      apollo4p and apollo4l's data lands with
-    issue: "#66"
-  - consumer: neuralspotx
-    target: apollo4p_evb_disp_shield_rev2
-    field: target
-    reason: >-
-      apollo4p and apollo4l's data lands with
-    issue: "#66"
-  - consumer: neuralspotx
-    target: apollo4l_blue_evb
-    field: target
-    reason: >-
-      The Apollo4 Blue boards' data lands with
-    issue: "#91"
-  - consumer: neuralspotx
-    target: apollo4p_blue_kbr_evb
-    field: target
-    reason: >-
-      The Apollo4 Blue boards' data lands with
-    issue: "#91"
-  - consumer: neuralspotx
-    target: apollo4p_blue_kxr_evb
-    field: target
-    reason: >-
-      The Apollo4 Blue boards' data lands with
-    issue: "#91"
-  - consumer: neuralspotx
     target: apollo3_evb
     field: target
     reason: >-
