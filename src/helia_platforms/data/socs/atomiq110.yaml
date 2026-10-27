@@ -558,21 +558,19 @@ boards:
     provenance:
       status: sdk
       source:
-        - "repo:AmbiqAI/neuralspotx@neuralspotx-v0.9.0:src/neuralspotx/boards/atomiq110_fpga_turbo/board.yaml:9-13"
         - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:boards/atomiq110_fpga_turbo/README.md:3-7"
+        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:boards/atomiq110_fpga_turbo/board.cmake:25-33"
       verified_on: 2026-10-27
       verified_by: evanchen11
       notes: >-
-        board.yaml: name atomiq110_fpga_turbo, tier fpga, soc atomiq110; the README calls it
-        "the only upstream atomiq110 realization". The carrier populates no external memory
-        (#68 item 14).
+        The README: the Atomiq110 FPGA "turbo" board, "the only upstream atomiq110
+        realization today"; board.cmake marks it NSX_BOARD_IS_FPGA=1. The carrier populates
+        no external memory (#68 item 14).
     provisioning:
       value: nbl
       provenance:
         status: sdk
-        source:
-          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/atomiq110.cmake:45-47"
-          - "repo:AmbiqAI/neuralspotx@neuralspotx-v0.9.0:src/neuralspotx/boards/atomiq110_fpga_turbo/memory.cmake:4-6"
+        source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/atomiq110.cmake:45-47"]
         verified_on: 2026-10-27
         verified_by: evanchen11
         notes: '"loads directly via J-Link with no secure bootloader".'
