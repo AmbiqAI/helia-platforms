@@ -180,10 +180,12 @@ allowed:
     issue: "#67"
   - consumer: neuralspotx
     target: atomiq110_fpga_turbo
-    field: target
+    field: jlink_device
     reason: >-
-      atomiq110's data lands with
-    issue: "#68"
+      neuralspotx's debug.cmake sets Atomiq110, which is in neither SEGGER's stock database
+      nor its Ambiq device list; the catalog records no J-Link device until an official
+      name exists (#130).
+    issue: "#130"
   - consumer: neuralspotx
     target: apollo2_evb
     field: target
