@@ -90,7 +90,7 @@ def test_a_flag_is_compared_with_the_catalog(snapshots, value, rules):
     assert [f.rule for f in findings(snapshots)] == rules
 
 
-def test_the_flash_load_address_follows_the_board_provisioning(snapshots):
+def test_the_flash_load_address_follows_the_default_boot(snapshots):
     def change(data):
         data["socs"]["apollo510"]["facts"]["values"]["NSX_SEGGER_PF_ADDR"] = ["0x00400000"]
 
@@ -99,16 +99,6 @@ def test_the_flash_load_address_follows_the_board_provisioning(snapshots):
     at = ("socs", "apollo510", "facts", "values", "NSX_SEGGER_PF_ADDR")  # where it comes from
     assert (found.snapshot, found.at) == (_check_sources.SDK, at)
     assert found.message == "catalog 0x410000, snapshot 0x400000"
-
-
-def test_a_board_debug_override_wins_over_the_soc_facts(snapshots):
-    def change(data):
-        data["boards"]["apollo510_evb"]["debug"]["values"]["NSX_SEGGER_CPUFREQ"] = ["48000000"]
-
-    edit(snapshots, _check_sources.NSX, change)
-    (found,) = [f for f in findings(snapshots) if f.rule == "trace clock"]
-    at = ("boards", "apollo510_evb", "debug", "values", "NSX_SEGGER_CPUFREQ")
-    assert (found.snapshot, found.at) == (_check_sources.NSX, at)
 
 
 def except_(directory: Path, snapshot: str, at: list[str], rule: str) -> None:
@@ -122,14 +112,6 @@ def except_(directory: Path, snapshot: str, at: list[str], rule: str) -> None:
 @pytest.mark.parametrize(
     ("snapshot", "change", "at"),
     [
-        pytest.param(
-            _check_sources.NSX,
-            lambda d: d["boards"]["apollo510_evb"]["debug"]["values"].update(
-                NSX_SEGGER_CPUFREQ=["48000000"]
-            ),
-            ["boards", "apollo510_evb", "debug", "values", "NSX_SEGGER_CPUFREQ"],
-            id="board override",
-        ),
         pytest.param(
             _check_sources.SDK,
             lambda d: d["socs"]["apollo510"]["facts"]["values"].update(
@@ -147,54 +129,18 @@ def test_an_exception_at_the_supplying_path_covers_a_board_value(snapshots, snap
     assert result.ok, _check_sources.render(result)
 
 
-@pytest.mark.parametrize(
-    "change",
-    [
-        pytest.param(lambda b, s: b.pop("debug"), id="no debug.cmake"),
-        pytest.param(lambda b, s: b.pop("linker"), id="no memory.cmake"),
-        pytest.param(lambda b, s: s["linker"]["gcc"].pop("default"), id="no sdk default"),
-    ],
-)
-def test_a_snapshot_may_omit_its_optional_sections(snapshots, change):
-    nsx = json.loads((snapshots / _check_sources.NSX).read_text())
-    sdk = json.loads((snapshots / _check_sources.SDK).read_text())
-    change(nsx["boards"]["apollo510_evb"], sdk["socs"]["apollo510"])
-    (snapshots / _check_sources.NSX).write_text(json.dumps(nsx))
-    (snapshots / _check_sources.SDK).write_text(json.dumps(sdk))
-    assert {f.rule for f in findings(snapshots)} <= {"default scripts"}
-
-
-def test_a_default_script_the_board_drops_is_reported(snapshots):
-    edit(
-        snapshots,
-        _check_sources.NSX,
-        lambda d: d["boards"]["apollo510_evb"]["linker"]["defaults"].pop("gcc"),
-    )
-    (found,) = findings(snapshots)
-    assert (found.rule, found.at[-1]) == ("default scripts", "gcc")
-
-
-def test_the_board_soc_is_matched_to_the_sdk_ignoring_case(snapshots):
-    edit(
-        snapshots,
-        _check_sources.NSX,
-        lambda d: d["boards"]["apollo510_evb"]["board"]["values"].update(soc="Apollo510"),
-    )
+def test_the_neuralspotx_snapshot_is_not_compared(snapshots):
+    """neuralspotx is a consumer (#18): its frozen snapshot is parity data, not a source."""
 
     def change(data):
-        data["socs"]["apollo510"]["facts"]["values"]["NSX_SEGGER_PF_ADDR"] = ["0x00400000"]
-
-    edit(snapshots, _check_sources.SDK, change)
-    assert [f.rule for f in findings(snapshots)] == ["flash load address"]
-
-
-def test_board_toolchains_are_compared_ignoring_the_soc_case(snapshots):
-    def change(data):
-        values = data["boards"]["apollo510_evb"]["board"]["values"]
-        values.update(soc="Apollo510", toolchains=["armclang"])
+        board = data["boards"]["apollo510_evb"]
+        board["board"]["values"].update(soc="apollo4p", toolchains=["armclang"])
+        board["debug"]["values"]["NSX_SEGGER_CPUFREQ"] = ["48000000"]
+        board["linker"]["defaults"].pop("gcc")
+        data["boards"]["not_a_board"] = board
 
     edit(snapshots, _check_sources.NSX, change)
-    assert [f.rule for f in findings(snapshots)] == ["toolchains"]
+    assert findings(snapshots) == []
 
 
 def test_a_missing_fpu_dp_define_reads_as_single_precision(snapshots):
@@ -297,18 +243,6 @@ def test_an_xspi_aperture_and_its_secure_alias_are_external_memory(snapshots):
     edit(snapshots, _check_sources.ZEPHYR, nodes)
     (found,) = findings(snapshots)
     assert (found.rule, found.at[-1]) == ("region containment", "/memory@50200000")
-
-
-def test_board_toolchains_and_default_scripts_are_compared(snapshots):
-    def change(data):
-        board = data["boards"]["apollo510_evb"]
-        board["board"]["values"]["toolchains"] = ["armclang"]
-        board["linker"]["defaults"]["gcc"] = (
-            "modules/nsx-core/src/apollo510/gcc/linker_script_nbl.ld"
-        )
-
-    edit(snapshots, _check_sources.NSX, change)
-    assert sorted(f.rule for f in findings(snapshots)) == ["default scripts", "toolchains"]
 
 
 def test_an_sdk_record_must_cite_a_snapshotted_revision(snapshots):

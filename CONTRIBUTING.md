@@ -116,17 +116,18 @@ file is made of local-path examples, so review changes to it by hand.
 
 `snapshots/` holds the values extracted from nsx-ambiq-sdk, neuralspotx and
 Zephyr with hal_ambiq ([ADR 0006](docs/adr/0006-drift-test-snapshots.md)). They
-are generated, never edited by hand. The pins are the neuralspotx and Zephyr
-revisions the committed files record; the SDK tags and the hal_ambiq commit
-follow from them. The extractor fetches only those commits from GitHub, into
+are generated, never edited by hand. The pins are the SDK tag of each Soc and
+the Zephyr revision the committed files record; the hal_ambiq commit follows
+from Zephyr. neuralspotx is a consumer, so its snapshot stays at
+`neuralspotx-v0.9.0` as parity data and is never refreshed (#18). The extractor fetches only those commits from GitHub, into
 `~/.cache/helia-platforms/upstream` unless `--cache` names another directory.
 
 ```sh
 # Check that the committed snapshots regenerate byte for byte
 uv run --group extract scripts/extract_snapshots.py extract --check
-# Refresh: a neuralspotx tag and a Zephyr main commit by full SHA
+# Refresh: an nsx-ambiq-sdk tag and a Zephyr main commit by full SHA
 uv run --group extract scripts/extract_snapshots.py extract \
-    --neuralspotx <tag> --zephyr <40-hex SHA>
+    --sdk <tag> --zephyr <40-hex SHA>
 ```
 
 The refresh prints the values that changed, with addresses in hex; put that

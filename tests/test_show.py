@@ -56,7 +56,7 @@ def full_document() -> dict:
         "cmsis_header": "a.h",
         "trace_clock_mhz": 96,
         "hal_enums": {"sram": "AM_HAL_SRAM"},
-        "build": {"abi": "thumbv8.1m", "float_abi": "hard", "toolchains": ["gcc", "clang"]},
+        "build": {"abi": "thumbv8.1m", "float_abi": "hard"},
     }
     soc["derives_from"] = "soc_a"
     document["parts"]["PART-A"].update(

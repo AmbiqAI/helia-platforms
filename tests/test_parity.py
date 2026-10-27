@@ -8,10 +8,11 @@ from typing import cast
 import pytest
 import yaml
 
-from helia_platforms import Target, UnknownPlatform
+from helia_platforms import PlatformError, Target, UnknownPlatform
 from helia_platforms.catalog import builtin
 
 PARITY = Path(__file__).resolve().parent / "parity"
+SNAPSHOTS = Path(__file__).resolve().parents[1] / "snapshots"
 ALLOW = yaml.safe_load((PARITY / "allow.yaml").read_text())
 #: The heliaAOT capabilities a target's derived capabilities map onto; MCU is its policy tag.
 _AOT_CAPABILITIES = {"dsp": "DSP", "mve": "MVE", "fp16": "FP16", "npu": "NPU"}
@@ -56,23 +57,68 @@ def helia_aot_record(record: dict) -> dict:
     }
 
 
+def neuralspotx(target: Target) -> dict:
+    """The board facts neuralspotx's build uses, from the catalog (#18)."""
+    try:
+        load: int | str = target.flash_load_address()
+    except PlatformError as exc:
+        load = str(exc)
+    return {
+        "soc": target.soc.id.casefold(),
+        "jlink_device": target.jlink_device,
+        "trace_clock_mhz": target.trace_clock_mhz,
+        "flash_load_address": load,
+    }
+
+
+def neuralspotx_record(block: dict, sdk: dict) -> dict:
+    """The same facts from neuralspotx: its board's ``debug.cmake``, else its Soc's SDK facts."""
+    soc = block["board"]["values"]["soc"]
+    facts = next(b for k, b in sdk.items() if k.casefold() == soc.casefold())["facts"]["values"]
+    debug = block.get("debug", {}).get("values", {})
+
+    def value(key: str) -> str | None:
+        found = debug.get(key) or facts.get(key)
+        return found[0] if found else None
+
+    hz, address = value("NSX_SEGGER_CPUFREQ"), value("NSX_SEGGER_PF_ADDR")
+    return {
+        "soc": soc.casefold(),
+        "jlink_device": value("NSX_SEGGER_DEVICE"),
+        "trace_clock_mhz": None if hz is None else int(hz) / 1e6,
+        "flash_load_address": None if address is None else int(address, 16),
+    }
+
+
+def _records(consumer: str) -> list[tuple[str, dict]]:
+    """``(target name, the consumer's facts)`` for each target ``consumer`` records."""
+    if consumer == "helia-aot":
+        targets = json.loads((PARITY / "helia-aot" / "targets.json").read_text())["targets"]
+        return [(t["name"], helia_aot_record(t)) for t in targets]
+    assert consumer == "neuralspotx"
+    boards = json.loads((SNAPSHOTS / "neuralspotx.json").read_text())["boards"]
+    sdk = json.loads((SNAPSHOTS / "nsx-ambiq-sdk.json").read_text())["socs"]
+    return [(name, neuralspotx_record(block, sdk)) for name, block in boards.items()]
+
+
+_PROJECTIONS = {"helia-aot": helia_aot, "neuralspotx": neuralspotx}
+
+
 def compare(consumer: str) -> tuple[set[tuple[str, str]], set[tuple[str, str]]]:
     """``(target, field)`` for each value compared with ``consumer``, and for each that differs."""
-    assert consumer == "helia-aot"
-    records = json.loads((PARITY / "helia-aot" / "targets.json").read_text())["targets"]
+    records = _records(consumer)
     assert records, "the fixture holds no targets"
     catalog = builtin(include_plugins=False)
     compared, found = set(), set()
-    for record in records:
+    for name, theirs in records:
         try:
-            ours = helia_aot(catalog.resolve(record["name"]))
+            ours = _PROJECTIONS[consumer](catalog.resolve(name))
         except UnknownPlatform:
-            found.add((record["name"], "target"))
+            found.add((name, "target"))
             continue
-        theirs = helia_aot_record(record)
-        keys = {(record["name"], key) for key in ours.keys() | theirs.keys()}
+        keys = {(name, key) for key in ours.keys() | theirs.keys()}
         compared |= keys
-        found |= {(name, key) for name, key in keys if ours.get(key) != theirs.get(key)}
+        found |= {(n, key) for n, key in keys if ours.get(key) != theirs.get(key)}
     return compared, found
 
 
@@ -101,10 +147,16 @@ def test_every_allow_list_entry_has_a_reason_and_an_issue():
         assert entry["consumer"] in ALLOW["consumers"], entry
 
 
+_EXPECTED_KEYS = {
+    "helia-aot": {"cpu", "speeds_mhz", "memories.SRAM", "memories.MRAM"},
+    "neuralspotx": {"soc", "jlink_device", "trace_clock_mhz", "flash_load_address"},
+}
+
+
 @pytest.mark.parametrize("consumer", sorted(ALLOW["consumers"]))
 def test_values_are_compared(consumer):
     compared, found = compare(consumer)
-    assert {"cpu", "speeds_mhz", "memories.SRAM", "memories.MRAM"} <= {key for _, key in compared}
+    assert _EXPECTED_KEYS[consumer] <= {key for _, key in compared}
     assert compared - found  # some values agree, so the projection lines up
 
 

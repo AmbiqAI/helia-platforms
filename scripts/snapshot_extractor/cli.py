@@ -18,8 +18,9 @@ from snapshot_extractor.git import Checkout
 REPO_ROOT = Path(__file__).resolve().parents[2]
 _DESCRIPTION = """\
 Regenerate or check snapshots/*.json from nsx-ambiq-sdk, neuralspotx and Zephyr
-with hal_ambiq. The pins are the neuralspotx and Zephyr revisions the committed
-snapshots record; the SDK tags and the hal_ambiq commit follow from them.
+with hal_ambiq. The pins are the SDK tag of each Soc and the Zephyr revision the
+committed snapshots record; the hal_ambiq commit follows from Zephyr. neuralspotx
+is a consumer, so its snapshot stays at its recorded revision (#18).
 """
 
 
@@ -82,13 +83,15 @@ class _Sources:
         return git.checkout(self.cache, repository, revision, commit, paths)
 
 
-def extract_all(sources: _Sources, nsx_revision: str, zephyr_revision: str) -> dict[str, Any]:
-    """The three snapshot documents, keyed as ``snapshot.FILES``."""
+def extract_all(
+    sources: _Sources, nsx_revision: str, sdk_pins: dict[str, str], zephyr_revision: str
+) -> dict[str, Any]:
+    """The three snapshot documents, keyed as ``snapshot.FILES``; ``sdk_pins`` maps Soc to tag."""
     nsx = sources.checkout(neuralspotx.REPOSITORY, nsx_revision, neuralspotx.PATHS)
     with reading(f"{neuralspotx.REPOSITORY}@{nsx_revision}"):
         nsx_body = neuralspotx.extract(nsx)
     by_revision: dict[str, list[str]] = {}
-    for soc, revision in nsx_body["soc_families"]["values"].items():
+    for soc, revision in sdk_pins.items():
         by_revision.setdefault(revision, []).append(soc)
     socs: dict[str, Any] = {}
     sdk_sources: list[dict[str, str]] = []
@@ -109,15 +112,23 @@ def extract_all(sources: _Sources, nsx_revision: str, zephyr_revision: str) -> d
     }
 
 
+def _sdk_pins(committed: dict[str, Any] | None, sdk_revision: str | None) -> dict[str, str]:
+    """Each Soc's SDK tag: ``--sdk`` for every Soc the extractor knows, else the recorded tags."""
+    if sdk_revision is not None:
+        return dict.fromkeys(sorted(sdk.HEADERS), sdk_revision)
+    return {soc: block["revision"] for soc, block in (committed or {}).get("socs", {}).items()}
+
+
 def _extract(args: argparse.Namespace) -> int:
     committed = _load(args.snapshots)
-    nsx_revision = args.neuralspotx or _pin(committed["neuralspotx"], neuralspotx.REPOSITORY)
+    nsx_revision = _pin(committed["neuralspotx"], neuralspotx.REPOSITORY)
+    sdk_pins = _sdk_pins(committed["nsx-ambiq-sdk"], args.sdk)
     zephyr_revision = args.zephyr or _pin(committed["zephyr"], zephyr.REPOSITORY)
-    if nsx_revision is None or zephyr_revision is None:
-        print("no committed snapshots: pass --neuralspotx and --zephyr", file=sys.stderr)
+    if nsx_revision is None or not sdk_pins or zephyr_revision is None:
+        print("no committed snapshots: pass --sdk and --zephyr", file=sys.stderr)
         return 2
     sources = _Sources(args.cache, _recorded(committed), args.at)
-    regenerated = extract_all(sources, nsx_revision, zephyr_revision)
+    regenerated = extract_all(sources, nsx_revision, sdk_pins, zephyr_revision)
     status = 0
     for message in sources.moved:
         print(f"moved: {message}")
@@ -175,7 +186,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         default="commit",
         help="fetch each recorded revision at its recorded commit, or resolve it again",
     )
-    extract.add_argument("--neuralspotx", help="neuralspotx revision (a refresh's new pin)")
+    extract.add_argument("--sdk", help="nsx-ambiq-sdk tag for every Soc (a refresh's new pin)")
     extract.add_argument("--zephyr", help="Zephyr revision (a refresh's new pin, a full SHA)")
     extract.add_argument("--output", type=Path, help="write here instead of --snapshots")
     refs = commands.add_parser("references", help="check #<symbol> references in the data")

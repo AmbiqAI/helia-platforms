@@ -1,8 +1,8 @@
 name: Snapshot drift
 
 # ADR 0006 section 1. Step 1 re-extracts at each recorded revision; step 2
-# extracts neuralspotx main, the SDK tags its lock names, and Zephyr main, and
-# diffs the values against the snapshots. Both report to the issue numbered by
+# extracts the newest nsx-ambiq-sdk tag and Zephyr main, and diffs the values
+# against the snapshots. neuralspotx is a consumer, so it stays at its pin (#18). Both report to the issue numbered by
 # the repository variable SNAPSHOT_TRACKING_ISSUE. GitHub disables a public
 # repository's scheduled workflows after 60 days without activity.
 
@@ -65,8 +65,10 @@ jobs:
         run: |
           mkdir -p "$RUNNER_TEMP/report"
           status=0
+          sdk="$(git ls-remote --tags --refs --sort=-v:refname \
+            https://github.com/AmbiqAI/nsx-ambiq-sdk 'v*' | head -n 1 | sed 's|.*refs/tags/||')"
           uv run --no-sync python scripts/extract_snapshots.py extract --at revision \
-            --neuralspotx main --zephyr main --output "$RUNNER_TEMP/main" \
+            --sdk "$sdk" --zephyr main --output "$RUNNER_TEMP/main" \
             > "$RUNNER_TEMP/step2.txt" 2>&1 || status=$?
           cat "$RUNNER_TEMP/step2.txt"
           # Commits move every week; only value changes and failures are reported.

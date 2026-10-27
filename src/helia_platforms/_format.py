@@ -253,6 +253,8 @@ class BootConfig(_Facts):
 class BuildFacts(_Facts, total=False):
     abi: str
     float_abi: str
+    # Deprecated (#18): neuralspotx policy, not a fact. No built-in data sets it, and
+    # check-sources no longer compares it; the field goes once no open branch uses it.
     toolchains: Annotated[list[str], BY_VALUE]
 
 
