@@ -618,17 +618,8 @@ parts:
     soc: apollo510L
     package: "169-pin BGA, 5.3 x 5.3 mm"
     radio: ble-5.4, bt-classic
-    jlink_device:
-      value: AP510DLA-CBR
-      provenance:
-        status: sdk
-        source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo510L.cmake:50"]
-        verified_on: 2026-10-26
-        verified_by: evanchen11
-        notes: >-
-          The SDK's SoC-level default; neuralspotx apollo510dL_evb/debug.cmake sets no
-          override. The owner checked the name against Ambiq's Apollo SoC Selector Guide on
-          2026-10-07 (#65). Not checked against SEGGER's device list (#19).
+    # No jlink_device: SEGGER's stock database has no name for this part, and the
+    # custom device files are left to each tool (#130).
     image_slots: *slot432
     provenance: *ds_order_d
   AP510DLA-IBR:
@@ -656,20 +647,6 @@ boards:
         the BGA package (AP510DLA-CBR)". p8: every revision 2.0 EVB has the PSRAM (U14)
         de-populated, so the board has no MSPI interface or population (its SDIO eMMC is
         not modelled).
-    jlink_device:
-      value: Apollo330P_510L
-      provenance:
-        status: measured
-        source:
-          - "meas:apollo510dL_evb/bench-flash/2026-10-26"
-          - "url:https://github.com/AmbiqAI/helia-platforms/issues/130"
-          - "repo:AmbiqAI/neuralspotx@neuralspotx-v0.9.0:src/neuralspotx/boards/apollo330mP_evb/debug.cmake:4-7"
-        verified_on: 2026-10-26
-        verified_by: evanchen11
-        notes: >-
-          Connect, flash and a helia-profiler run succeeded on the farm's apollo510L_evb
-          with J-Link V9.60; the part's AP510DLA-CBR did not. The name comes from the
-          host's AmbiqMicro.xml device file, not J-Link's stock database (#130).
     provisioning:
       value: sbl
       provenance:

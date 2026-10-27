@@ -631,16 +631,8 @@ parts:
     soc: apollo330P
     package: "169-pin BGA, 5.3 x 5.3 mm"
     radio: ble-5.4, bt-classic
-    jlink_device:
-      value: AP330MPA-CBR
-      provenance:
-        status: sdk
-        source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo330P.cmake:50"]
-        verified_on: 2026-10-26
-        verified_by: evanchen11
-        notes: >-
-          The SDK's SoC-level default; the EVB overrides it (board below). Not checked
-          against SEGGER's device list (#19).
+    # No jlink_device: SEGGER's stock database has no name for this part, and the
+    # custom device files are left to each tool (#130).
     image_slots: *slot432
     provenance:
       status: datasheet
@@ -668,16 +660,6 @@ boards:
         the BGA package (AP330MPA-CBR)". p8: every revision 2.0 EVB has the PSRAM (U14)
         de-populated, so the board has no MSPI interface or population (its SDIO eMMC is
         not modelled).
-    jlink_device:
-      value: Apollo330P_510L
-      provenance:
-        status: sdk
-        source: ["repo:AmbiqAI/neuralspotx@neuralspotx-v0.9.0:src/neuralspotx/boards/apollo330mP_evb/debug.cmake:7"]
-        verified_on: 2026-10-26
-        verified_by: evanchen11
-        notes: >-
-          :4-6: older J-Link packages know the Apollo330P / Apollo510L family under this
-          shared fallback name. Not checked against SEGGER's device list (#19).
     provisioning:
       value: sbl
       provenance:

@@ -85,13 +85,10 @@ def test_the_app_start_offset_names_the_mram_base_it_is_derived_from(catalog, bo
 
 
 @pytest.mark.parametrize(
-    ("name", "board", "jlink"),
-    [
-        ("apollo510l_evb", "apollo510dL_evb", "Apollo330P_510L"),
-        ("apollo330mp_evb", "apollo330mP_evb", "Apollo330P_510L"),
-    ],
+    ("name", "board"),
+    [("apollo510l_evb", "apollo510dL_evb"), ("apollo330mp_evb", "apollo330mP_evb")],
 )
-def test_the_radio_core_evbs_answer_the_consumer_queries(catalog, name, board, jlink):
+def test_the_radio_core_evbs_answer_the_consumer_queries(catalog, name, board):
     """#65's decisions: core-0 answers are those of a single-core part; NVM-M41 is the radio's."""
     target = catalog.resolve(name)
     assert target.board.id == board
@@ -109,7 +106,7 @@ def test_the_radio_core_evbs_answer_the_consumer_queries(catalog, name, board, j
         ("hp2", 250),
     ]
     assert target.default_operating_point.name == "lp"
-    assert (target.jlink_device, target.trace_clock_mhz) == (jlink, 48)
+    assert (target.jlink_device, target.trace_clock_mhz) == (None, 48)
     assert not target.external_memories()
 
 
