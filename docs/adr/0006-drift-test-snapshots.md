@@ -23,8 +23,10 @@ catalog with itself. From this amendment:
   not neuralspotx's `soc_families`. A refresh passes `--sdk <tag>`, which
   applies to every Soc in the extractor's SoC-to-header map; the weekly
   step 2 extracts the newest `v*` tag.
-- `SdkFacts.build.toolchains` is removed from the format: which toolchains a
-  build supports is neuralspotx's policy.
+- `SdkFacts.build.toolchains` is no longer compared or recorded: which
+  toolchains a build supports is neuralspotx's policy. The field stays in the
+  format, deprecated, until no open branch sets it, so every merge base still
+  loads for the fact-change check.
 - A citation of neuralspotx at a pinned pre-adoption revision stays valid
   evidence (ADR 0003).
 
