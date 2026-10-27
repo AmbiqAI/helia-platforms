@@ -137,8 +137,8 @@ atomiq110 as a physical region of 13312 KB at 0x60000000 (nsx-ambiq-sdk
 `v5.2.24`
 `modules/nsx-ambiqsuite/sdk/mcu/atomiq110/regs/am_reg_base_addresses.h:41-42`),
 but the heliaAOT adapter leaves it out of the default budget (the
-`memories` of `SocPlatform`) until its placement on the FPGA is confirmed
-(#19).
+`memories` of `SocPlatform`) until its technology and CPU reach are
+confirmed (#19). The FPGA has no HBLRAM, so `atomiq110_fpga` removes it.
 Counting it as SRAM would raise the budget from 3 MB to 16 MB, which this
 table does not allow-list.
 
@@ -168,7 +168,7 @@ table does not allow-list.
 
 | Output that changes | Parity test (#13) |
 |---|---|
-| Codegen spellings in `helia_aot_codegen.py`: `apollo510` resolves to the bare Soc target, not `apollo510_evb` (the estimator calls `resolve_board("apollo510")` where it wants the board). `ap510` matches the built-in shorthand `AP510` case-insensitively and raises `AmbiguousPlatform` with candidates. `apollo510_eb` raises `UnknownPlatform`; it is not a shorthand, so it may become a built-in alias if wanted. The estimator maps its own spellings in its adapter. The `at110*` prefix rule is not reproduced; `at110` is #278's first proposed alias of `atomiq110` | Name parity: every spelling the estimator uses resolves, through the adapter, to the target it maps to today, or is listed here |
+| Codegen spellings in `helia_aot_codegen.py`: `apollo510` resolves to the bare Soc target, not `apollo510_evb` (the estimator calls `resolve_board("apollo510")` where it wants the board). `ap510` matches the built-in shorthand `AP510` case-insensitively and raises `AmbiguousPlatform` with candidates. `apollo510_eb` raises `UnknownPlatform`; it is not a shorthand, so it may become a built-in alias if wanted. The estimator maps its own spellings in its adapter. The `at110*` prefix rule is not reproduced; `at110` is a built-in alias of `atomiq110` (#68) | Name parity: every spelling the estimator uses resolves, through the adapter, to the target it maps to today, or is listed here |
 | `origin` mapping: `golden` becomes `origin: builtin`; `derived` becomes `origin: overlay` with `based_on` the built-in Soc; `custom` becomes `origin: overlay` without `based_on`. Value status maps `confirmed` to the package status that matches its source (`datasheet`, `sdk` or `measured`), `fitted` to `fitted`, `unverified` to `unverified` | Provenance parity: per value, the mapped status and source equal today's record |
 | The NPU clock per mode comes from the npu-0 clock domain point of each system operating point (`target.npu_mhz(mode)`) | Clock parity: per mode, the clock equals today's `npu_clock_hz` |
 | `soc_overrides` becomes a Soc overlay; a `null` memory removal becomes `memories_removed`. Corstone-320 becomes an `fvp` Implementation with `model` and its own `memories`: its generic SRAM stands in for SSRAM, and its DDR for HBLRAM, PSRAM and RRAM, through `stands_in_for` (per research/queries-helia-estimator.md; [ADR 0007](../adr/0007-fvp-memory-maps.md)) | Override parity: today's override examples produce the same `SocDefinition` projection |

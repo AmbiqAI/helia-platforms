@@ -34,6 +34,13 @@ REGISTERS: dict[str, dict[str, tuple[str, str]]] = {
         "ssram": ("SSRAM_BASEADDR", "SSRAM_MAX_SIZE"),
         "mram": ("MRAM_BASEADDR", "MRAM_MAX_SIZE"),
     },
+    # No ITCM define; the itcm region comes from the linker scripts (#68).
+    "atomiq110": {
+        "dtcm": ("DTCM_BASEADDR", "DTCM_MAX_SIZE"),
+        "ssram": ("SSRAM_BASEADDR", "SSRAM_MAX_SIZE"),
+        "rram": ("RRAM_BASEADDR", "RRAM_MAX_SIZE"),
+        "hblram": ("HBLRAM_BASEADDR", "HBLRAM_MAX_SIZE"),
+    },
 }
 #: CMake's boolean constants, compared case-insensitively; a non-zero number is also true
 #: (CMake reads one with ``strtod``, so in decimal or hexadecimal).

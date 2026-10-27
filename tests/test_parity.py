@@ -31,7 +31,9 @@ def helia_aot(target: Target) -> dict:
     for region in target.memories():
         if region.attachment == "external" or region.technology != "sram":
             continue
-        if region.name == "hblram":  # out of the budget until its placement is confirmed (#19)
+        if (
+            region.name == "hblram"
+        ):  # out of the budget until its technology and reach are confirmed (#19)
             continue
         kind = region.name.upper() if region.attachment == "tcm" else "SRAM"
         memories[kind] = memories.get(kind, 0) + region.size

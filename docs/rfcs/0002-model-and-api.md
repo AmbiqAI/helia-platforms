@@ -253,35 +253,41 @@ neuralspotx and helia-profiler use) carrying Implementation
 `atomiq110_fpga` (facts from
 [research/ambiqsuite.md](../research/ambiqsuite.md)):
 
-- Clock domain points 25 MHz (default) plus 12 and 48 MHz, status `sdk`:
-  the FPGA image is built for one designated frequency and firmware
-  matches it with a build define (`mcu/atomiq110/am_mcu_apollo.h:63-64`,
-  `:86`); 50 MHz has status `unverified` (owner statement). The provenance note records the owner's
-  "about one tenth of the silicon clock"; it is not a scale factor.
-- `peripherals_removed`: IOM2 and above (`am_bsp.c:1177-1179`).
-- J-Link device `Atomiq110`, the spelling of the SDK facts file and
-  neuralspotx `debug.cmake`, with AmbiqSuite's `ATOMIQ110` recorded in the
-  provenance notes (decided on #68). No source says J-Link matches names
-  case-insensitively, and `Atomiq110` is not in SEGGER's stock database
-  (#19).
+- Clocks: each FPGA domain point overrides the Soc's point of the same
+  name at the silicon clock divided by 10 (the helia-estimator owner,
+  2026-10-27, #68). CPU `lp` is 25 MHz, status `sdk`: the HAL is built for
+  `ATOMIQ11X_FPGA 25` (`mcu/atomiq110/am_mcu_apollo.h:85-87`). CPU `hp`
+  50 MHz and NPU `ulp` 10 and `hp` 50 MHz are `unverified`. The CPU's
+  `ulp` point and the two system points using it are removed. The other
+  four keep the Soc's names, and the default `lp_ulp` is 25 MHz CPU and
+  10 MHz NPU. nsx-core says the FPGA's HFRC is fixed at 25 MHz whatever
+  the CPU mode (`modules/nsx-core/src/atomiq110/nsx_system_platform.c:66-69`),
+  which disagrees with the 50 MHz point (#19). The 12 and 48 MHz in the
+  HAL's comment are examples of other images, not points.
+- `peripherals_removed`: IOM2 to IOM11, `unverified`. Only AmbiqSuite's
+  `am_bsp.c:1177-1179` says so, and the BSP header nsx-ambiq-sdk ships
+  defines pins for IOM0 to IOM6.
+- No J-Link device: no atomiq110 spelling is in SEGGER's stock database
+  (#130).
 - `trace_clock_mhz: 48`, status `measured`. The 48 MHz was measured once,
   on one FPGA image that the source does not name; whether the trace
   clock varies by FPGA image is open (#19). The 48 MHz reference with
   helia-profiler's 1 MHz SWO rate is untested (helia-profiler#465).
-  Source: neuralspotx `b930d59`,
+  Source: neuralspotx `neuralspotx-v0.9.0`,
   `src/neuralspotx/boards/atomiq110_fpga_turbo/debug.cmake:6-18`. The
   TPIU trace clock stays at its hardware reset default, which firmware
   cannot change and which measures 48 MHz. The firmware programs the SWO
   prescaler (ACPR) for 25 MHz, so SWO runs at 1.92 MHz. The file records
   a hardware check (J-Link Compact PLUS, 2026-08): 25 MHz with 1 MHz SWO
   decodes as gibberish, and 48 MHz with 1.92 MHz decodes cleanly.
-  `NSX_SEGGER_CPUFREQ` in that file is this trace clock, not the 48 MHz
-  CPU clock point above. The SDK's 25 MHz SoC default (nsx-ambiq-sdk
-  `v5.2.25`, `cmake/socs/facts/atomiq110.cmake:69`) does not apply.
+  `NSX_SEGGER_CPUFREQ` in that file is this trace clock, not a CPU clock.
+  The SDK's 25 MHz SoC default (nsx-ambiq-sdk `v5.2.26`,
+  `cmake/socs/facts/atomiq110.cmake:69`) does not apply.
   RFC 0001 appendix J records the same value.
-- External memory as AmbiqSuite's BSP declares it, on the Implementation.
-  Whether HBLRAM (0x60000000 in the header) is on-die or external on the
-  FPGA is not documented.
+- No external memory on the Board: nsx-psram has no mapping for it, and
+  neither helia-profiler nor helia-npu says anything is fitted. The
+  Implementation removes HBLRAM, which nsx-ambiq-sdk says the FPGA lacks
+  (`boards/atomiq110_fpga_turbo/board.cmake:25-28`).
 
 An FVP implementation names its `model` (corstone-320) and declares its
 own `memories`, the complete memory list of the realized Soc: no Soc
@@ -671,7 +677,7 @@ below is the resolved object returned by `resolve()`.
 | Native FP16 | `target.isa().supports_fp16` | package |
 | Is there an NPU, and which | `target.npu` (npu 0: `None` or `NpuInstance` with `.npu.model`, `.npu.macs_per_cycle`, `.npu.accelerator_config`); `target.npus()` for all | package |
 | Which core and NPU to compile for | core 0 and npu 0 implicitly; `platform.core` and `platform.npu` are future additive options | package default; choice is heliaAOT's |
-| Memories and byte sizes to budget | On-chip RAM (DTCM, ITCM, SRAM) from `target.memories()`, except atomiq110's HBLRAM until its FPGA placement is confirmed (#19), NVM from `target.usable_nvm()` and external memories from `target.external_memories()`, for every module type. NVM leaves out the boot reservations and other cores' image slots, because planning into them would overwrite the bootloader or radio firmware. heliaAOT does not budget from a link environment (decided 2026-10-05, see #28) | package |
+| Memories and byte sizes to budget | On-chip RAM (DTCM, ITCM, SRAM) from `target.memories()`, except atomiq110's HBLRAM until its technology and CPU reach are confirmed (#19), NVM from `target.usable_nvm()` and external memories from `target.external_memories()`, for every module type. NVM leaves out the boot reservations and other cores' image slots, because planning into them would overwrite the bootloader or radio firmware. heliaAOT does not budget from a link environment (decided 2026-10-05, see #28) | package |
 | Is ITCM present | `target.has_region("itcm")` | package |
 | Minimum alignment | heliaAOT table keyed by `target.soc.id` (16 with MVE is a placement rule) | heliaAOT |
 | Order to try memories | heliaAOT policy; inputs available as `region.attachment` and `region.characterization` | heliaAOT |
@@ -965,7 +971,7 @@ and Zephyr snapshots; [ADR 0006](../adr/0006-drift-test-snapshots.md)),
 - heliaAOT: `SocPlatform.from_target(t)` builds the flattened view (name
   lowercased, `memories` from the physical on-chip RAM regions in
   `t.memories()`, leaving out atomiq110's `hblram` region until its
-  placement on the FPGA is confirmed (#19), NVM from `t.usable_nvm()`
+  technology and CPU reach are confirmed (#19), NVM from `t.usable_nvm()`
   without the boot reservations and other cores' image slots, and
   external memories from
   `t.external_memories()`, the same for every module type; heliaAOT

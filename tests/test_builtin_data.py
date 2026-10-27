@@ -9,10 +9,11 @@ def catalog() -> Catalog:
 
 
 def test_the_packaged_data_loads(catalog):
-    assert [s.id for s in catalog.socs()] == ["apollo510"]
+    assert [s.id for s in catalog.socs()] == ["apollo510", "atomiq110"]
+    assert [i.id for i in catalog.implementations()] == ["atomiq110_fpga"]
     assert [c.id for c in catalog.cores()] == ["cortex-m55"]
     assert {p.id for p in catalog.parts()} == {"AP510NFA-CBR", "AP510NFA-IBR", "AP510NFA-CCR"}
-    assert [b.id for b in catalog.boards()] == ["apollo510_evb"]
+    assert [b.id for b in catalog.boards()] == ["apollo510_evb", "atomiq110_fpga_turbo"]
     assert [d.id for d in catalog.memory_devices()] == ["APS512XX"]
 
 
@@ -33,6 +34,58 @@ def test_apollo510_evb_answers_the_consumer_queries(catalog):
     assert target.default_operating_point.name == "lp"
     assert target.jlink_device == "AP510NFA-CBR"
     assert target.trace_clock_mhz == 96
+
+
+_ATOMIQ110_ON_DIE = {
+    "itcm": (0x00000000, 256 * 1024),
+    "dtcm": (0x20000000, 512 * 1024),
+    "ssram": (0x21000000, 3 * 1024 * 1024),
+    "rram": (0x22000000, 4 * 1024 * 1024),
+}
+
+
+def test_the_atomiq110_fpga_board_answers_the_consumer_queries(catalog):
+    """#68 and #104's decisions: the board carries atomiq110_fpga, with no HBLRAM or J-Link."""
+    target = catalog.resolve("atomiq110_fpga_turbo")
+    assert (target.kind, target.part) == ("board", None)
+    assert target.implementation is not None and target.implementation.kind == "fpga"
+    assert target.capabilities == {"dsp", "fp16", "fp32", "fp64", "mve", "mve_fp", "npu", "pmu"}
+    assert {m.name: (m.base, m.size) for m in target.memories()} == _ATOMIQ110_ON_DIE
+    assert dict(target.usable_nvm()) == {"rram": 4 * 1024 * 1024}
+    assert target.flash_load_address() == 0x22000000
+    assert [
+        (p.name, target.cpu_mhz(p.name), target.npu_mhz(p.name)) for p in target.operating_points()
+    ] == [
+        ("lp_ulp", 25, 10),
+        ("lp_hp", 25, 50),
+        ("hp_ulp", 50, 10),
+        ("hp_hp", 50, 50),
+    ]
+    assert target.default_operating_point is not None
+    assert target.default_operating_point.name == "lp_ulp"
+    assert (target.jlink_device, target.trace_clock_mhz) == (None, 48)
+    assert target.board is not None and target.board.provisioning == "nbl"
+    assert {"iom2", "iom11", "hblram"} & set(target.soc.peripherals) == {"hblram"}
+
+
+def test_the_atomiq110_soc_answers_the_consumer_queries(catalog):
+    target = catalog.resolve("atomiq110")
+    assert target.kind == "soc" and catalog.resolve("at110").id == "atomiq110"
+    assert resolve_board("atomiq110", catalog=catalog).id == "atomiq110_fpga_turbo"
+    assert target.npu is not None and target.npu.npu.accelerator_config == "ethos-u85-256"
+    assert {m.name: (m.base, m.size) for m in target.memories()} == {
+        **_ATOMIQ110_ON_DIE,
+        "hblram": (0x60000000, 13312 * 1024),
+    }
+    assert sorted({target.cpu_mhz(p.name) for p in target.operating_points()}) == [100, 250, 500]
+    assert target.default_operating_point is not None
+    assert target.default_operating_point.name == "lp_ulp"
+    assert (target.cpu_mhz(), target.npu_mhz()) == (250, 100)
+    assert (target.jlink_device, target.trace_clock_mhz) == (None, None)
+    npu_reach = [(a.target, a.port) for a in target.soc.access if a.master == "npu_0"]
+    assert npu_reach == [("ssram", 0), ("hblram", 1), ("rram", 1)]
+    # The characterization waits on #131 (may it ship in the public package?).
+    assert all(a.characterization is None for a in target.soc.access)
 
 
 def test_the_soc_and_part_names_resolve(catalog):

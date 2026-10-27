@@ -1,0 +1,556 @@
+# yaml-language-server: $schema=../../schema/helia-platforms-v1.schema.json
+# The atomiq110 Soc, its FPGA Implementation and the FPGA board. Owner decisions: #68, #104.
+schema_version: 1
+socs:
+  atomiq110:
+    release_status: public
+    aliases: [at110]
+    default_board: atomiq110_fpga_turbo
+    provenance:
+      status: sdk
+      source:
+        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/atomiq110.cmake:8-15"
+        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-core/src/atomiq110/gcc/linker_script_nbl.ld:15-23"
+      verified_on: 2026-10-27
+      verified_by: evanchen11
+      notes: >-
+        One Cortex-M55 (facts :15) and the memory map of the default script. No atomiq110
+        datasheet exists, so every value is sdk, measured or unverified. The FPGA is the
+        only realization (facts :8-11).
+    series:
+      value: atomiq
+      provenance:
+        status: sdk
+        source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/atomiq110.cmake:13"]
+        verified_on: 2026-10-27
+        verified_by: evanchen11
+
+    cores:
+      - id: cm55_0
+        role: application
+        core: cortex-m55
+        clock_domain: cpu
+        programmable_by:
+          value: customer
+          provenance:
+            status: sdk
+            source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-core/src/atomiq110/gcc/linker_script_nbl.ld:18"]
+            verified_on: 2026-10-27
+            verified_by: evanchen11
+            notes: The default (nbl) script links the application into MCU_MRAM at 0x22000000.
+        provenance:
+          status: sdk
+          source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/atomiq110.cmake:15"]
+          verified_on: 2026-10-27
+          verified_by: evanchen11
+        options:
+          fpu:
+            value: fpv5-sp-d16
+            provenance:
+              status: sdk
+              source:
+                - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/nsx_toolchain_flags.cmake:208"
+                - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/nsx_toolchain_flags.cmake:221"
+              verified_on: 2026-10-27
+              verified_by: evanchen11
+              notes: >-
+                The gcc -mfpu the SDK passes for every Cortex-M55 build, as for apollo510.
+                NSX_FPU is empty (facts :32) and facts :28-31 say no -mfpu is emitted, which
+                :221 contradicts. Double precision is fpu_dp.
+          fpu_dp:
+            value: true
+            provenance:
+              status: sdk
+              source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/atomiq110.h:226"]
+              verified_on: 2026-10-27
+              verified_by: evanchen11
+          mve:
+            value: fp
+            provenance:
+              status: unverified
+              notes: >-
+                NSX_SOC_HAS_MVE TRUE (facts :19) says only that MVE exists, and the CMSIS
+                header's MCUCTRL SKU field fuses no MVE, integer MVE or integer and floating
+                point MVE per SKU (atomiq110.h:117106-117110 at nsx-ambiq-sdk v5.2.26).
+                heliaAOT lists FP16 for atomiq110, which needs fp. No source of record (#19).
+          # icache_kb, dcache_kb: absent. atomiq110.h:228-229 say both caches are present; no
+          # source gives a size.
+
+    npus:
+      - id: npu_0
+        npu:
+          vendor: arm
+          family: ethos-u
+          model: u85
+          macs_per_cycle: 256
+          provenance:
+            status: sdk
+            source:
+              - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-npu/README.md:3"
+              - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-npu/README.md:52-56"
+            verified_on: 2026-10-27
+            verified_by: evanchen11
+            notes: >-
+              ":3 Arm Ethos-U85 NPU"; ":52-56 Models must be compiled offline with Vela for
+              the Atomiq110 MAC configuration: vela --accelerator-config ethos-u85-256". The
+              Arm Ethos-U85 TRM is not in the source register.
+        driven_by: cm55_0
+        clock_domain: npu
+        base_address: 0x400E0000
+        irq: 117
+        axi_width_bits:
+          value: 128
+          provenance:
+            status: unverified
+            notes: >-
+              helia-npu socs/atomiq110.yaml:25 (helia-estimator 785dfe42) axi_bus_width_bits
+              128, with no record; no SDK or Arm document in the source register states it.
+        provenance:
+          status: sdk
+          source:
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/atomiq110.h:55457"
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/atomiq110.h:184"
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-npu/src/nsx_npu.c:22-25"
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-npu/src/nsx_npu.c:71"
+          verified_on: 2026-10-27
+          verified_by: evanchen11
+          notes: >-
+            NPU_BASE 0x400E0000 and NPU_IRQn 117. nsx_npu.c:22-24: the non-secure alias is
+            hardware-validated, and the secure alias 0x500E0000 bus-faults on the FPGA image.
+            driven_by: the only core initialises the driver (:71).
+
+    memories:
+      itcm:
+        technology: sram
+        attachment: tcm
+        base: 0x00000000
+        size: 256K
+        provenance:
+          status: sdk
+          source:
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-core/src/atomiq110/gcc/linker_script_nbl.ld:17"
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/atomiq110.h:230"
+          verified_on: 2026-10-27
+          verified_by: evanchen11
+          notes: >-
+            The register header has no ITCM define; MCU_ITCM ORIGIN 0x00000000 LENGTH 262144
+            in the linker scripts, and __ITCM_PRESENT 1 in the CMSIS header.
+      dtcm:
+        technology: sram
+        attachment: tcm
+        base: 0x20000000
+        size: 512K
+        provenance:
+          status: sdk
+          source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/mcu/atomiq110/regs/am_reg_base_addresses.h:29-30"]
+          verified_on: 2026-10-27
+          verified_by: evanchen11
+          notes: The scripts link 507904 bytes (MCU_TCM, nbl :19); the catalog keeps the physical size (#28).
+      ssram:
+        technology: sram
+        attachment: system
+        base: 0x21000000
+        size: 3M
+        provenance:
+          status: sdk
+          source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/mcu/atomiq110/regs/am_reg_base_addresses.h:35-36"]
+          verified_on: 2026-10-27
+          verified_by: evanchen11
+          notes: >-
+            The nbl script (:20): "3 MB powered SSRAM (3x1MB blocks, PWRENSSRAM=7); upper 1 MB
+            of the 4 MB aperture is unpopulated".
+      rram:
+        technology: rram
+        attachment: system
+        base: 0x22000000
+        size: 4M
+        provenance:
+          status: sdk
+          source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/mcu/atomiq110/regs/am_reg_base_addresses.h:47-48"]
+          verified_on: 2026-10-27
+          verified_by: evanchen11
+          notes: >-
+            The register header names it RRAM; the linker scripts and the facts file call the
+            region MRAM, emulated at 0x22000000 on the FPGA (nbl :9-13; facts :60-62). No
+            writeable flag is set (#63 convention).
+      hblram:
+        technology:
+          value: dram
+          provenance:
+            status: unverified
+            notes: >-
+              No SDK file states HBLRAM's technology. helia-estimator calls it stacked DRAM;
+              heliaAOT calls it on-chip HBLRAM with no DRAM on the part (#68 item 2, #19).
+        attachment:
+          value: system
+          provenance:
+            status: unverified
+            notes: >-
+              A fixed system address with no board interface; only helia-estimator says the
+              die is in the package (#68 item 2, #19).
+        base: 0x60000000
+        size: 13312K
+        provenance:
+          status: sdk
+          source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/mcu/atomiq110/regs/am_reg_base_addresses.h:41-42"]
+          verified_on: 2026-10-27
+          verified_by: evanchen11
+          notes: >-
+            helia-npu calls the 13 MB "a constrained FPGA realization of the RTL, not silicon
+            capacity (up to 256 MB by SKU)"; a per-SKU size goes on a Part once silicon exists
+            (#68). The FPGA has no HBLRAM (atomiq110_fpga below).
+      # alternate_bases: absent. The register header's secure aliases (:63-76) are TrustZone
+      # views of the same memory (#68 item 19).
+
+    peripherals:
+      value: [adc, axi, clkgen, crm, crypto, dc, dmea, dsi, emmc, fpio, gpio, gpu, hblram, i2s,
+              i3c0, i3c1, i3c2, iom0, iom1, iom2, iom3, iom4, iom5, iom6, iom7, iom8, iom9, iom10,
+              iom11, ioslavefd0, ioslavefd1, lpadc, mcuctrl, mmu, npu, otp, pdm0, pdm1, pdm2,
+              pwrctrl, rstgen, rtc, scm, sdio0, securertc, securestimer, securetimer, securewdt,
+              security, ssc, stimer, timer, uart0, uart1, uart2, uart3, uart4, uart5, usb, usbphy,
+              vcomp, wdt, xspimc0, xspimc1, xspimc2, xspis, xspislv]
+      provenance:
+        status: sdk
+        source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/atomiq110.h:55423-55489"]
+        verified_on: 2026-10-27
+        verified_by: evanchen11
+        notes: >-
+          Every <NAME>_BASE define of the peripheral section, lowercased (#63 convention). The
+          peripheral hblram is the controller block at 0x4000E000, not the region.
+    memory_controllers:
+      value: [xspimc0, xspimc1, xspimc2]
+      provenance:
+        status: sdk
+        source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/mcu/atomiq110/regs/am_reg_base_addresses.h:103-122"]
+        verified_on: 2026-10-27
+        verified_by: evanchen11
+        notes: >-
+          The three XSPI controllers, each with a 256 MB XIP aperture (XSPI0 0x80000000, XSPI1
+          0xA0000000, XSPI2 0xC0000000). IOMs are left off until a board wires memory to one.
+
+    default_access:
+      master: cm55_0
+      access: direct
+      scope: on_die
+      provenance:
+        status: sdk
+        source:
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-core/src/atomiq110/gcc/linker_script_nbl.ld:15-23"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/mcu/atomiq110/regs/am_reg_base_addresses.h:103-122"
+        verified_on: 2026-10-27
+        verified_by: evanchen11
+        notes: >-
+          The only core; its default script links into itcm, dtcm, ssram and rram, and the
+          XSPI apertures are CPU address ranges. hblram has its own entry below.
+    access:
+      - master: cm55_0
+        target: hblram
+        access: direct
+        provenance:
+          status: unverified
+          notes: >-
+            No SDK script links HBLRAM. helia-estimator says the CPU shares the HBLRAM ports,
+            and heliaAOT calls it on-chip (#68 item 2, #19).
+      # The NPU's reach and port classes (#68 item 4). Their characterization waits on #131.
+      - master: npu_0
+        target: ssram
+        access: direct
+        port: 0
+        provenance:
+          status: unverified
+          notes: &npu_reach >-
+            helia-npu socs/atomiq110.yaml:48-138 (helia-estimator 785dfe42): ssram on AXI
+            port 0, hblram and rram on port 1, one port-1 memory at a time. No SDK source
+            states NPU reach (#19).
+      - master: npu_0
+        target: hblram
+        access: direct
+        port: 1
+        provenance: {status: unverified, notes: *npu_reach}
+      - master: npu_0
+        target: rram
+        access: direct
+        port: 1
+        provenance: {status: unverified, notes: *npu_reach}
+
+    clock_domains:
+      cpu:
+        ulp:
+          mhz: 100
+          hal_mode: AM_HAL_PWRCTRL_MCU_MODE_ULTRA_LOW_POWER
+          provenance: &cpu_points
+            status: sdk
+            source:
+              - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/mcu/atomiq110/hal/mcu/am_hal_clkgen.h:46-48"
+              - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/mcu/atomiq110/hal/am_hal_pwrctrl.h:228-230"
+            verified_on: 2026-10-27
+            verified_by: evanchen11
+            notes: >-
+              The non-FPGA branch defines ULP 100, LP 250 and HP 500 MHz, and the mode
+              enumerators' comments give the same.
+        lp: {mhz: 250, hal_mode: AM_HAL_PWRCTRL_MCU_MODE_LOW_POWER, provenance: *cpu_points}
+        hp: {mhz: 500, hal_mode: AM_HAL_PWRCTRL_MCU_MODE_HIGH_PERFORMANCE, provenance: *cpu_points}
+      npu:
+        ulp:
+          mhz: 100
+          hal_mode: AM_HAL_PWRCTRL_NPU_MODE_ULTRA_LOW_POWER
+          provenance: &npu_points
+            status: sdk
+            source:
+              - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/mcu/atomiq110/hal/am_hal_pwrctrl.h:219-220"
+              - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-npu/includes-api/nsx_npu.h:65-68"
+            verified_on: 2026-10-27
+            verified_by: evanchen11
+            notes: Both give the MHz only in comments (ULP 100, HP 500).
+        hp: {mhz: 500, hal_mode: AM_HAL_PWRCTRL_NPU_MODE_HIGH_PERFORMANCE, provenance: *npu_points}
+    operating_points:
+      ulp_ulp:
+        domains: {cpu: ulp, npu: ulp}
+        provenance: &silicon_points
+          status: sdk
+          source:
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/mcu/atomiq110/hal/am_hal_pwrctrl.h:720"
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/mcu/atomiq110/hal/am_hal_pwrctrl.h:744"
+          verified_on: 2026-10-27
+          verified_by: evanchen11
+          notes: >-
+            The CPU and NPU modes are selected by separate calls (mcu_mode_select,
+            npu_mode_select), so every pair is a system point, named <cpu>_<npu> (#68).
+      ulp_hp: {domains: {cpu: ulp, npu: hp}, provenance: *silicon_points}
+      lp_ulp: {domains: {cpu: lp, npu: ulp}, provenance: *silicon_points}
+      lp_hp: {domains: {cpu: lp, npu: hp}, provenance: *silicon_points}
+      hp_ulp: {domains: {cpu: hp, npu: ulp}, provenance: *silicon_points}
+      hp_hp: {domains: {cpu: hp, npu: hp}, provenance: *silicon_points}
+    default_operating_point:
+      value: lp_ulp
+      provenance:
+        status: sdk
+        source:
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-core/includes-api/nsx_system.h:188"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-core/src/nsx_system_platform_apollo5.inc:186-191"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-npu/includes-api/nsx_npu.h:65-75"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-npu/src/nsx_npu.c:89-95"
+        verified_on: 2026-10-27
+        verified_by: evanchen11
+        notes: >-
+          #63 convention. A zero-initialised nsx_system config is "minimal, low-power", which
+          on atomiq110 selects AM_HAL_PWRCTRL_MCU_MODE_LOW_POWER (250 MHz). A zero-initialised
+          nsx_npu config has perf_mode NSX_NPU_PERF_ULTRA_LOW_POWER (enum value 0), which
+          selects the NPU's ULP mode; a NULL config selects HP.
+
+    boot_configs:
+      nbl:
+        reserved: {}
+        app_start: {region: rram, offset: 0}
+        requires: none
+        provenance:
+          status: sdk
+          source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-core/src/atomiq110/gcc/linker_script_nbl.ld:8-18"]
+          verified_on: 2026-10-27
+          verified_by: evanchen11
+          notes: >-
+            "the app loads at the MRAM base 0x22000000 ... and uses the full 4 MB", matching
+            NSX_SEGGER_PF_ADDR (facts :68).
+      sbl:
+        reserved:
+          sbl: {region: rram, offset: 0, size: 64K}
+        app_start: {region: rram, offset: 64K}
+        requires: sbl
+        provenance:
+          status: sdk
+          source:
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-core/src/atomiq110/gcc/linker_script_sbl.ld:8-17"
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/atomiq110.cmake:48"
+          verified_on: 2026-10-27
+          verified_by: evanchen11
+          notes: >-
+            "reserves the first 64 KB of MRAM for the secure bootloader, so the app base is
+            0x22010000"; kept "for a future silicon AT110". No atomiq110 SBL exists today.
+    default_boot:
+      value: nbl
+      provenance:
+        status: sdk
+        source:
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/atomiq110.cmake:45-48"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/atomiq110.cmake:58"
+        verified_on: 2026-10-27
+        verified_by: evanchen11
+        notes: Decided 2026-10-05 (#28; RFC 0002). Revisit when silicon ships with an SBL.
+
+    sdk:
+      c_define: PART_atomiq110
+      provenance:
+        status: sdk
+        source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/atomiq110.cmake:43"]
+        verified_on: 2026-10-27
+        verified_by: evanchen11
+        notes: >-
+          :38-41: no AM_PART_* gate is injected; PART_atomiq110 is the nsx-side selector.
+          neuralspotx's board.cmake also defines AM_PART_ATOMIQ110.
+      cmsis_header:
+        value: atomiq110.h
+        provenance:
+          status: sdk
+          source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/mcu/atomiq110/am_mcu_apollo.h:118"]
+          verified_on: 2026-10-27
+          verified_by: evanchen11
+      # trace_clock_mhz: absent. NSX_SEGGER_CPUFREQ 25000000 (facts :69) is the FPGA image's
+      # clock, not a trace clock; the FPGA's measured trace clock is on atomiq110_fpga.
+      hal_enums:
+        ssram_full_power:
+          value: AM_HAL_PWRCTRL_SRAM_3M
+          provenance:
+            status: sdk
+            source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/mcu/atomiq110/hal/am_hal_pwrctrl.h:420"]
+            verified_on: 2026-10-27
+            verified_by: evanchen11
+      build:
+        abi: thumbv8.1m-fpv5-hard
+        float_abi: hard
+        provenance:
+          status: sdk
+          source:
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/atomiq110.cmake:27"
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/atomiq110.cmake:33"
+          verified_on: 2026-10-27
+          verified_by: evanchen11
+        toolchains:
+          value: [arm-none-eabi-gcc, armclang, atfe]
+          provenance:
+            status: sdk
+            source: ["repo:AmbiqAI/neuralspotx@neuralspotx-v0.9.0:src/neuralspotx/boards/atomiq110_fpga_turbo/board.yaml:19-22"]
+            verified_on: 2026-10-27
+            verified_by: evanchen11
+            notes: The only neuralspotx board with soc atomiq110 at this tag.
+
+implementations:
+  atomiq110_fpga:
+    release_status: public
+    soc: atomiq110
+    kind: fpga
+    provenance:
+      status: sdk
+      source:
+        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:boards/atomiq110_fpga_turbo/board.cmake:25-33"
+        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:boards/atomiq110_fpga_turbo/README.md:6-10"
+      verified_on: 2026-10-27
+      verified_by: evanchen11
+      notes: >-
+        The bitstream the atomiq110_fpga_turbo board carries (#104). NSX_BOARD_IS_FPGA=1, "no
+        HBLRAM, reduced peripheral set, DIV-scaled clocks"; the HAL archives are built in FPGA
+        mode. The helia-estimator owner states every FPGA clock is the silicon clock divided
+        by 10 (#68).
+    subset:
+      memories_removed: [hblram]
+      peripherals_removed:
+        value: [iom2, iom3, iom4, iom5, iom6, iom7, iom8, iom9, iom10, iom11]
+        provenance:
+          status: unverified
+          notes: >-
+            "FPGA supports only IOM0 and 1" is only in AmbiqSuite, at an abbreviated revision;
+            the BSP header nsx-ambiq-sdk ships defines pins for IOM0 to IOM6 (#68 item 13, #19).
+      clock_domains_removed:
+        value: [cpu.ulp]
+        provenance: &owner_clocks
+          status: unverified
+          notes: >-
+            The helia-estimator owner (2026-10-27, #68): "The silicon is X10 for any clock.
+            FPGA is clocked down", naming CM55 250 and 500 MHz and NPU 100 and 500 MHz, so
+            the FPGA runs the CPU at 25 and 50 MHz and the NPU at 10 and 50 MHz. The CPU's
+            100 MHz ULP mode is not named, so the FPGA drops it.
+      operating_points_removed:
+        value: [ulp_ulp, ulp_hp]
+        provenance: *owner_clocks
+      boot_configs_removed: [sbl]
+      provenance:
+        status: sdk
+        source:
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:boards/atomiq110_fpga_turbo/board.cmake:25-28"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:boards/atomiq110_fpga_turbo/README.md:8-10"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/atomiq110.cmake:45-48"
+        verified_on: 2026-10-27
+        verified_by: evanchen11
+        notes: >-
+          "no HBLRAM" (board.cmake :26) and "HBLRAM / some peripherals present on silicon are
+          not available" (README :9-10); the sbl scripts are kept only for future silicon.
+    # Each point overrides the Soc's point of the same name, so the silicon operating points
+    # and the default lp_ulp carry over at the FPGA's clocks.
+    clock_domains:
+      cpu:
+        lp:
+          mhz: 25
+          provenance:
+            status: sdk
+            source:
+              - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/mcu/atomiq110/am_mcu_apollo.h:85-87"
+              - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:boards/atomiq110_fpga_turbo/README.md:8-9"
+            verified_on: 2026-10-27
+            verified_by: evanchen11
+            notes: >-
+              "As of Atomiq110 Drop6 c5/26/26, the default core frequency is 25MHz"
+              (ATOMIQ11X_FPGA 25), the silicon LP point's 250 MHz divided by 10.
+        hp:
+          mhz: 50
+          provenance:
+            status: unverified
+            notes: >-
+              The helia-estimator owner's statement (see subset). nsx-ambiq-sdk v5.2.26
+              disagrees for this HAL build: atomiq110/nsx_system_platform.c:66-69 says the
+              FPGA's HFRC "is fixed at the ATOMIQ11X_FPGA emulation frequency (25 MHz ...),
+              independent of CPU perf mode".
+      npu:
+        ulp:
+          mhz: 10
+          provenance: &owner_npu
+            status: unverified
+            notes: >-
+              The helia-estimator owner's statement (see subset); helia-npu's v10 notes
+              record FPGA captures "at NPU 10 and 50 MHz" (socs/atomiq110.yaml:21,
+              helia-estimator 785dfe42). nsx_npu.c:86-87 says an FPGA's clock tree "is fixed
+              by the image", so the two may be different images (#19).
+        hp:
+          mhz: 50
+          provenance: *owner_npu
+    trace_clock_mhz:
+      value: 48
+      provenance:
+        status: measured
+        source:
+          - "meas:atomiq110_fpga_turbo/swo-decode/2026-08-12"
+          - "repo:AmbiqAI/neuralspotx@neuralspotx-v0.9.0:src/neuralspotx/boards/atomiq110_fpga_turbo/debug.cmake:6-18"
+        verified_on: 2026-10-27
+        verified_by: evanchen11
+        notes: >-
+          The TPIU trace clock stays at its reset default, which firmware cannot change and
+          which measures 48 MHz; firmware programs ACPR for 25 MHz, so SWO runs at 1.92 MHz.
+          J-Link Compact PLUS, 2026-08: 25 MHz / 1 MHz decodes as gibberish, 48 MHz / 1.92 MHz
+          cleanly. Measured on or before 2026-08-12 (neuralspotx d428d01); the exact day and
+          the FPGA image are unrecorded (#19).
+    # jlink_device: absent. No atomiq110 spelling is in SEGGER's stock database (#130).
+
+boards:
+  atomiq110_fpga_turbo:
+    release_status: public
+    category: fpga
+    implementation: atomiq110_fpga
+    provenance:
+      status: sdk
+      source:
+        - "repo:AmbiqAI/neuralspotx@neuralspotx-v0.9.0:src/neuralspotx/boards/atomiq110_fpga_turbo/board.yaml:9-13"
+        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:boards/atomiq110_fpga_turbo/README.md:3-7"
+      verified_on: 2026-10-27
+      verified_by: evanchen11
+      notes: >-
+        board.yaml: name atomiq110_fpga_turbo, tier fpga, soc atomiq110; the README calls it
+        "the only upstream atomiq110 realization". The carrier populates no external memory
+        (#68 item 14).
+    provisioning:
+      value: nbl
+      provenance:
+        status: sdk
+        source:
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/atomiq110.cmake:45-47"
+          - "repo:AmbiqAI/neuralspotx@neuralspotx-v0.9.0:src/neuralspotx/boards/atomiq110_fpga_turbo/memory.cmake:4-6"
+        verified_on: 2026-10-27
+        verified_by: evanchen11
+        notes: '"loads directly via J-Link with no secure bootloader".'
