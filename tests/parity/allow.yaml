@@ -6,6 +6,12 @@ consumers:
     repository: AmbiqAI/helia-aot
     commit: d31bf2226e58e4120eaf8e6da289b5ee91e2e06b
     path: docs/src/data/generated/targets.json
+  # Not a verbatim file: each board's effective facts at the last revision before
+  # neuralspotx consumed the catalog, frozen from the snapshots (#18; ADR 0006).
+  neuralspotx:
+    repository: AmbiqAI/neuralspotx
+    commit: ffb7339b14b00134b4ed2834a1640d61042c0962
+    path: tests/parity/neuralspotx/boards.json
 allowed:
   - consumer: helia-aot
     target: apollo510_evb
@@ -85,3 +91,100 @@ allowed:
     field: target
     reason: Not in the built-in data yet.
     issue: "#68"
+  # neuralspotx boards the catalog does not resolve yet; each data PR removes its own.
+  - consumer: neuralspotx
+    target: apollo510b_evb
+    field: target
+    reason: >-
+      apollo510b's data lands with
+    issue: "#64"
+  - consumer: neuralspotx
+    target: apollo5b_evb
+    field: target
+    reason: >-
+      apollo5b is dropped (owner decision on
+    issue: "#64"
+  - consumer: neuralspotx
+    target: apollo510dL_evb
+    field: target
+    reason: >-
+      apollo510L and apollo330P's data lands with
+    issue: "#65"
+  - consumer: neuralspotx
+    target: apollo330mP_evb
+    field: target
+    reason: >-
+      apollo510L and apollo330P's data lands with
+    issue: "#65"
+  - consumer: neuralspotx
+    target: apollo4p_evb
+    field: target
+    reason: >-
+      apollo4p and apollo4l's data lands with
+    issue: "#66"
+  - consumer: neuralspotx
+    target: apollo4l_evb
+    field: target
+    reason: >-
+      apollo4p and apollo4l's data lands with
+    issue: "#66"
+  - consumer: neuralspotx
+    target: apollo4p_evb_disp_shield_rev2
+    field: target
+    reason: >-
+      apollo4p and apollo4l's data lands with
+    issue: "#66"
+  - consumer: neuralspotx
+    target: apollo4l_blue_evb
+    field: target
+    reason: >-
+      The Apollo4 Blue boards' data lands with
+    issue: "#91"
+  - consumer: neuralspotx
+    target: apollo4p_blue_kbr_evb
+    field: target
+    reason: >-
+      The Apollo4 Blue boards' data lands with
+    issue: "#91"
+  - consumer: neuralspotx
+    target: apollo4p_blue_kxr_evb
+    field: target
+    reason: >-
+      The Apollo4 Blue boards' data lands with
+    issue: "#91"
+  - consumer: neuralspotx
+    target: apollo3_evb
+    field: target
+    reason: >-
+      apollo3 and apollo3p's data lands with
+    issue: "#67"
+  - consumer: neuralspotx
+    target: apollo3_evb_cygnus
+    field: target
+    reason: >-
+      apollo3 and apollo3p's data lands with
+    issue: "#67"
+  - consumer: neuralspotx
+    target: apollo3p_evb
+    field: target
+    reason: >-
+      apollo3 and apollo3p's data lands with
+    issue: "#67"
+  - consumer: neuralspotx
+    target: apollo3p_evb_cygnus
+    field: target
+    reason: >-
+      apollo3 and apollo3p's data lands with
+    issue: "#67"
+  - consumer: neuralspotx
+    target: atomiq110_fpga_turbo
+    field: target
+    reason: >-
+      atomiq110's data lands with
+    issue: "#68"
+  - consumer: neuralspotx
+    target: apollo2_evb
+    field: target
+    reason: >-
+      The catalog leaves apollo2 out, decided 2026-10-19 on
+    issue: "#79"

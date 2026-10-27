@@ -1,7 +1,7 @@
 # 0003. Record provenance per fact with a closed status vocabulary
 
 Date: 2026-10-05
-Status: Accepted
+Status: Accepted; amended 2026-10-27 (#18)
 
 ## Context
 
@@ -43,7 +43,7 @@ inventory table.
 | Status | Meaning | Example |
 |---|---|---|
 | `datasheet` | Stated in a vendor document of record: an Ambiq datasheet, addendum, EVB quick-start guide or specification, or an Arm technical reference manual. | Apollo510 NVM-SBL at 0x00400000-0x0040FFFF: `doc:DS-A510@1.1.0:p35` (research/datasheets.md section 2) |
-| `sdk` | Read from software that builds firmware for the part, at a pinned revision: nsx-ambiq-sdk, AmbiqSuite, Zephyr and its hal_ambiq module, neuralspotx. Consumer tool data (heliaAOT `targets.json`, the profiler registry) is not an `sdk` source; a value copied from it is `unverified` until traced. | Apollo510 trace clock 96 MHz: `repo:AmbiqAI/nsx-ambiq-sdk@v5.2.24:cmake/socs/facts/apollo510.cmake#NSX_SEGGER_CPUFREQ` (line 57) |
+| `sdk` | Read from software that builds firmware for the part, at a pinned revision: nsx-ambiq-sdk, AmbiqSuite, Zephyr and its hal_ambiq module. Consumer tool data (heliaAOT `targets.json`, the profiler registry, neuralspotx) is not an `sdk` source; a value copied from it is `unverified` until traced. neuralspotx became a consumer on 2026-10-27 (#18): a record may still cite it at `neuralspotx-v0.9.0` or earlier, which predates its use of the catalog, but never at a later revision. | Apollo510 trace clock 96 MHz: `repo:AmbiqAI/nsx-ambiq-sdk@v5.2.24:cmake/socs/facts/apollo510.cmake#NSX_SEGGER_CPUFREQ` (line 57) |
 | `measured` | Observed on hardware or a model by a named method on a named target. | apollo510_evb PSRAM capacity 64 MB, confirmed by an XIP address-aliasing test on 2026-07-05: `meas:apollo510_evb/xip-alias/2026-07-05` and `repo:AmbiqAI/nsx-ambiq-sdk@v5.2.24:modules/nsx-psram/CMakeLists.txt:106-110` (added by AmbiqAI/nsx-ambiq-sdk#38) |
 | `fitted` | A parameter chosen so that a model reproduces measurements; it stands in for a quantity, it does not state it. | atomiq110 SSRAM read latency 120 ns, fitted to FPGA PMU captures and RTL runs (`atomiq110.yaml:32,38-46` at `5991d9f1`). The example illustrates the status; the record itself migrates as `unverified` (section 5). |
 | `derived` | Computed from other sourced values; `source` names every input. | Apollo510 NVM0-APPL size 0x1F0000, computed from 0x00410000-0x005FFFFF: `doc:DS-A510@1.1.0:p35`, with the arithmetic in `notes` |

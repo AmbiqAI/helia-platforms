@@ -172,7 +172,7 @@ Definitions, queries and an example are in [0002-multicore.md](0002-multicore.md
 | `operating_points: [OperatingPoint]` | structural | System points: name, one point per clock domain, system HAL mode where the HAL has one; `target.cpu_mhz()` and `target.npu_mhz()` read the core-0 and npu-0 domains. heliaAOT `speeds` and the profiler `ClockDomain` are views. |
 | `default_operating_point` | SDK fact, optional | Set where the SDK names a default; otherwise absent and the choice is tool policy. |
 | `boot_configs: {name: BootConfig}`, `default_boot` | structural or SDK fact | The boot layouts the SDKs support, and the default. See Boot configurations. |
-| `sdk: SdkFacts` | SDK fact | `c_define`, `cmsis_header`, default trace clock, HAL enums the SDK exposes per SoC, `build` (abi, float ABI, toolchains). |
+| `sdk: SdkFacts` | SDK fact | `c_define`, `cmsis_header`, default trace clock, HAL enums the SDK exposes per SoC, `build` (abi, float ABI). Supported toolchains are neuralspotx policy, not a catalog fact (#18). |
 | `derives_from: Soc \| None` | structural | See [Inheritance and derivation](#inheritance-and-derivation). |
 | `default_board: Board \| None` | convenience | Used only by an explicit `resolve_board(soc_id)`. Never used by `resolve()`. |
 | `release_status` | governance | public or embargoed. Every entity carries one; see Release status. |
@@ -713,8 +713,9 @@ below is the resolved object returned by `resolve()`.
 
 neuralspotx's role and its own questions are recorded in
 [research/queries-neuralspotx-zephyr.md](../research/queries-neuralspotx-zephyr.md);
-the package mirrors the facts it holds: `target.soc`,
-`soc.sdk.build.toolchains`, `soc.sdk.build.abi` and the exact-case ids.
+neuralspotx is a consumer (#18): it reads `target.soc`,
+`soc.sdk.build.abi` and the exact-case ids from the catalog, and keeps its
+own supported-toolchain list.
 Zephyr enters through
 heliaAOT's zephyr module type: the Zephyr board id equals the neuralspotx
 board id. Zephyr link windows and section names come from the optional
@@ -820,7 +821,7 @@ one of them.
 @dataclass(frozen=True) class ClockDomain: id, points: tuple[DomainPoint, ...]   # DomainPoint: name, mhz, hal_mode, provenance
 @dataclass(frozen=True) class OperatingPoint: name, domains: Mapping[str, str], hal_mode, provenance   # domain id -> point name
 @dataclass(frozen=True) class SdkFacts:   c_define, cmsis_header, trace_clock_mhz, hal_enums: Mapping[str, str], build: BuildFacts
-@dataclass(frozen=True) class BuildFacts: abi, float_abi, toolchains
+@dataclass(frozen=True) class BuildFacts: abi, float_abi
 @dataclass(frozen=True) class Soc:        id, series, aliases, cores, npus, accelerators, memories, access, default_access: DefaultAccess | None, peripherals, memory_controllers, clock_domains, operating_points, default_operating_point: str | None, boot_configs, default_boot, sdk, derives_from, default_board: str | None, revision, release_status, extensions, provenance
 @dataclass(frozen=True) class Implementation: id, soc, kind, model: str | None, subset: Subset, memories: tuple | None, access: tuple | None, clock_domains: tuple | None, operating_points: tuple | None, boot_configs: Mapping | None, default_boot: str | None, provisioning: str | None, jlink_device, trace_clock_mhz, interfaces, population, aliases, release_status, extensions, provenance   # None: inherit the Soc's (after clock caps); memories and access: kind fvp only (ADR 0007)
 @dataclass(frozen=True) class Subset:     memories_removed, memories_resized, memories_rebased, peripherals_removed, cores_removed, npus_removed, accelerators_removed, clock_domains_removed, boot_configs_removed, operating_points_removed, access_removed, max_cpu_mhz, max_npu_mhz, max_domain_mhz

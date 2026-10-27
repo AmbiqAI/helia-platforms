@@ -27,6 +27,7 @@ from snapshot_extractor import (
     kconfig,
     linker,
     references,
+    sdk,
     snapshot,
 )
 from snapshot_extractor.git import Checkout, resolve
@@ -614,15 +615,32 @@ def test_committed_snapshot_is_normalised(file: str) -> None:
         assert re.fullmatch(r"[0-9a-f]{40}", source["commit"])
 
 
-def test_sdk_snapshot_covers_every_pinned_soc_family() -> None:
-    sdk = json.loads((SNAPSHOTS / "nsx-ambiq-sdk.json").read_text())
-    nsx = json.loads((SNAPSHOTS / "neuralspotx.json").read_text())
-    families = nsx["soc_families"]["values"]
-    assert set(sdk["socs"]) == set(families)
-    for soc, block in sdk["socs"].items():
-        assert block["revision"] == families[soc]
-    revisions = {source["revision"] for source in sdk["metadata"]["sources"]}
-    assert revisions == set(families.values())
+def test_sdk_snapshot_covers_every_soc_the_extractor_knows() -> None:
+    """The SDK pins are helia-platforms' own, not neuralspotx's lock (#18)."""
+    document = json.loads((SNAPSHOTS / "nsx-ambiq-sdk.json").read_text())
+    assert set(document["socs"]) == set(sdk.HEADERS)
+    revisions = {source["revision"] for source in document["metadata"]["sources"]}
+    assert {block["revision"] for block in document["socs"].values()} == revisions
+
+
+def test_an_empty_snapshot_directory_extracts_neuralspotx_at_its_frozen_pin(tmp_path, monkeypatch):
+    seen = {}
+
+    def extract_all(sources, nsx_revision, sdk_pins, zephyr_revision):
+        seen.update(nsx=nsx_revision, sdk=set(sdk_pins.values()), zephyr=zephyr_revision)
+        raise ExtractError("stop")
+
+    monkeypatch.setattr(cli, "extract_all", extract_all)
+    args = ["--snapshots", str(tmp_path), "--cache", str(tmp_path / "cache"), "extract"]
+    assert cli.main([*args, "--sdk", "v9", "--zephyr", "a" * 40]) == 2
+    assert seen == {"nsx": "neuralspotx-v0.9.0", "sdk": {"v9"}, "zephyr": "a" * 40}
+
+
+def test_sdk_pins_come_from_the_sdk_snapshot_unless_a_refresh_names_a_tag() -> None:
+    committed = {"socs": {"apollo510": {"revision": "v1"}, "apollo3": {"revision": "v2"}}}
+    assert cli._sdk_pins(committed, None) == {"apollo510": "v1", "apollo3": "v2"}
+    assert cli._sdk_pins(committed, "v3") == dict.fromkeys(sorted(sdk.HEADERS), "v3")
+    assert cli._sdk_pins(None, None) == {}
 
 
 def test_exceptions_name_snapshot_values() -> None:

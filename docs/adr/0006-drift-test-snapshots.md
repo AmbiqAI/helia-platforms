@@ -1,7 +1,37 @@
 # 0006. Check the catalogue against committed source snapshots
 
 Date: 2026-10-05
-Status: Accepted
+Status: Accepted; amended 2026-10-27 (#18)
+
+## Amendment, 2026-10-27: neuralspotx is a consumer (#18)
+
+neuralspotx consumes this catalog, so it is no longer a source. Comparing the
+catalog with a neuralspotx revision generated from it would compare the
+catalog with itself. From this amendment:
+
+- `check-sources` compares nothing from `snapshots/neuralspotx.json`. Its
+  board rows below (the board's Soc, `toolchains`, the `debug.cmake`
+  overrides, the board's default scripts) are removed. The trace clock and
+  flash load address it checked against the SDK facts are compared once
+  per Soc instead: `flash_load_address()` of the Soc target against
+  `NSX_SEGGER_PF_ADDR`.
+- The neuralspotx snapshot stays at `neuralspotx-v0.9.0`, the last revision
+  before neuralspotx consumed the catalog, and is never refreshed. The
+  extractor still regenerates it there, so step 1 checks it. The parity
+  test under #13 reads `tests/parity/neuralspotx/boards.json`: each board's
+  effective facts (its `debug.cmake` value, else its Soc's SDK fact, and its
+  `cpu` block), frozen while both snapshots pinned `v5.2.26`, so an SDK
+  refresh does not move neuralspotx's side.
+- The SDK tag per Soc is the `revision` the committed SDK snapshot records,
+  not neuralspotx's `soc_families`. A refresh passes `--sdk <tag>`, which
+  applies to every Soc in the extractor's SoC-to-header map; the weekly
+  step 2 extracts the newest `v*` tag.
+- `SdkFacts.build.toolchains` is no longer compared or recorded: which
+  toolchains a build supports is neuralspotx's policy. The field stays in the
+  format, deprecated, until no open branch sets it, so every merge base still
+  loads for the fact-change check.
+- A citation of neuralspotx at a pinned pre-adoption revision stays valid
+  evidence (ADR 0003).
 
 ## Context
 
@@ -198,8 +228,8 @@ unless the exceptions list names it.
 
 | Source | Keyed by | Extracted |
 |---|---|---|
-| `nsx-ambiq-sdk` | SoC family in neuralspotx's `soc_families`, at the tag the family pins | every `set()` of `cmake/socs/facts/<soc>.cmake`; the default script per toolchain from `cmake/socs/<soc>.cmake`; every gcc `MEMORY` region and armclang execution region of every script in `modules/nsx-core/src/<soc>/`, with `EMPTY` regions recorded as the range they occupy (`base - length` to `base` for a negative length) and `empty: true`; every integer define of `modules/nsx-ambiqsuite/sdk/mcu/<dir>/regs/am_reg_base_addresses.h` outside `#if 0`, and the flash and SRAM size defines of `hal/am_hal_flash.h` on Apollo3 parts; the processor-configuration defines of `modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/<header>.h`, `__FPU_DP` among them |
-| neuralspotx | board; `soc_families` | `board.soc`, `toolchains` and `cpu` from `src/neuralspotx/boards/<board>/board.yaml`; every `set()` of its `debug.cmake`; the default script per toolchain from its `memory.cmake`, the selection a neuralspotx board build uses; the SDK revision per SoC family from `src/neuralspotx/data/registry.lock.yaml`, which selects the tags above |
+| `nsx-ambiq-sdk` | SoC family, at the tag the committed snapshot records (amended: no longer neuralspotx's `soc_families`) | every `set()` of `cmake/socs/facts/<soc>.cmake`; the default script per toolchain from `cmake/socs/<soc>.cmake`; every gcc `MEMORY` region and armclang execution region of every script in `modules/nsx-core/src/<soc>/`, with `EMPTY` regions recorded as the range they occupy (`base - length` to `base` for a negative length) and `empty: true`; every integer define of `modules/nsx-ambiqsuite/sdk/mcu/<dir>/regs/am_reg_base_addresses.h` outside `#if 0`, and the flash and SRAM size defines of `hal/am_hal_flash.h` on Apollo3 parts; the processor-configuration defines of `modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/<header>.h`, `__FPU_DP` among them |
+| neuralspotx (frozen at `neuralspotx-v0.9.0`; parity data only, see the amendment) | board; `soc_families` | `board.soc`, `toolchains` and `cpu` from `src/neuralspotx/boards/<board>/board.yaml`; every `set()` of its `debug.cmake`; the default script per toolchain from its `memory.cmake`, the selection a neuralspotx board build uses; the SDK revision per SoC family from `src/neuralspotx/data/registry.lock.yaml`, which selects the tags above |
 | Zephyr with hal_ambiq | board in `boards/ambiq/` (six at `8f62a4ab`) | each memory node's label and `reg` base and size; the `zephyr,flash`, `zephyr,sram`, `zephyr,itcm` and `zephyr,dtcm` chosen nodes; the `FLASH_LOAD_OFFSET` default of the SoC's `Kconfig.defconfig` files for a build without MCUboot |
 
 The SoC-to-header map (`<dir>`, `<header>`) is hand-written in the
@@ -233,13 +263,10 @@ and dataset rows.
 | `Soc.npus` not empty | `npu` in `NSX_SOC_CAPABILITIES` | equal |
 | `SdkFacts.c_define` | `NSX_SOC_COMPILE_DEFINITIONS` | member |
 | `SdkFacts.build.abi`, `float_abi` | `NSX_ABI_FLAGS`, `NSX_FLOAT_ABI` | equal |
-| `SdkFacts.build.toolchains` | `toolchains` of each neuralspotx board of the SoC | equal for every board |
-| the Soc a board resolves to | `board.soc` | equal |
-| `SdkFacts.trace_clock_mhz`; a board's or implementation's `trace_clock_mhz` | `NSX_SEGGER_CPUFREQ` of the facts file; of the board's `debug.cmake` where it sets one | equal after the snapshot's value, a string in Hz, is converted to MHz (`"48000000"` is 48) |
-| `flash_load_address()` per neuralspotx board, under its provisioning | `NSX_SEGGER_PF_ADDR` | equal |
+| `SdkFacts.trace_clock_mhz` | `NSX_SEGGER_CPUFREQ` of the facts file | equal after the snapshot's value, a string in Hz, is converted to MHz (`"48000000"` is 48) |
+| `flash_load_address()` of the Soc target, under its `default_boot` | `NSX_SEGGER_PF_ADDR` | equal |
 | `MemoryRegion.base`, `size` | register defines, through a per-SoC map of region to define expression | equal where a define exists |
 | every extracted linker and devicetree region | the catalogue's physical regions | lies inside one contiguous, gap-free run of them |
-| a neuralspotx board's default scripts | the SDK's default scripts for its SoC | equal |
 | an `sdk` record that cites a snapshotted repository (nsx-ambiq-sdk, neuralspotx, zephyr, hal_ambiq) | the snapshots | cites a `revision` the snapshots hold: a tag by name, a commit as the exact full SHA; a reference matches a snapshot's `revision` field only |
 | a `#<symbol>` reference in such a record | the source at that revision | names a single definition (checked by the extract jobs, which hold the source trees) |
 | the link-environment dataset | the snapshots | regenerates byte for byte (section 4) |
@@ -272,9 +299,9 @@ Recorded but deliberately not compared:
 
 ### 4. Refresh, and the link-environment dataset
 
-A refresh is a PR made by running the extractor with new pins: a neuralspotx
-tag and a Zephyr `main` commit by full SHA, from which the SDK tags and the
-hal_ambiq commit follow. The pins are the `revision` fields of the
+A refresh is a PR made by running the extractor with new pins: an
+nsx-ambiq-sdk tag (`--sdk`) and a Zephyr `main` commit by full SHA, from
+which the hal_ambiq commit follows (amended; neuralspotx is not refreshed). The pins are the `revision` fields of the
 committed snapshots; there is no separate pin file. The first snapshots pin
 `neuralspotx-v0.8.1` and the Zephyr `main` head current when the extractor
 is implemented (`8f62a4ab` today). The PR carries the regenerated

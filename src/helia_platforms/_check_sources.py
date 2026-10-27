@@ -134,7 +134,6 @@ class _Comparison:
     def __init__(self, catalog: Catalog, snapshots: Mapping[str, Any]) -> None:
         self.catalog = catalog
         self.sdk = snapshots[SDK]["socs"]
-        self.nsx = snapshots[NSX]["boards"]
         self.zephyr = snapshots[ZEPHYR]["boards"]
         self.revisions: dict[str, set[str]] = {}
         for snapshot in snapshots.values():
@@ -149,8 +148,6 @@ class _Comparison:
                 yield Finding(SDK, ("socs", name), MISSING, f"no soc {name!r}")
             else:
                 yield from self.sdk_soc(name, block, soc)
-        for name, block in self.nsx.items():
-            yield from self.nsx_board(name, block)
         for name, block in self.zephyr.items():
             yield from self.zephyr_board(name, block)
         yield from self.revisions_cited()
@@ -195,19 +192,13 @@ class _Comparison:
                 "c_define",
                 f"{sdk.c_define!r} is not among the compile definitions",
             )
-        boards = [
-            b
-            for b in self.nsx.values()
-            if b["board"]["values"]["soc"].casefold() == name.casefold()
-        ]
-        for board in boards:
-            theirs = sorted(board["board"]["values"]["toolchains"])
+        if (address := _one(facts, "NSX_SEGGER_PF_ADDR")) is not None:
+            try:
+                ours: int | str = self.catalog.resolve(soc.id).flash_load_address()
+            except PlatformError as exc:
+                ours = str(exc)
             yield from _equal(
-                NSX,
-                ("boards", _board_key(self.nsx, board), "board", "values", "toolchains"),
-                "toolchains",
-                sorted(build.toolchains),
-                theirs,
+                SDK, (*at, "NSX_SEGGER_PF_ADDR"), "flash load address", ours, int(address, 16)
             )
         yield from self.registers(name, block, soc)
         yield from self.containment(
@@ -248,60 +239,6 @@ class _Comparison:
                     "region containment",
                     f"{span} lies in no gap-free run of {soc.id}'s regions",
                 )
-
-    # -- neuralspotx ---------------------------------------------------------------------
-
-    def nsx_board(self, name: str, block: Mapping[str, Any]) -> Iterator[Finding]:
-        target = self._board(name)
-        if target is None:
-            yield Finding(NSX, ("boards", name), MISSING, f"no board {name!r}")
-            return
-        values = block["board"]["values"]
-        at = ("boards", name)
-        yield from _equal(
-            NSX,
-            (*at, "board", "values", "soc"),
-            "board soc",
-            target.soc.id.casefold(),
-            values["soc"].casefold(),
-        )
-        soc_name = self._sdk_name(values["soc"])
-        if soc_name is None:
-            return
-        debug = block.get("debug", {}).get("values", {})
-        snapshot, path, facts = self._supplier(at, debug, soc_name, "NSX_SEGGER_CPUFREQ")
-        yield from _equal(snapshot, path, "trace clock", target.trace_clock_mhz, _mhz(facts))
-        snapshot, path, facts = self._supplier(at, debug, soc_name, "NSX_SEGGER_PF_ADDR")
-        if (address := _one(facts, "NSX_SEGGER_PF_ADDR")) is not None:
-            try:
-                ours: int | str = target.flash_load_address()
-            except PlatformError as exc:
-                ours = str(exc)
-            yield from _equal(snapshot, path, "flash load address", ours, int(address, 16))
-        if "linker" not in block:
-            return  # no memory.cmake, so the board names no default scripts
-        board_defaults = block["linker"]["defaults"]
-        sdk_defaults = {
-            toolchain: f"{group['path']}/{group['default']}"
-            for toolchain, group in self.sdk[soc_name]["linker"].items()
-            if "default" in group
-        }
-        for toolchain in sorted(board_defaults.keys() | sdk_defaults.keys()):
-            yield from _equal(
-                NSX,
-                (*at, "linker", "defaults", toolchain),
-                "default scripts",
-                sdk_defaults.get(toolchain),
-                board_defaults.get(toolchain),
-            )
-
-    def _supplier(
-        self, at: tuple[str, ...], debug: Mapping[str, Any], soc: str, key: str
-    ) -> tuple[str, tuple[str, ...], Mapping[str, Any]]:
-        """Where a board's ``key`` comes from: its ``debug.cmake``, else its Soc's SDK facts."""
-        if key in debug:
-            return NSX, (*at, "debug", "values", key), debug
-        return SDK, ("socs", soc, "facts", "values", key), self.sdk[soc]["facts"]["values"]
 
     def _sdk_name(self, soc: str) -> str | None:
         return next((k for k in self.sdk if k.casefold() == soc.casefold()), None)
@@ -448,10 +385,6 @@ def _runs(soc: model.Soc) -> list[tuple[int, int]]:
         else:
             runs.append([lo, hi])
     return [(lo, hi) for lo, hi in runs]
-
-
-def _board_key(boards: Mapping[str, Any], block: Mapping[str, Any]) -> str:
-    return next(k for k, b in boards.items() if b is block)
 
 
 def _snapshot_of(repository: str) -> str:
