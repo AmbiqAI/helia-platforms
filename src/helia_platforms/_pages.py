@@ -183,7 +183,11 @@ def _soc(soc_id: str, soc: Mapping[str, Any], member: Mapping[str, Any]) -> str:
         i for i, e in member.get("implementations", {}).items() if e["soc"] == soc_id
     ]
     parts = [p for p, e in member.get("parts", {}).items() if e["soc"] == soc_id]
-    boards = [b for b, e in member.get("boards", {}).items() if e["part"] in parts]
+    boards = [
+        b
+        for b, e in member.get("boards", {}).items()
+        if e.get("part") in parts or e.get("implementation") in implementations
+    ]
     lines += [
         f"- Implementations: {_list(implementations)}",
         f"- Parts: {_list(parts)}",
@@ -215,6 +219,14 @@ def _list(items: Iterable[str]) -> str:
 # ---- board pages --------------------------------------------------------------------
 
 
+def _carried(board: Mapping[str, Any], soc_id: str) -> str:
+    """The line naming what a board carries: its Part, or an FPGA's Implementation (#104)."""
+    kind, entry_id = (
+        ("Part", board["part"]) if "part" in board else ("Implementation", board["implementation"])
+    )
+    return f"- {kind}: `{entry_id}`, of Soc [{soc_id}](../socs/{soc_id}.md)"
+
+
 def _board(
     board_id: str, board: Mapping[str, Any], member: Mapping[str, Any], target: Target
 ) -> str:
@@ -223,7 +235,7 @@ def _board(
     lines += [f"# {board_id}", ""]
     lines += [
         f"- Category: {board['category']}",
-        f"- Part: `{board['part']}`, of Soc [{soc_id}](../socs/{soc_id}.md)",
+        _carried(board, soc_id),
         f"- Revision: {board.get('revision', 'not stated')}",
         f"- Provisioning: {board.get('provisioning', 'not stated')}",
         "",
@@ -294,6 +306,7 @@ def _index(member: Mapping[str, Any]) -> str:
     lines = _front("Ambiq Socs and boards", "Every public Soc and board in helia-platforms.")
     lines += ["# Ambiq Socs and boards", ""]
     parts = member.get("parts", {})
+    impls = member.get("implementations", {})
     series: dict[str, list[str]] = {}
     for soc_id, soc in member.get("socs", {}).items():
         series.setdefault(soc["series"], []).append(soc_id)
@@ -301,7 +314,10 @@ def _index(member: Mapping[str, Any]) -> str:
         lines += [f"## {name}", ""]
         for soc_id in sorted(soc_ids):
             boards = sorted(
-                b for b, e in member.get("boards", {}).items() if parts[e["part"]]["soc"] == soc_id
+                b
+                for b, e in member.get("boards", {}).items()
+                if (parts[e["part"]] if "part" in e else impls[e["implementation"]])["soc"]
+                == soc_id
             )
             links = ", ".join(f"[{b}](boards/{b}.md)" for b in boards) or "no boards"
             lines.append(f"- [{soc_id}](socs/{soc_id}.md): {links}")

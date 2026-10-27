@@ -59,6 +59,19 @@ def test_list_prints_every_kind_with_its_source(overlay, tmp_path):
     assert "board_a                    evaluation board, part PART-A" in result.output
 
 
+def test_list_names_an_fpga_boards_implementation(overlay):
+    document = copy.deepcopy(BASE_DOCUMENT)
+    document["implementations"] = {"soc_a_fpga": {"soc": "soc_a", "kind": "fpga"}}
+    document["boards"]["fpga_a"] = {"category": "fpga", "implementation": "soc_a_fpga"}
+    path = str(overlay(document))
+    result = run("list", "boards", "--overlay", path)
+    assert result.exit_code == 0, result.output
+    assert "fpga_a                     fpga board, implementation soc_a_fpga" in result.output
+    show = run("show", "fpga_a", "--overlay", path)
+    assert show.exit_code == 0, show.output
+    assert "implementation soc_a_fpga" in " ".join(rows(show.output, "board")[0].split())
+
+
 def test_list_one_kind(overlay):
     result = run("list", "boards", "--overlay", str(overlay()))
     assert result.exit_code == 0

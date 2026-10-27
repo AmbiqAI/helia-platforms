@@ -103,6 +103,7 @@ class NpuInstance:
     axi_width_bits: int | None = None
     base_address: int | None = None
     irq: int | None = None
+    sram_port_hash: int | None = None
 
 
 @_frozen
@@ -124,6 +125,7 @@ class MemoryCharacterization:
     read_latency_ns: float | None = None
     write_latency_ns: float | None = None
     max_outstanding: int | None = None
+    max_outstanding_writes: int | None = None
     burst_bytes: int | None = None
     ports: int | None = None
     axi_clock_hz: int | None = None
@@ -362,8 +364,9 @@ class Part(_Carrier):
 @_frozen
 class Board(_Carrier):
     id: str
-    category: Literal["engineering", "evaluation", "custom"]
-    part: str
+    category: Literal["engineering", "evaluation", "custom", "fpga"]
+    part: str | None = None
+    implementation: str | None = None
     revision: str | None = None
     interfaces: Mapping[str, MemoryInterface] = field(default_factory=_empty)
     population: Mapping[str, str] = field(default_factory=_empty)

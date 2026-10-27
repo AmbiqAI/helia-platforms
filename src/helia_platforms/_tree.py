@@ -238,6 +238,13 @@ def _apply_deltas(
                 moved[("memories", name, field_name)] = (key, name)
     _drop_dangling_access(values, deltas, written)
     _drop_removed_controllers(values, deltas, written)
+    # Removing the default point clears the default, as a clock cap does (RFC 0002).
+    removed = deltas.get("operating_points_removed", [])
+    if (
+        values.get("default_operating_point") in removed
+        and "default_operating_point" not in written
+    ):
+        del values["default_operating_point"]
     return problems
 
 

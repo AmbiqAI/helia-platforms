@@ -1084,7 +1084,8 @@
                   "enum": [
                     "engineering",
                     "evaluation",
-                    "custom"
+                    "custom",
+                    "fpga"
                   ]
                 },
                 {
@@ -1094,7 +1095,8 @@
                       "enum": [
                         "engineering",
                         "evaluation",
-                        "custom"
+                        "custom",
+                        "fpga"
                       ]
                     },
                     "provenance": {
@@ -1110,6 +1112,31 @@
               ]
             },
             "part": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "implementation": {
               "anyOf": [
                 {
                   "type": "string",
@@ -1289,8 +1316,7 @@
           },
           "else": {
             "required": [
-              "category",
-              "part"
+              "category"
             ]
           }
         },
@@ -2625,6 +2651,31 @@
                 }
               ]
             },
+            "max_outstanding_writes": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
             "burst_bytes": {
               "anyOf": [
                 {
@@ -3712,6 +3763,31 @@
               ]
             },
             "irq": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "sram_port_hash": {
               "anyOf": [
                 {
                   "type": "integer",

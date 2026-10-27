@@ -57,6 +57,18 @@ def test_a_board_with_no_boot_configuration_says_so(document):
     assert "Flash load address (core 0): no boot configuration is selected." in board
 
 
+def test_an_fpga_board_page_names_its_implementation(document):
+    document["implementations"] = {"soc_a_fpga": {"soc": "soc_a", "kind": "fpga"}}
+    document["boards"]["fpga_a"] = {"category": "fpga", "implementation": "soc_a_fpga"}
+    pages = _pages.render(overlay(public(document)))
+    assert (
+        "- Implementation: `soc_a_fpga`, of Soc [soc_a](../socs/soc_a.md)"
+        in (pages["boards/fpga_a.md"])
+    )
+    assert "[fpga_a](../boards/fpga_a.md)" in pages["socs/soc_a.md"]
+    assert "[fpga_a](boards/fpga_a.md)" in pages["index.md"]
+
+
 def test_a_target_that_is_not_public_stops_the_pages(document):
     catalog = overlay(document)  # every entry defaults to embargoed
     with pytest.raises(PlatformError, match="pages show public targets only"):

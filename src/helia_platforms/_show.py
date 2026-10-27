@@ -277,7 +277,10 @@ def render_list(catalog: Catalog, kinds: Iterable[str] = KINDS) -> str:
                 "socs": lambda e: f"series {e.series}",
                 "implementations": lambda e: f"{e.kind} of {e.soc}",
                 "parts": lambda e: f"part of {e.soc}",
-                "boards": lambda e: f"{e.category} board, part {e.part}",
+                "boards": lambda e: (
+                    f"{e.category} board, "
+                    + (f"part {e.part}" if e.part else f"implementation {e.implementation}")
+                ),
             }[kind](entry)
             aliases = f", aliases {', '.join(entry.aliases)}" if entry.aliases else ""
             label = catalog.sources.get((kind, entry_id), "?")
@@ -337,7 +340,7 @@ def _identity(target: Target, at: _Entries, sources: bool) -> list[_Row]:
         names = ["soc", "implementation", "silicon_revision", "package", "radio"]
         rows.append(_row("part", at.at("parts", part.id, part), part, names, lead=part.id))
     if board is not None:
-        names = ["part", "category", "revision"]
+        names = ["part", "implementation", "category", "revision"]
         rows.append(_row("board", at.at("boards", board.id, board), board, names, lead=board.id))
     for addon in target.addons:
         names = ["fits_boards", "occupies", "revision"]

@@ -113,11 +113,8 @@ class Catalog:
         return tuple(p for p in self._tables.get("parts", {}).values() if soc in (None, p.soc))
 
     def boards(self, soc: str | None = None) -> tuple[model.Board, ...]:
-        parts = self._tables.get("parts", {})
         return tuple(
-            b
-            for b in self._tables.get("boards", {}).values()
-            if soc is None or (b.part in parts and parts[b.part].soc == soc)
+            b for b in self._tables.get("boards", {}).values() if soc in (None, _board_soc(self, b))
         )
 
     def cores(self) -> tuple[model.Core, ...]:
@@ -763,6 +760,9 @@ class _Loader:
             impl = catalog._tables.get("implementations", {}).get(part.implementation)
             if impl is None or impl.soc != part.soc:
                 self.fail(origin, where, f"no implementation {part.implementation!r} of {soc.id}")
+            elif impl.kind != "silicon":
+                message = f"implementation {impl.id!r} is kind {impl.kind}; a Part is silicon"
+                self.fail(origin, where, message)
             else:
                 try:
                     soc = catalog._realized(impl.id)  # slots name what the Implementation keeps
@@ -783,24 +783,38 @@ class _Loader:
 
     def check_board(self, catalog: Catalog, board: model.Board, origin: str) -> None:
         where = f"boards.{board.id}"
-        part = catalog._tables.get("parts", {}).get(board.part)
-        if part is None:
-            self.fail(origin, where, f"no part {board.part!r}")
+        impls = catalog._tables.get("implementations", {})
+        if (board.part is None) == (board.implementation is None):
+            self.fail(origin, where, "names neither or both of part and implementation")
             return
+        if board.implementation is not None:
+            impl = impls.get(board.implementation)
+            if impl is None:
+                self.fail(origin, where, f"no implementation {board.implementation!r}")
+                return
+            if impl.kind != "fpga" or board.category != "fpga":
+                message = "only a board of category fpga names an implementation, of kind fpga"
+                self.fail(origin, where, message)
+                return
+            impl_id, soc_id = impl.id, impl.soc
+        else:
+            part = catalog._tables.get("parts", {}).get(board.part)
+            if part is None:
+                self.fail(origin, where, f"no part {board.part!r}")
+                return
+            if board.category == "fpga":
+                self.fail(origin, where, "a board of category fpga names an implementation")
+            impl_id, soc_id = part.implementation, part.soc
         self.check_population(catalog, board.interfaces, board.population, where, origin)
-        if part.soc not in catalog._tables.get("socs", {}):
-            return  # reported against the part
+        if soc_id not in catalog._tables.get("socs", {}):
+            return  # reported against the part or the implementation
         try:
-            soc = (
-                catalog._realized(part.implementation)
-                if part.implementation
-                else catalog._tables["socs"][part.soc]
-            )
+            soc = catalog._realized(impl_id) if impl_id else catalog._tables["socs"][soc_id]
         except (KeyError, MergeError):
             return  # reported against the part or the implementation
         if board.provisioning is not None and board.provisioning not in soc.boot_configs:
             self.fail(origin, where, f"provisioning {board.provisioning!r} is not a boot config")
-        impl = catalog._tables.get("implementations", {}).get(part.implementation)
+        impl = impls.get(impl_id) if impl_id else None
         removed = impl.subset.peripherals_removed if impl is not None else ()
         self.check_interfaces(catalog, soc, board, where, origin, removed=removed)
 
@@ -1002,6 +1016,16 @@ def _access_problems(soc: model.Soc) -> list[str]:
     return problems
 
 
+def _board_soc(catalog: Catalog, board: model.Board) -> str | None:
+    """The Soc a board carries, through its Part or its Implementation; None if unknown."""
+    if board.part is not None:
+        table, entry_id = "parts", board.part
+    else:
+        table, entry_id = "implementations", board.implementation
+    entry = catalog._tables.get(table, {}).get(entry_id)
+    return entry.soc if entry is not None else None
+
+
 def _relation_problems(soc: model.Soc, catalog: Catalog) -> list[str]:
     problems: list[str] = []
     if soc.derives_from is not None and soc.derives_from not in catalog._tables.get("socs", {}):
@@ -1009,11 +1033,11 @@ def _relation_problems(soc: model.Soc, catalog: Catalog) -> list[str]:
     boards = catalog._tables.get("boards", {})
     if soc.default_board is not None:
         board = boards.get(soc.default_board)
-        part = catalog._tables.get("parts", {}).get(board.part) if board else None
+        carried = _board_soc(catalog, board) if board else None
         if board is None:
             problems.append(f"default_board: no board {soc.default_board!r}")
-        elif part is not None and part.soc != soc.id:
-            message = f"default_board: board {board.id!r} carries Soc {part.soc!r}, not {soc.id!r}"
+        elif carried is not None and carried != soc.id:
+            message = f"default_board: board {board.id!r} carries Soc {carried!r}, not {soc.id!r}"
             problems.append(message)
     return problems
 

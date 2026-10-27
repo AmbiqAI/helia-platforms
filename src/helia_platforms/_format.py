@@ -113,6 +113,7 @@ class MemoryCharacterization(_Facts, total=False):
     read_latency_ns: Annotated[float | int, Minimum(0)]
     write_latency_ns: Annotated[float | int, Minimum(0)]
     max_outstanding: Count
+    max_outstanding_writes: Count
     burst_bytes: Count
     ports: Count
     axi_clock_hz: Count
@@ -197,6 +198,7 @@ class NpuInstance(_Facts):
     axi_width_bits: NotRequired[Count]
     base_address: NotRequired[Address]
     irq: NotRequired[Count]
+    sram_port_hash: NotRequired[Count]
 
 
 class AcceleratorInstance(_Facts):
@@ -377,8 +379,10 @@ class Part(_Entity):
 
 
 class Board(_Entity):
-    category: Required[Literal["engineering", "evaluation", "custom"]]
-    part: Required[Id]
+    category: Required[Literal["engineering", "evaluation", "custom", "fpga"]]
+    # Exactly one: a silicon board names its Part, an FPGA carrier its fpga Implementation (#104).
+    part: NotRequired[Id]
+    implementation: NotRequired[Id]
     revision: NotRequired[str]
     interfaces: NotRequired[dict[Name, MemoryInterface]]
     population: NotRequired[dict[Name, Id]]

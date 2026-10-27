@@ -118,9 +118,17 @@ def _target(
     kind = _KIND_OF[table]
     entry = catalog._entry(table, entry_id)
     board = entry if kind == "board" else None
-    part = catalog._entry("parts", board.part) if board else entry if kind == "part" else None
+    part = catalog._entry("parts", board.part) if board and board.part else None
+    part = entry if kind == "part" else part
+    # A board names a Part or, for an FPGA carrier, the Implementation itself (#104).
     impl_id = (
-        entry_id if kind == "implementation" else part.implementation if part is not None else None
+        entry_id
+        if kind == "implementation"
+        else part.implementation
+        if part is not None
+        else board.implementation
+        if board is not None
+        else None
     )
     implementation = catalog._entry("implementations", impl_id) if impl_id else None
     soc_id = implementation.soc if implementation else part.soc if part else entry_id
