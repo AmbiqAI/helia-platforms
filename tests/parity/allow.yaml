@@ -124,16 +124,20 @@ allowed:
     issue: "#64"
   - consumer: neuralspotx
     target: apollo510dL_evb
-    field: target
+    field: jlink_device
     reason: >-
-      apollo510L and apollo330P's data lands with
-    issue: "#65"
+      neuralspotx uses the SDK's AP510DLA-CBR (facts/apollo510L.cmake:50), which
+      is not in SEGGER's stock database and failed on the bench; the catalog records no
+      J-Link device until an official name exists (#130).
+    issue: "#130"
   - consumer: neuralspotx
     target: apollo330mP_evb
-    field: target
+    field: jlink_device
     reason: >-
-      apollo510L and apollo330P's data lands with
-    issue: "#65"
+      neuralspotx's debug.cmake sets Apollo330P_510L, a custom device that only an
+      Ambiq device file defines; the catalog records no J-Link device until an official
+      name exists (#130).
+    issue: "#130"
   - consumer: neuralspotx
     target: apollo4p_evb
     field: target
