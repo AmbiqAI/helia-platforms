@@ -96,9 +96,11 @@ allowed:
   # neuralspotx boards the catalog does not resolve yet; each data PR removes its own.
   - consumer: neuralspotx
     target: apollo510b_evb
-    field: target
+    field: jlink_device
     reason: >-
-      apollo510b's data lands with
+      neuralspotx sets no board override, so it uses the SDK's Soc-level AP510NFA-CBR
+      (facts/apollo510b.cmake:52); the catalog records the board's part, AP510BFA-CBR,
+      which SEGGER lists (#64).
     issue: "#64"
   - consumer: neuralspotx
     target: apollo5b_evb
