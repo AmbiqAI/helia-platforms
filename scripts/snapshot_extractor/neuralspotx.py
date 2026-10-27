@@ -10,6 +10,8 @@ from snapshot_extractor import ExtractError, cmake, reading
 from snapshot_extractor.git import Checkout
 
 REPOSITORY = "AmbiqAI/neuralspotx"
+#: The last revision before neuralspotx consumed the catalog; never refreshed (#18).
+FROZEN = "neuralspotx-v0.9.0"
 _BOARDS = "src/neuralspotx/boards"
 LOCK = "src/neuralspotx/data/registry.lock.yaml"
 PATHS = (

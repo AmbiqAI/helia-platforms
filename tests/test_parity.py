@@ -2,17 +2,20 @@
 
 import dataclasses
 import json
+import sys
 from pathlib import Path
 from typing import cast
 
 import pytest
 import yaml
 
-from helia_platforms import PlatformError, Target, UnknownPlatform
+from helia_platforms import PlatformError, Target, UnknownPlatform, model
 from helia_platforms.catalog import builtin
 
 PARITY = Path(__file__).resolve().parent / "parity"
 SNAPSHOTS = Path(__file__).resolve().parents[1] / "snapshots"
+#: neuralspotx-v0.9.0's effective board facts, frozen while both snapshots pinned v5.2.26 (#18).
+NSX_FIXTURE = PARITY / "neuralspotx" / "boards.json"
 ALLOW = yaml.safe_load((PARITY / "allow.yaml").read_text())
 #: The heliaAOT capabilities a target's derived capabilities map onto; MCU is its policy tag.
 _AOT_CAPABILITIES = {"dsp": "DSP", "mve": "MVE", "fp16": "FP16", "npu": "NPU"}
@@ -63,8 +66,12 @@ def neuralspotx(target: Target) -> dict:
         load: int | str = target.flash_load_address()
     except PlatformError as exc:
         load = str(exc)
+    build = (target.soc.sdk.build if target.soc.sdk else None) or model.BuildFacts()
     return {
         "soc": target.soc.id.casefold(),
+        "cpu.core": target.core.id,
+        "cpu.abi": build.abi,
+        "cpu.float_abi": build.float_abi,
         "jlink_device": target.jlink_device,
         "trace_clock_mhz": target.trace_clock_mhz,
         "flash_load_address": load,
@@ -78,12 +85,16 @@ def neuralspotx_record(block: dict, sdk: dict) -> dict:
     debug = block.get("debug", {}).get("values", {})
 
     def value(key: str) -> str | None:
-        found = debug.get(key) or facts.get(key)
+        found = debug[key] if key in debug else facts.get(key)  # an empty set() still overrides
         return found[0] if found else None
 
     hz, address = value("NSX_SEGGER_CPUFREQ"), value("NSX_SEGGER_PF_ADDR")
+    cpu = block["board"]["values"]["cpu"]
     return {
         "soc": soc.casefold(),
+        "cpu.core": cpu["core"],
+        "cpu.abi": cpu["abi"],
+        "cpu.float_abi": cpu["float_abi"],
         "jlink_device": value("NSX_SEGGER_DEVICE"),
         "trace_clock_mhz": None if hz is None else int(hz) / 1e6,
         "flash_load_address": None if address is None else int(address, 16),
@@ -96,9 +107,14 @@ def _records(consumer: str) -> list[tuple[str, dict]]:
         targets = json.loads((PARITY / "helia-aot" / "targets.json").read_text())["targets"]
         return [(t["name"], helia_aot_record(t)) for t in targets]
     assert consumer == "neuralspotx"
+    return list(json.loads(NSX_FIXTURE.read_text()).items())
+
+
+def neuralspotx_from_snapshots() -> dict[str, dict]:
+    """Each neuralspotx board's effective facts, from its snapshot and the SDK snapshot."""
     boards = json.loads((SNAPSHOTS / "neuralspotx.json").read_text())["boards"]
     sdk = json.loads((SNAPSHOTS / "nsx-ambiq-sdk.json").read_text())["socs"]
-    return [(name, neuralspotx_record(block, sdk)) for name, block in boards.items()]
+    return {name: neuralspotx_record(block, sdk) for name, block in sorted(boards.items())}
 
 
 _PROJECTIONS = {"helia-aot": helia_aot, "neuralspotx": neuralspotx}
@@ -149,8 +165,45 @@ def test_every_allow_list_entry_has_a_reason_and_an_issue():
 
 _EXPECTED_KEYS = {
     "helia-aot": {"cpu", "speeds_mhz", "memories.SRAM", "memories.MRAM"},
-    "neuralspotx": {"soc", "jlink_device", "trace_clock_mhz", "flash_load_address"},
+    "neuralspotx": {
+        "soc",
+        "cpu.core",
+        "cpu.abi",
+        "cpu.float_abi",
+        "jlink_device",
+        "trace_clock_mhz",
+        "flash_load_address",
+    },
 }
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [("cpu.core", "cortex-m4"), ("cpu.abi", "thumbv7em"), ("cpu.float_abi", "soft")],
+)
+def test_neuralspotx_parity_compares_the_cpu_block(tmp_path, monkeypatch, field, value):
+    boards = json.loads(NSX_FIXTURE.read_text())
+    boards["apollo510_evb"][field] = value
+    fixture = tmp_path / "boards.json"
+    fixture.write_text(json.dumps(boards))
+    monkeypatch.setattr(sys.modules[__name__], "NSX_FIXTURE", fixture)
+    assert ("apollo510_evb", field) in differences("neuralspotx")
+
+
+def test_an_empty_debug_setting_overrides_the_sdk_fact():
+    sdk = json.loads((SNAPSHOTS / "nsx-ambiq-sdk.json").read_text())["socs"]
+    block = json.loads((SNAPSHOTS / "neuralspotx.json").read_text())["boards"]["apollo510_evb"]
+    block["debug"]["values"]["NSX_SEGGER_DEVICE"] = []
+    assert neuralspotx_record(block, sdk)["jlink_device"] is None
+
+
+def test_the_neuralspotx_fixture_matches_its_snapshots_while_the_pins_agree():
+    """The fixture freezes neuralspotx's view; an SDK refresh must not move it (#18)."""
+    nsx = json.loads((SNAPSHOTS / "neuralspotx.json").read_text())["soc_families"]["values"]
+    sdk = json.loads((SNAPSHOTS / "nsx-ambiq-sdk.json").read_text())["socs"]
+    if any(sdk[soc]["revision"] != tag for soc, tag in nsx.items() if soc in sdk):
+        pytest.skip("the SDK snapshot has moved past neuralspotx's pins; the fixture stays")
+    assert json.loads(NSX_FIXTURE.read_text()) == neuralspotx_from_snapshots()
 
 
 @pytest.mark.parametrize("consumer", sorted(ALLOW["consumers"]))

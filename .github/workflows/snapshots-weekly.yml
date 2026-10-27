@@ -67,9 +67,14 @@ jobs:
           status=0
           sdk="$(git ls-remote --tags --refs --sort=-v:refname \
             https://github.com/AmbiqAI/nsx-ambiq-sdk 'v*' | head -n 1 | sed 's|.*refs/tags/||')"
-          uv run --no-sync python scripts/extract_snapshots.py extract --at revision \
-            --sdk "$sdk" --zephyr main --output "$RUNNER_TEMP/main" \
-            > "$RUNNER_TEMP/step2.txt" 2>&1 || status=$?
+          if [ -z "$sdk" ]; then
+            echo "error: no nsx-ambiq-sdk v* tag found" > "$RUNNER_TEMP/step2.txt"
+            status=1
+          else
+            uv run --no-sync python scripts/extract_snapshots.py extract --at revision \
+              --sdk "$sdk" --zephyr main --output "$RUNNER_TEMP/main" \
+              > "$RUNNER_TEMP/step2.txt" 2>&1 || status=$?
+          fi
           cat "$RUNNER_TEMP/step2.txt"
           # Commits move every week; only value changes and failures are reported.
           grep -v ' metadata > ' "$RUNNER_TEMP/step2.txt" | grep -E '^(  [-+~] |error: )' \

@@ -17,8 +17,11 @@ catalog with itself. From this amendment:
   `NSX_SEGGER_PF_ADDR`.
 - The neuralspotx snapshot stays at `neuralspotx-v0.9.0`, the last revision
   before neuralspotx consumed the catalog, and is never refreshed. The
-  extractor still regenerates it there, so step 1 checks it. It is the
-  consumer data of a parity test under #13 (`tests/test_parity.py`).
+  extractor still regenerates it there, so step 1 checks it. The parity
+  test under #13 reads `tests/parity/neuralspotx/boards.json`: each board's
+  effective facts (its `debug.cmake` value, else its Soc's SDK fact, and its
+  `cpu` block), frozen while both snapshots pinned `v5.2.26`, so an SDK
+  refresh does not move neuralspotx's side.
 - The SDK tag per Soc is the `revision` the committed SDK snapshot records,
   not neuralspotx's `soc_families`. A refresh passes `--sdk <tag>`, which
   applies to every Soc in the extractor's SoC-to-header map; the weekly

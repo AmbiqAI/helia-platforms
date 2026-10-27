@@ -121,10 +121,10 @@ def _sdk_pins(committed: dict[str, Any] | None, sdk_revision: str | None) -> dic
 
 def _extract(args: argparse.Namespace) -> int:
     committed = _load(args.snapshots)
-    nsx_revision = _pin(committed["neuralspotx"], neuralspotx.REPOSITORY)
+    nsx_revision = _pin(committed["neuralspotx"], neuralspotx.REPOSITORY) or neuralspotx.FROZEN
     sdk_pins = _sdk_pins(committed["nsx-ambiq-sdk"], args.sdk)
     zephyr_revision = args.zephyr or _pin(committed["zephyr"], zephyr.REPOSITORY)
-    if nsx_revision is None or not sdk_pins or zephyr_revision is None:
+    if not sdk_pins or zephyr_revision is None:
         print("no committed snapshots: pass --sdk and --zephyr", file=sys.stderr)
         return 2
     sources = _Sources(args.cache, _recorded(committed), args.at)

@@ -6,12 +6,12 @@ consumers:
     repository: AmbiqAI/helia-aot
     commit: d31bf2226e58e4120eaf8e6da289b5ee91e2e06b
     path: docs/src/data/generated/targets.json
-  # Not a verbatim file: the snapshot extracted at the last revision before neuralspotx
-  # consumed the catalog, frozen there (#18; ADR 0006).
+  # Not a verbatim file: each board's effective facts at the last revision before
+  # neuralspotx consumed the catalog, frozen from the snapshots (#18; ADR 0006).
   neuralspotx:
     repository: AmbiqAI/neuralspotx
     commit: ffb7339b14b00134b4ed2834a1640d61042c0962
-    path: snapshots/neuralspotx.json
+    path: tests/parity/neuralspotx/boards.json
 allowed:
   - consumer: helia-aot
     target: apollo510_evb

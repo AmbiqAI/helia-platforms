@@ -119,7 +119,8 @@ Zephyr with hal_ambiq ([ADR 0006](docs/adr/0006-drift-test-snapshots.md)). They
 are generated, never edited by hand. The pins are the SDK tag of each Soc and
 the Zephyr revision the committed files record; the hal_ambiq commit follows
 from Zephyr. neuralspotx is a consumer, so its snapshot stays at
-`neuralspotx-v0.9.0` as parity data and is never refreshed (#18). The extractor fetches only those commits from GitHub, into
+`neuralspotx-v0.9.0` and is never refreshed; the neuralspotx parity test reads
+`tests/parity/neuralspotx/boards.json`, frozen from it (#18). The extractor fetches only those commits from GitHub, into
 `~/.cache/helia-platforms/upstream` unless `--cache` names another directory.
 
 ```sh

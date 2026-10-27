@@ -623,6 +623,19 @@ def test_sdk_snapshot_covers_every_soc_the_extractor_knows() -> None:
     assert {block["revision"] for block in document["socs"].values()} == revisions
 
 
+def test_an_empty_snapshot_directory_extracts_neuralspotx_at_its_frozen_pin(tmp_path, monkeypatch):
+    seen = {}
+
+    def extract_all(sources, nsx_revision, sdk_pins, zephyr_revision):
+        seen.update(nsx=nsx_revision, sdk=set(sdk_pins.values()), zephyr=zephyr_revision)
+        raise ExtractError("stop")
+
+    monkeypatch.setattr(cli, "extract_all", extract_all)
+    args = ["--snapshots", str(tmp_path), "--cache", str(tmp_path / "cache"), "extract"]
+    assert cli.main([*args, "--sdk", "v9", "--zephyr", "a" * 40]) == 2
+    assert seen == {"nsx": "neuralspotx-v0.9.0", "sdk": {"v9"}, "zephyr": "a" * 40}
+
+
 def test_sdk_pins_come_from_the_sdk_snapshot_unless_a_refresh_names_a_tag() -> None:
     committed = {"socs": {"apollo510": {"revision": "v1"}, "apollo3": {"revision": "v2"}}}
     assert cli._sdk_pins(committed, None) == {"apollo510": "v1", "apollo3": "v2"}

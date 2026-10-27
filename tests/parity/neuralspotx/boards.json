@@ -1,0 +1,155 @@
+{
+  "apollo2_evb": {
+    "cpu.abi": "thumbv7em-fpv4sp-hard",
+    "cpu.core": "cortex-m4",
+    "cpu.float_abi": "hard",
+    "flash_load_address": 0,
+    "jlink_device": "AMA2B2KK-KBR",
+    "soc": "apollo2",
+    "trace_clock_mhz": 48.0
+  },
+  "apollo330mP_evb": {
+    "cpu.abi": "thumbv8.1m-fpv5-hard",
+    "cpu.core": "cortex-m55",
+    "cpu.float_abi": "hard",
+    "flash_load_address": 4259840,
+    "jlink_device": "Apollo330P_510L",
+    "soc": "apollo330p",
+    "trace_clock_mhz": 48.0
+  },
+  "apollo3_evb": {
+    "cpu.abi": "thumbv7em-fpv4sp-hard",
+    "cpu.core": "cortex-m4",
+    "cpu.float_abi": "hard",
+    "flash_load_address": 49152,
+    "jlink_device": "AMA3B1KK-KBR",
+    "soc": "apollo3",
+    "trace_clock_mhz": 48.0
+  },
+  "apollo3_evb_cygnus": {
+    "cpu.abi": "thumbv7em-fpv4sp-hard",
+    "cpu.core": "cortex-m4",
+    "cpu.float_abi": "hard",
+    "flash_load_address": 49152,
+    "jlink_device": "AMA3B1KK-KBR",
+    "soc": "apollo3",
+    "trace_clock_mhz": 48.0
+  },
+  "apollo3p_evb": {
+    "cpu.abi": "thumbv7em-fpv4sp-hard",
+    "cpu.core": "cortex-m4",
+    "cpu.float_abi": "hard",
+    "flash_load_address": 49152,
+    "jlink_device": "AMA3B2KK-KBR",
+    "soc": "apollo3p",
+    "trace_clock_mhz": 48.0
+  },
+  "apollo3p_evb_cygnus": {
+    "cpu.abi": "thumbv7em-fpv4sp-hard",
+    "cpu.core": "cortex-m4",
+    "cpu.float_abi": "hard",
+    "flash_load_address": 49152,
+    "jlink_device": "AMA3B2KK-KBR",
+    "soc": "apollo3p",
+    "trace_clock_mhz": 48.0
+  },
+  "apollo4l_blue_evb": {
+    "cpu.abi": "thumbv7em-fpv4sp-hard",
+    "cpu.core": "cortex-m4",
+    "cpu.float_abi": "hard",
+    "flash_load_address": 98304,
+    "jlink_device": "AMA4B2KL-KXR",
+    "soc": "apollo4l",
+    "trace_clock_mhz": 96.0
+  },
+  "apollo4l_evb": {
+    "cpu.abi": "thumbv7em-fpv4sp-hard",
+    "cpu.core": "cortex-m4",
+    "cpu.float_abi": "hard",
+    "flash_load_address": 98304,
+    "jlink_device": "AMAP42KL-KBR",
+    "soc": "apollo4l",
+    "trace_clock_mhz": 96.0
+  },
+  "apollo4p_blue_kbr_evb": {
+    "cpu.abi": "thumbv7em-fpv4sp-hard",
+    "cpu.core": "cortex-m4",
+    "cpu.float_abi": "hard",
+    "flash_load_address": 98304,
+    "jlink_device": "AMA4B2KP-KBR",
+    "soc": "apollo4p",
+    "trace_clock_mhz": 96.0
+  },
+  "apollo4p_blue_kxr_evb": {
+    "cpu.abi": "thumbv7em-fpv4sp-hard",
+    "cpu.core": "cortex-m4",
+    "cpu.float_abi": "hard",
+    "flash_load_address": 98304,
+    "jlink_device": "AMA4B2KP-KXR",
+    "soc": "apollo4p",
+    "trace_clock_mhz": 96.0
+  },
+  "apollo4p_evb": {
+    "cpu.abi": "thumbv7em-fpv4sp-hard",
+    "cpu.core": "cortex-m4",
+    "cpu.float_abi": "hard",
+    "flash_load_address": 98304,
+    "jlink_device": "AMAP42KP-KBR",
+    "soc": "apollo4p",
+    "trace_clock_mhz": 96.0
+  },
+  "apollo4p_evb_disp_shield_rev2": {
+    "cpu.abi": "thumbv7em-fpv4sp-hard",
+    "cpu.core": "cortex-m4",
+    "cpu.float_abi": "hard",
+    "flash_load_address": 98304,
+    "jlink_device": "AMAP42KP-KBR",
+    "soc": "apollo4p",
+    "trace_clock_mhz": 96.0
+  },
+  "apollo510_evb": {
+    "cpu.abi": "thumbv8.1m-fpv5-hard",
+    "cpu.core": "cortex-m55",
+    "cpu.float_abi": "hard",
+    "flash_load_address": 4259840,
+    "jlink_device": "AP510NFA-CBR",
+    "soc": "apollo510",
+    "trace_clock_mhz": 96.0
+  },
+  "apollo510b_evb": {
+    "cpu.abi": "thumbv8.1m-fpv5-hard",
+    "cpu.core": "cortex-m55",
+    "cpu.float_abi": "hard",
+    "flash_load_address": 4259840,
+    "jlink_device": "AP510NFA-CBR",
+    "soc": "apollo510b",
+    "trace_clock_mhz": 96.0
+  },
+  "apollo510dL_evb": {
+    "cpu.abi": "thumbv8.1m-fpv5-hard",
+    "cpu.core": "cortex-m55",
+    "cpu.float_abi": "hard",
+    "flash_load_address": 4259840,
+    "jlink_device": "AP510DLA-CBR",
+    "soc": "apollo510l",
+    "trace_clock_mhz": 48.0
+  },
+  "apollo5b_evb": {
+    "cpu.abi": "thumbv8.1m-fpv5-hard",
+    "cpu.core": "cortex-m55",
+    "cpu.float_abi": "hard",
+    "flash_load_address": 4259840,
+    "jlink_device": "AP510NFA-CBR",
+    "soc": "apollo5b",
+    "trace_clock_mhz": 96.0
+  },
+  "atomiq110_fpga_turbo": {
+    "cpu.abi": "thumbv8.1m-fpv5-hard",
+    "cpu.core": "cortex-m55",
+    "cpu.float_abi": "hard",
+    "flash_load_address": 570425344,
+    "jlink_device": "Atomiq110",
+    "soc": "atomiq110",
+    "trace_clock_mhz": 48.0
+  }
+}
