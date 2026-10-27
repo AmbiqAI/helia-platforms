@@ -65,6 +65,13 @@ def test_the_atomiq110_fpga_board_answers_the_consumer_queries(catalog):
     assert target.default_operating_point.name == "lp_ulp"
     assert (target.jlink_device, target.trace_clock_mhz) == (None, 48)
     assert target.board is not None and target.board.provisioning == "nbl"
+    modes = {(d.id, p.name): p.hal_mode for d in target.soc.clock_domains for p in d.points}
+    assert modes == {
+        ("cpu", "lp"): "AM_HAL_PWRCTRL_MCU_MODE_LOW_POWER",
+        ("cpu", "hp"): "AM_HAL_PWRCTRL_MCU_MODE_HIGH_PERFORMANCE",
+        ("npu", "ulp"): "AM_HAL_PWRCTRL_NPU_MODE_ULTRA_LOW_POWER",
+        ("npu", "hp"): "AM_HAL_PWRCTRL_NPU_MODE_HIGH_PERFORMANCE",
+    }
     assert {"iom2", "iom11", "hblram"} & set(target.soc.peripherals) == {"hblram"}
 
 

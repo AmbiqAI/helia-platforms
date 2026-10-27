@@ -473,12 +473,20 @@ implementations:
         notes: >-
           "no HBLRAM" (board.cmake :26) and "HBLRAM / some peripherals present on silicon are
           not available" (README :9-10); the sbl scripts are kept only for future silicon.
-    # Each point overrides the Soc's point of the same name, so the silicon operating points
-    # and the default lp_ulp carry over at the FPGA's clocks.
+    # Each point replaces the Soc's point of the same name whole (ADR 0002 section 2.5), so
+    # it restates hal_mode; the silicon operating points and lp_ulp carry over.
     clock_domains:
       cpu:
         lp:
           mhz: 25
+          hal_mode:
+            value: AM_HAL_PWRCTRL_MCU_MODE_LOW_POWER
+            provenance: &fpga_mcu_mode
+              status: sdk
+              source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/mcu/atomiq110/hal/am_hal_pwrctrl.h:228-230"]
+              verified_on: 2026-10-27
+              verified_by: evanchen11
+              notes: The FPGA HAL keeps the silicon mode enumerators; the image sets the clock.
           provenance:
             status: sdk
             source:
@@ -491,6 +499,9 @@ implementations:
               (ATOMIQ11X_FPGA 25), the silicon LP point's 250 MHz divided by 10.
         hp:
           mhz: 50
+          hal_mode:
+            value: AM_HAL_PWRCTRL_MCU_MODE_HIGH_PERFORMANCE
+            provenance: *fpga_mcu_mode
           provenance:
             status: unverified
             notes: >-
@@ -501,6 +512,14 @@ implementations:
       npu:
         ulp:
           mhz: 10
+          hal_mode:
+            value: AM_HAL_PWRCTRL_NPU_MODE_ULTRA_LOW_POWER
+            provenance: &fpga_npu_mode
+              status: sdk
+              source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/mcu/atomiq110/hal/am_hal_pwrctrl.h:219-220"]
+              verified_on: 2026-10-27
+              verified_by: evanchen11
+              notes: The FPGA HAL keeps the silicon mode enumerators; the image sets the clock.
           provenance: &owner_npu
             status: unverified
             notes: >-
@@ -510,6 +529,9 @@ implementations:
               by the image", so the two may be different images (#19).
         hp:
           mhz: 50
+          hal_mode:
+            value: AM_HAL_PWRCTRL_NPU_MODE_HIGH_PERFORMANCE
+            provenance: *fpga_npu_mode
           provenance: *owner_npu
     trace_clock_mhz:
       value: 48
