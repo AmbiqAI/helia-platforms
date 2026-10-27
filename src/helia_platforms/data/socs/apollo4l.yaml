@@ -303,12 +303,10 @@ parts:
       value: AMAP42KL-KBR
       provenance:
         status: sdk
-        source:
-          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo4l.cmake:49"
-          - "repo:AmbiqAI/neuralspotx@neuralspotx-v0.9.0:src/neuralspotx/boards/apollo4l_evb/debug.cmake:4"
-        verified_on: 2026-10-26
+        source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo4l.cmake:49"]
+        verified_on: 2026-10-27
         verified_by: evanchen11
-        notes: Not checked against SEGGER's device list (#19).
+        notes: SEGGER's Ambiq device list and J-Link V9.60's stock database both name it.
     provenance:
       status: datasheet
       source: ["doc:DS-A4L@0.9.1:p182"]
@@ -335,11 +333,16 @@ parts:
     jlink_device:
       value: AMA4B2KL-KXR
       provenance:
-        status: sdk
-        source: ["repo:AmbiqAI/neuralspotx@neuralspotx-v0.9.0:src/neuralspotx/boards/apollo4l_blue_evb/debug.cmake:4"]
-        verified_on: 2026-10-26
+        status: derived
+        source:
+          - "doc:DS-A4BL@0.9.0:p186"
+          - "url:https://www.segger.com/supported-devices/ambiqmicro/"
+        verified_on: 2026-10-27
         verified_by: evanchen11
-        notes: Not checked against SEGGER's device list (#19).
+        notes: >-
+          The ordering number (p186), which SEGGER's Ambiq device list names as a J-Link
+          device; J-Link V9.60's stock database has it too. The SDK default,
+          NSX_SEGGER_DEVICE "AMAP42KL-KBR" (facts/apollo4l.cmake:49), is the KBR part's.
     provenance:
       status: datasheet
       source: ["doc:DS-A4BL@0.9.0:p186"]
@@ -347,7 +350,8 @@ parts:
       verified_by: evanchen11
       notes: 'Ordering table: "AMA4B2KL-KXR 2 MB 1.375 MB 4.7 x 4.7", 131-pin BGA. DS-A4BL 0.9.0 is preliminary.'
 
-# No quick-start guide covers these boards: their category and part come from neuralspotx.
+# No quick-start guide covers these boards: nsx-ambiq-sdk's board files name each one, and
+# the datasheet's ordering table gives its part.
 boards:
   apollo4l_evb:
     release_status: public
@@ -355,55 +359,61 @@ boards:
       value: evaluation
       provenance:
         status: sdk
-        source: ["repo:AmbiqAI/neuralspotx@neuralspotx-v0.9.0:src/neuralspotx/boards/apollo4l_evb/board.yaml:11"]
-        verified_on: 2026-10-26
+        source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:boards/apollo4l_evb/README.md:3"]
+        verified_on: 2026-10-27
         verified_by: evanchen11
-        notes: '"tier: evb".'
+        notes: '"Board descriptor for the Ambiq Apollo4L EVB".'
     part:
       value: AMAP42KL-KBR
       provenance:
-        status: sdk
+        status: derived
         source:
-          - "repo:AmbiqAI/neuralspotx@neuralspotx-v0.9.0:src/neuralspotx/boards/apollo4l_evb/debug.cmake:4"
-          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo4l.cmake:49"
-        verified_on: 2026-10-26
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:boards/apollo4l_evb/README.md:3"
+          - "doc:DS-A4L@0.9.1:p182"
+        verified_on: 2026-10-27
         verified_by: evanchen11
-        notes: The board's SEGGER device, which is also the Soc-level default.
+        notes: >-
+          An Apollo4L EVB (README :3), and AMAP42KL-KBR is the only part in the Apollo4 Lite
+          ordering table (p182). NSX_SEGGER_DEVICE (facts/apollo4l.cmake:49) agrees.
     provenance:
       status: sdk
-      source: ["repo:AmbiqAI/neuralspotx@neuralspotx-v0.9.0:src/neuralspotx/boards/apollo4l_evb/board.yaml:9-13"]
-      verified_on: 2026-10-26
+      source:
+        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:boards/apollo4l_evb/README.md:3"
+        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:boards/apollo4l_evb/board.cmake:1"
+      verified_on: 2026-10-27
       verified_by: evanchen11
       notes: >-
-        A registered neuralspotx board with soc apollo4l. No revision, provisioning or
-        memory is stated; boot falls back to the Soc's sbl.
+        An nsx-ambiq-sdk board whose board.cmake includes cmake/socs/apollo4l.cmake. No
+        revision, provisioning or memory is stated; boot falls back to the Soc's sbl.
   apollo4l_blue_evb:
     release_status: public
     category:
       value: evaluation
       provenance:
         status: sdk
-        source: ["repo:AmbiqAI/neuralspotx@neuralspotx-v0.9.0:src/neuralspotx/boards/apollo4l_blue_evb/board.yaml:11"]
-        verified_on: 2026-10-26
+        source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:boards/apollo4l_blue_evb/README.md:3"]
+        verified_on: 2026-10-27
         verified_by: evanchen11
-        notes: '"tier: evb".'
+        notes: '"Board descriptor for the Ambiq Apollo4L Blue EVB".'
     part:
       value: AMA4B2KL-KXR
       provenance:
-        status: sdk
+        status: derived
         source:
-          - "repo:AmbiqAI/neuralspotx@neuralspotx-v0.9.0:src/neuralspotx/boards/apollo4l_blue_evb/debug.cmake:4"
-          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo4l.cmake:44-47"
-        verified_on: 2026-10-26
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:boards/apollo4l_blue_evb/README.md:3"
+          - "doc:DS-A4BL@0.9.0:p186"
+        verified_on: 2026-10-27
         verified_by: evanchen11
         notes: >-
-          The board's SEGGER device. The facts file says a board overrides NSX_SEGGER_DEVICE
-          "for its exact silicon package (e.g. a -KXR vs -KBR part)".
+          An Apollo4L Blue EVB (README :3), and AMA4B2KL-KXR is the only part in the Apollo4
+          Blue Lite ordering table (p186).
     provenance:
       status: sdk
-      source: ["repo:AmbiqAI/neuralspotx@neuralspotx-v0.9.0:src/neuralspotx/boards/apollo4l_blue_evb/board.yaml:9-13"]
-      verified_on: 2026-10-26
+      source:
+        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:boards/apollo4l_blue_evb/README.md:3"
+        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:boards/apollo4l_blue_evb/board.cmake:1"
+      verified_on: 2026-10-27
       verified_by: evanchen11
       notes: >-
-        A registered neuralspotx board with soc apollo4l. No revision, provisioning or
-        memory is stated; boot falls back to the Soc's sbl.
+        An nsx-ambiq-sdk board whose board.cmake includes cmake/socs/apollo4l.cmake. No
+        revision, provisioning or memory is stated; boot falls back to the Soc's sbl.

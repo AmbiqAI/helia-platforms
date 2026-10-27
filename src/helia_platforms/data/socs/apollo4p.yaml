@@ -325,14 +325,12 @@ parts:
       value: AMAP42KP-KBR
       provenance:
         status: sdk
-        source:
-          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo4p.cmake:49"
-          - "repo:AmbiqAI/neuralspotx@neuralspotx-v0.9.0:src/neuralspotx/boards/apollo4p_evb/debug.cmake:4"
-        verified_on: 2026-10-26
+        source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo4p.cmake:49"]
+        verified_on: 2026-10-27
         verified_by: evanchen11
         notes: >-
-          Not checked against SEGGER's device list (#19). Zephyr's apollo4p_evb board.cmake
-          passes AMAP42KK-KBR, the Apollo4 (non-Plus) part.
+          SEGGER's Ambiq device list and J-Link V9.60's stock database both name it. Zephyr's
+          apollo4p_evb board.cmake passes AMAP42KK-KBR, the Apollo4 (non-Plus) part.
     provenance:
       status: datasheet
       source: ["doc:DS-A4P@1.6.0:p241"]
@@ -364,8 +362,8 @@ parts:
         verified_on: 2026-10-08
         verified_by: evanchen11
         notes: >-
-          'select "AMA4B2KP-KBR"' in J-Link SWO Viewer. neuralspotx apollo4p_blue_kbr_evb
-          debug.cmake:4 agrees. Not checked against SEGGER's device list (#19).
+          'select "AMA4B2KP-KBR"' in J-Link SWO Viewer. SEGGER's Ambiq device list and
+          J-Link V9.60's stock database both name it.
     provenance: &ds_order_blue
       status: datasheet
       source: ["doc:DS-A4BP@1.8.0:p252"]
@@ -382,12 +380,15 @@ parts:
     jlink_device:
       value: AMA4B2KP-KXR
       provenance:
-        status: sdk
-        source: ["repo:AmbiqAI/neuralspotx@neuralspotx-v0.9.0:src/neuralspotx/boards/apollo4p_blue_kxr_evb/debug.cmake:4"]
-        verified_on: 2026-10-26
+        status: derived
+        source:
+          - "doc:DS-A4BP@1.8.0:p252"
+          - "url:https://www.segger.com/supported-devices/ambiqmicro/"
+        verified_on: 2026-10-27
         verified_by: evanchen11
         notes: >-
-          Not checked against SEGGER's device list (#19). Zephyr's apollo4p_blue_kxr_evb
+          The ordering number (p252), which SEGGER's Ambiq device list names as a J-Link
+          device; J-Link V9.60's stock database has it too. Zephyr's apollo4p_blue_kxr_evb
           board.cmake passes AMAP42KK-KBR.
     provenance: *ds_order_blue
 
@@ -482,34 +483,37 @@ boards:
         verified_on: 2026-10-08
         verified_by: evanchen11
         notes: '"preprogrammed with a Secure Bootloader".'
-  # No quick-start guide covers this board: its category and part come from neuralspotx.
+  # No quick-start guide covers this board: nsx-ambiq-sdk's board files name it, and the
+  # datasheet's ordering table gives its part.
   apollo4p_blue_kxr_evb:
     release_status: public
     category:
       value: evaluation
       provenance:
         status: sdk
-        source: ["repo:AmbiqAI/neuralspotx@neuralspotx-v0.9.0:src/neuralspotx/boards/apollo4p_blue_kxr_evb/board.yaml:11"]
-        verified_on: 2026-10-26
+        source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:boards/apollo4p_blue_kxr_evb/README.md:3"]
+        verified_on: 2026-10-27
         verified_by: evanchen11
-        notes: '"tier: evb".'
+        notes: '"Board descriptor for the Ambiq Apollo4P Blue KXR EVB".'
     part:
       value: AMA4B2KP-KXR
       provenance:
-        status: sdk
+        status: derived
         source:
-          - "repo:AmbiqAI/neuralspotx@neuralspotx-v0.9.0:src/neuralspotx/boards/apollo4p_blue_kxr_evb/debug.cmake:4"
-          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo4p.cmake:44-47"
-        verified_on: 2026-10-26
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:boards/apollo4p_blue_kxr_evb/README.md:3"
+          - "doc:DS-A4BP@1.8.0:p252"
+        verified_on: 2026-10-27
         verified_by: evanchen11
         notes: >-
-          The board's SEGGER device. The facts file says a board overrides NSX_SEGGER_DEVICE
-          "for its exact silicon package (e.g. a -KXR vs -KBR part)".
+          A "Blue KXR" EVB (README :3), and AMA4B2KP-KXR is the only KXR part in the Apollo4
+          Blue Plus ordering table (p252), beside AMA4B2KP-KBR.
     provenance:
       status: sdk
-      source: ["repo:AmbiqAI/neuralspotx@neuralspotx-v0.9.0:src/neuralspotx/boards/apollo4p_blue_kxr_evb/board.yaml:9-13"]
-      verified_on: 2026-10-26
+      source:
+        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:boards/apollo4p_blue_kxr_evb/README.md:3"
+        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:boards/apollo4p_blue_kxr_evb/board.cmake:1"
+      verified_on: 2026-10-27
       verified_by: evanchen11
       notes: >-
-        A registered neuralspotx board with soc apollo4p. No revision, provisioning or memory
-        is stated; boot falls back to the Soc's sbl.
+        An nsx-ambiq-sdk board whose board.cmake includes cmake/socs/apollo4p.cmake. No
+        revision, provisioning or memory is stated; boot falls back to the Soc's sbl.
