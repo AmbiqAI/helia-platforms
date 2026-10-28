@@ -11,3 +11,6 @@ unverified_allowed:
   - fact: "fact:part:AMA3B1KK-KCR-TB:jlink_device"
     reason: "J-Link's device list names it, but no SDK or document of record does"
     issue: "#19"
+  - fact: "fact:part:AMA3B1KK-KQR:jlink_device"
+    reason: "J-Link's device list names it, but no SDK or document of record does"
+    issue: "#19"

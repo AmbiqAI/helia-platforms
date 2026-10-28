@@ -215,6 +215,7 @@ def test_apollo3_parts_carry_their_radio_and_jlink_device(catalog):
     assert catalog.resolve("apollo3_evb").jlink_device == "AMA3B1KK-KBR"
     assert catalog.resolve("apollo3p_evb").jlink_device == "AMA3B2KK-KBR"
     assert catalog.resolve("AMA3B1KK-KCR-B0").jlink_device == "AMA3B1KK-KCR"
+    assert catalog.resolve("AMA3B1KK-KQR").jlink_device == "AMA3B1KK-KQR"
     thin = catalog.resolve("apollo3_blue_thin_evb")
     assert (thin.kind, thin.part.package, thin.jlink_device) == (
         "part",

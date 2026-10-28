@@ -360,8 +360,8 @@ parts:
       provenance: &jlink_kcr
         status: unverified
         notes: >-
-          The device list in J-Link V9.42 and V9.56 (libjlinkarm) has AMA3B1KK-KCR, but no
-          SDK or Zephyr board names a J-Link device for this part.
+          libjlinkarm's device names include AMA3B1KK-KCR in every J-Link version checked,
+          V8.10b to V9.60, but no SDK or Zephyr board names a J-Link device for this part.
     provenance: *ds_order
   # DS-A3 p2 calls the <0.30 mm 66-pin WLCSP the "Apollo3 Blue Thin MCU"; this is the
   # 66-pin WLCSP BLE part on p954, so heliaAOT's thin EVB name resolves here.
@@ -378,6 +378,13 @@ parts:
     soc: apollo3
     package: 64-pin QFN
     radio: ble-5
+    jlink_device:
+      value: AMA3B1KK-KQR
+      provenance:
+        status: unverified
+        notes: >-
+          libjlinkarm's device names include AMA3B1KK-KQR from J-Link V9.42 to V9.60, not in
+          V8.10b, but no SDK or Zephyr board names a J-Link device for this part.
     provenance: *ds_order
   AMAP31KK-KBR:
     release_status: public
