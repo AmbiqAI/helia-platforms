@@ -189,6 +189,15 @@ def test_apollo3_flash_header_sizes_are_compared(snapshots, soc, define):
     assert found.at[1:2] + found.at[-1:] == (soc, define)
 
 
+@pytest.mark.parametrize("define", ["AM_HAL_FLASH_TOTAL_SIZE", "AM_HAL_FLASH_SRAM_SIZE"])
+def test_a_flash_header_define_the_snapshot_lacks_is_reported(snapshots, define):
+    edit(
+        snapshots, _check_sources.SDK, lambda d: d["socs"]["apollo3"]["flash"]["values"].pop(define)
+    )
+    (found,) = [f for f in findings(snapshots) if f.rule == "flash header"]
+    assert (found.at[-1], found.message) == (define, f"the snapshot has no {define}")
+
+
 def test_a_linker_region_outside_every_run_of_regions_is_reported(snapshots):
     def change(data):
         scripts = data["socs"]["apollo510"]["linker"]["gcc"]["scripts"]

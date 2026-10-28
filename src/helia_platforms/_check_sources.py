@@ -26,7 +26,8 @@ SNAPSHOTTED = frozenset(
 #: The SDK's spellings of catalog values (``NSX_SOC_ARCH_CLASS``, ``NSX_SOC_PMU_TIER``).
 _ARCH = {"armv6_m": "armv6-m", "armv7e_m": "armv7e-m", "armv8_1m": "armv8.1-m"}
 _PMU = {"none": "dwt"}
-#: Each region's base and size defines in ``am_reg_base_addresses.h``, per Soc.
+#: Each region's base and size defines in ``am_reg_base_addresses.h``, per Soc; a size of
+#: ``""`` means the header has no size define for that region.
 REGISTERS: dict[str, dict[str, tuple[str, str]]] = {
     "apollo510": {
         "itcm": ("ITCM_BASEADDR", "ITCM_MAX_SIZE"),
@@ -216,12 +217,15 @@ class _Comparison:
         )
 
     def hal_flash(self, name: str, block: Mapping[str, Any], soc: model.Soc) -> Iterator[Finding]:
+        """Each ``HAL_FLASH`` size against its regions; an expected define absent is a finding."""
         defines = block.get("flash", {}).get("values", {})
         sizes = {r.name: r.size for r in soc.memories}
         for define, regions in HAL_FLASH.get(soc.id, {}).items():
-            if define in defines and all(r in sizes for r in regions):
+            at = ("socs", name, "flash", "values", define)
+            if define not in defines:
+                yield Finding(SDK, at, "flash header", f"the snapshot has no {define}")
+            elif all(r in sizes for r in regions):
                 ours = sum(sizes[r] for r in regions)
-                at = ("socs", name, "flash", "values", define)
                 yield from _equal(SDK, at, "flash header", ours, defines[define])
 
     def registers(self, name: str, block: Mapping[str, Any], soc: model.Soc) -> Iterator[Finding]:
