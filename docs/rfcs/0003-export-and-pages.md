@@ -293,13 +293,15 @@ instead of failing.
 
 - One page per Soc, `socs/<id>.md`: series, cores and NPUs, the memory
   map (region, base, size, technology, attachment), clock domains and
-  operating points, boot configurations and reservations, its
+  operating points, boot configurations and reservations, image slots
+  (the Soc's and each Part's), who programs each core, its
   implementations and parts, the boards that carry it, aliases, and the
   provenance status per group.
 - One page per board, `boards/<id>.md`: its part and Soc (linked),
   populated external memory, add-ons that fit and compositions, debug
   facts, the values `resolve()` derives for it (`Target.capabilities`,
-  `usable_nvm()`, `cpu_mhz()` per operating point), and aliases.
+  `usable_nvm()` with the other cores' image slots it leaves out,
+  `cpu_mhz()` per operating point), and aliases.
 - An index page listing both, grouped by series.
 
 Pages therefore show derived values that the JSON does not carry.
