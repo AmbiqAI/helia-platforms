@@ -4769,6 +4769,16 @@
             }
           ]
         },
+        "image_slots": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/ImageSlot"
+          }
+        },
         "sdk": {
           "$ref": "#/$defs/SdkFacts"
         },
@@ -4933,6 +4943,14 @@
           "uniqueItems": true
         },
         "operating_points_removed": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+          },
+          "uniqueItems": true
+        },
+        "image_slots_removed": {
           "type": "array",
           "items": {
             "type": "string",

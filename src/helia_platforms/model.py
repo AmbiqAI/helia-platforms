@@ -261,6 +261,7 @@ class Soc(_Carrier):
     default_operating_point: str | None = None
     boot_configs: Mapping[str, BootConfig] = field(default_factory=_empty)
     default_boot: str | None = None
+    image_slots: Mapping[str, ImageSlot] = field(default_factory=_empty)
     sdk: SdkFacts | None = None
     derives_from: str | None = None
     default_board: str | None = None

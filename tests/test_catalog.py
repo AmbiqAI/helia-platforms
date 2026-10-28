@@ -1104,9 +1104,16 @@ def slot(offset, size, core="radio_m4"):
     return {"core": core, "region": "nvm", "offset": offset, "size": size, "supplier": "vendor"}
 
 
+def add_reaching_radio(document, programmable_by="vendor"):
+    """A radio core with an nvm entry; core 0 then needs its own, which default_access skips."""
+    add_radio(document, programmable_by)
+    for master in ("cm55_0", "radio_m4"):
+        soc(document)["access"].append({"master": master, "target": "nvm", "access": "direct"})
+
+
 @pytest.mark.parametrize(("programmable_by", "ok"), [("either", True), (None, False)])
 def test_an_image_slot_owner_is_a_programmable_core(document, programmable_by, ok):
-    add_radio(document, programmable_by)
+    add_reaching_radio(document, programmable_by)
     document["parts"]["PART-A"]["image_slots"] = {"radio": slot("1M", "64K")}
     if ok:
         load_quietly(document)
@@ -1117,7 +1124,7 @@ def test_an_image_slot_owner_is_a_programmable_core(document, programmable_by, o
 
 
 def test_image_slots_overlap_neither_each_other_nor_boot_reservations(document):
-    add_radio(document, "vendor")
+    add_reaching_radio(document)
     slots = document["parts"]["PART-A"]["image_slots"] = {
         "a": slot(0x100000, 0x10000),
         "b": slot(0x110000, 0x10000),  # touches a
@@ -1128,6 +1135,65 @@ def test_image_slots_overlap_neither_each_other_nor_boot_reservations(document):
     found = problems_of(document)
     assert "parts.PART-A: image_slots.a overlaps image_slots.b in region 'nvm'" in found
     assert "parts.PART-A: image_slots.c overlaps boot_configs.sbl.reserved.sbl" in found
+
+
+def test_an_image_slot_ends_inside_its_region(document):
+    add_reaching_radio(document)
+    document["parts"]["PART-A"]["image_slots"] = {"radio": slot("3M", "1M")}  # ends at 4M
+    load_quietly(document)
+    document["parts"]["PART-A"]["image_slots"]["radio"]["size"] = "2M"
+    assert "parts.PART-A.image_slots.radio: runs past the end of region 'nvm'" in problems_of(
+        document
+    )
+
+
+def test_a_slot_past_the_end_of_mram_is_rejected_before_usable_nvm_goes_negative():
+    """A 4M slot on apollo510L's 2M of MRAM once loaded, and usable_nvm() gave -2162688."""
+    part = {"soc": "apollo510L", "image_slots": {"nvm_m41": slot("1M", "4M")}}
+    part["image_slots"]["nvm_m41"]["region"] = "mram"
+    found = problems_of({"parts": {"MY-PART": part}}, base=builtin(include_plugins=False))
+    assert "parts.MY-PART.image_slots.nvm_m41: runs past the end of region 'mram'" in found
+
+
+def test_an_image_slot_sits_in_memory_its_core_reaches(document):
+    add_radio(document, "vendor")
+    document["parts"]["PART-A"]["image_slots"] = {"radio": slot("3M", "64K")}
+    assert (
+        "parts.PART-A.image_slots.radio: core 'radio_m4' has no direct access to 'nvm'"
+    ) in problems_of(document)
+
+
+def test_an_image_slot_holds_no_other_core_s_application_start(document):
+    add_reaching_radio(document)
+    document["parts"]["PART-A"]["image_slots"] = {"radio": slot("64K", "64K")}
+    assert (
+        "parts.PART-A.image_slots.radio: holds another core's start, "
+        "boot_configs.sbl.app_start.cm55_0"
+    ) in problems_of(document)
+
+
+def test_a_soc_image_slot_is_checked_and_a_part_slot_replaces_it_by_name(document):
+    add_reaching_radio(document)
+    soc(document)["image_slots"] = {"radio": slot("3M", "2M")}
+    assert "socs.soc_a: image_slots.radio: runs past the end of region 'nvm'" in problems_of(
+        document
+    )
+    soc(document)["image_slots"]["radio"]["size"] = "16K"
+    document["parts"]["PART-A"]["image_slots"] = {"radio": slot("2M", "1M")}
+    part = load_quietly(document).resolve("PART-A")
+    assert {n: (s.offset, s.size) for n, s in part.image_slots.items()} == {
+        "radio": (2 * 1024 * 1024, 1024 * 1024)
+    }
+
+
+def test_removing_a_slot_s_core_removes_the_soc_slot(document):
+    add_reaching_radio(document)
+    soc(document)["image_slots"] = {"radio": slot("3M", "16K")}
+    document["implementations"] = {
+        "no_radio": {"soc": "soc_a", "kind": "silicon", "subset": {"cores_removed": ["radio_m4"]}}
+    }
+    target = load_quietly(document).resolve("no_radio")
+    assert dict(target.image_slots) == {}
 
 
 # ---- builtin() and side-loaded catalogs (RFC 0002 private silicon) ---------------

@@ -3,8 +3,8 @@
 # Compositions: legacy board ids and kit part numbers that name a board fitted with add-ons.
 schema_version: 1
 shorthands:
-  AP5: [apollo510]
-  AP510: [apollo510]
+  AP5: [apollo510, apollo510b, apollo510L]
+  AP510: [apollo510, apollo510b, apollo510L]
 compositions:
   apollo4p_evb_disp_shield_rev2: {board: apollo4p_evb, addons: [apollo4p_disp_shield]}
   # The Display Kit's part number: the EVB and the shield (QS-A4PDK p18).

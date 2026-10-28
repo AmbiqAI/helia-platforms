@@ -21,7 +21,7 @@ def overlay(tmp_path: Path):
 
     def write(document=None) -> Path:
         document = document or copy.deepcopy(BASE_DOCUMENT)
-        for core in ("cortex-m55", "cortex-m4"):  # the built-in catalog under the overlay has it
+        for core in ("cortex-m55", "cortex-m4"):  # the built-in catalog under the overlay has them
             del document["cores"][core]
         path = tmp_path / "fixture.yaml"
         path.write_text(yaml.safe_dump(document))
@@ -160,7 +160,14 @@ def test_show_on_the_built_in_data():
     assert "psram0" in result.output and "capacity: measured" in result.output
 
 
-def add_radio(document):
+def test_show_gives_the_vendor_programmed_radio_core_no_usable_nvm():
+    result = run("show", "apollo510dL_evb")
+    assert result.exit_code == 0, result.output
+    assert rows(result.output, "usable") == ["usable mram 1552K (1589248 bytes; core 0, computed)"]
+    assert any(r.startswith("image slot nvm_m41") for r in rows(result.output, "image slot"))
+
+
+def add_radio(document, programmable_by="vendor"):
     document["socs"]["soc_a"]["cores"].append(
         {
             "id": "radio_m4",
@@ -168,7 +175,7 @@ def add_radio(document):
             "core": "cortex-m4",
             "clock_domain": "cpu",
             "options": {"fpu": "fpv4-sp-d16", "mve": "none"},
-            "programmable_by": "vendor",
+            "programmable_by": programmable_by,
         }
     )
 
@@ -253,9 +260,15 @@ def test_show_an_external_region_whose_interface_has_no_base(overlay):
     assert "(8M no base, computed)" in psram
 
 
-def test_show_prints_usable_nvm_for_each_core(overlay):
+@pytest.mark.parametrize(
+    ("programmable_by", "radio_row"),
+    [("either", ["usable nvm 4032K (4128768 bytes; core 1, computed)"]), ("vendor", [])],
+)
+def test_show_prints_usable_nvm_for_each_core_a_customer_programs(
+    overlay, programmable_by, radio_row
+):
     document = copy.deepcopy(BASE_DOCUMENT)
-    add_radio(document)
+    add_radio(document, programmable_by)
     soc = document["socs"]["soc_a"]
     for master in ("cm55_0", "radio_m4"):
         soc["access"].append({"master": master, "target": "nvm", "access": "direct"})
@@ -270,8 +283,9 @@ def test_show_prints_usable_nvm_for_each_core(overlay):
     }
     result = run("show", "board_a", "--overlay", str(overlay(document)))
     assert result.exit_code == 0, result.output
-    # Each core loses the SBL's 64K; core 0 also loses the radio's 1M image slot.
+    # Each core loses the SBL's 64K; core 0 also loses the radio's 1M image slot. A core
+    # only the vendor programs has no usable NVM, so it gets no row.
     assert rows(result.output, "usable") == [
         "usable nvm 3008K (3080192 bytes; core 0, computed)",
-        "usable nvm 4032K (4128768 bytes; core 1, computed)",
+        *radio_row,
     ]

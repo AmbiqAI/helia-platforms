@@ -284,8 +284,10 @@ def test_an_explicit_boot_wins_and_warns_when_it_differs(catalog):
         resolve("board_a", boot="xbl", catalog=catalog)
 
 
-def test_usable_nvm_leaves_out_other_cores_image_slots(document):
-    document["socs"]["soc_a"]["cores"].append(
+def add_vendor_radio(document):
+    """A vendor-programmed radio core; both cores get the nvm entries its slots need."""
+    soc = document["socs"]["soc_a"]
+    soc["cores"].append(
         {
             "id": "radio_m4",
             "role": "radio",
@@ -295,14 +297,35 @@ def test_usable_nvm_leaves_out_other_cores_image_slots(document):
             "programmable_by": "vendor",
         }
     )
-    slot = {
+    for master in ("cm55_0", "radio_m4"):
+        soc["access"].append({"master": master, "target": "nvm", "access": "direct"})
+
+
+def radio_slot(offset, size):
+    return {
         "core": "radio_m4",
         "region": "nvm",
-        "offset": "3M",
-        "size": "432K",
+        "offset": offset,
+        "size": size,
         "supplier": "vendor",
     }
-    document["parts"]["PART-A"]["image_slots"] = {"radio": slot}
+
+
+def test_usable_nvm_leaves_out_other_cores_image_slots(document):
+    add_vendor_radio(document)
+    document["parts"]["PART-A"]["image_slots"] = {"radio": radio_slot("3M", "432K")}
+    target = resolve("board_a", catalog=quiet(document))
+    assert dict(target.usable_nvm()) == {"nvm": 4 * KB * KB - 64 * KB - 432 * KB}
+    assert dict(target.usable_nvm("radio_m4")) == {}  # only the vendor programs it
+
+
+def test_a_soc_image_slot_applies_to_the_bare_soc_unless_the_part_replaces_it(document):
+    add_vendor_radio(document)
+    document["socs"]["soc_a"]["image_slots"] = {"radio": radio_slot("4080K", "16K")}
+    catalog = quiet(document)
+    soc_nvm = dict(resolve("soc_a", catalog=catalog).usable_nvm())
+    assert soc_nvm == {"nvm": 4 * KB * KB - 64 * KB - 16 * KB}
+    document["parts"]["PART-A"]["image_slots"] = {"radio": radio_slot("3M", "432K")}
     target = resolve("board_a", catalog=quiet(document))
     assert dict(target.usable_nvm()) == {"nvm": 4 * KB * KB - 64 * KB - 432 * KB}
 

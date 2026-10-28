@@ -108,7 +108,8 @@ Soc ── cores: [CoreInstance(id, role, core, options: CoreOptions, clock_doma
  │
  ├── Part (silicon: references its Soc, and an Implementation only when a non-default one exists;
  │         ordering number, silicon revision, package, radio, jlink_device,
- │         per-part image slots such as the NVM-M41 radio-core slot)
+ │         per-part image slots such as the NVM-M41 radio-core slot, each replacing the Soc's
+ │         slot of the same name)
  │
  ├── Board (category: engineering | evaluation | custom; revision; carries one Part;
  │          memory interfaces; default population; provisioning (boot config in use);
@@ -292,12 +293,14 @@ Production and engineering silicon is a `Part`. A Part references its
 silicon implementation exists; there are no implicit silicon
 Implementation ids. A Part carries an ordering number (AP510NFA-CBR),
 `silicon_revision`, package, radio option, `jlink_device`, and per-part
-image slots. On the Apollo510 Lite and Apollo330 Plus parts the top of NVM
-(NVM-M41, Cortex-M4 radio firmware), 16, 288 or 432 KB depending on the
-variant (DS-A510LS p33, DS-A330PS p33, as recorded in
+image slots. A Soc may carry image slots too; they apply to the bare Soc
+and to every Part, and a Part's slot of the same name replaces one. On the
+Apollo510 Lite and Apollo330 Plus parts the top of NVM (NVM-M41,
+Cortex-M4 firmware), 16, 288 or 432 KB depending on the variant
+(DS-A510LS p33, DS-A330PS p33, as recorded in
 [research/datasheets.md](../research/datasheets.md)), is the radio core's
-image slot, vendor-supplied by default, so it lives on the Part, not the
-Soc.
+image slot, vendor-supplied by default. The Soc carries the 16 KB slot of
+the plain parts, and each radio part replaces it with its larger one.
 
 ### Boot configurations
 
@@ -833,7 +836,7 @@ one of them.
 @dataclass(frozen=True) class OperatingPoint: name, domains: Mapping[str, str], hal_mode, provenance   # domain id -> point name
 @dataclass(frozen=True) class SdkFacts:   c_define, cmsis_header, trace_clock_mhz, hal_enums: Mapping[str, str], build: BuildFacts
 @dataclass(frozen=True) class BuildFacts: abi, float_abi
-@dataclass(frozen=True) class Soc:        id, series, aliases, cores, npus, accelerators, memories, access, default_access: DefaultAccess | None, peripherals, memory_controllers, clock_domains, operating_points, default_operating_point: str | None, boot_configs, default_boot, sdk, derives_from, default_board: str | None, revision, release_status, extensions, provenance
+@dataclass(frozen=True) class Soc:        id, series, aliases, cores, npus, accelerators, memories, access, default_access: DefaultAccess | None, peripherals, memory_controllers, clock_domains, operating_points, default_operating_point: str | None, boot_configs, default_boot, image_slots, sdk, derives_from, default_board: str | None, revision, release_status, extensions, provenance
 @dataclass(frozen=True) class Implementation: id, soc, kind, model: str | None, subset: Subset, memories: tuple | None, access: tuple | None, clock_domains: tuple | None, operating_points: tuple | None, boot_configs: Mapping | None, default_boot: str | None, provisioning: str | None, jlink_device, trace_clock_mhz, interfaces, population, aliases, release_status, extensions, provenance   # None: inherit the Soc's (after clock caps); memories and access: kind fvp only (ADR 0007)
 @dataclass(frozen=True) class Subset:     memories_removed, memories_resized, memories_rebased, peripherals_removed, memory_controllers_removed, cores_removed, npus_removed, accelerators_removed, clock_domains_removed, boot_configs_removed, operating_points_removed, access_removed, max_cpu_mhz, max_npu_mhz, max_domain_mhz
 @dataclass(frozen=True) class BootConfig: name, reserved: tuple[Reservation, ...], app_start: Mapping[str, AppStart], requires, provenance   # AppStart: region, offset; reserved in written key order
@@ -887,7 +890,8 @@ class Target:
     boot: BootConfig | None                                   # explicit boot=, else board, else implementation provisioning, else default
     def boot_configs(self) -> tuple[BootConfig, ...]
     def flash_load_address(self, core: int | str = 0) -> int   # from boot; raises if there is none
-    def usable_nvm(self, core: int | str = 0) -> Mapping[str, int]   # after reservations and other cores' slots
+    image_slots: Mapping[str, ImageSlot]                      # the Soc's, each replaced by the part's slot of that name
+    def usable_nvm(self, core: int | str = 0) -> Mapping[str, int]   # after reservations and other cores' slots; empty for a core only the vendor programs
     # external memory
     def external_memories(self) -> tuple[MemoryRegion, ...]   # population plus add-ons, at aperture bases
     # link environments (optional)
@@ -945,8 +949,10 @@ and is an error when an Implementation removed that controller (by
 `default_access` expansion that would grant core 0 a region another core
 has an entry for is excluded, per the multicore document;
 `app_start` keys name programmable cores; every `ImageSlot` owner is a
-programmable core; slots overlap neither each other nor boot
-reservations. `helia_platforms.export` writes the JSON catalog,
+programmable core with a `direct` entry for the slot's region; a slot ends
+inside its region and overlaps no other slot, no boot reservation and no
+other core's `app_start`; removing a core or region removes the inherited
+slots it owns or holds. `helia_platforms.export` writes the JSON catalog,
 filtered and scrubbed by effective release status, and the JSON Schemas
 ([RFC 0003](0003-export-and-pages.md)). The Markdown pages and the release
 assets are built only from `builtin(include_plugins=False)`.

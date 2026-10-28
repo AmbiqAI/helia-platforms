@@ -21,6 +21,21 @@ allowed:
       bytes to the physical 524288 (0002-migration.md, heliaAOT budgets).
     issue: "#28"
   - consumer: helia-aot
+    target: apollo510b_evb
+    field: memories.DTCM
+    reason: >-
+      RAM budgets are physical sizes: DTCM goes from the nsx gcc sbl script's 507904
+      bytes to the physical 524288 (0002-migration.md, heliaAOT budgets).
+    issue: "#28"
+  - consumer: neuralspotx
+    target: apollo510b_evb
+    field: jlink_device
+    reason: >-
+      neuralspotx sets no board override, so it uses the SDK's Soc-level AP510NFA-CBR
+      (facts/apollo510b.cmake:52). The catalog records the part, AP510BFA-CBR, which
+      J-Link V9.60's stock device list has; #130 tracks the official device names.
+    issue: "#130"
+  - consumer: helia-aot
     target: apollo4p_evb
     field: memories.SRAM
     reason: >-
@@ -126,17 +141,37 @@ allowed:
       The trace clock is the 48 MHz TPIU clock am_hal_tpiu_enable selects (HFRC48), not
       NSX_SEGGER_CPUFREQ's 96 MHz J-Link setting (decided on #66).
     issue: "#19"
-  # Targets the catalog does not resolve yet; each data PR removes its own.
   - consumer: helia-aot
     target: apollo330mp_evb
-    field: target
-    reason: Not in the built-in data yet.
+    field: memories.DTCM
+    reason: >-
+      RAM budgets are physical sizes: DTCM goes from the nsx gcc sbl script's 245760
+      bytes to the physical 262144 (0002-migration.md, heliaAOT budgets).
+    issue: "#28"
+  - consumer: helia-aot
+    target: apollo330mp_evb
+    field: memories.MRAM
+    reason: >-
+      usable_nvm() leaves out the 432K NVM-M41 radio slot. The nsx window, 2031616 bytes
+      from 0x00410000 to the end of MRAM, already starts above the 64K SBL reservation and
+      runs into NVM-M41: 2031616 - 442368 = 1589248.
     issue: "#65"
   - consumer: helia-aot
     target: apollo510l_evb
-    field: target
-    reason: Not in the built-in data yet.
+    field: memories.DTCM
+    reason: >-
+      RAM budgets are physical sizes: DTCM goes from the nsx gcc sbl script's 245760
+      bytes to the physical 262144 (0002-migration.md, heliaAOT budgets).
+    issue: "#28"
+  - consumer: helia-aot
+    target: apollo510l_evb
+    field: memories.MRAM
+    reason: >-
+      usable_nvm() leaves out the 432K NVM-M41 radio slot. The nsx window, 2031616 bytes
+      from 0x00410000 to the end of MRAM, already starts above the 64K SBL reservation and
+      runs into NVM-M41: 2031616 - 442368 = 1589248.
     issue: "#65"
+  # Targets the catalog does not resolve yet; each data PR removes its own.
   - consumer: helia-aot
     target: apollo3_blue_evb
     field: target
@@ -163,40 +198,27 @@ allowed:
     reason: Not in the built-in data yet.
     issue: "#67"
   - consumer: helia-aot
-    target: apollo510b_evb
-    field: target
-    reason: Not in the built-in data yet.
-    issue: "#64"
-  - consumer: helia-aot
     target: atomiq110
     field: target
     reason: Not in the built-in data yet.
     issue: "#68"
   # neuralspotx boards the catalog does not resolve yet; each data PR removes its own.
   - consumer: neuralspotx
-    target: apollo510b_evb
-    field: target
-    reason: >-
-      apollo510b's data lands with
-    issue: "#64"
-  - consumer: neuralspotx
-    target: apollo5b_evb
-    field: target
-    reason: >-
-      apollo5b is dropped (owner decision on
-    issue: "#64"
-  - consumer: neuralspotx
     target: apollo510dL_evb
-    field: target
+    field: jlink_device
     reason: >-
-      apollo510L and apollo330P's data lands with
-    issue: "#65"
+      neuralspotx uses the SDK's AP510DLA-CBR (facts/apollo510L.cmake:50), which
+      is not in SEGGER's stock database and failed on the bench; the catalog records no
+      J-Link device until an official name exists (#130).
+    issue: "#130"
   - consumer: neuralspotx
     target: apollo330mP_evb
-    field: target
+    field: jlink_device
     reason: >-
-      apollo510L and apollo330P's data lands with
-    issue: "#65"
+      neuralspotx's debug.cmake sets Apollo330P_510L, a custom device that only an
+      Ambiq device file defines; the catalog records no J-Link device until an official
+      name exists (#130).
+    issue: "#130"
   - consumer: neuralspotx
     target: apollo3_evb
     field: target
@@ -232,4 +254,11 @@ allowed:
     field: target
     reason: >-
       The catalog leaves apollo2 out, decided 2026-10-19 on
+    issue: "#79"
+  - consumer: neuralspotx
+    target: apollo5b_evb
+    field: target
+    reason: >-
+      The catalog leaves apollo5b out, decided 2026-10-07 on #64: no datasheet, guide or
+      ordering number exists. #79 records the decision.
     issue: "#79"
