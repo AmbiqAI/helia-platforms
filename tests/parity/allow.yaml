@@ -209,6 +209,23 @@ allowed:
       The Apollo4 Blue boards' data lands with
     issue: "#91"
   - consumer: neuralspotx
+    target: apollo3_evb
+    field: trace_clock_mhz
+    reason: &a3_trace >-
+      The catalog's trace clock is the HAL's TPIU clock, HFRC/8 (6 MHz), where
+      neuralspotx passes NSX_SEGGER_CPUFREQ, 48 MHz (owner decision on #67).
+    issue: "#19"
+  - consumer: neuralspotx
+    target: apollo3p_evb
+    field: trace_clock_mhz
+    reason: *a3_trace
+    issue: "#19"
+  - consumer: neuralspotx
+    target: apollo3p_evb_cygnus
+    field: trace_clock_mhz
+    reason: *a3_trace
+    issue: "#19"
+  - consumer: neuralspotx
     target: apollo3_evb_cygnus
     field: target
     reason: >-

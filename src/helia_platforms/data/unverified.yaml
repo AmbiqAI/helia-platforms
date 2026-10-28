@@ -1,4 +1,10 @@
 # yaml-language-server: $schema=../schema/helia-platforms-v1.schema.json
 # The release allow-list (ADR 0003 section 4): built-in values that may stay unverified.
 schema_version: 1
-unverified_allowed: []
+unverified_allowed:
+  - fact: "fact:soc:apollo3:sdk.trace_clock_mhz"
+    reason: "the HAL's TPIU clock, which disagrees with NSX_SEGGER_CPUFREQ; to be measured on #19"
+    issue: "#19"
+  - fact: "fact:soc:apollo3p:sdk.trace_clock_mhz"
+    reason: "the HAL's TPIU clock, which disagrees with NSX_SEGGER_CPUFREQ; to be measured on #19"
+    issue: "#19"

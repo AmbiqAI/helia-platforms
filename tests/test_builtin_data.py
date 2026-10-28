@@ -91,7 +91,7 @@ def test_apollo3_boards_answer_the_consumer_queries(catalog, name, sram, flash):
     assert target.flash_load_address() == 0xC000
     assert (target.cpu_mhz(), target.cpu_mhz("hp")) == (48, 96)
     assert target.default_operating_point.name == "lp"
-    assert target.trace_clock_mhz == 48
+    assert target.trace_clock_mhz == 6
     assert target.external_memories() == ()
 
 
