@@ -247,6 +247,7 @@ socs:
           status: datasheet
           source:
             - "doc:DS-A510LS@0.9.0:p34-36"
+            - "doc:DS-A510LS@0.9.0:p2"
             - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo510L.h:27502-27548"
           verified_on: 2026-10-26
           verified_by: evanchen11
@@ -567,7 +568,7 @@ parts:
         provenance: *slot_ds
     provenance: &ds_order_d
       status: datasheet
-      source: ["doc:DS-A510LS@0.9.0:p15", "doc:DS-A510LS@0.9.0:p254"]
+      source: ["doc:DS-A510LS@0.9.0:p15", "doc:DS-A510LS@0.9.0:p254", "doc:DS-A510LS@0.9.0:p2"]
       verified_on: 2026-10-26
       verified_by: evanchen11
       notes: >-
