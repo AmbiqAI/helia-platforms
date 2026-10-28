@@ -112,7 +112,7 @@ APOLLO4L = {
 def test_the_apollo4_evbs_answer_the_consumer_queries(catalog, board, regions, jlink):
     """#66's proposal section 1.7, with no PSRAM on any of the five EVBs."""
     target = catalog.resolve(board)
-    assert target.capabilities == {"dsp", "fp32", "pmu"}
+    assert target.capabilities == {"dsp", "fp32"}
     assert {m.name: (m.base, m.size) for m in target.memories()} == regions
     assert target.external_memories() == ()
     assert dict(target.usable_nvm()) == {"mram": 2 * 1024 * 1024 - 96 * 1024}
