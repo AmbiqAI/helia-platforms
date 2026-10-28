@@ -125,7 +125,6 @@ class MemoryCharacterization:
     read_latency_ns: float | None = None
     write_latency_ns: float | None = None
     max_outstanding: int | None = None
-    max_outstanding_writes: int | None = None
     burst_bytes: int | None = None
     ports: int | None = None
     axi_clock_hz: int | None = None
