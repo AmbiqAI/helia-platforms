@@ -13,7 +13,8 @@ socs:
       notes: >-
         Which cores, memory regions and clock modes the Soc has: one Cortex-M4 (p48), LP
         and HP modes (p55) and the on-chip memories (p59). DS-A4L 0.9.1 is preliminary. The
-        Blue Lite part (DS-A4BL) shares this Soc, as in nsx-ambiq-sdk; #91 models how it differs.
+        Blue Lite part (DS-A4BL) shares this Soc, as in nsx-ambiq-sdk, and adds ble_m0, which
+        the Apollo4 Lite part's implementation removes.
     series:
       value: apollo4
       provenance:
@@ -49,7 +50,7 @@ socs:
           notes: >-
             "Cortex-M4 core with Floating Point Unit (FPU)" that can "serve as both an
             application processor and a coprocessor". It is the only application processor;
-            the Blue Lite part adds a BLE controller with a Cortex-M0 (DS-A4BL p84).
+            ble_m0 is the Blue Lite part's BLE controller.
         options:
           fpu:
             value: fpv4-sp-d16
@@ -74,6 +75,40 @@ socs:
               verified_on: 2026-10-26
               verified_by: evanchen11
           # icache_kb and dcache_kb are absent, as on apollo4p (decided on #66).
+      # Only the Blue Lite part has it; apollo4l_plain removes it.
+      - id: ble_m0
+        role: radio
+        core: cortex-m0
+        clock_domain: radio
+        programmable_by:
+          value: vendor
+          provenance:
+            status: datasheet
+            source: ["doc:DS-A4BL@0.9.0:p84"]
+            verified_on: 2026-10-28
+            verified_by: evanchen11
+            notes: >-
+              "256 kB Flash including link layer stack"; the Cortex-M4 reaches the controller
+              only "through an internal high-speed SPI interface" for HCI packets. AmbiqSuite
+              ships the controller image (third_party/cordio/ble-host/sources/hci/ambiq/cooper).
+        provenance:
+          status: datasheet
+          source: ["doc:DS-A4BL@0.9.0:p84"]
+          verified_on: 2026-10-28
+          verified_by: evanchen11
+          notes: >-
+            "The Bluetooth Low Energy Controller incorporates a dedicated Arm Cortex-M0
+            processor" with its own "64 kB of SRAM and 256 kB of non-volatile memory", which
+            are outside the Cortex-M4's map and are not modelled.
+        options:
+          fpu: none
+          mve: none
+          provenance:
+            status: sdk
+            source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-cmsis-core/Include/core_cm0.h:69-72"]
+            verified_on: 2026-10-28
+            verified_by: evanchen11
+            notes: '"This core does not support an FPU at all". Armv6-M has no MVE.'
 
     # Bases are the register header's: no Apollo4 datasheet gives a TCM or SRAM base. No
     # executable flags: DS-A4L p50 has only an Arm-level "Code" row (decided on #66).
@@ -145,8 +180,12 @@ socs:
         verified_on: 2026-10-26
         verified_by: evanchen11
         notes: >-
-          Every <NAME>_BASE define, lowercased (37): no usb, dc or dsi, which DS-A4L p2 and p42
-          also omit (display over MSPI). The Blue Lite part has seven IOMs (DS-A4BL p2, p39).
+          Every <NAME>_BASE define, lowercased (37): no usb, dc or dsi. DS-A4L p2 and p42 list
+          no USB or MIPI DSI either, but describe the blocks by function and name no instance
+          such as dsp or cpu. On the Blue Lite part iom4 stays: it is not pinned out (DS-A4BL
+          p94-95) and is dedicated to the BLE controller, which AmbiqSuite drives over IOM 4
+          (devices/am_devices_cooper.h:199-213). DS-A4BL p2 and p39 count "7x" IOMs, while
+          p109 says "eight".
     memory_controllers:
       value: [mspi0, mspi1, mspi2]
       provenance:
@@ -184,6 +223,19 @@ socs:
             value: AM_HAL_PWRCTRL_MCU_MODE_HIGH_PERFORMANCE
             provenance: *hal_mcu_mode
           provenance: *ds_clk
+      # ble_m0's domain. No source couples it to the CPU's modes, so no operating point
+      # names it.
+      radio:
+        max:
+          mhz: 32
+          provenance:
+            status: datasheet
+            source: ["doc:DS-A4BL@0.9.0:p84", "doc:DS-A4BL@0.9.0:p85"]
+            verified_on: 2026-10-28
+            verified_by: evanchen11
+            notes: >-
+              p84 "32 MHz MCU and Flash speed"; p85 "The maximum clock input frequency
+              supported is 32 MHz". The pages name no modes, so the point name is the catalog's.
     operating_points:
       lp: {domains: {cpu: lp}, provenance: *ds_clk}
       hp: {domains: {cpu: hp}, provenance: *ds_clk}
@@ -284,11 +336,41 @@ socs:
           verified_on: 2026-10-26
           verified_by: evanchen11
 
+implementations:
+  apollo4l_plain:
+    release_status: public
+    soc: apollo4l
+    kind: silicon
+    provenance: &ds_plain
+      status: datasheet
+      source: ["doc:DS-A4L@0.9.1:p2", "doc:DS-A4L@0.9.1:p48"]
+      verified_on: 2026-10-28
+      verified_by: evanchen11
+      notes: >-
+        The Apollo4 Lite (AMAP42KL-KBR): its feature diagram (p2) and CPU subsystem (p48)
+        show no BLE controller, which the Blue Lite part adds (DS-A4BL p2, p84).
+    subset:
+      cores_removed: [ble_m0]
+      clock_domains_removed: [radio]
+      provenance: *ds_plain
+
 parts:
   AMAP42KL-KBR:
     release_status: public
     soc: apollo4l
+    implementation: apollo4l_plain
     package: "146-pin BGA, 5.0 x 5.0 mm"
+    radio:
+      value: none
+      provenance:
+        status: datasheet
+        source: ["doc:DS-A4L@0.9.1:p2", "doc:DS-A4L@0.9.1:p42", "doc:DS-A4L@0.9.1:p48"]
+        verified_on: 2026-10-28
+        verified_by: evanchen11
+        notes: >-
+          The feature pages (p2, p42) and the CPU subsystem (p48) name no radio or BLE
+          controller, which the Blue Lite datasheet adds (DS-A4BL p2, p84). p75's "Bluetooth
+          Low Energy supply regulators" look carried over from DS-A4BL.
     jlink_device:
       value: AMAP42KL-KBR
       provenance:
@@ -303,9 +385,7 @@ parts:
       verified_on: 2026-10-08
       verified_by: evanchen11
       notes: >-
-        Ordering table: "AMAP42KL-KBR 2 MB 1.375 MB 5.0 x 5.0", 146-pin BGA. p75 mentions
-        "Bluetooth Low Energy supply regulators", apparently carried over from DS-A4BL; no
-        feature list (p2, p42) names a radio, so radio is left out.
+        Ordering table: "AMAP42KL-KBR 2 MB 1.375 MB 5.0 x 5.0", 146-pin BGA.
   AMA4B2KL-KXR:
     release_status: public
     soc: apollo4l
@@ -318,8 +398,7 @@ parts:
         verified_on: 2026-10-08
         verified_by: evanchen11
         notes: >-
-          "Bluetooth 5.1 Low Energy"; the spelling follows #64's ble-5.4. The BLE
-          controller's Cortex-M0 (p84) is not modelled.
+          "Bluetooth 5.1 Low Energy"; the spelling follows #64's ble-5.4.
     jlink_device:
       value: AMA4B2KL-KXR
       provenance:

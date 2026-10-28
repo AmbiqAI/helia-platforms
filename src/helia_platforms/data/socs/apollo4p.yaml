@@ -13,7 +13,8 @@ socs:
       notes: >-
         Which cores, memory regions and clock modes the Soc has: one Cortex-M4 (p58), LP
         and HP modes (p65) and the on-chip memories (p69). The Blue Plus parts (DS-A4BP)
-        share this Soc, as in nsx-ambiq-sdk; #91 models how they differ.
+        share this Soc, as in nsx-ambiq-sdk, and add ble_m0; each part's implementation
+        removes what that part lacks.
     series:
       value: apollo4
       provenance:
@@ -49,7 +50,7 @@ socs:
           notes: >-
             "32-bit Arm Cortex-M4 core with Floating Point Unit (FPU)" that can "serve as both
             an application processor and a co-processor". It is the only application
-            processor; the Blue Plus parts add a BLE controller with a Cortex-M0 (DS-A4BP p96).
+            processor; ble_m0 is the Blue Plus parts' BLE controller.
         options:
           fpu:
             value: fpv4-sp-d16
@@ -75,6 +76,40 @@ socs:
               verified_by: evanchen11
           # icache_kb and dcache_kb are absent: DS-A4P p2 draws a 64 KB I-cache in the core,
           # while p58 and p69 call the 64 kB cache an NVM cache (decided on #66).
+      # Only the Blue Plus parts have it; apollo4p_plain removes it.
+      - id: ble_m0
+        role: radio
+        core: cortex-m0
+        clock_domain: radio
+        programmable_by:
+          value: vendor
+          provenance:
+            status: datasheet
+            source: ["doc:DS-A4BP@1.8.0:p96"]
+            verified_on: 2026-10-28
+            verified_by: evanchen11
+            notes: >-
+              "256 kB Flash including link layer stack"; the Cortex-M4 reaches the controller
+              only "through an internal high-speed SPI interface" for HCI packets. AmbiqSuite
+              ships the controller image (third_party/cordio/ble-host/sources/hci/ambiq/cooper).
+        provenance:
+          status: datasheet
+          source: ["doc:DS-A4BP@1.8.0:p96"]
+          verified_on: 2026-10-28
+          verified_by: evanchen11
+          notes: >-
+            "The Bluetooth Low Energy Controller incorporates a dedicated Arm Cortex-M0
+            processor" with its own "64 kB of SRAM and 256 kB of non-volatile memory", which
+            are outside the Cortex-M4's map and are not modelled.
+        options:
+          fpu: none
+          mve: none
+          provenance:
+            status: sdk
+            source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-cmsis-core/Include/core_cm0.h:69-72"]
+            verified_on: 2026-10-28
+            verified_by: evanchen11
+            notes: '"This core does not support an FPU at all". Armv6-M has no MVE.'
 
     # Bases are the register header's: no Apollo4 datasheet gives a TCM or SRAM base. No
     # executable flags: DS-A4P p60 has only an Arm-level "Code" row (decided on #66).
@@ -167,8 +202,11 @@ socs:
         verified_on: 2026-10-26
         verified_by: evanchen11
         notes: >-
-          Every <NAME>_BASE define, lowercased (46); DS-A4P p2 and p52 agree. The Blue Plus
-          parts have seven IOMs, and the KBR package pins out no MSPI1 (DS-A4BP p2, p48, p118).
+          Every <NAME>_BASE define, lowercased (46). DS-A4P p2 and p52 describe the blocks by
+          function ("8x I2C / SPI masters", p52) and name no instance such as dsp or cpu. On
+          the Blue Plus parts iom4 stays: it is not pinned out (no IOM4 signal in DS-A4BP
+          p107-110, "seven" IOMs on p126) and is dedicated to the BLE controller, which
+          AmbiqSuite drives over IOM 4 (devices/am_devices_cooper.h:199-213).
     memory_controllers:
       value: [mspi0, mspi1, mspi2]
       provenance:
@@ -207,6 +245,19 @@ socs:
             value: AM_HAL_PWRCTRL_MCU_MODE_HIGH_PERFORMANCE
             provenance: *hal_mcu_mode
           provenance: *ds_clk
+      # ble_m0's domain. No source couples it to the CPU's modes, so no operating point
+      # names it.
+      radio:
+        max:
+          mhz: 32
+          provenance:
+            status: datasheet
+            source: ["doc:DS-A4BP@1.8.0:p96", "doc:DS-A4BP@1.8.0:p97"]
+            verified_on: 2026-10-28
+            verified_by: evanchen11
+            notes: >-
+              p96 "32 MHz MCU and Flash speed"; p97 "The maximum clock input frequency
+              supported is 32 MHz". The pages name no modes, so the point name is the catalog's.
     operating_points:
       lp: {domains: {cpu: lp}, provenance: *ds_clk}
       hp: {domains: {cpu: hp}, provenance: *ds_clk}
@@ -306,11 +357,72 @@ socs:
           verified_on: 2026-10-26
           verified_by: evanchen11
 
+implementations:
+  apollo4p_plain:
+    release_status: public
+    soc: apollo4p
+    kind: silicon
+    provenance: &ds_plain
+      status: datasheet
+      source: ["doc:DS-A4P@1.6.0:p2", "doc:DS-A4P@1.6.0:p58"]
+      verified_on: 2026-10-28
+      verified_by: evanchen11
+      notes: >-
+        The Apollo4 Plus (AMAP42KP-*): its feature diagram (p2) and core list (p58) show
+        no BLE controller, which the Blue Plus parts add (DS-A4BP p2, p96).
+    subset:
+      cores_removed: [ble_m0]
+      clock_domains_removed: [radio]
+      provenance: *ds_plain
+  apollo4p_blue_kbr:
+    release_status: public
+    soc: apollo4p
+    kind: silicon
+    provenance: &ds_kbr
+      status: datasheet
+      source: ["doc:DS-A4BP@1.8.0:p48", "doc:DS-A4BP@1.8.0:p118"]
+      verified_on: 2026-10-28
+      verified_by: evanchen11
+      notes: >-
+        The Blue Plus KBR package "Provides two MSPI instances, MSPI0 and MSPI2" (p48);
+        "MSPI1 is not pinned out on the Apollo4 Blue Plus KBR package" (p118), which still
+        maps "The three MSPI modules", so only the memory controller goes.
+    subset:
+      memory_controllers_removed: [mspi1]
+      provenance: *ds_kbr
+  apollo4p_blue_kxr:
+    release_status: public
+    soc: apollo4p
+    kind: silicon
+    provenance: &ds_kxr
+      status: datasheet
+      source: ["doc:DS-A4BP@1.8.0:p48", "doc:DS-A4BP@1.8.0:p51"]
+      verified_on: 2026-10-28
+      verified_by: evanchen11
+      notes: >-
+        The Blue Plus KXR package "Offers two PDM ports" (p48): "only PDM0 and PDM3 are
+        available on the KXR package" (p51). It keeps all three MSPIs.
+    subset:
+      peripherals_removed: [pdm1, pdm2]
+      provenance: *ds_kxr
+
 parts:
   AMAP42KP-KBR:
     release_status: public
     soc: apollo4p
+    implementation: apollo4p_plain
     package: "146-pin BGA, 5.0 x 5.0 mm"
+    radio:
+      value: none
+      provenance:
+        status: datasheet
+        source: ["doc:DS-A4P@1.6.0:p2", "doc:DS-A4P@1.6.0:p52", "doc:DS-A4P@1.6.0:p58"]
+        verified_on: 2026-10-28
+        verified_by: evanchen11
+        notes: >-
+          The feature pages (p2, p52) and the CPU subsystem (p58) name no radio or BLE
+          controller, which the Blue Plus datasheet adds (DS-A4BP p2, p96); p90-91 mention
+          radio clocking only. apollo4p_plain removes ble_m0 on the same pages.
     jlink_device:
       value: AMAP42KP-KBR
       provenance:
@@ -327,12 +439,11 @@ parts:
       verified_on: 2026-10-08
       verified_by: evanchen11
       notes: >-
-        Ordering table: "AMAP42KP-KBR 2 MB 2.75 MB 5.0 x 5.0 146-pin BGA". No DS-A4P page
-        states that this part has a radio (p90-91 mention radio clocking only), and none
-        states its absence, so radio is left out.
+        Ordering table: "AMAP42KP-KBR 2 MB 2.75 MB 5.0 x 5.0 146-pin BGA".
   AMA4B2KP-KBR:
     release_status: public
     soc: apollo4p
+    implementation: apollo4p_blue_kbr
     package: "131-pin BGA, 4.7 x 4.7 mm"
     radio: &ble_plus
       value: ble-5.4
@@ -343,7 +454,7 @@ parts:
         verified_by: evanchen11
         notes: >-
           "Bluetooth Low Energy 5.4 compatible radio with up to 5.1 feature support". The
-          spelling follows #64's ble-5.4. The BLE controller's Cortex-M0 (p96) is not modelled.
+          spelling follows #64's ble-5.4.
     jlink_device:
       value: AMA4B2KP-KBR
       provenance:
@@ -361,10 +472,11 @@ parts:
       verified_by: evanchen11
       notes: >-
         Ordering table: KBR and KXR are both "2 MB 2.75 MB 4.7 x 4.7", 131-pin BGA. p48: the
-        packages differ in MSPI and PDM ports, which a part cannot express (#91).
+        packages differ in MSPI and PDM ports, which their implementations record.
   AMA4B2KP-KXR:
     release_status: public
     soc: apollo4p
+    implementation: apollo4p_blue_kxr
     package: "131-pin BGA, 4.7 x 4.7 mm"
     radio: *ble_plus
     jlink_device:

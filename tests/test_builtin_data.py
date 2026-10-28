@@ -1,6 +1,8 @@
 import pytest
 
 from helia_platforms import AmbiguousPlatform, Catalog, builtin, resolve_board
+from helia_platforms.catalog import load_overlay
+from helia_platforms.errors import FormatError
 
 
 @pytest.fixture(scope="module")
@@ -10,7 +12,7 @@ def catalog() -> Catalog:
 
 def test_the_packaged_data_loads(catalog):
     assert {s.id for s in catalog.socs()} == {"apollo510", "apollo4p", "apollo4l"}
-    assert {c.id for c in catalog.cores()} == {"cortex-m55", "cortex-m4"}
+    assert {c.id for c in catalog.cores()} == {"cortex-m55", "cortex-m4", "cortex-m0"}
     assert {p.id for p in catalog.parts()} == {
         "AP510NFA-CBR",
         "AP510NFA-IBR",
@@ -137,9 +139,49 @@ def test_the_display_shield_composition_adds_psram_and_flash(catalog):
 def test_the_blue_parts_record_their_radio(catalog):
     radios = {p.id: p.radio for p in catalog.parts() if p.soc in {"apollo4p", "apollo4l"}}
     assert radios == {
-        "AMAP42KP-KBR": None,
+        "AMAP42KP-KBR": "none",
         "AMA4B2KP-KBR": "ble-5.4",
         "AMA4B2KP-KXR": "ble-5.4",
-        "AMAP42KL-KBR": None,
+        "AMAP42KL-KBR": "none",
         "AMA4B2KL-KXR": "ble-5.1",
     }
+
+
+@pytest.mark.parametrize(
+    ("board", "cores", "removed", "controllers"),
+    [
+        ("apollo4p_evb", ["cm4_0"], set(), ["mspi0", "mspi1", "mspi2"]),
+        ("apollo4p_blue_kbr_evb", ["cm4_0", "ble_m0"], set(), ["mspi0", "mspi2"]),
+        ("apollo4p_blue_kxr_evb", ["cm4_0", "ble_m0"], {"pdm1", "pdm2"}, None),
+        ("apollo4l_evb", ["cm4_0"], set(), ["mspi0", "mspi1", "mspi2"]),
+        ("apollo4l_blue_evb", ["cm4_0", "ble_m0"], set(), ["mspi0", "mspi1", "mspi2"]),
+    ],
+)
+def test_each_apollo4_part_keeps_what_its_datasheet_gives(
+    catalog, board, cores, removed, controllers
+):
+    target = catalog.resolve(board)
+    soc = catalog._entry("socs", target.soc.id)
+    assert [c.id for c in target.soc.cores] == cores
+    assert set(soc.peripherals) - set(target.soc.peripherals) == removed
+    assert list(target.soc.memory_controllers) == (controllers or ["mspi0", "mspi1", "mspi2"])
+    ble = [c for c in target.soc.cores if c.id == "ble_m0"]
+    assert [(c.core, c.programmable_by, c.clock_domain) for c in ble] == [
+        ("cortex-m0", "vendor", "radio")
+    ] * len(ble)
+
+
+def test_a_blue_plus_kbr_board_cannot_put_memory_on_mspi1(catalog):
+    """DS-A4BP p118: "MSPI1 is not pinned out on the Apollo4 Blue Plus KBR package"."""
+    board = {
+        "category": "custom",
+        "part": "AMA4B2KP-KBR",
+        "interfaces": {
+            "mspi1": {"controller": "mspi1", "aperture_base": 0x18000000, "aperture_max": "64M"}
+        },
+        "population": {"mspi1": "IS25WX064"},
+    }
+    with pytest.raises(FormatError) as exc:
+        load_overlay({"schema_version": 1, "boards": {"my_kbr": board}}, base=catalog)
+    removed = "interfaces.mspi1: controller 'mspi1' is removed by the implementation"
+    assert f"boards.my_kbr.{removed}" in "\n".join(exc.value.problems)
