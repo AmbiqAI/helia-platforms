@@ -157,7 +157,7 @@ domains. An Implementation may add or replace domain points through
 | Query | Meaning |
 |---|---|
 | `isa(core=0)` | Derived ISA features of that core |
-| `memories(core=0)` | Regions with a `direct` access entry for that core, plus external regions whose interface controller it has an entry for |
+| `memories(core=0)` | Regions with a `direct` access entry for that core, plus external regions whose interface controller it has an entry for; an entry with `guidance: discouraged` is left out, so no budget or placement counts it, though `reachable()` returns it |
 | `placement_ranges(core=0)` | (base, size) of the regions that core reaches |
 | `flash_load_address(core=0)`, `usable_nvm(core=0)` | From the selected boot configuration and that core's slots |
 | `budget(env, core=0)` | Only regions that core can reach |

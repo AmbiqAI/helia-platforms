@@ -164,9 +164,17 @@ class Target:
         return any(technology in (None, r.technology) for r in self.external_memories())
 
     def memories(self, core: int | str = 0) -> tuple[model.MemoryRegion, ...]:
-        """Regions ``core`` has a ``direct`` entry for, then external regions it reaches."""
+        """Regions ``core`` has a ``direct`` entry for, then external regions it reaches.
+
+        An entry with ``guidance: discouraged`` is left out, so no budget or placement
+        counts that region; ``reachable()`` still returns the entry.
+        """
         master = self._core(core).id
-        direct = {a.target for a in self._access if a.master == master and a.access == "direct"}
+        direct = {
+            a.target
+            for a in self._access
+            if a.master == master and a.access == "direct" and a.guidance != "discouraged"
+        }
         own = tuple(r for r in self.soc.memories if r.name in direct)
         return own + tuple(r for r, controller in self._external if controller in direct)
 

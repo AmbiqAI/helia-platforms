@@ -182,6 +182,19 @@ def test_memories_are_what_the_core_reaches_plus_populated_devices(catalog):
     assert resolve("soc_a", catalog=catalog).external_memories() == ()
 
 
+def test_a_discouraged_entry_stays_out_of_memories_and_placement(document):
+    soc = document["socs"]["soc_a"]
+    soc["access"].append(
+        {"master": "cm55_0", "target": "tcm", "access": "direct", "guidance": "discouraged"}
+    )
+    target = resolve("board_a", catalog=quiet(document))
+    assert [r.name for r in target.memories()] == ["ssram", "nvm", "psram0"]
+    assert "tcm" not in target.placement_ranges()
+    entry = target.reachable("cm55_0", "tcm")
+    assert entry is not None and entry.guidance == "discouraged"
+    assert target.classify_address(0x20000000) == "tcm"
+
+
 def test_placement_leaves_out_an_external_device_with_no_base(document):
     del document["boards"]["board_a"]["interfaces"]["mspi0"]["aperture_base"]
     target = resolve("board_a", catalog=quiet(document))

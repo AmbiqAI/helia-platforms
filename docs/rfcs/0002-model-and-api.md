@@ -862,7 +862,7 @@ class Target:
     def isa(self, core: int | str = 0) -> IsaFeatures
     def reachable(self, master: str, target: str) -> Access | None   # a region's own entry, else its controller's
     def npu_clocks(self, npu: int | str = 0) -> Mapping[str, int]   # derived from system operating points
-    def memories(self, core: int | str = 0) -> tuple[MemoryRegion, ...]   # regions that core reaches, after subset, plus external regions whose interface it has an entry for
+    def memories(self, core: int | str = 0) -> tuple[MemoryRegion, ...]   # regions that core reaches, after subset, plus external regions whose interface it has an entry for; a discouraged entry is left out
     def placement_ranges(self, core: int | str = 0) -> Mapping[str, tuple[int, int]]   # (base, size) of reachable regions; leaves out a populated device with no base; raises for any other region without one
     def cpu_mhz(self, point: str | None = None, core: int | str = 0) -> int
     def npu_mhz(self, point: str | None = None, npu: int | str = 0) -> int
