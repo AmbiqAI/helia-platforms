@@ -130,11 +130,15 @@ def check(catalog: Catalog, directory: Path) -> Result:
             used |= {id(e) for e in covers}  # an overlapping exception is in use too
         else:
             left.append(finding)
+    # Under an id the catalog lacks nothing is compared, so only a path the snapshot lacks is stale.
     stale = [
         e
         for e in exceptions
         if id(e) not in used
-        and not any(m.snapshot == e.snapshot and e.at[: len(m.at)] == m.at for m in missing)
+        and not (
+            _resolves(snapshots.get(e.snapshot), e.at)
+            and any(m.snapshot == e.snapshot and e.at[: len(m.at)] == m.at for m in missing)
+        )
     ]
     return Result(tuple(left), tuple(excepted), tuple(stale))
 
@@ -152,7 +156,7 @@ def load_exceptions(path: Path) -> list[Exception_]:
 def render(result: Result) -> str:
     lines = [f"{f.snapshot}: {'.'.join(f.at)}: {f.rule}: {f.message}" for f in result.findings]
     lines += [
-        f"{e.snapshot}: {'.'.join(e.at)}: {e.rule}: stale exception (compares equal)"
+        f"{e.snapshot}: {'.'.join(e.at)}: {e.rule}: stale exception (covers no finding)"
         for e in result.stale
     ]
     lines.append(
@@ -239,22 +243,30 @@ class _Comparison:
         )
 
     def hal_flash(self, name: str, block: Mapping[str, Any], soc: model.Soc) -> Iterator[Finding]:
-        """Each ``HAL_FLASH`` size against its regions; an expected define absent is a finding."""
+        """Each ``HAL_FLASH`` size against its regions; an absent define or region is a finding."""
         defines = block.get("flash", {}).get("values", {})
         sizes = {r.name: r.size for r in soc.memories}
         for define, regions in HAL_FLASH.get(soc.id, {}).items():
             at = ("socs", name, "flash", "values", define)
+            lacking = [r for r in regions if r not in sizes]
             if define not in defines:
                 yield Finding(SDK, at, "flash header", f"the snapshot has no {define}")
-            elif all(r in sizes for r in regions):
+            elif lacking:
+                yield Finding(SDK, at, "flash header", _no_region(soc, lacking))
+            else:
                 ours = sum(sizes[r] for r in regions)
                 yield from _equal(SDK, at, "flash header", ours, defines[define])
 
     def registers(self, name: str, block: Mapping[str, Any], soc: model.Soc) -> Iterator[Finding]:
+        """Each ``REGISTERS`` define against its region; an absent define or region is a finding."""
         defines = block["registers"]["values"]
         at = ("socs", name, "registers", "values")
-        for region in soc.memories:
-            names = REGISTERS.get(soc.id, {}).get(region.name, ())
+        regions = {r.name: r for r in soc.memories}
+        for region_name, names in REGISTERS.get(soc.id, {}).items():
+            region = regions.get(region_name)
+            if region is None:
+                yield Finding(SDK, (*at, names[0]), "register", _no_region(soc, [region_name]))
+                continue
             for define, ours in zip(names, (region.base, region.size), strict=False):
                 if not define:
                     continue  # the header has no such define
@@ -398,6 +410,19 @@ def _mhz(facts: Mapping[str, list[str]]) -> float | None:
         return None
     whole, rest = divmod(int(hz), 1_000_000)
     return whole if rest == 0 else int(hz) / 1_000_000
+
+
+def _resolves(data: Any, at: tuple[str, ...]) -> bool:
+    """True when every key of ``at`` is in ``data``, one level per key."""
+    for key in at:
+        if not isinstance(data, Mapping) or key not in data:
+            return False
+        data = data[key]
+    return True
+
+
+def _no_region(soc: model.Soc, names: Iterable[str]) -> str:
+    return f"the catalog's {soc.id} has no region {', '.join(map(repr, names))}"
 
 
 def _linker_regions(

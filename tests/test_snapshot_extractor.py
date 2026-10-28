@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import re
+import shutil
 import tomllib
 from pathlib import Path
 from typing import Any
@@ -645,21 +646,52 @@ def test_sdk_pins_come_from_the_sdk_snapshot_unless_a_refresh_names_a_tag() -> N
     assert cli._sdk_pins(None, None) == {}
 
 
+def unnamed(directory: Path) -> list[tuple[str, ...]]:
+    """Exception paths the snapshot lacks, except where a finding is at exactly that path."""
+    path = directory / "exceptions.yaml"
+    result = _check_sources.check(builtin(include_plugins=False), directory)
+    exact = {e for f, e in result.excepted if f.at == e.at and f.rule != _check_sources.MISSING}
+    lacking = []
+    for exception in _check_sources.load_exceptions(path):
+        value: Any = json.loads((directory / exception.snapshot).read_text())
+        for key in exception.at:
+            if not isinstance(value, dict) or key not in value:
+                if key != exception.at[-1] or exception not in exact:
+                    lacking.append(exception.at)
+                break
+            value = value[key]
+    return lacking
+
+
 def test_exceptions_name_snapshot_values() -> None:
-    path = SNAPSHOTS / "exceptions.yaml"
-    entries = yaml.safe_load(path.read_text())["exceptions"]
+    entries = yaml.safe_load((SNAPSHOTS / "exceptions.yaml").read_text())["exceptions"]
     assert entries
-    result = _check_sources.check(builtin(include_plugins=False), SNAPSHOTS)
-    used = {exception for _, exception in result.excepted}
-    for entry, exception in zip(entries, _check_sources.load_exceptions(path), strict=True):
+    for entry in entries:
         assert set(entry) == {"snapshot", "at", "rule", "reason", "issue"}
         assert re.fullmatch(r"(?:[\w.-]+/[\w.-]+)?#\d+", entry["issue"])
-        value: Any = json.loads((SNAPSHOTS / entry["snapshot"]).read_text())
-        *parents, last = entry["at"]
-        for key in parents:
-            value = value[key]
-        # A last key the snapshot lacks is allowed only where a finding reports that absence.
-        assert last in value or exception in used, entry
+    assert unnamed(SNAPSHOTS) == []
+
+
+def test_an_exception_path_the_snapshot_lacks_needs_a_finding_there(tmp_path: Path) -> None:
+    directory = tmp_path / "snapshots"
+    shutil.copytree(SNAPSHOTS, directory)
+    sdk_path = directory / "nsx-ambiq-sdk.json"
+    data = json.loads(sdk_path.read_text())
+    del data["socs"]["apollo3"]["flash"]["values"]["AM_HAL_FLASH_TOTAL_SIZE"]
+    sdk_path.write_text(json.dumps(data))
+    added = [
+        (["socs", "apollo3", "flash", "values", "AM_HAL_FLASH_TOTAL_SIZE"], "flash header"),
+        (["socs", "apollo3", "flash", "values", "AM_HAL_FLASH_TYPO"], "flash header"),
+        (["socs", "apollo2", "linker", "gcc", "scripts", "typo.ld"], "region containment"),
+    ]
+    path = directory / "exceptions.yaml"
+    document = yaml.safe_load(path.read_text())
+    document["exceptions"] += [
+        {"snapshot": _check_sources.SDK, "at": at, "rule": rule, "reason": "x", "issue": "#1"}
+        for at, rule in added
+    ]
+    path.write_text(yaml.safe_dump(document))
+    assert unnamed(directory) == [tuple(at) for at, _ in added[1:]]
 
 
 def test_extractor_dependencies_are_not_runtime_dependencies() -> None:

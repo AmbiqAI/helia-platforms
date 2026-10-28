@@ -1,5 +1,6 @@
 """``check-sources``: the built-in catalog against the committed snapshots (ADR 0006, #72)."""
 
+import copy
 import json
 import shutil
 import warnings
@@ -10,6 +11,7 @@ import yaml
 from typer.testing import CliRunner
 
 from helia_platforms import _check_sources
+from helia_platforms import catalog as catalog_module
 from helia_platforms.catalog import builtin, load_overlay
 from helia_platforms.cli import app
 
@@ -169,13 +171,38 @@ def test_register_defines_are_compared_with_region_bases_and_sizes(snapshots):
 
 
 @pytest.mark.parametrize("soc", ["apollo3", "apollo3p"])
-def test_apollo3_register_defines_are_compared(snapshots, soc):
+@pytest.mark.parametrize("define", ["TCM_BASEADDR", "TCM_MAX_SIZE", "FLASH_BASEADDR"])
+def test_apollo3_register_defines_are_compared(snapshots, soc, define):
     def change(data):
-        data["socs"][soc]["registers"]["values"]["TCM_MAX_SIZE"] = 0x8000
+        data["socs"][soc]["registers"]["values"][define] = 0x8000
 
     edit(snapshots, _check_sources.SDK, change)
     (found,) = [f for f in findings(snapshots) if f.rule == "register"]
-    assert found.at[1:2] + found.at[-1:] == (soc, "TCM_MAX_SIZE")
+    assert found.at[1:2] + found.at[-1:] == (soc, define)
+
+
+def renamed(soc: str, old: str, new: str):
+    """The built-in catalog with one of ``soc``'s regions renamed."""
+    documents = copy.deepcopy(catalog_module._data_documents(catalog_module._data_root()))
+    for data, _ in documents:
+        memories = data.get("socs", {}).get(soc, {}).get("memories", {})
+        if old in memories:
+            memories[new] = memories.pop(old)
+    return catalog_module._load_documents(documents, builtin=True)
+
+
+@pytest.mark.parametrize(
+    ("old", "rules"),
+    [
+        ("sram", [("flash header", "AM_HAL_FLASH_SRAM_SIZE")]),
+        ("tcm", [("register", "TCM_BASEADDR"), ("flash header", "AM_HAL_FLASH_SRAM_SIZE")]),
+    ],
+)
+def test_a_configured_region_the_soc_lacks_is_reported(old, rules):
+    result = _check_sources.check(renamed("apollo3", old, "renamed"), ROOT / "snapshots")
+    found = [f for f in result.findings if f.rule in ("register", "flash header")]
+    assert [(f.rule, f.at[-1]) for f in found] == rules
+    assert all(f.message == f"the catalog's apollo3 has no region {old!r}" for f in found)
 
 
 @pytest.mark.parametrize("soc", ["apollo3", "apollo3p"])
@@ -410,6 +437,21 @@ def test_an_exception_under_an_id_the_catalog_lacks_is_not_stale(snapshots):
     ]
     assert added not in [e for _, e in result.excepted]
     assert result.stale == ()
+
+
+def test_a_typo_under_an_id_the_catalog_lacks_is_stale(snapshots):
+    path = snapshots / "exceptions.yaml"
+    entry = (
+        "  - snapshot: nsx-ambiq-sdk.json\n"
+        "    at: [socs, apollo2, linker, gcc, scripts, no_such_script.ld]\n"
+        "    rule: region containment\n"
+        "    reason: a typo.\n"
+        '    issue: "#79"\n'
+    )
+    path.write_text(path.read_text() + entry)
+    result = _check_sources.check(builtin(include_plugins=False), snapshots)
+    assert [e.at[-1] for e in result.stale] == ["no_such_script.ld"]
+    assert "stale exception (covers no finding)" in _check_sources.render(result)
 
 
 def test_the_cli_exits_1_on_a_disagreement(snapshots):
