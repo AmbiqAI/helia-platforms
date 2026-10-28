@@ -4,7 +4,7 @@ import warnings
 import pytest
 
 import helia_platforms
-from conftest import as_builtin
+from conftest import RECORD, as_builtin
 from helia_platforms import (
     AmbiguousPlatform,
     PlatformError,
@@ -189,6 +189,17 @@ def test_an_interface_alias_is_the_device_regions_alternate_base(document):
     assert (psram.base, psram.alternate_bases) == (0x60000000, (0x80000000,))
     assert target.placement_ranges()["psram0"] == (0x60000000, 8 * KB * KB)
     assert target.classify_address(0x80000010) == "psram0"
+
+
+def test_an_interface_window_carries_the_boards_record_not_the_devices(document):
+    alias = {**RECORD, "source": ["doc:DS-OTHER@2.0:p2"]}
+    document["boards"]["board_a"]["provenance"] = RECORD
+    mspi0 = document["boards"]["board_a"]["interfaces"]["mspi0"]
+    mspi0["alternate_bases"] = {"value": [0x80000000], "provenance": alias}
+    (psram,) = resolve("board_a", catalog=quiet(document)).external_memories()
+    assert psram.provenance.status == "unverified"  # the device's record
+    assert psram.field_provenance["base"].source == tuple(RECORD["source"])
+    assert psram.field_provenance["alternate_bases.0x80000000"].source == tuple(alias["source"])
 
 
 def test_placement_leaves_out_an_external_device_with_no_base(document):
