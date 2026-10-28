@@ -293,8 +293,9 @@ socs:
                 Applications start at 0x18000 (MCU_MRAM ORIGIN; NSX_SEGGER_PF_ADDR), and
                 0x18000 - 0x0 (the mram base) = 96K; the reservation is the space below it,
                 not a documented SBL size. No Apollo4 PDF states either. AmbiqSuite's
-                tools/apollo4_scripts/am_defines.py gives 0xC000 (docs/research/ambiqsuite.md,
-                decided on #66); #19 asks whether the SBL accepts images there.
+                tools/apollo4b_scripts/am_defines.py:32 gives the same 0x18000
+                (AM_SECBOOT_DEFAULT_NONSECURE_MAIN); its apollo4_scripts, for the first Apollo4
+                revision, give 0xC000.
         app_start:
           region: mram
           offset: 96K
