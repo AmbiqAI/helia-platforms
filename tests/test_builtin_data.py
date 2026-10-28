@@ -121,7 +121,7 @@ def test_the_apollo4_evbs_answer_the_consumer_queries(catalog, board, regions, j
     assert target.flash_load_address() == 0x18000
     assert (target.cpu_mhz(), target.cpu_mhz("hp")) == (96, 192)
     assert target.default_operating_point.name == "lp"
-    assert (target.jlink_device, target.trace_clock_mhz) == (jlink, 96)
+    assert (target.jlink_device, target.trace_clock_mhz) == (jlink, 48)
 
 
 def test_the_display_shield_composition_adds_psram_and_flash(catalog):

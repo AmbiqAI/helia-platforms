@@ -101,6 +101,18 @@ exceptions:
     rule: board soc
     reason: "Zephyr's apollo4p_blue Soc is apollo4p as the Blue Plus implementations realize it."
     issue: "#129"
+  # The catalog's trace clock is the TPIU clock the HAL selects, HFRC48 (decided on #66);
+  # NSX_SEGGER_CPUFREQ is the J-Link setting.
+  - snapshot: nsx-ambiq-sdk.json
+    at: [socs, apollo4p, facts, values, NSX_SEGGER_CPUFREQ]
+    rule: trace clock
+    reason: "am_hal_tpiu_enable clocks the TPIU from HFRC48; 96 MHz is J-Link's setting (#19)."
+    issue: "#19"
+  - snapshot: nsx-ambiq-sdk.json
+    at: [socs, apollo4l, facts, values, NSX_SEGGER_CPUFREQ]
+    rule: trace clock
+    reason: "am_hal_tpiu_enable clocks the TPIU from HFRC48; 96 MHz is J-Link's setting (#19)."
+    issue: "#19"
   # These stay as long as the catalog leaves apollo2 out.
   - snapshot: nsx-ambiq-sdk.json
     at: [socs, apollo2]

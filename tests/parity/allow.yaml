@@ -84,6 +84,48 @@ allowed:
       2 MB MRAM less the 96K below the 0x18000 application start (0002-migration.md,
       heliaAOT budgets).
     issue: "#28"
+  - consumer: neuralspotx
+    target: apollo4p_evb
+    field: trace_clock_mhz
+    reason: >-
+      The trace clock is the 48 MHz TPIU clock am_hal_tpiu_enable selects (HFRC48), not
+      NSX_SEGGER_CPUFREQ's 96 MHz J-Link setting (decided on #66).
+    issue: "#19"
+  - consumer: neuralspotx
+    target: apollo4p_evb_disp_shield_rev2
+    field: trace_clock_mhz
+    reason: >-
+      The trace clock is the 48 MHz TPIU clock am_hal_tpiu_enable selects (HFRC48), not
+      NSX_SEGGER_CPUFREQ's 96 MHz J-Link setting (decided on #66).
+    issue: "#19"
+  - consumer: neuralspotx
+    target: apollo4p_blue_kbr_evb
+    field: trace_clock_mhz
+    reason: >-
+      The trace clock is the 48 MHz TPIU clock am_hal_tpiu_enable selects (HFRC48), not
+      NSX_SEGGER_CPUFREQ's 96 MHz J-Link setting (decided on #66).
+    issue: "#19"
+  - consumer: neuralspotx
+    target: apollo4p_blue_kxr_evb
+    field: trace_clock_mhz
+    reason: >-
+      The trace clock is the 48 MHz TPIU clock am_hal_tpiu_enable selects (HFRC48), not
+      NSX_SEGGER_CPUFREQ's 96 MHz J-Link setting (decided on #66).
+    issue: "#19"
+  - consumer: neuralspotx
+    target: apollo4l_evb
+    field: trace_clock_mhz
+    reason: >-
+      The trace clock is the 48 MHz TPIU clock am_hal_tpiu_enable selects (HFRC48), not
+      NSX_SEGGER_CPUFREQ's 96 MHz J-Link setting (decided on #66).
+    issue: "#19"
+  - consumer: neuralspotx
+    target: apollo4l_blue_evb
+    field: trace_clock_mhz
+    reason: >-
+      The trace clock is the 48 MHz TPIU clock am_hal_tpiu_enable selects (HFRC48), not
+      NSX_SEGGER_CPUFREQ's 96 MHz J-Link setting (decided on #66).
+    issue: "#19"
   # Targets the catalog does not resolve yet; each data PR removes its own.
   - consumer: helia-aot
     target: apollo330mp_evb

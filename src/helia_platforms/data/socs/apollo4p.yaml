@@ -336,16 +336,20 @@ socs:
           verified_on: 2026-10-26
           verified_by: evanchen11
       trace_clock_mhz:
-        value: 96
+        value: 48
         provenance:
           status: sdk
-          source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo4p.cmake:52"]
-          verified_on: 2026-10-26
+          source:
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/lib/gcc/apollo4p/libam_hal.a"
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo4p.h:64722"
+          verified_on: 2026-10-28
           verified_by: evanchen11
           notes: >-
-            NSX_SEGGER_CPUFREQ is the TPIU trace clock (:46-47). nsx sets the TPIU through
-            the prebuilt BSP (nsx_system_platform.c:83), so the source it selects is not
-            visible; DS-A4P p68 allows up to 192 MHz.
+            The prebuilt HAL's am_hal_tpiu_enable writes 2 to MCUCTRL bits 3:1 and divides
+            48000000 by the SWO rate; 2 is MCUCTRL_DBGCTRL_CM4CLKSEL_HFRC48, "Selects HFRC
+            48Mhz as the source TPIU clk". AmbiqSuite's source sets CM4CLKSEL to it
+            (mcu/apollo4p/hal/mcu/am_hal_tpiu.c:263-268). NSX_SEGGER_CPUFREQ, 96 MHz
+            (facts/apollo4p.cmake:52), is a J-Link setting (#19).
       build:
         abi: thumbv7em-fpv4sp-hard
         float_abi: hard
