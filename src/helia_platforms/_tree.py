@@ -224,6 +224,13 @@ def _apply_deltas(
     """Apply ``deltas`` to ``values`` in place; ``written`` is the delta's own values."""
     problems: list[str] = []
     for key, change in deltas.items():
+        if key == "memory_controllers_removed":
+            own = written.get("memory_controllers", [])
+            problems += [
+                f"memory_controllers_removed names {name!r}, which memory_controllers also lists"
+                for name in change
+                if name in own
+            ]
         if key.endswith("_removed"):
             target = key.removesuffix("_removed")
             problems += _remove(values, target, change, declared)

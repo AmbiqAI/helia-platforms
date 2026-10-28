@@ -22,7 +22,7 @@ class Pattern:
 
 @dataclass(frozen=True)
 class Minimum:
-    """The number must be at least ``value``."""
+    """The number must be at least ``value``; a list must have at least ``value`` items."""
 
     value: int
 
@@ -397,7 +397,7 @@ class AddOn(_Entity):
     occupies: Required[Names]
     population: Required[dict[Name, Id]]
     # Modes of an occupied interface while the add-on is fitted, narrowing the board's.
-    modes: NotRequired[dict[Name, Annotated[list[str], BY_VALUE]]]
+    modes: NotRequired[dict[Name, Annotated[list[str], BY_VALUE, Minimum(1)]]]
     revision: NotRequired[str]
     extensions: NotRequired[Extensions]
 

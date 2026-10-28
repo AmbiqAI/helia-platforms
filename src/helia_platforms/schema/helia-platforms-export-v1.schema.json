@@ -940,7 +940,8 @@
                         }
                       ]
                     },
-                    "uniqueItems": true
+                    "uniqueItems": true,
+                    "minItems": 1
                   },
                   {
                     "type": "object",
@@ -970,7 +971,8 @@
                             }
                           ]
                         },
-                        "uniqueItems": true
+                        "uniqueItems": true,
+                        "minItems": 1
                       },
                       "provenance": {
                         "$ref": "#/$defs/Provenance"

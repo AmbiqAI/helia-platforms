@@ -382,14 +382,17 @@ customers add daughter boards.
   (`fits_boards`), the interfaces it occupies (`occupies`) and its own
   `population` on those interfaces. Its optional `modes` narrows an
   occupied interface's modes while it is fitted, each a mode the board's
-  interface lists: the Apollo4 Plus Display Kit's shield runs MSPI0 in
-  `octal-ddr` only, because MSPI1 is unusable while MSPI0 is in hex mode
-  (DS-A4P p115). `Target.interfaces` carries the narrowed modes.
+  interface lists, keeping at least one mode of the add-on's device there
+  (a device that lists no modes is not checked): the Apollo4 Plus Display
+  Kit's shield runs MSPI0 in `octal-ddr` only, because MSPI1 is unusable
+  while MSPI0 is in hex mode (DS-A4P p115). `Target.interfaces` carries
+  the narrowed modes.
 - The resolved target is board plus selected add-ons plus overlay. The
   validator rejects two devices on one interface, an add-on on an
   interface the board or another add-on already uses (an occupied
   interface counts even without a device), an add-on on a board it does
-  not fit, and a device larger than its aperture.
+  not fit, a board interface with the same name as one of its
+  Implementation's, and a device larger than its aperture.
 
 AmbiqSuite's per-shield board directories (`apollo4p_evb_disp_shield_rev2`)
 and neuralspotx's matching board id become entries in the catalog's

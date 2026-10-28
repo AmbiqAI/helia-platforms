@@ -6,13 +6,14 @@ Status: Accepted; amended 2026-10-28 (#66)
 ## Amendment, 2026-10-28: a subset can remove only the controller (#66)
 
 The Apollo4 Blue Plus maps "The three MSPI modules", but "MSPI1 is not
-pinned out on the Apollo4 Blue Plus KBR package" (DS-A4BP p118). `peripherals_removed` would say the block is gone. The owner
-decided on 2026-10-27, reviewing #126, to add `memory_controllers_removed`, in
-a Soc delta and an Implementation subset. It removes a name from the inherited
+pinned out on the Apollo4 Blue Plus KBR package" (DS-A4BP p118).
+`peripherals_removed` would say the block is gone. The owner decided on
+2026-10-27, reviewing #126, to add `memory_controllers_removed`, in a Soc
+delta and an Implementation subset. It removes a name from the inherited
 `memory_controllers` and drops the inherited access entries that name it,
-and leaves `peripherals` as it is. The second paragraph of the Decision
-below is replaced to that extent; `peripherals_removed` still also removes
-the name from `memory_controllers`.
+and leaves `peripherals` as it is. A Soc delta that also writes the name in
+its own `memory_controllers` is an error. The second paragraph of the
+Decision below is amended to match.
 
 ## Context
 
@@ -35,7 +36,8 @@ be in `peripherals`. Only regions and memory controllers may be `Access`
 targets or `default_access` grants, and a Board's or Implementation's
 interface `controller` must be a memory controller of the Soc as realized.
 
-There is no `memory_controllers_removed`. `peripherals_removed`, in a Soc
+`memory_controllers_removed` removes only the controller (see the
+amendment above). `peripherals_removed`, in a Soc
 delta or an Implementation subset, also removes the name from the inherited
 `memory_controllers` and drops the inherited access entries that name it; a
 name the delta itself writes in `memory_controllers` stays and is reported

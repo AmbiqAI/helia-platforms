@@ -794,8 +794,12 @@ class _Loader:
         impl = catalog._tables.get("implementations", {}).get(part.implementation)
         removed = _removed_controllers(impl) if impl is not None else ()
         self.check_interfaces(catalog, soc, board, where, origin, removed=removed)
+        # Target.interfaces holds both sets under one name each.
+        for name in board.interfaces.keys() & (impl.interfaces.keys() if impl else set()):
+            message = f"implementation {part.implementation!r} also has an interface {name!r}"
+            self.fail(origin, f"{where}.interfaces.{name}", message)
 
-    def check_addon(self, catalog: Catalog, addon: model.AddOn, origin: str) -> None:
+    def check_addon(self, catalog: Catalog, addon: model.AddOn, origin: str) -> None:  # noqa: PLR0912
         where = f"addons.{addon.id}"
         boards = catalog._tables.get("boards", {})
         for board in addon.fits_boards:
@@ -807,6 +811,8 @@ class _Loader:
                     self.fail(origin, f"{where}.{key}", f"{interface!r} is not in occupies")
         self.check_population(catalog, None, addon.population, where, origin)
         devices = catalog._tables.get("memory_devices", {})
+        for name, problem in _device_mode_problems(addon, devices):
+            self.fail(origin, f"{where}.modes.{name}", problem)
         for board in (boards[b] for b in addon.fits_boards if b in boards):
             for problem in _placement_problems(board, [addon]):
                 self.fail(origin, where, problem)
@@ -900,6 +906,22 @@ def _narrowing_problems(addon: model.AddOn, board: model.Board) -> list[tuple[st
             problems.append(
                 (name, f"{', '.join(extra)} not among board {board.id!r}'s {name!r} modes")
             )
+    return problems
+
+
+def _device_mode_problems(
+    addon: model.AddOn, devices: Mapping[str, model.MemoryDevice]
+) -> list[tuple[str, str]]:
+    """``(interface, problem)`` for each narrowing that leaves the add-on's device no mode.
+
+    A device that lists no modes is not checked.
+    """
+    problems = []
+    for name, modes in addon.modes.items():
+        device = devices.get(addon.population.get(name, ""))
+        if device is not None and device.modes and not set(modes) & set(device.modes):
+            modes_text = " ".join(device.modes)
+            problems.append((name, f"leaves {device.id!r} none of its modes ({modes_text})"))
     return problems
 
 

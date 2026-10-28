@@ -879,6 +879,7 @@ def test_an_add_on_narrows_the_modes_of_an_interface_while_fitted(document):
             "addons.shield.modes.mspi1: quad not among board 'board_a''s 'mspi1' modes",
         ),
         ({"mspi0": ["octal-ddr"]}, "addons.shield.modes: 'mspi0' is not in occupies"),
+        ({"mspi1": []}, "addons.shield.modes.mspi1: must list at least 1 item(s)"),
     ],
 )
 def test_an_add_on_narrows_only_the_modes_of_interfaces_it_occupies(document, modes, problem):
@@ -886,6 +887,24 @@ def test_an_add_on_narrows_only_the_modes_of_interfaces_it_occupies(document, mo
     document["boards"]["board_a"]["interfaces"]["mspi1"]["modes"] = ["octal-ddr"]
     document["addons"] = {"shield": {**shield({"mspi1": "psram_8m"}), "modes": modes}}
     assert problem in problems_of(document)
+
+
+def test_an_add_on_may_not_narrow_an_interface_past_its_own_device_s_modes(document):
+    with_mspi1(document)
+    document["memory_devices"]["hex_psram"] = {
+        "technology": "psram",
+        "capacity": "8M",
+        "modes": ["hex-ddr"],
+    }
+    document["boards"]["board_a"]["interfaces"]["mspi1"]["modes"] = ["hex-ddr", "octal-ddr"]
+    document["addons"] = {
+        "shield": {**shield({"mspi1": "hex_psram"}), "modes": {"mspi1": ["hex-ddr"]}}
+    }
+    load_quietly(document)
+    document["addons"]["shield"]["modes"] = {"mspi1": ["octal-ddr"]}
+    assert (
+        "addons.shield.modes.mspi1: leaves 'hex_psram' none of its modes (hex-ddr)"
+    ) in problems_of(document)
 
 
 def test_default_access_grants_core_0_what_no_core_has_an_entry_for(document):
@@ -1047,7 +1066,7 @@ def test_a_delta_that_keeps_a_removed_peripheral_as_a_memory_controller_is_an_er
 
 
 def test_an_interface_on_a_controller_the_implementation_removed_is_an_error(document):
-    interfaces = copy.deepcopy(document["boards"]["board_a"]["interfaces"])
+    interfaces = {"fpga_mspi0": copy.deepcopy(document["boards"]["board_a"]["interfaces"]["mspi0"])}
     document["implementations"] = {
         "cut": {
             "soc": "soc_a",
@@ -1060,9 +1079,22 @@ def test_an_interface_on_a_controller_the_implementation_removed_is_an_error(doc
     load_quietly(document)
     document["implementations"]["cut"]["subset"]["peripherals_removed"] = ["mspi0"]
     found = problems_of(document)
-    removed = "interfaces.mspi0: controller 'mspi0' is removed by the implementation"
-    assert f"implementations.cut.{removed}" in found
-    assert f"boards.board_a.{removed}" in found
+    removed = "controller 'mspi0' is removed by the implementation"
+    assert f"implementations.cut.interfaces.fpga_mspi0: {removed}" in found
+    assert f"boards.board_a.interfaces.mspi0: {removed}" in found
+
+
+def test_a_board_and_its_implementation_may_not_name_the_same_interface(document):
+    interfaces = copy.deepcopy(document["boards"]["board_a"]["interfaces"])
+    document["implementations"] = {
+        "cut": {"soc": "soc_a", "kind": "fpga", "interfaces": interfaces, "subset": {}}
+    }
+    document["parts"]["PART-A"]["implementation"] = "cut"
+    assert (
+        "boards.board_a.interfaces.mspi0: implementation 'cut' also has an interface 'mspi0'"
+    ) in problems_of(document)
+    document["implementations"]["cut"]["interfaces"] = {"fpga_mspi0": interfaces["mspi0"]}
+    load_quietly(document)
 
 
 def test_a_subset_can_remove_a_memory_controller_and_keep_the_peripheral(document):
@@ -1075,6 +1107,26 @@ def test_a_subset_can_remove_a_memory_controller_and_keep_the_peripheral(documen
     document["parts"]["PART-A"]["implementation"] = "cut"
     removed = "interfaces.mspi0: controller 'mspi0' is removed by the implementation"
     assert f"boards.board_a.{removed}" in problems_of(document)
+
+
+def test_a_soc_delta_can_remove_a_memory_controller_and_keep_the_peripheral(document):
+    soc(document)["access"].append({"master": "npu_0", "target": "mspi0", "access": "direct"})
+    document["socs"]["soc_b"] = {"based_on": "soc_a", "memory_controllers_removed": ["mspi0"]}
+    b = load_quietly(document)._entry("socs", "soc_b")
+    assert (b.memory_controllers, "mspi0" in b.peripherals) == (("iom0",), True)
+    assert "memory_controllers.mspi0" not in b.field_provenance
+    assert ("npu_0", "mspi0") not in [(e.master, e.target) for e in b.access]
+
+
+def test_a_delta_that_writes_and_removes_a_memory_controller_is_an_error(document):
+    document["socs"]["soc_b"] = {
+        "based_on": "soc_a",
+        "memory_controllers_removed": ["mspi0"],
+        "memory_controllers": ["mspi0"],
+    }
+    assert (
+        "socs.soc_b: memory_controllers_removed names 'mspi0', which memory_controllers also lists"
+    ) in problems_of(document)
 
 
 def test_memory_controllers_removed_names_a_memory_controller(document):
