@@ -62,19 +62,26 @@ cores:
         extensions". apollo510L_cm4.h gives __DSP_PRESENT 0, a macro core_cm4.h does not
         read. apollo4p.cmake:13 gives NSX_SOC_HAS_DSP TRUE for Apollo4's application core.
   cortex-m0:
-    arch: armv6-m
+    arch:
+      value: armv6-m
+      provenance:
+        status: derived
+        source: ["doc:DS-A4BP@1.8.0:p96", "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-cmsis-core/Include/core_cm0.h:67"]
+        verified_on: 2026-10-28
+        verified_by: evanchen11
+        notes: >-
+          DS-A4BP p96: the BLE controller "incorporates a dedicated Arm Cortex-M0 processor",
+          and core_cm0.h, the CMSIS header for that core, defines __CORTEX_M (0U) (:67). A
+          Cortex-M0 implements Armv6-M by Arm's definition; no source in the register states
+          the architecture in so many words.
     pmu: none
     has_dsp_extension: false
     provenance:
       status: sdk
-      source:
-        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-cmsis-core/Include/core_cm0.h:535-542"
-        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-cmsis-core/Include/core_cm0.h:624"
+      source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-cmsis-core/Include/core_cm0.h:535-542"]
       verified_on: 2026-10-28
       verified_by: evanchen11
       notes: >-
-        CMSIS core_cm0.h names the architecture once, in a comment on priority registers:
-        "Interrupt Priorities are WORD accessible only under Armv6-M" (:624). Armv6-M has no
-        DSP extension. The core map is SysTick, NVIC and SCB only (:535-542), with no DWT
-        or PMU. No Soc's SDK facts name this core: it is the Apollo4 Blue BLE controller's
-        (DS-A4BP p96).
+        The core map is SysTick, NVIC and SCB only (:535-542), with no DWT or PMU, and
+        Armv6-M has no DSP extension. No Soc's SDK facts name this core: it is the Apollo4
+        Blue BLE controller's (DS-A4BP p96).
