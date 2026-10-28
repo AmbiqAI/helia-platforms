@@ -316,6 +316,7 @@ def test_usable_nvm_leaves_out_other_cores_image_slots(document):
     document["parts"]["PART-A"]["image_slots"] = {"radio": radio_slot("3M", "432K")}
     target = resolve("board_a", catalog=quiet(document))
     assert dict(target.usable_nvm()) == {"nvm": 4 * KB * KB - 64 * KB - 432 * KB}
+    assert dict(target.usable_nvm("radio_m4")) == {}  # only the vendor programs it
 
 
 def test_a_soc_image_slot_applies_to_the_bare_soc_unless_the_part_replaces_it(document):

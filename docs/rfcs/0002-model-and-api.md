@@ -879,7 +879,7 @@ class Target:
     def boot_configs(self) -> tuple[BootConfig, ...]
     def flash_load_address(self, core: int | str = 0) -> int   # from boot; raises if there is none
     image_slots: Mapping[str, ImageSlot]                      # the Soc's, each replaced by the part's slot of that name
-    def usable_nvm(self, core: int | str = 0) -> Mapping[str, int]   # after reservations and other cores' slots
+    def usable_nvm(self, core: int | str = 0) -> Mapping[str, int]   # after reservations and other cores' slots; empty for a core only the vendor programs
     # external memory
     def external_memories(self) -> tuple[MemoryRegion, ...]   # population plus add-ons, at aperture bases
     # link environments (optional)

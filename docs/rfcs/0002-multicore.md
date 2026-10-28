@@ -126,7 +126,7 @@ or 432 KB, DS-A510LS p33, DS-A330PS p33), supplier `vendor` by default;
 the Soc carries the 16 KB one. That the slot is flashable by the customer
 is recorded as an owner statement until a document confirms it.
 `usable_nvm(core=)` subtracts the slots of other cores and the boot
-reservations.
+reservations, and is empty for a core only the vendor programs.
 
 A boot configuration gives one application start per programmable core:
 `BootConfig.app_start` maps core id to (region, offset). A single
