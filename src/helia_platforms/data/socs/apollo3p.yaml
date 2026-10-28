@@ -287,11 +287,15 @@ socs:
             - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/lib/gcc/apollo3p/libam_hal.a"
             - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo3p.h:26263"
             - "doc:DS-A3P@1.3.0:p159-160"
+            - "doc:DS-A3P@1.3.0:p627"
           notes: >-
             Given an ITM baud rate, libam_hal.a's am_hal_tpiu_enable writes 0x201 to TPIUCTRL
             (0x40020250): ENABLE and CLKSEL HFRCDIV8, HFRC divided by 8. Its AmbiqSuite
-            source, mcu/apollo3p/hal/am_hal_tpiu.c:278-282, calls this "HFRC/8 (6MHz)".
-            NSX_SEGGER_CPUFREQ says 48 MHz (apollo3p.cmake:52). Neither is measured (#19).
+            source, mcu/apollo3p/hal/am_hal_tpiu.c:278-282, calls this "HFRC/8 (6MHz)". The HFRC
+            is nominally 48 MHz (p627), so HFRC/2, the fastest CLKSEL (p160), caps the TPIU
+            clock at 24 MHz. In burst mode the HFRC also gives the core 96 MHz (p627); which
+            output the TPIU divides is not stated. NSX_SEGGER_CPUFREQ says 48 MHz
+            (apollo3p.cmake:52). Neither is measured (#19).
       build:
         abi: thumbv7em-fpv4sp-hard
         float_abi: hard
