@@ -158,7 +158,7 @@ def _leaves(path: Path, value: Any) -> Iterator[tuple[str, Path, str]]:
             yield from _leaves((*path, f.name), getattr(value, f.name))
     elif isinstance(value, Mapping):
         for key, item in value.items():
-            if dataclasses.is_dataclass(item):
+            if dataclasses.is_dataclass(item) or isinstance(item, tuple):
                 yield from _leaves((*path, key), item)
             else:
                 yield group, (*path, key), f"{key}={_text(path[-1], item)}"
@@ -340,7 +340,7 @@ def _identity(target: Target, at: _Entries, sources: bool) -> list[_Row]:
         names = ["part", "category", "revision"]
         rows.append(_row("board", at.at("boards", board.id, board), board, names, lead=board.id))
     for addon in target.addons:
-        names = ["fits_boards", "occupies", "revision"]
+        names = ["fits_boards", "occupies", "modes", "revision"]
         rows.append(_row("add-on", at.at("addons", addon.id, addon), addon, names, lead=addon.id))
     for alias in target.aliases:
         composition = target._catalog.compositions.get(alias)
@@ -414,7 +414,7 @@ def _memories(target: Target, at: _Entries) -> list[_Row]:
         row.facts = [f for f in row.facts if f.where[2] == ("population", interface)]
         iface = _interface(owner, interface)
         base = "no base" if region.base is None else f"at {region.base:#010x}"
-        computed = f"{size(region.size)} {base}, computed"
+        computed = f"{size(region.size)} {base}, computed{_narrowed(target, owner, interface)}"
         row.text = f"population.{interface} {device.id}, {iface.text} ({computed})"
         rows.append(_Row(row.label, row.text, row.facts + iface.facts))
     # A fitted add-on uses every interface it occupies, with a device there or not.
@@ -425,6 +425,7 @@ def _memories(target: Target, at: _Entries) -> list[_Row]:
                 row = _interface(owner, name)
                 holder = held.get(name) if owner.table == "boards" else None
                 state = "unpopulated" if holder is None else f"occupied by add-on {holder}"
+                state += _narrowed(target, owner, name)
                 rows.append(_Row(f"interface {name}", f"{row.text} ({state})", row.facts))
     for device_id in dict.fromkeys(d.id for _, d in target._devices):
         device = target._catalog._entry("memory_devices", device_id)
@@ -435,6 +436,16 @@ def _memories(target: Target, at: _Entries) -> list[_Row]:
             text = f"{size(free)} ({free} bytes; core {index}, computed)"
             rows.append(_Row(f"usable {name}", text))
     return rows
+
+
+def _narrowed(target: Target, owner: _At, name: str) -> str:
+    """A note for a board interface whose modes a fitted add-on narrows (its row prints them)."""
+    if owner.table != "boards" or name not in target.interfaces:
+        return ""
+    modes = target.interfaces[name].modes
+    if modes == owner.obj.interfaces[name].modes:
+        return ""
+    return f"; modes {' '.join(modes)} while the add-on is fitted"
 
 
 def _interface(owner: _At, name: str) -> _Row:

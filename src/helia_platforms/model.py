@@ -382,6 +382,7 @@ class AddOn(_Carrier):
     fits_boards: tuple[str, ...]
     occupies: tuple[str, ...]
     population: Mapping[str, str]
+    modes: Mapping[str, tuple[str, ...]] = field(default_factory=_empty)
     revision: str | None = None
     aliases: tuple[str, ...] = ()
     release_status: ReleaseStatus = "embargoed"

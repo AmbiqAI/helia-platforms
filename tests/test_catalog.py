@@ -856,6 +856,38 @@ def test_an_interface_an_add_on_occupies_without_a_device_is_still_taken(documen
     assert "compositions.both: add-on 'flash' and add-on 'display' both use 'mspi1'" in problems
 
 
+def test_an_add_on_narrows_the_modes_of_an_interface_while_fitted(document):
+    with_mspi1(document)
+    document["boards"]["board_a"]["interfaces"]["mspi1"]["modes"] = ["hex-ddr", "octal-ddr"]
+    document["addons"] = {
+        "shield": {**shield({"mspi1": "psram_8m"}), "modes": {"mspi1": ["octal-ddr"]}}
+    }
+    document["compositions"] = {"fitted": {"board": "board_a", "addons": ["shield"]}}
+    cat = load_quietly(document)
+    assert cat.resolve("board_a").interfaces["mspi1"].modes == ("hex-ddr", "octal-ddr")
+    fitted = cat.resolve("fitted")
+    assert fitted.interfaces["mspi1"].modes == ("octal-ddr",)
+    assert [i.modes for i, _ in fitted._devices] == [(), ("octal-ddr",)]
+    assert fitted.board.interfaces["mspi1"].modes == ("hex-ddr", "octal-ddr")
+
+
+@pytest.mark.parametrize(
+    ("modes", "problem"),
+    [
+        (
+            {"mspi1": ["quad"]},
+            "addons.shield.modes.mspi1: quad not among board 'board_a''s 'mspi1' modes",
+        ),
+        ({"mspi0": ["octal-ddr"]}, "addons.shield.modes: 'mspi0' is not in occupies"),
+    ],
+)
+def test_an_add_on_narrows_only_the_modes_of_interfaces_it_occupies(document, modes, problem):
+    with_mspi1(document)
+    document["boards"]["board_a"]["interfaces"]["mspi1"]["modes"] = ["octal-ddr"]
+    document["addons"] = {"shield": {**shield({"mspi1": "psram_8m"}), "modes": modes}}
+    assert problem in problems_of(document)
+
+
 def test_default_access_grants_core_0_what_no_core_has_an_entry_for(document):
     add_radio(document)
     memories = soc(document)["memories"]

@@ -52,6 +52,8 @@ class Target:
     addons: tuple[model.AddOn, ...]
     aliases: tuple[str, ...]
     boot: model.BootConfig | None
+    #: The implementation's and the board's interfaces, with modes the fitted add-ons narrow.
+    interfaces: Mapping[str, model.MemoryInterface]
     _catalog: Catalog = field(repr=False, compare=False)
     _devices: tuple[tuple[model.MemoryInterface, model.MemoryDevice], ...] = field(
         default=(), repr=False, compare=False

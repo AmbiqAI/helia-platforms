@@ -394,6 +394,8 @@ class AddOn(_Entity):
     fits_boards: Required[Ids]
     occupies: Required[Names]
     population: Required[dict[Name, Id]]
+    # Modes of an occupied interface while the add-on is fitted, narrowing the board's.
+    modes: NotRequired[dict[Name, Annotated[list[str], BY_VALUE]]]
     revision: NotRequired[str]
     extensions: NotRequired[Extensions]
 

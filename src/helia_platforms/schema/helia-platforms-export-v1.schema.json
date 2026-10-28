@@ -907,6 +907,84 @@
                 ]
               }
             },
+            "modes": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string",
+                "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+              },
+              "additionalProperties": {
+                "anyOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "value": {
+                              "type": "string"
+                            },
+                            "provenance": {
+                              "$ref": "#/$defs/Provenance"
+                            }
+                          },
+                          "required": [
+                            "value",
+                            "provenance"
+                          ],
+                          "additionalProperties": false
+                        }
+                      ]
+                    },
+                    "uniqueItems": true
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "value": {
+                        "type": "array",
+                        "items": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "value": {
+                                  "type": "string"
+                                },
+                                "provenance": {
+                                  "$ref": "#/$defs/Provenance"
+                                }
+                              },
+                              "required": [
+                                "value",
+                                "provenance"
+                              ],
+                              "additionalProperties": false
+                            }
+                          ]
+                        },
+                        "uniqueItems": true
+                      },
+                      "provenance": {
+                        "$ref": "#/$defs/Provenance"
+                      }
+                    },
+                    "required": [
+                      "value",
+                      "provenance"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            },
             "revision": {
               "anyOf": [
                 {

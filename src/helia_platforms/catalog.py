@@ -810,9 +810,10 @@ class _Loader:
         for board in addon.fits_boards:
             if board not in boards:
                 self.fail(origin, f"{where}.fits_boards", f"no board {board!r}")
-        for interface in addon.population:
-            if interface not in addon.occupies:
-                self.fail(origin, f"{where}.population", f"{interface!r} is not in occupies")
+        for key, names in (("population", addon.population), ("modes", addon.modes)):
+            for interface in names:
+                if interface not in addon.occupies:
+                    self.fail(origin, f"{where}.{key}", f"{interface!r} is not in occupies")
         self.check_population(catalog, None, addon.population, where, origin)
         devices = catalog._tables.get("memory_devices", {})
         for board in (boards[b] for b in addon.fits_boards if b in boards):
@@ -825,6 +826,8 @@ class _Loader:
                 if name in board.interfaces and device in devices:
                     at = f"{where}.population.{name} on {board.id}"
                     self.check_aperture(board.interfaces[name], devices[device], at, origin)
+            for name, problem in _narrowing_problems(addon, board):
+                self.fail(origin, f"{where}.modes.{name}", problem)
 
     def check_population(
         self,
@@ -893,6 +896,20 @@ class _Loader:
                 f"{device.id!r} ({device.capacity} bytes) exceeds the {interface.name!r} "
                 f"aperture ({interface.aperture_max} bytes)",
             )
+
+
+def _narrowing_problems(addon: model.AddOn, board: model.Board) -> list[tuple[str, str]]:
+    """``(interface, problem)`` for each mode ``addon`` keeps that ``board``'s interface lacks."""
+    problems = []
+    for name, modes in addon.modes.items():
+        if name not in board.interfaces:
+            continue  # reported as an interface the board lacks
+        extra = [m for m in modes if m not in board.interfaces[name].modes]
+        if extra:
+            problems.append(
+                (name, f"{', '.join(extra)} not among board {board.id!r}'s {name!r} modes")
+            )
+    return problems
 
 
 def _removed_controllers(impl: model.Implementation) -> tuple[str, ...]:

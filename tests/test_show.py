@@ -254,3 +254,15 @@ def test_an_interface_an_add_on_occupies_without_a_device_is_not_unpopulated():
     (fitted,) = row_texts(catalog.resolve("board_a_shield"), "interface iom0")
     assert "(unpopulated)" in bare
     assert "(occupied by add-on shield)" in fitted
+
+
+def test_a_fitted_add_on_prints_the_modes_it_narrows_an_interface_to():
+    document = full_document()
+    document["boards"]["board_a"]["interfaces"]["mspi1"]["modes"] = ["hex-ddr", "octal-ddr"]
+    document["addons"]["shield"]["modes"] = {"mspi1": ["octal-ddr"]}
+    target = load_overlay(document, base=builtin(include_plugins=False)).resolve("board_a_shield")
+    (addon,) = row_texts(target, "add-on")
+    assert "modes.mspi1 octal-ddr" in addon
+    (psram,) = row_texts(target, "psram1")
+    assert "modes octal-ddr while the add-on is fitted" in psram
+    assert _show.stated_facts(target) <= printed(target)

@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import dataclasses
 import difflib
 import warnings
 from collections.abc import Mapping, Sequence
+from types import MappingProxyType
 
 from helia_platforms import model
 from helia_platforms.catalog import Catalog, _placement_problems, builtin
@@ -126,7 +128,8 @@ def _target(
     soc_id = implementation.soc if implementation else part.soc if part else entry_id
     soc = catalog._realized(impl_id) if impl_id else catalog._entry("socs", soc_id)
     addons = _addons(catalog, board, addon_ids)
-    devices = _devices(catalog, board, implementation, addons)
+    fitted = _fitted(board, addons)
+    devices = _devices(catalog, fitted, implementation, board, addons)
     chain = [e for e in (board, part, implementation, catalog._entry("socs", soc_id)) if e]
     chain += [*addons, *(device for _, device in devices)]
     status = _EMBARGOED if any(e.release_status == _EMBARGOED for e in chain) else "public"
@@ -144,6 +147,9 @@ def _target(
         addons=addons,
         aliases=aliases,
         boot=_select_boot(soc, board, implementation, boot, entry_id),
+        interfaces=MappingProxyType(
+            {**(implementation.interfaces if implementation else {}), **fitted}
+        ),
         _catalog=catalog,
         _devices=devices,
     )
@@ -169,19 +175,36 @@ def _addons(
     return addons
 
 
+def _fitted(
+    board: model.Board | None, addons: tuple[model.AddOn, ...]
+) -> dict[str, model.MemoryInterface]:
+    """The board's interfaces, each with the modes a fitted add-on narrows it to."""
+    if board is None:
+        return {}
+    narrowed = {name: modes for addon in addons for name, modes in addon.modes.items()}
+    return {
+        name: dataclasses.replace(i, modes=narrowed[name]) if name in narrowed else i
+        for name, i in board.interfaces.items()
+    }
+
+
 def _devices(
     catalog: Catalog,
-    board: model.Board | None,
+    fitted: Mapping[str, model.MemoryInterface],
     implementation: model.Implementation | None,
+    board: model.Board | None,
     addons: tuple[model.AddOn, ...],
 ) -> tuple[tuple[model.MemoryInterface, model.MemoryDevice], ...]:
-    """(interface, device) for each population: the implementation's, the board's, then add-ons'."""
+    """(interface, device) for each population: the implementation's, the board's, then add-ons'.
+
+    Board interfaces are ``fitted``, the board's with the add-ons' narrowed modes.
+    """
     populations: list[tuple[Mapping[str, model.MemoryInterface], Mapping[str, str]]] = []
     if implementation is not None:
         populations.append((implementation.interfaces, implementation.population))
     if board is not None:
-        populations.append((board.interfaces, board.population))
-        populations += [(board.interfaces, addon.population) for addon in addons]
+        populations.append((fitted, board.population))
+        populations += [(fitted, addon.population) for addon in addons]
     return tuple(
         (interfaces[name], catalog._entry("memory_devices", device_id))
         for interfaces, population in populations

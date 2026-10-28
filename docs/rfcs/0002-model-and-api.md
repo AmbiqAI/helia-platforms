@@ -377,7 +377,11 @@ customers add daughter boards.
 - `population`: which device sits on which interface as the board ships.
 - `AddOn`: a shield or daughter board that names the boards it fits
   (`fits_boards`), the interfaces it occupies (`occupies`) and its own
-  `population` on those interfaces.
+  `population` on those interfaces. Its optional `modes` narrows an
+  occupied interface's modes while it is fitted, each a mode the board's
+  interface lists: the Apollo4 Plus Display Kit's shield runs MSPI0 in
+  `octal-ddr` only, because MSPI1 is unusable while MSPI0 is in hex mode
+  (DS-A4P p115). `Target.interfaces` carries the narrowed modes.
 - The resolved target is board plus selected add-ons plus overlay. The
   validator rejects two devices on one interface, an add-on on an
   interface the board or another add-on already uses (an occupied
@@ -837,7 +841,7 @@ one of them.
 @dataclass(frozen=True) class ImageSlot:  name, core, region, offset, size, supplier, provenance
 @dataclass(frozen=True) class MemoryInterface: name, controller, modes, aperture_base, aperture_max
 @dataclass(frozen=True) class MemoryDevice: id, technology, capacity, driver_family, modes, characterization, aliases, release_status, provenance
-@dataclass(frozen=True) class AddOn:      id, fits_boards, occupies, population: Mapping[str, str], revision, aliases, release_status, extensions, provenance
+@dataclass(frozen=True) class AddOn:      id, fits_boards, occupies, population: Mapping[str, str], modes: Mapping[str, tuple[str, ...]], revision, aliases, release_status, extensions, provenance
 @dataclass(frozen=True) class Board:      id, category, revision, part, interfaces, population: Mapping[str, str], provisioning, jlink_device, trace_clock_mhz, aliases, release_status, extensions, provenance
 @dataclass(frozen=True) class Composition: alias, board, addons; release_status (property, effective from what it references)
 @dataclass(frozen=True) class LinkEnvironment: owner, link_family, profile, applies_to: tuple[str, ...], regions: Mapping[str, WindowRegion], source, revision; release_status (property, effective)
@@ -877,6 +881,7 @@ class Target:
     default_operating_point: OperatingPoint | None
     capabilities: frozenset[str]                              # derived; stable spellings
     category: str | None; addons: tuple[AddOn, ...]           # None for implementation and soc targets
+    interfaces: Mapping[str, MemoryInterface]                 # the implementation's and board's, with modes the fitted add-ons narrow
     # boot
     boot: BootConfig | None                                   # explicit boot=, else board, else implementation provisioning, else default
     def boot_configs(self) -> tuple[BootConfig, ...]
@@ -918,8 +923,10 @@ naming Soc regions the FVP does not list, each in at most one region
 `derives_from` requires equal physical regions; no two devices on one
 interface, no add-on on an interface the board or another add-on already
 uses (an occupied interface counts even without a device), no add-on on
-a board it does not fit, no device larger than its aperture; provenance
-required on built-ins; built-in entries may not carry `extensions`.
+a board it does not fit, no device larger than its aperture, an add-on's
+`modes` only on interfaces it occupies and only modes the board's
+interface lists; provenance required on built-ins; built-in entries may
+not carry `extensions`.
 Multicore rules (this is the one list; 0002-multicore.md refers to it):
 core ids unique; index 0 has role `application`; every
 `driven_by` names a core; every `clock_domain` reference names a domain;
