@@ -2651,31 +2651,6 @@
                 }
               ]
             },
-            "max_outstanding_writes": {
-              "anyOf": [
-                {
-                  "type": "integer",
-                  "minimum": 0
-                },
-                {
-                  "type": "object",
-                  "properties": {
-                    "value": {
-                      "type": "integer",
-                      "minimum": 0
-                    },
-                    "provenance": {
-                      "$ref": "#/$defs/Provenance"
-                    }
-                  },
-                  "required": [
-                    "value",
-                    "provenance"
-                  ],
-                  "additionalProperties": false
-                }
-              ]
-            },
             "burst_bytes": {
               "anyOf": [
                 {
