@@ -140,6 +140,11 @@ spans several rows takes the row with the largest bump.
 | Link-environment dataset change | as the addition or correction rows if the dataset ships in the wheel, otherwise `chore(data):`; it is outside the digest (open question 2) | unchanged | patch or none | minor, patch or none |
 | Documentation only | `docs:` | unchanged | no release | no release |
 
+Before 1.0, a schema break keeps `SCHEMA_VERSION` (`_format.py`) and is
+marked only by its `feat!:` commit and the minor release. The owner decided
+this on 2026-10-28, reviewing #126 (apollo4p and apollo4l built-in data),
+whose occupied-interface rule rejects version-1 overlays the base accepted.
+
 Reason: a correction that changes a value changes no contract, so semver
 gives it a patch even though consumer outputs such as placement budgets
 change; that change is the purpose of a correction. A correction that
