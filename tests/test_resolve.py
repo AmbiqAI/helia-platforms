@@ -182,6 +182,15 @@ def test_memories_are_what_the_core_reaches_plus_populated_devices(catalog):
     assert resolve("soc_a", catalog=catalog).external_memories() == ()
 
 
+def test_an_interface_alias_is_the_device_regions_alternate_base(document):
+    document["boards"]["board_a"]["interfaces"]["mspi0"]["alternate_bases"] = [0x58000000]
+    target = resolve("board_a", catalog=quiet(document))
+    (psram,) = target.external_memories()
+    assert (psram.base, psram.alternate_bases) == (0x60000000, (0x58000000,))
+    assert target.placement_ranges()["psram0"] == (0x60000000, 8 * KB * KB)
+    assert target.classify_address(0x58000010) == "psram0"
+
+
 def test_placement_leaves_out_an_external_device_with_no_base(document):
     del document["boards"]["board_a"]["interfaces"]["mspi0"]["aperture_base"]
     target = resolve("board_a", catalog=quiet(document))

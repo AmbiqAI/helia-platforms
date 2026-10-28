@@ -149,6 +149,7 @@ class Target:
                 attachment="external",
                 size=device.capacity,
                 base=interface.aperture_base,
+                alternate_bases=interface.alternate_bases,
                 characterization=device.characterization,
                 provenance=device.provenance,
                 field_provenance=device.field_provenance,

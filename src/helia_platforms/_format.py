@@ -334,6 +334,9 @@ class MemoryInterface(_Facts):
     controller: Required[Name]
     modes: NotRequired[Annotated[list[str], BY_VALUE]]
     aperture_base: NotRequired[Address]
+    # Other windows onto the same device (an uncached read/write alias); a populated
+    # device's region carries them as its alternate_bases.
+    alternate_bases: NotRequired[Annotated[list[Address], BY_VALUE]]
     aperture_max: NotRequired[Size]
 
 

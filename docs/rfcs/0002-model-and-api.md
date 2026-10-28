@@ -56,7 +56,7 @@ Each term has one meaning in this RFC, except `revision`, whose meaning depends 
 | revision (LinkEnvironment) | `LinkEnvironment.revision`: the revision of the source the windows were generated from (an SDK or Zephyr commit). |
 | add-on | An `AddOn`: a shield or daughter board that fits named boards, occupies board interfaces and brings its own population. |
 | memory device | A `MemoryDevice`: an external memory part with technology, capacity, driver family and modes. |
-| interface | A `MemoryInterface` on a board: controller, modes and XIP aperture. |
+| interface | A `MemoryInterface` on a board: controller, modes, XIP aperture and any alias windows. |
 | population | Which memory device sits on which interface, as a board ships or as an add-on brings it. A mapping from interface name to device id. |
 | provisioning | `Board.provisioning` (or `Implementation.provisioning` for an FPGA): the name of the boot configuration the fitted part or build ships with. |
 | source label | Where a catalog entry came from: `builtin`, `entry_point:<distribution>`, `env:<path>` or `overlay:<path>`; see `Catalog.sources`. |
@@ -356,7 +356,11 @@ Apollo4 Plus display shield rev 1 and rev 2 carry different PSRAM and
 flash), and customers add daughter boards.
 
 - `MemoryInterface` on the Board: name, controller (mspi0, mspi1, iom4),
-  modes (octal DDR, hex), XIP aperture base and maximum size. The
+  modes (octal DDR, hex), XIP aperture base and maximum size, and optional
+  `alternate_bases`: other windows onto the same device, such as Apollo3
+  Blue Plus's uncached read/write XIPMM window. A device populated on the
+  interface carries them as its region's `alternate_bases`; its `base`,
+  and so `placement_ranges()`, stays the aperture base. The
   controller is a memory controller of the Soc (a `Soc.memory_controllers`
   entry); devices populated on the interface inherit that controller's
   access entries ([0002-multicore.md](0002-multicore.md)). An interface
@@ -829,7 +833,7 @@ one of them.
 @dataclass(frozen=True) class Reservation: region, offset, size, purpose, provenance
 @dataclass(frozen=True) class Part:       id, soc, implementation: str | None, silicon_revision, package, radio, jlink_device, image_slots, aliases, release_status, provenance
 @dataclass(frozen=True) class ImageSlot:  name, core, region, offset, size, supplier, provenance
-@dataclass(frozen=True) class MemoryInterface: name, controller, modes, aperture_base, aperture_max
+@dataclass(frozen=True) class MemoryInterface: name, controller, modes, aperture_base, alternate_bases, aperture_max
 @dataclass(frozen=True) class MemoryDevice: id, technology, capacity, driver_family, modes, characterization, aliases, release_status, provenance
 @dataclass(frozen=True) class AddOn:      id, fits_boards, occupies, population: Mapping[str, str], revision, aliases, release_status, extensions, provenance
 @dataclass(frozen=True) class Board:      id, category, revision, part, interfaces, population: Mapping[str, str], provisioning, jlink_device, trace_clock_mhz, aliases, release_status, extensions, provenance

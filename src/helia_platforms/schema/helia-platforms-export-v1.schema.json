@@ -3070,6 +3070,81 @@
                 }
               ]
             },
+            "alternate_bases": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "value": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "provenance": {
+                            "$ref": "#/$defs/Provenance"
+                          }
+                        },
+                        "required": [
+                          "value",
+                          "provenance"
+                        ],
+                        "additionalProperties": false
+                      }
+                    ]
+                  },
+                  "uniqueItems": true
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "array",
+                      "items": {
+                        "anyOf": [
+                          {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "value": {
+                                "type": "integer",
+                                "minimum": 0
+                              },
+                              "provenance": {
+                                "$ref": "#/$defs/Provenance"
+                              }
+                            },
+                            "required": [
+                              "value",
+                              "provenance"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      },
+                      "uniqueItems": true
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
             "aperture_max": {
               "anyOf": [
                 {

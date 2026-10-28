@@ -398,7 +398,7 @@ _REGION = (
     "characterization",
     "stands_in_for",
 )
-_INTERFACE = ("controller", "modes", "aperture_base", "aperture_max")
+_INTERFACE = ("controller", "modes", "aperture_base", "alternate_bases", "aperture_max")
 _DEVICE = ("technology", "capacity", "driver_family", "modes", "characterization")
 
 

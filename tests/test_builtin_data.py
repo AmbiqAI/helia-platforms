@@ -112,6 +112,8 @@ def test_the_cygnus_composition_adds_its_psram_on_mspi1(catalog):
     assert (target.id, [a.id for a in target.addons]) == ("apollo3p_evb", ["cygnus"])
     (psram,) = target.external_memories()
     assert (psram.name, psram.base, psram.size) == ("psram0", 0x04000000, 8 * 1024 * 1024)
+    assert psram.alternate_bases == (0x54000000,)  # the read/write XIPMM window
+    assert target.placement_ranges()["psram0"] == (0x04000000, 8 * 1024 * 1024)
     assert target.board.interfaces["mspi1"].controller == "mspi1"
     assert "psram" in target.capabilities
 
