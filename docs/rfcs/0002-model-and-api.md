@@ -273,21 +273,16 @@ neuralspotx and helia-profiler use) carrying Implementation
   defines pins for IOM0 to IOM6.
 - No J-Link device: no atomiq110 spelling is in SEGGER's stock database
   (#130).
-- `trace_clock_mhz: 48`, status `measured`. The 48 MHz was measured once,
-  on one FPGA image that the source does not name; whether the trace
-  clock varies by FPGA image is open (#19). The 48 MHz reference with
-  helia-profiler's 1 MHz SWO rate is untested (helia-profiler#465).
-  Source: neuralspotx `neuralspotx-v0.9.0`,
-  `src/neuralspotx/boards/atomiq110_fpga_turbo/debug.cmake:6-18`. The
-  TPIU trace clock stays at its hardware reset default, which firmware
-  cannot change and which measures 48 MHz. The firmware programs the SWO
-  prescaler (ACPR) for 25 MHz, so SWO runs at 1.92 MHz. The file records
-  a hardware check (J-Link Compact PLUS, 2026-08): 25 MHz with 1 MHz SWO
-  decodes as gibberish, and 48 MHz with 1.92 MHz decodes cleanly.
-  `NSX_SEGGER_CPUFREQ` in that file is this trace clock, not a CPU clock.
-  The SDK's 25 MHz SoC default (nsx-ambiq-sdk `v5.2.26`,
-  `cmake/socs/facts/atomiq110.cmake:69`) does not apply.
-  RFC 0001 appendix J records the same value.
+- `trace_clock_mhz: 50`, status `unverified`, from the review of #133
+  (https://github.com/AmbiqAI/helia-platforms/pull/133#discussion_r4405639903). neuralspotx `neuralspotx-v0.9.0`,
+  `src/neuralspotx/boards/atomiq110_fpga_turbo/debug.cmake:6-18`, says
+  48 MHz: the TPIU trace clock stays at its hardware reset default, which
+  firmware cannot change, and the firmware programs the SWO prescaler
+  (ACPR) for 25 MHz. A J-Link Compact PLUS then decoded SWO cleanly at
+  1.92 Mbaud (2026-08) and not at 1 Mbaud. That decode rules out 25 MHz
+  but fits 50 MHz as well, since 50 / 25 = 2.00 Mbaud is within UART
+  tolerance, so neither figure is measured. Whether the trace clock varies
+  by FPGA image is open (#19).
 - No external memory on the Board: nsx-psram has no mapping for it, and
   neither helia-profiler nor helia-npu says anything is fitted. The
   Implementation removes HBLRAM, which nsx-ambiq-sdk says the FPGA lacks

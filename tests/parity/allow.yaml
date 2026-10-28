@@ -180,6 +180,13 @@ allowed:
     issue: "#67"
   - consumer: neuralspotx
     target: atomiq110_fpga_turbo
+    field: trace_clock_mhz
+    reason: >-
+      neuralspotx's debug.cmake sets 48 MHz from a decode that also fits 50 MHz; the
+      catalog records 50 MHz from the review of #133, unverified until measured (#19).
+    issue: "#19"
+  - consumer: neuralspotx
+    target: atomiq110_fpga_turbo
     field: jlink_device
     reason: >-
       neuralspotx's debug.cmake sets Atomiq110, which is in neither SEGGER's stock database

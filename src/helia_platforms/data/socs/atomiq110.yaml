@@ -558,20 +558,15 @@ implementations:
             provenance: *fpga_npu_mode
           provenance: *owner_npu
     trace_clock_mhz:
-      value: 48
+      value: 50
       provenance:
-        status: measured
-        source:
-          - "meas:atomiq110_fpga_turbo/swo-decode/2026-08-12"
-          - "repo:AmbiqAI/neuralspotx@neuralspotx-v0.9.0:src/neuralspotx/boards/atomiq110_fpga_turbo/debug.cmake:6-18"
-        verified_on: 2026-10-27
-        verified_by: evanchen11
+        status: unverified
         notes: >-
-          The TPIU trace clock stays at its reset default, which firmware cannot change and
-          which measures 48 MHz; firmware programs ACPR for 25 MHz, so SWO runs at 1.92 MHz.
-          J-Link Compact PLUS, 2026-08: 25 MHz / 1 MHz decodes as gibberish, 48 MHz / 1.92 MHz
-          cleanly. Measured on or before 2026-08-12 (neuralspotx d428d01); the exact day and
-          the FPGA image are unrecorded (#19).
+          50 MHz per the review of #133 (https://github.com/AmbiqAI/helia-platforms/pull/133#discussion_r4405639903). neuralspotx's debug.cmake:6-18
+          (neuralspotx-v0.9.0) says 48: the TPIU clock stays at its reset default, firmware
+          programs ACPR for 25 MHz, and a J-Link Compact PLUS decoded cleanly at 1.92 Mbaud
+          (2026-08). That decode fits 50 MHz too: 50/25 = 2.00 Mbaud is within UART tolerance.
+          Neither figure has a recorded method that separates them (#19).
     # jlink_device: absent. No atomiq110 spelling is in SEGGER's stock database (#130).
 
 boards:
