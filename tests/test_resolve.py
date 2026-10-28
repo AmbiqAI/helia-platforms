@@ -338,6 +338,21 @@ def test_a_dwt_core_reports_no_pmu(document):
     assert "pmu" not in target.capabilities
 
 
+@pytest.mark.parametrize(
+    ("programmable_by", "free"), [("either", 4032), ("vendor", None), (None, None)]
+)
+def test_usable_nvm_is_empty_for_a_core_no_customer_programs(document, programmable_by, free):
+    """RFC 0002 multicore: an unset programmable_by is a core with no loadable image."""
+    add_vendor_radio(document)
+    radio = document["socs"]["soc_a"]["cores"][1]
+    del radio["programmable_by"]
+    if programmable_by is not None:
+        radio["programmable_by"] = programmable_by
+    target = resolve("board_a", catalog=quiet(document))
+    expected = {} if free is None else {"nvm": free * KB}
+    assert dict(target.usable_nvm("radio_m4")) == expected
+
+
 def test_debug_facts_fall_back_from_board_to_part(document):
     document["parts"]["PART-A"]["jlink_device"] = "PART-A-JLINK"
     assert resolve("board_a", catalog=quiet(document)).jlink_device == "PART-A-JLINK"

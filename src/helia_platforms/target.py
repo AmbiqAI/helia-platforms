@@ -294,10 +294,11 @@ class Target:
     def usable_nvm(self, core: int | str = 0) -> Mapping[str, int]:
         """Bytes per non-volatile region ``core`` reaches, less reservations and others' slots.
 
-        Empty for a core only the vendor programs, since no customer image goes there.
+        Empty for a core only the vendor programs or with no loadable image
+        (``programmable_by`` unset), since no customer image goes there.
         """
         instance = self._core(core)
-        if instance.programmable_by == "vendor":
+        if instance.programmable_by in (None, "vendor"):
             return MappingProxyType({})
         taken: dict[str, int] = {}
         for reservation in self.boot.reserved if self.boot else ():
