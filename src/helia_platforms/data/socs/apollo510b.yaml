@@ -56,8 +56,8 @@ socs:
               verified_on: 2026-10-26
               verified_by: evanchen11
               notes: >-
-                The gcc -mfpu the SDK passes for every Cortex-M55 build. The facts file
-                comment (apollo510b.cmake:23-25) says no -mfpu is passed, which :221
+                The gcc -mfpu the SDK passes for every Cortex-M55 build. The comment in
+                facts/apollo510b.cmake:23-25 says no -mfpu is passed, which :221
                 contradicts. Double precision is fpu_dp.
           fpu_dp: true
           mve: fp
@@ -448,7 +448,8 @@ boards:
           verified_by: evanchen11
           notes: >-
             p10 "MSPI0 - APS512XXN-AOB4BI-WBRZ"; p8 lists the PSRAM as AP Memory
-            APS512XXN-AOB4BI-WBRZ. The board has no octal flash (p8, p10).
+            APS512XXN-AOB4BI-WBRZ. The board has no octal flash (p8, p10). The 8 GB SDIO
+            eMMC (p8, p10) is not modelled yet (#137).
     provisioning:
       value: sbl
       provenance:

@@ -25,10 +25,11 @@ memory_devices:
         verified_on: 2026-10-26
         verified_by: evanchen11
         notes: >-
-          Measured by apage224 and added in AmbiqAI/nsx-ambiq-sdk#38: heliaPROFILER ran a
-          model from PSRAM XIP, and XIP address aliasing showed 512 Mbit = 64 MB ("+32 MB
-          holds distinct data; +64 MB falls off the MSPI aperture"). apollo510b_evb rev 2.0
-          (:66-67) was measured that morning (:87-93, :126). No document states the capacity.
+          Measured by apage224 and added in AmbiqAI/nsx-ambiq-sdk#38: on apollo510_evb,
+          heliaPROFILER ran a model from PSRAM XIP, and XIP address aliasing showed 512 Mbit
+          = 64 MB (:106-110). apollo510b_evb rev 2.0 (:66-67) was measured the morning of
+          2026-07-05 (:87-93, :126). The comment's "+64 MB falls off the MSPI aperture" is
+          wrong: the MSPI0 aperture is 256 MB (DS-A510B p35). No document states the capacity.
     driver_family:
       value: aps25616ba
       provenance:
