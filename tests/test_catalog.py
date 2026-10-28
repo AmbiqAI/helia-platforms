@@ -794,6 +794,36 @@ def with_mspi1(document, aperture_max="256M"):
     }
 
 
+def test_an_interface_alias_needs_an_aperture_base(document):
+    mspi0 = document["boards"]["board_a"]["interfaces"]["mspi0"]
+    mspi0["alternate_bases"] = [0x80000000]
+    load_quietly(document)
+    del mspi0["aperture_base"]
+    assert "boards.board_a.interfaces.mspi0: alternate_bases needs an aperture_base" in problems_of(
+        document
+    )
+
+
+def test_an_interface_alias_may_not_overlap_an_on_chip_region(document):
+    document["boards"]["board_a"]["interfaces"]["mspi0"]["alternate_bases"] = [0x00400000]
+    assert (
+        "boards.board_a.interfaces.mspi0: window 0x400000 (268435456 bytes) overlaps "
+        "memories.nvm (0x400000, 4194304 bytes)"
+    ) in problems_of(document)
+
+
+def test_two_interfaces_may_not_share_a_window(document):
+    with_mspi1(document)
+    document["boards"]["board_a"]["interfaces"]["mspi0"]["alternate_bases"] = [0x80000000]
+    document["boards"]["board_a"]["interfaces"]["mspi1"]["alternate_bases"] = [0x80000000]
+    assert (
+        "boards.board_a.interfaces.mspi1: window 0x80000000 (268435456 bytes) overlaps "
+        "interfaces.mspi0 window 0x80000000 (0x80000000, 268435456 bytes)"
+    ) in problems_of(document)
+    document["boards"]["board_a"]["interfaces"]["mspi1"]["alternate_bases"] = [0x64000000]
+    assert "overlaps interfaces.mspi0 window 0x60000000" in problems_of(document)
+
+
 def test_an_add_on_may_not_put_a_second_device_on_a_board_interface(document):
     with_mspi1(document)
     document["addons"] = {"shield": shield({"mspi1": "psram_8m"})}
