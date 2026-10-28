@@ -397,12 +397,13 @@ parts:
         source:
           - "doc:DS-A510B@1.1.0:p263"
           - "url:https://www.segger.com/supported-devices/ambiqmicro/"
-        verified_on: 2026-10-12
+        verified_on: 2026-10-28
         verified_by: evanchen11
         notes: >-
           The ordering number (p263), which SEGGER's Ambiq device list names as a J-Link
-          device; libjlinkarm V9.56 has it and V8.10b does not (#19). The SDK default,
-          NSX_SEGGER_DEVICE "AP510NFA-CBR" (facts/apollo510b.cmake:52), is apollo510's.
+          device. libjlinkarm V9.42, V9.56 and V9.60 have it; V8.10b does not (#19). The
+          SDK default, NSX_SEGGER_DEVICE "AP510NFA-CBR" (facts/apollo510b.cmake:52), is
+          apollo510's.
     provenance:
       status: datasheet
       source: ["doc:DS-A510B@1.1.0:p263", "doc:DS-A510B@1.1.0:p199", "doc:QS-A510B@1.1:p25"]
