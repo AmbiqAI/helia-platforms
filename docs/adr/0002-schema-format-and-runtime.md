@@ -211,8 +211,11 @@ as an operating point that names a removed point, are checked after the
 merge. An Implementation writes its removals, resizes, rebases and clock
 caps under `subset:`; `Subset` gains a field for each `_removed` key,
 including `accelerators_removed`, which RFC 0002's prose allows (`:214`)
-but its `Subset` (`:738`) lacks; a Part's `image_slots_removed` is not a
-subset field. Because collections merge, an FPGA that must not offer the
+but its `Subset` (`:738`) lacks, and `image_slots_removed`, which removes
+a Soc's image slot for every Part of the Implementation. A Part's
+`image_slots_removed` applies over its `based_on` Part only; naming a slot
+its Soc also carries is an error, because the Soc's slot would take the
+removed one's place. Because collections merge, an FPGA that must not offer the
 Soc's `sbl` configuration says `boot_configs_removed: [sbl]`. In
 an entry with `based_on` no key is required, because the base supplies
 them; required keys are checked after the merge. RFC 0002's shorthands

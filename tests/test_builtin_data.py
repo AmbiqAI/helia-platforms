@@ -329,12 +329,32 @@ def test_the_radio_core_reaches_its_tcm_nvm_and_system_sram(catalog):
 def test_nvm_m41_is_the_radio_core_s_slot_on_every_part_and_the_soc(catalog, name, slot_kb):
     """The #127 review: every part keeps the Cortex-M4, whose factory firmware is in NVM-M41."""
     target = catalog.resolve(name)
-    assert {(s.name, s.core, s.size // 1024) for s in target.image_slots.values()} == {
-        ("nvm_m41", "radio_m4", slot_kb)
-    }
+    assert [
+        (s.name, s.core, s.region, s.offset, s.size, s.supplier)
+        for s in target.image_slots.values()
+    ] == [("nvm_m41", "radio_m4", "mram", (2048 - slot_kb) * 1024, slot_kb * 1024, "vendor")]
     assert dict(target.usable_nvm()) == {"mram": (2048 - 64 - slot_kb) * 1024}
     assert [c.id for c in target.cores(role="radio")] == ["radio_m4"]
     assert target.has_region("rs_tcm")
+
+
+@pytest.mark.parametrize("soc", ["apollo510L", "apollo330P"])
+def test_the_m55_reaches_the_radio_tcm_but_no_budget_counts_it(catalog, soc):
+    """The #127 review: DS p33 maps RS TCM for the M55, recorded as discouraged."""
+    target = catalog.resolve(soc)
+    entry = target.reachable("cm55_0", "rs_tcm")
+    assert entry is not None and (entry.access, entry.guidance) == ("direct", "discouraged")
+    assert "rs_tcm" not in {m.name for m in target.memories()}
+    assert "rs_tcm" not in target.placement_ranges()
+    assert target.classify_address(0x003C0000) == "rs_tcm"
+
+
+@pytest.mark.parametrize("soc", ["apollo510L", "apollo330P"])
+def test_the_radio_core_on_every_part_is_derived(catalog, soc):
+    """The #127 review: the datasheet puts the RSS on the radio parts only."""
+    record = catalog.resolve(soc).soc.field_provenance["cores.radio_m4.role"]
+    assert record.status == "derived"
+    assert {s.rsplit(":", 1)[-1] for s in record.source} == {"p2", "p33", "p55", "p67"}
 
 
 def test_apollo330p_has_no_display_or_gpu(catalog):

@@ -381,6 +381,7 @@ _SUBSET_DELTAS = (
     "clock_domains_removed",
     "boot_configs_removed",
     "operating_points_removed",
+    "image_slots_removed",
     "access_removed",
 )
 #: Region deltas an FVP's own memories replace (ADR 0007).

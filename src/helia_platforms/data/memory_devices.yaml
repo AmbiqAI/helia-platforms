@@ -20,16 +20,20 @@ memory_devices:
         source:
           - "meas:apollo510_evb/xip-alias/2026-07-05"
           - "meas:apollo510b_evb/xip-alias/2026-07-05"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-psram/CMakeLists.txt:66-67"
           - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-psram/CMakeLists.txt:87-93"
           - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-psram/CMakeLists.txt:106-110"
-        verified_on: 2026-10-26
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-psram/CMakeLists.txt:126"
+          - "doc:DS-A510@1.1.0:p36"
+        verified_on: 2026-10-28
         verified_by: evanchen11
         notes: >-
-          Measured by apage224 and added in AmbiqAI/nsx-ambiq-sdk#38: on apollo510_evb,
-          heliaPROFILER ran a model from PSRAM XIP, and XIP address aliasing showed 512 Mbit
-          = 64 MB (:106-110). apollo510b_evb rev 2.0 (:66-67) was measured the morning of
-          2026-07-05 (:87-93, :126). The comment's "+64 MB falls off the MSPI aperture" is
-          wrong: the MSPI0 aperture is 256 MB (DS-A510B p35). No document states the capacity.
+          Measured and added in AmbiqAI/nsx-ambiq-sdk#38: on apollo510_evb, heliaPROFILER ran
+          a model from PSRAM XIP, and XIP address aliasing showed 512 Mbit = 64 MB
+          (:106-110). apollo510b_evb rev 2.0 (:66-67) was measured the morning of 2026-07-05
+          (:87-93, :126). The apollo510_evb comment's "+64 MB falls off the MSPI aperture"
+          is wrong: apollo510's MSPI0 aperture is 256 MB (DS-A510 p36). No document states
+          the capacity.
     driver_family:
       value: aps25616ba
       provenance:
