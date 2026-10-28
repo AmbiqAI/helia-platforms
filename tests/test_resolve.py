@@ -307,6 +307,14 @@ def test_usable_nvm_leaves_out_other_cores_image_slots(document):
     assert dict(target.usable_nvm()) == {"nvm": 4 * KB * KB - 64 * KB - 432 * KB}
 
 
+def test_a_dwt_core_reports_no_pmu(document):
+    document["socs"]["soc_a"]["cores"][0]["core"] = "cortex-m4"
+    document["socs"]["soc_a"]["cores"][0]["options"] = {"fpu": "fpv4-sp-d16", "mve": "none"}
+    target = resolve("board_a", catalog=quiet(document))
+    assert (target.isa().has_pmu, target.isa().pmu_kind) == (False, "dwt")
+    assert "pmu" not in target.capabilities
+
+
 def test_debug_facts_fall_back_from_board_to_part(document):
     document["parts"]["PART-A"]["jlink_device"] = "PART-A-JLINK"
     assert resolve("board_a", catalog=quiet(document)).jlink_device == "PART-A-JLINK"

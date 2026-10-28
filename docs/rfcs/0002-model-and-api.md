@@ -462,7 +462,7 @@ stable string set (`Target.capabilities`) for tools that want one:
 | `isa().supports_fp16` | `CoreOptions.mve == fp` |
 | `isa().supports_fp32` | `CoreOptions.fpu != none` |
 | `isa().supports_fp64` | `CoreOptions.fpu_dp` |
-| `isa().has_pmu`, `isa().pmu_kind` | `Core.pmu` |
+| `isa().has_pmu`, `isa().pmu_kind` | `Core.pmu` (`has_pmu` is false for `none` and `dwt`) |
 | `npu` (npu 0, `None` when absent), `npus()` | `Soc.npus` after the implementation subset |
 | `has_external_memory(technology)` | board population plus selected add-ons |
 
