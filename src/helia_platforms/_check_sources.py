@@ -238,17 +238,17 @@ class _Comparison:
     ) -> Iterator[Finding]:
         """Each region inside one gap-free run of physical regions, or an external aperture.
 
-        A region with no length (an unsized scatter execution region) is checked by its origin;
-        a length must be positive.
+        A region with no length or a zero one (an unsized or ``EMPTY 0`` scatter region) is
+        checked by its origin; a negative length is a finding.
         """
         runs = _runs(soc)
         for path, base, size in regions:
-            if size is not None and size <= 0:
+            if size is not None and size < 0:
                 yield Finding(
                     snapshot, (*at, *path), "region containment", f"{base:#x} has length {size}"
                 )
                 continue
-            end = base + (1 if size is None else size)
+            end = base + (size or 1)
             if any(lo <= base and end <= hi for lo, hi in apertures):
                 continue  # external memory, which ADR 0006 does not compare
             if not any(lo <= base and end <= hi for lo, hi in runs):
