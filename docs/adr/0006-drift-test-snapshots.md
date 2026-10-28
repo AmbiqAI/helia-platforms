@@ -265,8 +265,8 @@ and dataset rows.
 | `SdkFacts.build.abi`, `float_abi` | `NSX_ABI_FLAGS`, `NSX_FLOAT_ABI` | equal |
 | `SdkFacts.trace_clock_mhz` | `NSX_SEGGER_CPUFREQ` of the facts file | equal after the snapshot's value, a string in Hz, is converted to MHz (`"48000000"` is 48) |
 | `flash_load_address()` of the Soc target, under its `default_boot` | `NSX_SEGGER_PF_ADDR` | equal |
-| `MemoryRegion.base`, `size` | register defines, through a per-SoC map of region to define expression | equal where a define exists |
-| every extracted linker and devicetree region | the catalogue's physical regions | lies inside one contiguous, gap-free run of them |
+| `MemoryRegion.base`, `size` | register defines, through a per-SoC map of region to define expression | equal; a define the map names and the header lacks is a finding (the map leaves a name empty where the header has no such define) |
+| every extracted linker and devicetree region | the catalogue's physical regions | lies inside one contiguous, gap-free run of them, or inside the header's XIP aperture of one of the Soc's `memory_controllers` |
 | an `sdk` record that cites a snapshotted repository (nsx-ambiq-sdk, neuralspotx, zephyr, hal_ambiq) | the snapshots | cites a `revision` the snapshots hold: a tag by name, a commit as the exact full SHA; a reference matches a snapshot's `revision` field only |
 | a `#<symbol>` reference in such a record | the source at that revision | names a single definition (checked by the extract jobs, which hold the source trees) |
 | the link-environment dataset | the snapshots | regenerates byte for byte (section 4) |

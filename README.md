@@ -20,6 +20,13 @@ commands. The
 built-in data holds apollo510, apollo510b, apollo510L and apollo330P so far, with
 their parts and evaluation boards.
 
+## Upgrade notes
+
+- apollo510b_evb's `jlink_device` is `AP510BFA-CBR`, the Apollo510B ordering
+  number, which SEGGER lists as its own J-Link device. J-Link V9.42 has it and
+  V8.10b does not, so update an older J-Link, or pass the SDK's default
+  `AP510NFA-CBR` yourself.
+
 ## Quickstart
 
 Requires [uv](https://docs.astral.sh/uv/).
