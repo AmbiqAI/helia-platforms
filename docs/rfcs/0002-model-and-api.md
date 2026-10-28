@@ -394,7 +394,8 @@ and neuralspotx's matching board id become entries in the catalog's
 `resolve("apollo4p_evb_disp_shield_rev2")` returns the `apollo4p_evb`
 board target with the display shield `apollo4p_disp_shield` in
 `Target.addons` (shield revision 1; the `_rev2` is the EVB revision,
-QS-A4PDK p18);
+QS-A4PDK p18). The kit's part number, `AMAP4PDISP` (the EVB with the
+shield, QS-A4PDK p18), is a composition of the same board and add-on.
 `Target.id` is the board id, and the legacy id is kept in
 `Target.aliases`. heliaAOT artefact names use `Target.id`, except that
 for a plain alias heliaAOT keeps the name the user passed and records the

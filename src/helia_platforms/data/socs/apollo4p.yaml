@@ -511,7 +511,8 @@ boards:
       notes: >-
         p6 "Apollo4 Plus Evaluation Board (EVB), part number AMAP4PEVB"; p10 "Apollo4 Plus
         SoC in the BGA package (AMAP42KP-KBR)". The guide covers EVB revisions 1 to 3, so
-        revision is left out. No PSRAM, flash or eMMC on the board itself (p10).
+        revision is left out; the Display Kit needs revision 2 or later (QS-A4PDK p10),
+        which fits_boards cannot say (#138). No PSRAM, flash or eMMC on the board (p10).
     # The interfaces host the Display Kit (addons.yaml); the board populates none of them.
     interfaces:
       mspi0:
@@ -525,7 +526,8 @@ boards:
             verified_by: evanchen11
             notes: >-
               The Display Kit BSP's PSRAM chip selects AM_HAL_MSPI_FLASH_OCTAL_DDR_CE0 and
-              _HEX_DDR_CE0. DS-A4P p115: "MSPI0 additionally supports hex (16-bit) mode".
+              _HEX_DDR_CE0. DS-A4P p115: "MSPI0 additionally supports hex (16-bit) mode". The
+              Display Kit narrows it to octal-ddr while fitted (addons.yaml).
         aperture_base: 0x14000000
         aperture_max: 64M
         provenance: &ds_aperture

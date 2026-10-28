@@ -4,7 +4,6 @@ schema_version: 1
 addons:
   apollo4p_disp_shield:
     release_status: public
-    aliases: [AMAP4PDISP]
     revision:
       value: "1"
       provenance:
@@ -20,6 +19,18 @@ addons:
     population:
       mspi0: APS256XXN
       mspi1: IS25WX064
+    modes:
+      mspi0:
+        value: [octal-ddr]
+        provenance:
+          status: datasheet
+          source: ["doc:QS-A4PDK@1.2:p10", "doc:QS-A4PDK@1.2:p11", "doc:DS-A4P@1.6.0:p115"]
+          verified_on: 2026-10-28
+          verified_by: evanchen11
+          notes: >-
+            The shield populates the MSPI1 flash, so MSPI0 runs octal: "when using MSPI0 in
+            hex mode, MSPI1 cannot be used" (DS-A4P p115). QS-A4PDK p10 draws hex to the
+            PSRAM only: "MSPI1 is not used in this configuration"; p11 draws both octal.
     provenance:
       status: datasheet
       source:
@@ -30,8 +41,10 @@ addons:
       verified_on: 2026-10-08
       verified_by: evanchen11
       notes: >-
-        Apollo4 Plus Display Kit, "part number AMAP4PDISP" (p6), "only compatible with the
-        (non-blue) Apollo4 Plus EVB", revision 2 or later (p10). GPIO34 selects MSPI0 hex to
-        the PSRAM only (p10), or MSPI0 and MSPI1 octal to the PSRAM and the flash (p11), so
-        the flash is reachable only in the octal setting. Both figures wire the display to
-        Quad-MSPI2, a figure label only. The 4 GB eMMC THGBMNG5D1LBAIT (p12) is not modelled.
+        The Apollo4 Plus Display Kit's shield; the kit, "part number AMAP4PDISP" (p6), is the
+        EVB with the shield (names.yaml). It is "only compatible with the (non-blue) Apollo4
+        Plus EVB", revision 2 or later (p10), which fits_boards cannot say (#138). GPIO34
+        selects MSPI0 hex to the PSRAM only (p10), or MSPI0 and MSPI1 octal to the PSRAM and
+        the flash (p11); the population is the octal setting. Both figures wire the display
+        to Quad-MSPI2, a figure label only. The 4 GB eMMC THGBMNG5D1LBAIT (p12) is not
+        modelled (#137).
