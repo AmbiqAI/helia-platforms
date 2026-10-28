@@ -81,7 +81,7 @@ def test_apollo3_boards_answer_the_consumer_queries(catalog, name, sram, flash):
     """RFC 0002's heliaAOT and profiler questions, against #67's proposal section 1.6."""
     target = catalog.resolve(name)
     assert target.core.id == "cortex-m4"
-    assert target.capabilities == {"dsp", "fp32", "pmu"}
+    assert target.capabilities == {"dsp", "fp32"}
     assert {m.name: (m.base, m.size) for m in target.memories()} == {
         "tcm": (0x10000000, 64 * 1024),
         "sram": (0x10010000, sram),
