@@ -121,7 +121,7 @@ socs:
           value: 384K
           provenance: &ds_mem
             status: datasheet
-            source: ["doc:DS-A4L@0.9.1:p59"]
+            source: ["doc:DS-A4L@0.9.1:p59", "doc:DS-A4L@0.9.1:p42"]
             verified_on: 2026-10-08
             verified_by: evanchen11
             notes: >-
@@ -211,7 +211,7 @@ socs:
               notes: The enumerator comments say 96 MHz and 192 MHz.
           provenance: &ds_clk
             status: datasheet
-            source: ["doc:DS-A4L@0.9.1:p55"]
+            source: ["doc:DS-A4L@0.9.1:p55", "doc:DS-A4L@0.9.1:p48"]
             verified_on: 2026-10-08
             verified_by: evanchen11
             notes: >-
@@ -370,7 +370,7 @@ parts:
       value: none
       provenance:
         status: datasheet
-        source: ["doc:DS-A4L@0.9.1:p2", "doc:DS-A4L@0.9.1:p42", "doc:DS-A4L@0.9.1:p48"]
+        source: ["doc:DS-A4L@0.9.1:p2", "doc:DS-A4L@0.9.1:p42", "doc:DS-A4L@0.9.1:p48", "doc:DS-A4L@0.9.1:p75"]
         verified_on: 2026-10-28
         verified_by: evanchen11
         notes: >-
