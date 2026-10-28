@@ -295,6 +295,7 @@ socs:
           notes: >-
             On apollo3p_evb, TPIUCTRL reads 0x201 (CLKSEL HFRCDIV8) and SWO decodes at 1 Mbaud
             only with ACPR 5, so the TPIU clock is 6 MHz, HFRC/8 of the 48 MHz HFRC (p627).
+            HFRC/2, the fastest CLKSEL (p160), caps it at 24 MHz.
             J-Link's Apollo3 support takes its CPU-speed argument as the HFRC and divides by
             8 itself, so NSX_SEGGER_CPUFREQ's 48 MHz (apollo3p.cmake:52) is what J-Link needs.
             Measured at the 48 MHz lp clock, not in burst mode.
