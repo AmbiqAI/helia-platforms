@@ -195,6 +195,25 @@ def test_nvm_m41_is_the_radio_core_s_slot_on_every_part_and_the_soc(catalog, nam
     assert target.has_region("rs_tcm")
 
 
+@pytest.mark.parametrize("soc", ["apollo510L", "apollo330P"])
+def test_the_m55_reaches_the_radio_tcm_but_no_budget_counts_it(catalog, soc):
+    """The #127 review: DS p33 maps RS TCM for the M55, recorded as discouraged."""
+    target = catalog.resolve(soc)
+    entry = target.reachable("cm55_0", "rs_tcm")
+    assert entry is not None and (entry.access, entry.guidance) == ("direct", "discouraged")
+    assert "rs_tcm" not in {m.name for m in target.memories()}
+    assert "rs_tcm" not in target.placement_ranges()
+    assert target.classify_address(0x003C0000) == "rs_tcm"
+
+
+@pytest.mark.parametrize("soc", ["apollo510L", "apollo330P"])
+def test_the_radio_core_on_every_part_is_derived(catalog, soc):
+    """The #127 review: the datasheet puts the RSS on the radio parts only."""
+    record = catalog.resolve(soc).soc.field_provenance["cores.radio_m4.role"]
+    assert record.status == "derived"
+    assert {s.rsplit(":", 1)[-1] for s in record.source} == {"p2", "p33", "p55", "p67"}
+
+
 def test_apollo330p_has_no_display_or_gpu(catalog):
     peripherals = set(catalog.resolve("apollo330P").soc.peripherals)
     assert not peripherals & {"dc", "dsi", "gpu", "i2s1"}
