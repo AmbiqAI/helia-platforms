@@ -83,7 +83,7 @@ either a catalog id or an alias; an alias resolves to a target whose
 |---|---|---|---|
 | `apollo3_evb` | Board id (also a neuralspotx board id) | `apollo3_evb` | Unchanged |
 | `apollo3_blue_evb` | Alias of `apollo3_evb`, carried from heliaAOT; no other source names it (decided on #67) | `apollo3_evb` | Unchanged: heliaAOT keeps the passed name (decided, below) |
-| `apollo3_blue_thin_evb` | Alias of `apollo3_evb`, carried from heliaAOT; no other source names it (decided on #67) | `apollo3_evb` | Unchanged: heliaAOT keeps the passed name (decided, below) |
+| `apollo3_blue_thin_evb` | Alias of the part `AMA3B1KK-KCR-TB`, read as the 66-pin WLCSP Apollo3 Blue Thin MCU (DS-A3 p2, p954); carried from heliaAOT, no other source names it (decided on #67) | `AMA3B1KK-KCR-TB` | Unchanged: heliaAOT keeps the passed name (decided, below) |
 | `apollo3p_evb` | Board id | `apollo3p_evb` | Unchanged |
 | `apollo3_blue_plus_evb` | Alias of `apollo3p_evb` (a byte-identical copy today, RFC 0001 Architecture; #278 phase 4 retires it by alias) | `apollo3p_evb` | Unchanged: heliaAOT keeps the passed name (decided, below) |
 | `apollo4p_evb`, `apollo4l_evb`, `apollo4p_blue_kbr_evb`, `apollo4p_blue_kxr_evb`, `apollo4l_blue_evb` | Board ids | same | Unchanged |
@@ -181,7 +181,7 @@ table does not allow-list.
 | Output that changes | Parity test (#13) |
 |---|---|
 | Shield board ids (`apollo4p_evb_disp_shield_rev2` and the others) become compositions and keep resolving, to a board target whose `id` is the base board and whose `aliases` keep the shield id | Board-id parity: every neuralspotx board id resolves to a target whose `id` equals it, except compositions, which resolve to board plus add-ons; `atomiq110_fpga_turbo` resolves to an implementation target, not a board |
-| Exact-case Soc and board ids are unchanged | Id parity: every non-composition neuralspotx board id and every SoC fact-file id is a catalog id, exact case; the catalog may also hold names neuralspotx lacks (the `apollo3_evb` aliases `apollo3_blue_evb` and `apollo3_blue_thin_evb`). neuralspotx's `apollo3_evb_cygnus` is not in the catalog (#67) |
+| Exact-case Soc and board ids are unchanged | Id parity: every non-composition neuralspotx board id and every SoC fact-file id is a catalog id, exact case; the catalog may also hold names neuralspotx lacks (the `apollo3_evb` alias `apollo3_blue_evb` and the `AMA3B1KK-KCR-TB` alias `apollo3_blue_thin_evb`). neuralspotx's `apollo3_evb_cygnus` is not in the catalog (#67) |
 
 ## Custom definitions in every tool
 

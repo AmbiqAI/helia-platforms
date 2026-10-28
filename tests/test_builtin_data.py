@@ -99,7 +99,7 @@ def test_apollo3_boards_answer_the_consumer_queries(catalog, name, sram, flash):
     ("alias", "board"),
     [
         ("apollo3_blue_evb", "apollo3_evb"),
-        ("apollo3_blue_thin_evb", "apollo3_evb"),
+        ("apollo3_blue_thin_evb", "AMA3B1KK-KCR-TB"),
         ("apollo3_blue_plus_evb", "apollo3p_evb"),
     ],
 )
@@ -119,6 +119,13 @@ def test_the_cygnus_composition_adds_its_psram_on_mspi1(catalog):
 def test_apollo3_parts_carry_their_radio_and_jlink_device(catalog):
     assert catalog.resolve("apollo3_evb").jlink_device == "AMA3B1KK-KBR"
     assert catalog.resolve("apollo3p_evb").jlink_device == "AMA3B2KK-KBR"
+    assert catalog.resolve("AMA3B1KK-KCR-B0").jlink_device == "AMA3B1KK-KCR"
+    thin = catalog.resolve("apollo3_blue_thin_evb")
+    assert (thin.kind, thin.part.package, thin.jlink_device) == (
+        "part",
+        "66-pin WLCSP",
+        "AMA3B1KK-KCR",
+    )
     radios = {p.id: p.radio for p in catalog.parts(soc="apollo3")}
     assert {part for part, radio in radios.items() if radio == "none"} == {
         "AMAP31KK-KBR",

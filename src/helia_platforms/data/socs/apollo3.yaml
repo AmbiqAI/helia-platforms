@@ -351,12 +351,23 @@ parts:
     soc: apollo3
     package: 66-pin CSP
     radio: ble-5
+    jlink_device:
+      value: AMA3B1KK-KCR
+      provenance: &jlink_kcr
+        status: unverified
+        notes: >-
+          The device list in J-Link V9.42 and V9.56 (libjlinkarm) has AMA3B1KK-KCR, but no
+          SDK or Zephyr board names a J-Link device for this part.
     provenance: *ds_order
+  # DS-A3 p2 calls the <0.30 mm 66-pin WLCSP the "Apollo3 Blue Thin MCU"; this is the
+  # 66-pin WLCSP BLE part on p954, so heliaAOT's thin EVB name resolves here.
   AMA3B1KK-KCR-TB:
     release_status: public
     soc: apollo3
     package: 66-pin WLCSP
     radio: ble-5
+    aliases: [apollo3_blue_thin_evb]
+    jlink_device: {value: AMA3B1KK-KCR, provenance: *jlink_kcr}
     provenance: *ds_order
   AMA3B1KK-KQR:
     release_status: public
@@ -382,7 +393,7 @@ boards:
     release_status: public
     category: evaluation
     part: AMA3B1KK-KBR-B0
-    aliases: [apollo3_blue_evb, apollo3_blue_thin_evb]
+    aliases: [apollo3_blue_evb]
     provenance:
       status: sdk
       source:
@@ -394,5 +405,5 @@ boards:
       notes: >-
         No quick-start guide is in the register. Zephyr names the board "Apollo3 Blue EVB"
         with J-Link device AMA3B1KK-KBR, and the SDK builds it with AM_PACKAGE_BGA; the only
-        81-pin BGA BLE part on DS-A3 p954 is AMA3B1KK-KBR-B0. The aliases are heliaAOT's
-        names, which no other source has (#67).
+        81-pin BGA BLE part on DS-A3 p954 is AMA3B1KK-KBR-B0. The alias is heliaAOT's
+        name, which no other source has (#67).
