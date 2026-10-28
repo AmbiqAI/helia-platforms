@@ -103,18 +103,18 @@ exceptions:
     rule: region containment
     reason: *xipmm
     issue: "#129"
-  # The catalog's trace clock is the HAL's TPIU clock (owner decision on #67), not the
-  # SDK's J-Link setting; a measurement on the Apollo3 Blue Plus EVB settles it.
+  # The catalog's trace clock is the physical TPIU clock, HFRC/8 (measured on #67);
+  # NSX_SEGGER_CPUFREQ is the HFRC, which J-Link's Apollo3 support divides by 8.
   - snapshot: nsx-ambiq-sdk.json
     at: [socs, apollo3, facts, values, NSX_SEGGER_CPUFREQ]
     rule: trace clock
-    reason: &tpiu "The HAL programs the TPIU clock as HFRC/8, 6 MHz; NSX_SEGGER_CPUFREQ says 48 MHz. To be measured on #19."
-    issue: "#19"
+    reason: &tpiu "The TPIU clock is HFRC/8, 6 MHz, measured on apollo3p_evb (#67); NSX_SEGGER_CPUFREQ's 48 MHz is the HFRC J-Link expects."
+    issue: "#67"
   - snapshot: nsx-ambiq-sdk.json
     at: [socs, apollo3p, facts, values, NSX_SEGGER_CPUFREQ]
     rule: trace clock
     reason: *tpiu
-    issue: "#19"
+    issue: "#67"
 
   # These stay as long as the catalog leaves apollo2 and apollo5b out.
   - snapshot: nsx-ambiq-sdk.json

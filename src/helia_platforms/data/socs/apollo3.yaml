@@ -312,7 +312,7 @@ socs:
             is nominally 48 MHz (p548), so HFRC/2, the fastest CLKSEL (p155), caps the TPIU
             clock at 24 MHz. In burst mode the HFRC also gives the core 96 MHz (p549); which
             output the TPIU divides is not stated. NSX_SEGGER_CPUFREQ says 48 MHz
-            (apollo3.cmake:52). Neither is measured (#19).
+            (apollo3.cmake:52), the HFRC J-Link expects. Measured on Apollo3P (#67), not here.
       build:
         abi: thumbv7em-fpv4sp-hard
         float_abi: hard

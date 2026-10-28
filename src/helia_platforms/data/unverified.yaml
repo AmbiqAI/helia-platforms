@@ -3,11 +3,8 @@
 schema_version: 1
 unverified_allowed:
   - fact: "fact:soc:apollo3:sdk.trace_clock_mhz"
-    reason: "the HAL's TPIU clock, which disagrees with NSX_SEGGER_CPUFREQ; to be measured on #19"
-    issue: "#19"
-  - fact: "fact:soc:apollo3p:sdk.trace_clock_mhz"
-    reason: "the HAL's TPIU clock, which disagrees with NSX_SEGGER_CPUFREQ; to be measured on #19"
-    issue: "#19"
+    reason: "the HAL's TPIU clock; measured on Apollo3P (#67), and no Apollo3 board is on the farm"
+    issue: "#67"
   - fact: "fact:part:AMA3B1KK-KCR-B0:jlink_device"
     reason: "J-Link's device list names it, but no SDK or document of record does"
     issue: "#19"
