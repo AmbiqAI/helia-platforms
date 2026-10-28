@@ -187,9 +187,10 @@ def test_the_radio_core_reaches_its_tcm_nvm_and_system_sram(catalog):
 def test_nvm_m41_is_the_radio_core_s_slot_on_every_part_and_the_soc(catalog, name, slot_kb):
     """The #127 review: every part keeps the Cortex-M4, whose factory firmware is in NVM-M41."""
     target = catalog.resolve(name)
-    assert {(s.name, s.core, s.size // 1024) for s in target.image_slots.values()} == {
-        ("nvm_m41", "radio_m4", slot_kb)
-    }
+    assert [
+        (s.name, s.core, s.region, s.offset, s.size, s.supplier)
+        for s in target.image_slots.values()
+    ] == [("nvm_m41", "radio_m4", "mram", (2048 - slot_kb) * 1024, slot_kb * 1024, "vendor")]
     assert dict(target.usable_nvm()) == {"mram": (2048 - 64 - slot_kb) * 1024}
     assert [c.id for c in target.cores(role="radio")] == ["radio_m4"]
     assert target.has_region("rs_tcm")

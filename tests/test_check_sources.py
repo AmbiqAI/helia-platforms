@@ -180,7 +180,7 @@ def test_register_defines_are_compared_with_region_bases_and_sizes(snapshots):
         "MRAM_MAX_SIZE",
     ],
 )
-def test_each_apollo5_soc_compares_every_register_define(snapshots, soc, define):
+def test_each_soc_with_dtcm_ssram_and_mram_compares_every_register_define(snapshots, soc, define):
     def change(data):
         data["socs"][soc]["registers"]["values"][define] += 0x400
 

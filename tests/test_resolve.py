@@ -343,11 +343,13 @@ def test_a_soc_image_slot_applies_to_the_bare_soc_unless_the_part_replaces_it(do
     assert dict(target.usable_nvm()) == {"nvm": 4 * KB * KB - 64 * KB - 432 * KB}
 
 
-def test_a_dwt_core_reports_no_pmu(document):
+@pytest.mark.parametrize("pmu", ["dwt", "none"])
+def test_a_core_with_no_pmu_tier_reports_no_pmu(document, pmu):
+    document["cores"]["cortex-m4"]["pmu"] = pmu
     document["socs"]["soc_a"]["cores"][0]["core"] = "cortex-m4"
     document["socs"]["soc_a"]["cores"][0]["options"] = {"fpu": "fpv4-sp-d16", "mve": "none"}
     target = resolve("board_a", catalog=quiet(document))
-    assert (target.isa().has_pmu, target.isa().pmu_kind) == (False, "dwt")
+    assert (target.isa().has_pmu, target.isa().pmu_kind) == (False, pmu)
     assert "pmu" not in target.capabilities
 
 
