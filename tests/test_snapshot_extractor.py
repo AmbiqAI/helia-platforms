@@ -16,6 +16,8 @@ from typing import Any
 import pytest
 import yaml
 
+from helia_platforms import _check_sources
+from helia_platforms.catalog import builtin
 from snapshot_extractor import (
     EXTRACTOR_VERSION,
     ExtractError,
@@ -644,17 +646,20 @@ def test_sdk_pins_come_from_the_sdk_snapshot_unless_a_refresh_names_a_tag() -> N
 
 
 def test_exceptions_name_snapshot_values() -> None:
-    entries = yaml.safe_load((SNAPSHOTS / "exceptions.yaml").read_text())["exceptions"]
+    path = SNAPSHOTS / "exceptions.yaml"
+    entries = yaml.safe_load(path.read_text())["exceptions"]
     assert entries
-    for entry in entries:
+    result = _check_sources.check(builtin(include_plugins=False), SNAPSHOTS)
+    used = {exception for _, exception in result.excepted}
+    for entry, exception in zip(entries, _check_sources.load_exceptions(path), strict=True):
         assert set(entry) == {"snapshot", "at", "rule", "reason", "issue"}
         assert re.fullmatch(r"(?:[\w.-]+/[\w.-]+)?#\d+", entry["issue"])
         value: Any = json.loads((SNAPSHOTS / entry["snapshot"]).read_text())
-        for key in entry["at"][:-1]:
+        *parents, last = entry["at"]
+        for key in parents:
             value = value[key]
-        # The last key may be one the snapshot lacks, when the finding is that absence;
-        # check-sources reports an exception that covers nothing as stale.
-        assert isinstance(value, dict), entry
+        # A last key the snapshot lacks is allowed only where a finding reports that absence.
+        assert last in value or exception in used, entry
 
 
 def test_extractor_dependencies_are_not_runtime_dependencies() -> None:
