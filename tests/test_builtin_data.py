@@ -202,6 +202,24 @@ def test_the_display_kit_compositions_add_psram_and_flash(catalog, name):
     assert catalog.resolve("apollo4p_evb").addons == ()
 
 
+def test_the_display_kit_uses_the_display_s_mspi2_without_a_device_there(catalog):
+    """QS-A4PDK p10-11 wire the display to MSPI2, so no other add-on may use it."""
+    overlay = {
+        "schema_version": 1,
+        "addons": {
+            "my_display": {"fits_boards": ["apollo4p_evb"], "occupies": ["mspi2"], "population": {}}
+        },
+        "compositions": {
+            "both": {"board": "apollo4p_evb", "addons": ["apollo4p_disp_shield", "my_display"]}
+        },
+    }
+    with pytest.raises(FormatError) as exc:
+        load_overlay(overlay, base=catalog)
+    assert (
+        "compositions.both: add-on 'my_display' and add-on 'apollo4p_disp_shield' both use 'mspi2'"
+    ) in "\n".join(exc.value.problems)
+
+
 def test_the_blue_parts_record_their_radio(catalog):
     radios = {p.id: p.radio for p in catalog.parts() if p.soc in {"apollo4p", "apollo4l"}}
     assert radios == {
@@ -229,6 +247,8 @@ def test_each_apollo4_part_keeps_what_its_datasheet_gives(
     target = catalog.resolve(board)
     soc = catalog._entry("socs", target.soc.id)
     assert [c.id for c in target.soc.cores] == cores
+    # The radio domain goes with ble_m0 (clock_domains_removed on the plain parts).
+    assert [d.id for d in target.soc.clock_domains] == ["cpu", "radio"][: len(cores)]
     assert set(soc.peripherals) - set(target.soc.peripherals) == removed
     assert list(target.soc.memory_controllers) == (controllers or ["mspi0", "mspi1", "mspi2"])
     ble = [c for c in target.soc.cores if c.id == "ble_m0"]
