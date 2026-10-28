@@ -8,7 +8,11 @@ socs:
     default_board: apollo510b_evb
     provenance:
       status: datasheet
-      source: ["doc:DS-A510B@1.1.0:p14", "doc:DS-A510B@1.1.0:p20", "doc:DS-A510B@1.1.0:p34"]
+      source:
+        - "doc:DS-A510B@1.1.0:p14"
+        - "doc:DS-A510B@1.1.0:p20"
+        - "doc:DS-A510B@1.1.0:p34"
+        - "doc:DS-A510B@1.1.0:p81"
       verified_on: 2026-10-08
       verified_by: evanchen11
       notes: >-
@@ -32,7 +36,9 @@ socs:
           value: customer
           provenance:
             status: sdk
-            source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-core/src/apollo510b/gcc/linker_script_sbl.ld:11"]
+            source:
+              - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-core/src/apollo510b/gcc/linker_script_sbl.ld:11"
+              - "doc:DS-A510B@1.1.0:p34"
             verified_on: 2026-10-26
             verified_by: evanchen11
             notes: >-
@@ -41,7 +47,7 @@ socs:
               for application".
         provenance:
           status: datasheet
-          source: ["doc:DS-A510B@1.1.0:p14"]
+          source: ["doc:DS-A510B@1.1.0:p14", "doc:DS-A510B@1.1.0:p20"]
           verified_on: 2026-10-08
           verified_by: evanchen11
           notes: '"Arm Cortex-M55 Application Processor with Helium technology". Also p20.'
@@ -133,7 +139,7 @@ socs:
       scope: on_die
       provenance:
         status: datasheet
-        source: ["doc:DS-A510B@1.1.0:p21"]
+        source: ["doc:DS-A510B@1.1.0:p21", "doc:DS-A510B@1.1.0:p51"]
         verified_on: 2026-10-08
         verified_by: evanchen11
         notes: >-
@@ -178,12 +184,16 @@ socs:
           source:
             - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo510.h:29564"
             - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/boards/apollo510b_evb/bsp/am_bsp.h:47-48"
+            - "doc:DS-A510B@1.1.0:p19"
+            - "doc:DS-A510B@1.1.0:p36-37"
+            - "doc:DS-A510B@1.1.0:p94"
           verified_on: 2026-10-28
           verified_by: evanchen11
           notes: >-
-            IOM6_BASE 0x40056000, which DS-A510B Table 5 shows as Reserved (p36); Table 1
-            counts 7 IOMs (p19). IOM6 is not pinned out (p94): it is dedicated to the BLE
-            controller, which the BSP drives through it (am_bsp.h:47-48).
+            IOM6_BASE 0x40056000, which DS-A510B Table 5 shows as Reserved (p36). The seven
+            IOMs of Table 1 (p19) are IOM0-5 and IOM7 (Table 5, p36-37). IOM6 is not pinned
+            out (p94): it is dedicated to the BLE controller, which the BSP drives through
+            it (am_bsp.h:47-48).
       - {value: iom7, provenance: *table5}
       - {value: ioslavefd0, provenance: *table5}
       - {value: ioslavefd1, provenance: *table5}
@@ -212,7 +222,9 @@ socs:
       - value: fpio
         provenance:
           status: sdk
-          source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo510.h:29553"]
+          source:
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo510.h:29553"
+            - "doc:DS-A510B@1.1.0:p36"
           verified_on: 2026-10-26
           verified_by: evanchen11
           notes: FPIO_BASE 0x40011000, which DS-A510B Table 5 shows as Reserved (p36).
@@ -245,7 +257,7 @@ socs:
                 clock record.
           provenance: &ds_clk
             status: datasheet
-            source: ["doc:DS-A510B@1.1.0:p20"]
+            source: ["doc:DS-A510B@1.1.0:p20", "doc:DS-A510B@1.1.0:p65-66"]
             verified_on: 2026-10-08
             verified_by: evanchen11
             notes: >-
@@ -264,7 +276,9 @@ socs:
       value: lp
       provenance:
         status: sdk
-        source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-core/includes-api/nsx_system.h:188"]
+        source:
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-core/includes-api/nsx_system.h:188"
+          - "doc:DS-A510B@1.1.0:p58"
         verified_on: 2026-10-26
         verified_by: evanchen11
         notes: >-
@@ -289,7 +303,10 @@ socs:
           offset: 64K
           provenance:
             status: derived
-            source: ["doc:DS-A510B@1.1.0:p34", "fact:soc:apollo510b:memories.mram.base"]
+            source:
+              - "doc:DS-A510B@1.1.0:p34"
+              - "doc:QS-A510B@1.1:p7"
+              - "fact:soc:apollo510b:memories.mram.base"
             verified_on: 2026-10-26
             verified_by: evanchen11
             notes: >-
@@ -298,7 +315,7 @@ socs:
         requires: sbl
         provenance:
           status: datasheet
-          source: ["doc:DS-A510B@1.1.0:p58"]
+          source: ["doc:DS-A510B@1.1.0:p58", "doc:DS-A510B@1.1.0:p51"]
           verified_on: 2026-10-08
           verified_by: evanchen11
           notes: '"implemented in the pre-installed SBL". p51: Secure Boot (SBR+SBL).'
@@ -341,6 +358,7 @@ socs:
           source:
             - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo510b.cmake:55"
             - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-core/src/apollo510/nsx_system_platform.c:73-78"
+            - "doc:DS-A510B@1.1.0:p69"
           verified_on: 2026-10-26
           verified_by: evanchen11
           notes: >-
@@ -425,6 +443,8 @@ boards:
             source:
               - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-psram/CMakeLists.txt:51-55"
               - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-psram/CMakeLists.txt:60-64"
+              - "doc:QS-A510B@1.1:p8"
+              - "doc:DS-A510B@1.1.0:p100"
             verified_on: 2026-10-26
             verified_by: evanchen11
             notes: >-
@@ -443,7 +463,7 @@ boards:
         value: APS512XX
         provenance:
           status: datasheet
-          source: ["doc:QS-A510B@1.1:p10"]
+          source: ["doc:QS-A510B@1.1:p10", "doc:QS-A510B@1.1:p8"]
           verified_on: 2026-10-08
           verified_by: evanchen11
           notes: >-
