@@ -1,6 +1,7 @@
 """``check-sources``: the built-in catalog against the committed snapshots (ADR 0006, #72)."""
 
 import copy
+import dataclasses
 import json
 import shutil
 import warnings
@@ -170,6 +171,24 @@ def test_register_defines_are_compared_with_region_bases_and_sizes(snapshots):
     assert found.at[-1] == "DTCM_MAX_SIZE"
 
 
+@pytest.mark.parametrize("soc", ["apollo510", "apollo510b"])
+@pytest.mark.parametrize(
+    "define",
+    [
+        f"{region}_{part}"
+        for region in ("ITCM", "DTCM", "SSRAM", "MRAM")
+        for part in ("BASEADDR", "MAX_SIZE")
+    ],
+)
+def test_each_apollo5_soc_compares_its_register_defines(snapshots, soc, define):
+    def change(data):
+        data["socs"][soc]["registers"]["values"][define] += 0x400
+
+    edit(snapshots, _check_sources.SDK, change)
+    (found,) = [f for f in findings(snapshots) if f.rule == "register"]
+    assert found.at[1:2] + found.at[-1:] == (soc, define)
+
+
 @pytest.mark.parametrize("soc", ["apollo3", "apollo3p"])
 @pytest.mark.parametrize("define", ["TCM_BASEADDR", "TCM_MAX_SIZE", "FLASH_BASEADDR"])
 def test_apollo3_register_defines_are_compared(snapshots, soc, define):
@@ -225,7 +244,7 @@ def test_a_flash_header_define_the_snapshot_lacks_is_reported(snapshots, define)
     assert (found.at[-1], found.message) == (define, f"the snapshot has no {define}")
 
 
-@pytest.mark.parametrize("soc", ["apollo510", "apollo510b", "apollo510L", "apollo330P"])
+@pytest.mark.parametrize("soc", ["apollo510L", "apollo330P"])
 @pytest.mark.parametrize(
     "define",
     [
@@ -237,7 +256,7 @@ def test_a_flash_header_define_the_snapshot_lacks_is_reported(snapshots, define)
         "MRAM_MAX_SIZE",
     ],
 )
-def test_each_apollo5_soc_compares_every_register_define(snapshots, soc, define):
+def test_apollo510l_and_apollo330p_compare_every_register_define(snapshots, soc, define):
     def change(data):
         data["socs"][soc]["registers"]["values"][define] += 0x400
 
@@ -261,14 +280,18 @@ def test_a_register_define_missing_from_the_header_is_reported(snapshots):
 
 
 def test_an_empty_register_define_is_skipped(snapshots, monkeypatch):
-    registers = dict(_check_sources.REGISTERS["apollo510"], dtcm=("", ""))
+    """A region with a base define and no size define names the size ``""``."""
+    registers = dict(_check_sources.REGISTERS["apollo510"], dtcm=("DTCM_BASEADDR", ""))
     monkeypatch.setitem(_check_sources.REGISTERS, "apollo510", registers)
-    edit(
-        snapshots,
-        _check_sources.SDK,
-        lambda d: d["socs"]["apollo510"]["registers"]["values"].pop("DTCM_MAX_SIZE"),
-    )
-    assert findings(snapshots) == []
+
+    def change(data):
+        values = data["socs"]["apollo510"]["registers"]["values"]
+        values[""] = 0  # compared with the DTCM size unless the empty name is skipped
+        values["DTCM_BASEADDR"] += 0x400  # the base define is still compared
+
+    edit(snapshots, _check_sources.SDK, change)
+    (found,) = findings(snapshots)
+    assert (found.rule, found.at[-1]) == ("register", "DTCM_BASEADDR")
 
 
 def test_a_linker_region_outside_every_run_of_regions_is_reported(snapshots):
@@ -299,12 +322,12 @@ def test_a_zero_length_region_is_checked_by_its_origin(snapshots):
     """An armclang ``EMPTY 0`` region, such as Apollo3's ARM_LIB_HEAP, occupies nothing."""
 
     def change(data, origin):
-        scripts = data["socs"]["apollo510"]["linker"]["gcc"]["scripts"]
-        scripts["linker_script_sbl.ld"]["MCU_MRAM"].update(origin=origin, length=0)
+        scripts = data["socs"]["apollo510"]["linker"]["armclang"]["scripts"]
+        scripts["linker_script_sbl.sct"]["ARM_LIB_HEAP"].update(origin=origin, length=0)
 
-    edit(snapshots, _check_sources.SDK, lambda d: change(d, 0x00410000))
+    edit(snapshots, _check_sources.SDK, lambda d: change(d, 0x2007B000))  # its own origin, in DTCM
     assert findings(snapshots) == []
-    edit(snapshots, _check_sources.SDK, lambda d: change(d, 0x00800000))
+    edit(snapshots, _check_sources.SDK, lambda d: change(d, 0x00800000))  # just past MRAM
     (found,) = findings(snapshots)
     assert found.rule == "region containment"
 
@@ -354,26 +377,39 @@ def test_a_zephyr_node_in_an_xip_aperture_is_external_memory(snapshots):
     assert (found.rule, found.at[-1]) == ("region containment", "/memory@50000000")
 
 
-def test_an_xspi_aperture_and_its_secure_alias_are_external_memory(snapshots):
-    def registers(data):
-        values = data["socs"]["apollo510"]["registers"]["values"]
-        values.update(  # atomiq110's spelling (#120), at addresses no apollo510 region uses
-            XSPI0_APERTURE_START_ADDR=0x50000000,
-            XSPI0_APERTURE_END_ADDR=0x50100000,
-            XSPI0_APERTURE_START_SECURE_ADDR=0x50100000,
-            XSPI0_APERTURE_END_SECURE_ADDR=0x50200000,
-        )
+def test_an_xspi_aperture_and_its_secure_alias_are_external_memory():
+    """atomiq110's spelling (#120): XSPI<n>'s apertures belong to controller xspimc<n>."""
+    apollo510 = builtin(include_plugins=False).resolve("apollo510").soc
+    soc = dataclasses.replace(apollo510, memory_controllers=("xspimc0",))
+    block = {
+        "registers": {
+            "values": {
+                "XSPI0_APERTURE_START_ADDR": 0x50000000,
+                "XSPI0_APERTURE_END_ADDR": 0x50100000,
+                "XSPI0_APERTURE_START_SECURE_ADDR": 0x50100000,
+                "XSPI0_APERTURE_END_SECURE_ADDR": 0x50200000,
+                "XSPI1_APERTURE_START_ADDR": 0x50200000,  # xspimc1, which soc lacks
+                "XSPI1_APERTURE_END_ADDR": 0x50300000,
+            }
+        }
+    }
+    assert _check_sources._apertures(block, soc) == [
+        (0x50000000, 0x50100000),
+        (0x50100000, 0x50200000),
+    ]
 
-    def nodes(data):
-        memory = data["boards"]["apollo510_evb"]["devicetree"]["memory"]
-        memory["/memory@50000000"] = {"base": 0x50000000, "size": 0x1000}
-        memory["/memory@50100000"] = {"base": 0x50100000, "size": 0x1000}
-        memory["/memory@50200000"] = {"base": 0x50200000, "size": 0x1000}  # past both
 
-    edit(snapshots, _check_sources.SDK, registers)
-    edit(snapshots, _check_sources.ZEPHYR, nodes)
-    (found,) = findings(snapshots)
-    assert (found.rule, found.at[-1]) == ("region containment", "/memory@50200000")
+@pytest.mark.parametrize(("soc", "reported"), [("apollo510", False), ("apollo510b", True)])
+def test_only_the_socs_own_controllers_have_external_memory(snapshots, soc, reported):
+    """apollo510b reads apollo510's header, but its MSPI2 window is Reserved (DS-A510B p35)."""
+
+    def change(data):
+        scripts = data["socs"][soc]["linker"]["gcc"]["scripts"]
+        scripts["linker_script_sbl.ld"]["PSRAM"] = {"origin": 0x84000000, "length": 0x1000}
+
+    edit(snapshots, _check_sources.SDK, change)
+    found = [(f.rule, f.at[1], f.at[-1]) for f in findings(snapshots)]
+    assert found == ([("region containment", soc, "PSRAM")] if reported else [])
 
 
 def test_an_sdk_record_must_cite_a_snapshotted_revision(snapshots):

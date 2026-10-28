@@ -198,15 +198,18 @@ socs:
               timer, uart0, uart1, uart2, uart3, usbphy, usb, vcomp, wdt]
       provenance:
         status: sdk
-        source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo4p.h:26935-26980"]
-        verified_on: 2026-10-26
+        source:
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo4p.h:26935-26980"
+          - "doc:DS-A4P@1.6.0:p52"
+          - "doc:DS-A4BP@1.8.0:p126"
+        verified_on: 2026-10-28
         verified_by: evanchen11
         notes: >-
           Every <NAME>_BASE define, lowercased (46). DS-A4P p2 and p52 describe the blocks by
           function ("8x I2C / SPI masters", p52) and name no instance such as dsp or cpu. On
-          the Blue Plus parts iom4 stays: it is not pinned out (no IOM4 signal in DS-A4BP
-          p107-110, "seven" IOMs on p126) and is dedicated to the BLE controller, which
-          AmbiqSuite drives over IOM 4 (devices/am_devices_cooper.h:199-213).
+          the Blue Plus parts iom4 stays: it is the BLE controller's internal IOM, which
+          AmbiqSuite drives over IOM 4 (devices/am_devices_cooper.h:199-213), and has no
+          pins (no IOM4 signal in DS-A4BP p107-110). DS-A4BP p126's "seven" IOMs leave it out.
     memory_controllers:
       value: [mspi0, mspi1, mspi2]
       provenance:
@@ -349,8 +352,11 @@ socs:
             The prebuilt HAL's am_hal_tpiu_enable writes 2 to MCUCTRL bits 3:1 and divides
             48000000 by the SWO rate; 2 is MCUCTRL_DBGCTRL_CM4CLKSEL_HFRC48, "Selects HFRC
             48Mhz as the source TPIU clk". AmbiqSuite's source sets CM4CLKSEL to it
-            (mcu/apollo4p/hal/mcu/am_hal_tpiu.c:263-268). NSX_SEGGER_CPUFREQ, 96 MHz
-            (facts/apollo4p.cmake:52), is a J-Link setting (#19).
+            (mcu/apollo4p/hal/mcu/am_hal_tpiu.c:263-268). This disagrees with
+            facts/apollo4p.cmake:46-47, which say NSX_SEGGER_CPUFREQ (96 MHz, :52) "is the
+            TPIU *trace clock*": the HAL selects HFRC48 whatever J-Link is given. #19's bench
+            (2026-10-28) saw the firmware select HFRC48 on apollo4l_blue_evb and had no apollo4p
+            board. An SDK bump that keeps 96 there does not change this value.
       build:
         abi: thumbv7em-fpv4sp-hard
         float_abi: hard
@@ -523,12 +529,13 @@ boards:
           provenance:
             status: sdk
             source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/boards/apollo4p_evb_disp_shield_rev2/bsp/am_bsp.h:103-104", "doc:DS-A4P@1.6.0:p115"]
-            verified_on: 2026-10-26
+            verified_on: 2026-10-28
             verified_by: evanchen11
             notes: >-
-              The Display Kit BSP's PSRAM chip selects AM_HAL_MSPI_FLASH_OCTAL_DDR_CE0 and
-              _HEX_DDR_CE0. DS-A4P p115: "MSPI0 additionally supports hex (16-bit) mode". The
-              Display Kit narrows it to octal-ddr while fitted (addons.yaml).
+              QS-A4P names no MSPI mode, so these are the Display Kit BSP's PSRAM chip selects,
+              AM_HAL_MSPI_FLASH_OCTAL_DDR_CE0 and _HEX_DDR_CE0. DS-A4P p115: "MSPI0 additionally
+              supports hex (16-bit) mode". The Display Kit narrows it to octal-ddr while fitted
+              (addons.yaml); #139 tracks its hex setting.
         aperture_base: 0x14000000
         aperture_max: 64M
         provenance: &ds_aperture
@@ -540,7 +547,7 @@ boards:
             p115 gives the XIP bases "0x14000000 (MSPI0), 0x18000000 (MSPI1) and 0x1C000000
             (MSPI2)"; p69 "External flash with XiP (via MSPI) ... (up to 64 MB)", the family
             limit used as each aperture's size. QS-A4PDK p10: the Display Kit uses MSPI0 and
-            MSPI1, and "When MSPI0 is used in hex mode ... MSPI1 cannot be used".
+            MSPI1, and "When MSPI0 is used in hex mode ... MSPI1 cannot be used" (#139).
       mspi1:
         controller: mspi1
         modes:
@@ -548,12 +555,12 @@ boards:
           provenance:
             status: datasheet
             source: ["doc:QS-A4PDK@1.2:p12", "doc:DS-A4P@1.6.0:p117", "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/boards/apollo4p_evb_disp_shield_rev2/bsp/am_bsp.h:94-95"]
-            verified_on: 2026-10-26
+            verified_on: 2026-10-28
             verified_by: evanchen11
             notes: >-
-              The Display Kit's flash is "Octal-SPI DDR-enabled" (QS-A4PDK p12), on MSPI1
-              (AM_BSP_MSPI_FLASH_MODULE 1). DS-A4P p117: all three MSPIs "support serial,
-              dual, quad or octal mode".
+              QS-A4P names no MSPI mode, so this is the Display Kit's: its flash is "Octal-SPI
+              DDR-enabled" (QS-A4PDK p12), on MSPI1 (AM_BSP_MSPI_FLASH_MODULE 1). DS-A4P p117:
+              all three MSPIs "support serial, dual, quad or octal mode".
         aperture_base: 0x18000000
         aperture_max: 64M
         provenance: *ds_aperture

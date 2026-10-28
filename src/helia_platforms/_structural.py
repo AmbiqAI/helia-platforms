@@ -116,6 +116,9 @@ class _Checker:
         (item_tp,) = get_args(tp)
         for index, item in enumerate(value):
             self.check(item, item_tp, f"{path}[{index}]", facts)
+        minimum = _walk.marker(markers, fmt.Minimum)
+        if minimum is not None and len(value) < minimum.value:
+            self.fail(path, f"must list at least {minimum.value} item(s)")
         if fmt.BY_VALUE in markers:
             seen: list[Any] = []
             for item in map(_plain, value):

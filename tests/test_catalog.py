@@ -909,6 +909,7 @@ def test_an_add_on_narrows_the_modes_of_an_interface_while_fitted(document):
             "addons.shield.modes.mspi1: quad not among board 'board_a''s 'mspi1' modes",
         ),
         ({"mspi0": ["octal-ddr"]}, "addons.shield.modes: 'mspi0' is not in occupies"),
+        ({"mspi1": []}, "addons.shield.modes.mspi1: must list at least 1 item(s)"),
     ],
 )
 def test_an_add_on_narrows_only_the_modes_of_interfaces_it_occupies(document, modes, problem):
@@ -916,6 +917,24 @@ def test_an_add_on_narrows_only_the_modes_of_interfaces_it_occupies(document, mo
     document["boards"]["board_a"]["interfaces"]["mspi1"]["modes"] = ["octal-ddr"]
     document["addons"] = {"shield": {**shield({"mspi1": "psram_8m"}), "modes": modes}}
     assert problem in problems_of(document)
+
+
+def test_an_add_on_may_not_narrow_an_interface_past_its_own_device_s_modes(document):
+    with_mspi1(document)
+    document["memory_devices"]["hex_psram"] = {
+        "technology": "psram",
+        "capacity": "8M",
+        "modes": ["hex-ddr"],
+    }
+    document["boards"]["board_a"]["interfaces"]["mspi1"]["modes"] = ["hex-ddr", "octal-ddr"]
+    document["addons"] = {
+        "shield": {**shield({"mspi1": "hex_psram"}), "modes": {"mspi1": ["hex-ddr"]}}
+    }
+    load_quietly(document)
+    document["addons"]["shield"]["modes"] = {"mspi1": ["octal-ddr"]}
+    assert (
+        "addons.shield.modes.mspi1: leaves 'hex_psram' none of its modes (hex-ddr)"
+    ) in problems_of(document)
 
 
 def test_default_access_grants_core_0_what_no_core_has_an_entry_for(document):
@@ -1077,7 +1096,7 @@ def test_a_delta_that_keeps_a_removed_peripheral_as_a_memory_controller_is_an_er
 
 
 def test_an_interface_on_a_controller_the_implementation_removed_is_an_error(document):
-    interfaces = copy.deepcopy(document["boards"]["board_a"]["interfaces"])
+    interfaces = {"fpga_mspi0": copy.deepcopy(document["boards"]["board_a"]["interfaces"]["mspi0"])}
     document["implementations"] = {
         "cut": {
             "soc": "soc_a",
@@ -1090,9 +1109,22 @@ def test_an_interface_on_a_controller_the_implementation_removed_is_an_error(doc
     load_quietly(document)
     document["implementations"]["cut"]["subset"]["peripherals_removed"] = ["mspi0"]
     found = problems_of(document)
-    removed = "interfaces.mspi0: controller 'mspi0' is removed by the implementation"
-    assert f"implementations.cut.{removed}" in found
-    assert f"boards.board_a.{removed}" in found
+    removed = "controller 'mspi0' is removed by the implementation"
+    assert f"implementations.cut.interfaces.fpga_mspi0: {removed}" in found
+    assert f"boards.board_a.interfaces.mspi0: {removed}" in found
+
+
+def test_a_board_and_its_implementation_may_not_name_the_same_interface(document):
+    interfaces = copy.deepcopy(document["boards"]["board_a"]["interfaces"])
+    document["implementations"] = {
+        "cut": {"soc": "soc_a", "kind": "fpga", "interfaces": interfaces, "subset": {}}
+    }
+    document["parts"]["PART-A"]["implementation"] = "cut"
+    assert (
+        "boards.board_a.interfaces.mspi0: implementation 'cut' also has an interface 'mspi0'"
+    ) in problems_of(document)
+    document["implementations"]["cut"]["interfaces"] = {"fpga_mspi0": interfaces["mspi0"]}
+    load_quietly(document)
 
 
 def test_a_subset_can_remove_a_memory_controller_and_keep_the_peripheral(document):
@@ -1105,6 +1137,26 @@ def test_a_subset_can_remove_a_memory_controller_and_keep_the_peripheral(documen
     document["parts"]["PART-A"]["implementation"] = "cut"
     removed = "interfaces.mspi0: controller 'mspi0' is removed by the implementation"
     assert f"boards.board_a.{removed}" in problems_of(document)
+
+
+def test_a_soc_delta_can_remove_a_memory_controller_and_keep_the_peripheral(document):
+    soc(document)["access"].append({"master": "npu_0", "target": "mspi0", "access": "direct"})
+    document["socs"]["soc_b"] = {"based_on": "soc_a", "memory_controllers_removed": ["mspi0"]}
+    b = load_quietly(document)._entry("socs", "soc_b")
+    assert (b.memory_controllers, "mspi0" in b.peripherals) == (("iom0",), True)
+    assert "memory_controllers.mspi0" not in b.field_provenance
+    assert ("npu_0", "mspi0") not in [(e.master, e.target) for e in b.access]
+
+
+def test_a_delta_that_writes_and_removes_a_memory_controller_is_an_error(document):
+    document["socs"]["soc_b"] = {
+        "based_on": "soc_a",
+        "memory_controllers_removed": ["mspi0"],
+        "memory_controllers": ["mspi0"],
+    }
+    assert (
+        "socs.soc_b: memory_controllers_removed names 'mspi0', which memory_controllers also lists"
+    ) in problems_of(document)
 
 
 def test_memory_controllers_removed_names_a_memory_controller(document):
@@ -1216,14 +1268,129 @@ def test_a_soc_image_slot_is_checked_and_a_part_slot_replaces_it_by_name(documen
     }
 
 
-def test_removing_a_slot_s_core_removes_the_soc_slot(document):
-    add_reaching_radio(document)
-    soc(document)["image_slots"] = {"radio": slot("3M", "16K")}
-    document["implementations"] = {
-        "no_radio": {"soc": "soc_a", "kind": "silicon", "subset": {"cores_removed": ["radio_m4"]}}
+def add_radio_nvm(document):
+    """A second NVM region only the radio core reaches, so removing it breaks no boot."""
+    soc(document)["memories"]["radio_nvm"] = {
+        "technology": "mram",
+        "attachment": "system",
+        "base": 0x00800000,
+        "size": "1M",
     }
-    target = load_quietly(document).resolve("no_radio")
+    soc(document)["access"].append(
+        {"master": "radio_m4", "target": "radio_nvm", "access": "direct"}
+    )
+
+
+@pytest.mark.parametrize(
+    "subset",
+    [
+        {"cores_removed": ["radio_m4"]},
+        {"memories_removed": ["radio_nvm"]},
+        {"image_slots_removed": ["radio"]},
+    ],
+)
+def test_an_implementation_removes_the_soc_slot_with_its_core_or_region_or_by_name(
+    document, subset
+):
+    add_reaching_radio(document)
+    add_radio_nvm(document)
+    soc(document)["image_slots"] = {"radio": {**slot(0, "16K"), "region": "radio_nvm"}}
+    document["implementations"] = {"cut": {"soc": "soc_a", "kind": "silicon", "subset": subset}}
+    catalog = load_quietly(document)
+    assert set(catalog.resolve("soc_a").image_slots) == {"radio"}
+    assert dict(catalog.resolve("cut").image_slots) == {}
+
+
+def test_image_slots_removed_lets_an_implementation_shrink_the_region_a_slot_held(document):
+    add_reaching_radio(document)
+    soc(document)["image_slots"] = {"radio": slot("4080K", "16K")}
+    subset = {"memories_resized": {"nvm": "2M"}}
+    document["implementations"] = {"half": {"soc": "soc_a", "kind": "silicon", "subset": subset}}
+    assert (
+        "implementations.half: as realized: image_slots.radio: runs past the end of region 'nvm'"
+    ) in problems_of(document)
+    subset["image_slots_removed"] = ["radio"]
+    target = load_quietly(document).resolve("half")
     assert dict(target.image_slots) == {}
+    subset["image_slots_removed"] = ["missing"]
+    assert "image_slots_removed names 'missing', which the base lacks" in problems_of(document)
+
+
+def test_a_part_cannot_remove_a_slot_its_soc_carries(document):
+    """Removing the based_on part's slot would leave the Soc's of that name in its place."""
+    add_reaching_radio(document)
+    soc(document)["image_slots"] = {"radio": slot("4080K", "16K")}
+    document["parts"]["PART-A"]["image_slots"] = {"radio": slot("3M", "432K")}
+    catalog = load_quietly(document)
+    over = {"parts": {"PART-B": {"based_on": "PART-A", "image_slots_removed": ["radio"]}}}
+    assert (
+        "parts.PART-B.image_slots_removed: 'radio' is also the Soc's slot, which the part "
+        "would keep"
+    ) in problems_of(over, base=catalog)
+    del soc(document)["image_slots"]
+    catalog = load_quietly(document)
+    part = load_quietly(over, base=catalog).resolve("PART-B")
+    assert dict(part.image_slots) == {}
+
+
+def test_a_soc_slot_problem_is_reported_against_the_soc_only(document):
+    add_reaching_radio(document)
+    soc(document)["image_slots"] = {"radio": slot("3M", "2M")}
+    found = problems_of(document)
+    assert "socs.soc_a: image_slots.radio: runs past the end of region 'nvm'" in found
+    assert "parts.PART-A" not in found
+
+
+def test_access_none_does_not_reach_a_slot_s_region(document):
+    add_radio(document, "vendor")
+    for master, access in (("cm55_0", "direct"), ("radio_m4", "none")):
+        soc(document)["access"].append({"master": master, "target": "nvm", "access": access})
+    document["parts"]["PART-A"]["image_slots"] = {"radio": slot("3M", "64K")}
+    assert (
+        "parts.PART-A.image_slots.radio: core 'radio_m4' has no direct access to 'nvm'"
+    ) in problems_of(document)
+
+
+@pytest.mark.parametrize(("size", "ok"), [("512K", True), ("516K", False)])
+def test_a_slot_may_end_exactly_at_another_core_s_start(document, size, ok):
+    add_reaching_radio(document)
+    soc(document)["boot_configs"]["sbl"]["app_start"] = {"region": "nvm", "offset": "1M"}
+    document["parts"]["PART-A"]["image_slots"] = {"radio": slot("512K", size)}
+    if ok:
+        load_quietly(document)
+    else:
+        assert "parts.PART-A.image_slots.radio: holds another core's start" in problems_of(document)
+
+
+def test_an_image_slot_has_a_size(document):
+    add_reaching_radio(document)
+    document["parts"]["PART-A"]["image_slots"] = {"radio": slot("3M", 0)}
+    assert "parts.PART-A.image_slots.radio: has size 0" in problems_of(document)
+
+
+@pytest.mark.parametrize(
+    ("programmable_by", "supplier", "ok"),
+    [
+        ("vendor", "vendor", True),
+        ("either", "customer", True),
+        ("customer", "vendor", True),  # a vendor binary the customer flashes
+        ("vendor", "customer", False),
+    ],
+)
+def test_a_customer_slot_needs_a_core_the_customer_programs(
+    document, programmable_by, supplier, ok
+):
+    add_reaching_radio(document, programmable_by)
+    document["parts"]["PART-A"]["image_slots"] = {
+        "radio": {**slot("3M", "64K"), "supplier": supplier}
+    }
+    if ok:
+        load_quietly(document)
+    else:
+        assert (
+            "parts.PART-A.image_slots.radio: supplier is customer, but only the vendor "
+            "programs 'radio_m4'"
+        ) in problems_of(document)
 
 
 # ---- builtin() and side-loaded catalogs (RFC 0002 private silicon) ---------------

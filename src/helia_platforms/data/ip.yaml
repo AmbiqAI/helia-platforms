@@ -24,20 +24,38 @@ cores:
         "Armv8.1-M ISA with DSP and Security Extensions". The Arm Cortex-M55 TRM is not in
         the register. nsx-ambiq-sdk facts/apollo510.cmake:13 and :15 agree.
   cortex-m4:
-    arch: armv7e-m
-    pmu: dwt
+    arch:
+      value: armv7e-m
+      provenance:
+        status: derived
+        source: ["doc:DS-A510LS@0.9.0:p55"]
+        verified_on: 2026-10-28
+        verified_by: evanchen11
+        notes: '"Arm v7-M architecture" with the DSP extension, which is Armv7E-M.'
+    pmu:
+      value: dwt
+      provenance:
+        status: sdk
+        source:
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo510L_cm4.h:175"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-cmsis-core/Include/core_cm4.h:1552"
+        verified_on: 2026-10-28
+        verified_by: evanchen11
+        notes: >-
+          The Apollo510 Lite radio core's CMSIS header gives __PMU_PRESENT 0, and core_cm4.h
+          maps a DWT at 0xE0001000 (DWT_BASE). ADR 0006 spells a DWT-only tier dwt.
     has_dsp_extension: true
     provenance:
-      status: sdk
+      status: datasheet
       source:
-        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo3.cmake:11"
-        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo3.cmake:13"
-        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo3.cmake:16"
+        - "doc:DS-A510LS@0.9.0:p55"
+        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo510L_cm4.h:170"
       verified_on: 2026-10-28
       verified_by: evanchen11
       notes: >-
-        NSX_SOC_ARCH_CLASS "armv7e_m", NSX_SOC_HAS_DSP TRUE, NSX_SOC_PMU_TIER "none"
-        (ADR 0006 spells a DWT-only tier dwt).
+        p55, the Apollo510 Lite radio core: "The CM4 supports the DSP and Security ISA
+        extensions". apollo510L_cm4.h gives __DSP_PRESENT 0, a macro core_cm4.h does not
+        read.
   cortex-m0:
     arch: armv6-m
     pmu: none
@@ -50,6 +68,8 @@ cores:
       verified_on: 2026-10-28
       verified_by: evanchen11
       notes: >-
-        CMSIS core_cm0.h: "Armv6-M" (:624), which has no DSP extension, and a core map of
-        SysTick, NVIC and SCB only (:535-542), with no DWT or PMU. No Soc's SDK facts name
-        this core: it is the Apollo4 Blue BLE controller's (DS-A4BP p96).
+        CMSIS core_cm0.h names the architecture once, in a comment on priority registers:
+        "Interrupt Priorities are WORD accessible only under Armv6-M" (:624). Armv6-M has no
+        DSP extension. The core map is SysTick, NVIC and SCB only (:535-542), with no DWT
+        or PMU. No Soc's SDK facts name this core: it is the Apollo4 Blue BLE controller's
+        (DS-A4BP p96).

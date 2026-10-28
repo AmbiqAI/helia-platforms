@@ -176,16 +176,20 @@ socs:
               vcomp, wdt]
       provenance:
         status: sdk
-        source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo4l.h:22968-23004"]
-        verified_on: 2026-10-26
+        source:
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo4l.h:22968-23004"
+          - "doc:DS-A4BL@0.9.0:p2"
+          - "doc:DS-A4BL@0.9.0:p39"
+          - "doc:DS-A4BL@0.9.0:p109"
+        verified_on: 2026-10-28
         verified_by: evanchen11
         notes: >-
           Every <NAME>_BASE define, lowercased (37): no usb, dc or dsi. DS-A4L p2 and p42 list
           no USB or MIPI DSI either, but describe the blocks by function and name no instance
-          such as dsp or cpu. On the Blue Lite part iom4 stays: it is not pinned out (DS-A4BL
-          p94-95) and is dedicated to the BLE controller, which AmbiqSuite drives over IOM 4
-          (devices/am_devices_cooper.h:199-213). DS-A4BL p2 and p39 count "7x" IOMs, while
-          p109 says "eight".
+          such as dsp or cpu. On the Blue Lite part iom4 stays: it is the BLE controller's
+          internal IOM, which AmbiqSuite drives over IOM 4 (devices/am_devices_cooper.h:199-213),
+          and is not pinned out (DS-A4BL p94-95). DS-A4BL p2 and p39 count "7x" IOMs, which
+          leave it out; p109's "eight" counts it.
     memory_controllers:
       value: [mspi0, mspi1, mspi2]
       provenance:
@@ -329,10 +333,12 @@ socs:
             The prebuilt HAL's am_hal_tpiu_enable writes 2 to MCUCTRL bits 3:1 and divides
             48000000 by the SWO rate; 2 is MCUCTRL_DBGCTRL_CM4CLKSEL_HFRC48, "Selects HFRC
             48Mhz as the source TPIU clk". AmbiqSuite's source sets CM4CLKSEL to it
-            (mcu/apollo4l/hal/mcu/am_hal_tpiu.c:263-268). NSX_SEGGER_CPUFREQ, 96 MHz
-            (facts/apollo4l.cmake:52), is a J-Link setting (#19). On apollo4l_blue_evb,
-            J-Link writes HFRC96 and ACPR 95 whatever clock it is given, then the firmware
-            selects HFRC48 (#19, 2026-10-28); decoding cannot confirm the frequency.
+            (mcu/apollo4l/hal/mcu/am_hal_tpiu.c:263-268). This disagrees with
+            facts/apollo4l.cmake:46-47, which say NSX_SEGGER_CPUFREQ (96 MHz, :52) "is the
+            TPIU *trace clock*": the HAL selects HFRC48 whatever J-Link is given. On
+            apollo4l_blue_evb, J-Link writes HFRC96 and ACPR 95 whatever clock it is given,
+            then the firmware selects HFRC48 (#19, 2026-10-28); decoding cannot confirm the
+            frequency. An SDK bump that keeps 96 there does not change this value.
       build:
         abi: thumbv7em-fpv4sp-hard
         float_abi: hard

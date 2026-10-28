@@ -167,16 +167,16 @@ def test_show_gives_the_vendor_programmed_radio_core_no_usable_nvm():
 
 
 def add_radio(document, programmable_by="vendor"):
-    document["socs"]["soc_a"]["cores"].append(
-        {
-            "id": "radio_m4",
-            "role": "radio",
-            "core": "cortex-m4",
-            "clock_domain": "cpu",
-            "options": {"fpu": "fpv4-sp-d16", "mve": "none"},
-            "programmable_by": programmable_by,
-        }
-    )
+    core = {
+        "id": "radio_m4",
+        "role": "radio",
+        "core": "cortex-m4",
+        "clock_domain": "cpu",
+        "options": {"fpu": "fpv4-sp-d16", "mve": "none"},
+    }
+    if programmable_by is not None:  # unset: a core with no loadable image
+        core["programmable_by"] = programmable_by
+    document["socs"]["soc_a"]["cores"].append(core)
 
 
 def test_show_computes_the_flash_address_of_each_core_with_a_start(overlay):
@@ -288,3 +288,15 @@ def test_show_prints_usable_nvm_for_each_core_a_customer_programs(
         "usable nvm 3008K (3080192 bytes; core 0, computed)",
         *radio_row,
     ]
+
+
+def test_show_prints_no_usable_nvm_for_a_core_with_no_loadable_image(overlay):
+    document = copy.deepcopy(BASE_DOCUMENT)
+    add_radio(document, None)
+    for master in ("cm55_0", "radio_m4"):
+        document["socs"]["soc_a"]["access"].append(
+            {"master": master, "target": "nvm", "access": "direct"}
+        )
+    result = run("show", "board_a", "--overlay", str(overlay(document)))
+    assert result.exit_code == 0, result.output
+    assert rows(result.output, "usable") == ["usable nvm 4032K (4128768 bytes; core 0, computed)"]

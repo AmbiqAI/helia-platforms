@@ -940,7 +940,8 @@
                         }
                       ]
                     },
-                    "uniqueItems": true
+                    "uniqueItems": true,
+                    "minItems": 1
                   },
                   {
                     "type": "object",
@@ -970,7 +971,8 @@
                             }
                           ]
                         },
-                        "uniqueItems": true
+                        "uniqueItems": true,
+                        "minItems": 1
                       },
                       "provenance": {
                         "$ref": "#/$defs/Provenance"
@@ -5836,6 +5838,81 @@
               ]
             },
             "operating_points_removed": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "value": {
+                            "type": "string",
+                            "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                          },
+                          "provenance": {
+                            "$ref": "#/$defs/Provenance"
+                          }
+                        },
+                        "required": [
+                          "value",
+                          "provenance"
+                        ],
+                        "additionalProperties": false
+                      }
+                    ]
+                  },
+                  "uniqueItems": true
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "array",
+                      "items": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "value": {
+                                "type": "string",
+                                "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$"
+                              },
+                              "provenance": {
+                                "$ref": "#/$defs/Provenance"
+                              }
+                            },
+                            "required": [
+                              "value",
+                              "provenance"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      },
+                      "uniqueItems": true
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "image_slots_removed": {
               "anyOf": [
                 {
                   "type": "array",

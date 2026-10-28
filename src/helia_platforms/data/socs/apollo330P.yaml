@@ -87,16 +87,25 @@ socs:
               p55: the radio subsystem is a "closed" system, with SWD/SWO "not supported or
               available".
         provenance:
-          status: datasheet
-          source: ["doc:DS-A330PS@0.9.0:p2", "doc:DS-A330PS@0.9.0:p33", "doc:DS-A330PS@0.9.0:p55"]
+          status: derived
+          source:
+            - "doc:DS-A330PS@0.9.0:p2"
+            - "doc:DS-A330PS@0.9.0:p33"
+            - "doc:DS-A330PS@0.9.0:p55"
+            - "doc:DS-A330PS@0.9.0:p67"
           verified_on: 2026-10-28
           verified_by: evanchen11
           notes: >-
             p55 "Arm Cortex-M4F Processor", a "dedicated Cortex-M4 processor with a reduced
             feature set" in the Radio Subsystem (RSS), which it places on the B and M Plus
-            parts. Every part has the core: p33 gives each variant, the plain 330 Plus
-            included, an NVM-M41 "NVM for Cortex-M4 Firmware", and p2's factory-installed
-            Cortex-M4 firmware note covers "each series derivative".
+            parts. That every part has the core is inferred: p33 gives each variant, the plain
+            330 Plus included, an NVM-M41 "NVM for Cortex-M4 Firmware"; p2's factory-installed
+            Cortex-M4 firmware note covers "each series derivative"; and p67, "Clock Sources for
+            the Apollo330 Plus Series SoCs", lists RF_XTAL_HS, which p55 calls an "integral part
+            of the RF transceiver". The #127 review adds AmbiqSuite (stable)
+            tools/apollo510L_scripts/firmware_updates/, CM4 firmware for the plain parts at
+            0x005FC000-0x005FFFFF; neither local AmbiqSuite copy nor nsx-ambiq-sdk v5.2.26 has
+            that directory, so it is not cited. The review applies it to the 330 Plus parts too.
         options:
           fpu:
             value: fpv4-sp-d16
@@ -207,6 +216,20 @@ socs:
           notes: >-
             p55 ties the 64 kB TCM to the M4; p33 gives its address in the M55's map. No
             source gives the address at which the M4 sees it.
+      - master: cm55_0
+        target: rs_tcm
+        access: direct
+        guidance: discouraged
+        reason: the radio core's tightly coupled RAM
+        provenance:
+          status: datasheet
+          source: ["doc:DS-A330PS@0.9.0:p33", "doc:DS-A330PS@0.9.0:p55"]
+          verified_on: 2026-10-28
+          verified_by: evanchen11
+          notes: >-
+            p33 Table 4, the "Cortex-M55 CPU Memory Map", lists "RS TCM RAM"; p55 gives it
+            to the M4 ("64 kB (Arm M4) Tightly Coupled RAM"). The guidance is the
+            catalog's (#127 review), so no budget or placement for cm55_0 counts it.
       - master: radio_m4
         target: mram
         access: direct
@@ -476,10 +499,11 @@ socs:
           notes: >-
             NSX_SEGGER_CPUFREQ is the TPIU trace clock (:47-48). am_bsp_itm_printf_enable()
             calls am_hal_itm_enable(), which in the prebuilt libam_hal.a passes
-            DBGTPIUCLKSEL_HFRC_48MHz (1) to am_hal_tpiu_config; the SDK comment's XTAL_HS
-            is wrong. DS-A330PS p72 lists only 192 and 96 MHz TPIU sources (#19). On apollo330mP_evb
-            the firmware sets DBGCTRL (0x4000AA50) to HFRC_48MHz (#19, 2026-10-28); SWO
-            decodes whatever clock J-Link is given, so decoding cannot confirm the frequency.
+            DBGTPIUCLKSEL_HFRC_48MHz (1) to am_hal_tpiu_config; the SDK comment's XTAL_HS is
+            wrong. DS-A330PS p72 lists only 192 and 96 MHz TPIU sources (#19). On
+            apollo330mP_evb the firmware sets DBGCTRL (0x4000AA50) to HFRC_48MHz (#19,
+            2026-10-28); SWO decodes whatever clock J-Link is given, so decoding cannot confirm
+            the frequency.
       hal_enums:
         ssram_full_power:
           value: AM_HAL_PWRCTRL_SRAM_1P75M

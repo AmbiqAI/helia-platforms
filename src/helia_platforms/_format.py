@@ -22,7 +22,7 @@ class Pattern:
 
 @dataclass(frozen=True)
 class Minimum:
-    """The number must be at least ``value``."""
+    """The number must be at least ``value``; a list must have at least ``value`` items."""
 
     value: int
 
@@ -336,6 +336,7 @@ class Subset(_Facts, total=False):
     clock_domains_removed: Annotated[list[DomainPointRef], BY_VALUE]
     boot_configs_removed: Names
     operating_points_removed: Names
+    image_slots_removed: Names
     access_removed: Annotated[list[RemovedAccess], Keyed(("master", "target"))]
     max_cpu_mhz: Mhz
     max_npu_mhz: Mhz
@@ -402,7 +403,7 @@ class AddOn(_Entity):
     occupies: Required[Names]
     population: Required[dict[Name, Id]]
     # Modes of an occupied interface while the add-on is fitted, narrowing the board's.
-    modes: NotRequired[dict[Name, Annotated[list[str], BY_VALUE]]]
+    modes: NotRequired[dict[Name, Annotated[list[str], BY_VALUE, Minimum(1)]]]
     revision: NotRequired[str]
     extensions: NotRequired[Extensions]
 

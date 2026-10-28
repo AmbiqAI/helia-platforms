@@ -99,9 +99,11 @@ Soc ── cores: [CoreInstance(id, role, core, options: CoreOptions, clock_doma
  │     peripherals: [name]   memory_controllers: [name] (those peripherals that are memory controllers)
  │     clock_domains: [ClockDomain]   operating_points: [OperatingPoint] (system points)
  │     boot_configs: {name: BootConfig}, default_boot    (sbl, nbl; app_start per programmable core)
+ │     image_slots: {name: ImageSlot(core, region, offset, size, supplier)} (every Part's, unless replaced)
  │     sdk: SdkFacts (c_define, cmsis_header, ...)   default_board   aliases, release_status, provenance
  │
  ├── Implementation (kind: silicon | fpga | fvp | rtl; model; subset of the Soc; default = all;
+ │                   the subset may remove the Soc's image slots;
  │                   may replace boot_configs, operating_points, clock domain points; an FPGA
  │                   carries jlink_device, trace clock, provisioning, interfaces; no board needed;
  │                   an FVP declares its own memories, each naming what it stands_in_for)
@@ -392,14 +394,17 @@ customers add daughter boards.
   (`fits_boards`), the interfaces it occupies (`occupies`) and its own
   `population` on those interfaces. Its optional `modes` narrows an
   occupied interface's modes while it is fitted, each a mode the board's
-  interface lists: the Apollo4 Plus Display Kit's shield runs MSPI0 in
-  `octal-ddr` only, because MSPI1 is unusable while MSPI0 is in hex mode
-  (DS-A4P p115). `Target.interfaces` carries the narrowed modes.
+  interface lists, keeping at least one mode of the add-on's device there
+  (a device that lists no modes is not checked): the Apollo4 Plus Display
+  Kit's shield runs MSPI0 in `octal-ddr` only, because MSPI1 is unusable
+  while MSPI0 is in hex mode (DS-A4P p115). `Target.interfaces` carries
+  the narrowed modes.
 - The resolved target is board plus selected add-ons plus overlay. The
   validator rejects two devices on one interface, an add-on on an
   interface the board or another add-on already uses (an occupied
   interface counts even without a device), an add-on on a board it does
-  not fit, and a device larger than its aperture.
+  not fit, a board interface with the same name as one of its
+  Implementation's, and a device larger than its aperture.
 
 AmbiqSuite's per-shield board directories (`apollo4p_evb_disp_shield_rev2`)
 and neuralspotx's matching board id become entries in the catalog's
@@ -848,7 +853,7 @@ one of them.
 @dataclass(frozen=True) class BuildFacts: abi, float_abi
 @dataclass(frozen=True) class Soc:        id, series, aliases, cores, npus, accelerators, memories, access, default_access: DefaultAccess | None, peripherals, memory_controllers, clock_domains, operating_points, default_operating_point: str | None, boot_configs, default_boot, image_slots, sdk, derives_from, default_board: str | None, revision, release_status, extensions, provenance
 @dataclass(frozen=True) class Implementation: id, soc, kind, model: str | None, subset: Subset, memories: tuple | None, access: tuple | None, clock_domains: tuple | None, operating_points: tuple | None, boot_configs: Mapping | None, default_boot: str | None, provisioning: str | None, jlink_device, trace_clock_mhz, interfaces, population, aliases, release_status, extensions, provenance   # None: inherit the Soc's (after clock caps); memories and access: kind fvp only (ADR 0007)
-@dataclass(frozen=True) class Subset:     memories_removed, memories_resized, memories_rebased, peripherals_removed, memory_controllers_removed, cores_removed, npus_removed, accelerators_removed, clock_domains_removed, boot_configs_removed, operating_points_removed, access_removed, max_cpu_mhz, max_npu_mhz, max_domain_mhz
+@dataclass(frozen=True) class Subset:     memories_removed, memories_resized, memories_rebased, peripherals_removed, memory_controllers_removed, cores_removed, npus_removed, accelerators_removed, clock_domains_removed, boot_configs_removed, operating_points_removed, image_slots_removed, access_removed, max_cpu_mhz, max_npu_mhz, max_domain_mhz
 @dataclass(frozen=True) class BootConfig: name, reserved: tuple[Reservation, ...], app_start: Mapping[str, AppStart], requires, provenance   # AppStart: region, offset; reserved in written key order
 @dataclass(frozen=True) class Reservation: region, offset, size, purpose, provenance
 @dataclass(frozen=True) class Part:       id, soc, implementation: str | None, silicon_revision, package, radio, jlink_device, image_slots, aliases, release_status, provenance
@@ -886,7 +891,7 @@ class Target:
     def isa(self, core: int | str = 0) -> IsaFeatures
     def reachable(self, master: str, target: str) -> Access | None   # a region's own entry, else its controller's
     def npu_clocks(self, npu: int | str = 0) -> Mapping[str, int]   # derived from system operating points
-    def memories(self, core: int | str = 0) -> tuple[MemoryRegion, ...]   # regions that core reaches, after subset, plus external regions whose interface it has an entry for
+    def memories(self, core: int | str = 0) -> tuple[MemoryRegion, ...]   # regions that core reaches, after subset, plus external regions whose interface it has an entry for; a discouraged entry is left out
     def placement_ranges(self, core: int | str = 0) -> Mapping[str, tuple[int, int]]   # (base, size) of reachable regions; leaves out a populated device with no base; raises for any other region without one
     def cpu_mhz(self, point: str | None = None, core: int | str = 0) -> int
     def npu_mhz(self, point: str | None = None, npu: int | str = 0) -> int
@@ -904,7 +909,7 @@ class Target:
     def boot_configs(self) -> tuple[BootConfig, ...]
     def flash_load_address(self, core: int | str = 0) -> int   # from boot; raises if there is none
     image_slots: Mapping[str, ImageSlot]                      # the Soc's, each replaced by the part's slot of that name
-    def usable_nvm(self, core: int | str = 0) -> Mapping[str, int]   # after reservations and other cores' slots; empty for a core only the vendor programs
+    def usable_nvm(self, core: int | str = 0) -> Mapping[str, int]   # after reservations and other cores' slots; empty for a core only the vendor programs or with no loadable image
     # external memory
     def external_memories(self) -> tuple[MemoryRegion, ...]   # population plus add-ons, at aperture bases
     # link environments (optional)
@@ -962,10 +967,12 @@ and is an error when an Implementation removed that controller (by
 `default_access` expansion that would grant core 0 a region another core
 has an entry for is excluded, per the multicore document;
 `app_start` keys name programmable cores; every `ImageSlot` owner is a
-programmable core with a `direct` entry for the slot's region; a slot ends
-inside its region and overlaps no other slot, no boot reservation and no
-other core's `app_start`; removing a core or region removes the inherited
-slots it owns or holds. `helia_platforms.export` writes the JSON catalog,
+programmable core with a `direct` entry for the slot's region; a slot has
+a nonzero size, ends inside its region and overlaps no other slot, no boot
+reservation and no other core's `app_start`; a `customer` slot's owner is
+not programmed by the vendor only; removing a core or region removes the
+inherited slots it owns or holds, and a Part's `image_slots_removed` may
+not name a slot its Soc carries. `helia_platforms.export` writes the JSON catalog,
 filtered and scrubbed by effective release status, and the JSON Schemas
 ([RFC 0003](0003-export-and-pages.md)). The Markdown pages and the release
 assets are built only from `builtin(include_plugins=False)`.

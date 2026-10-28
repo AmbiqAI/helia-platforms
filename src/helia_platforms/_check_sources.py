@@ -74,7 +74,9 @@ _CMAKE_FALSE = {"0", "OFF", "NO", "FALSE", "N", "IGNORE", "NOTFOUND", ""}
 _NUMBER = re.compile(r"[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?")
 _HEX = re.compile(r"[+-]?0[xX]([0-9a-fA-F]+\.?[0-9a-fA-F]*|\.[0-9a-fA-F]+)([pP][+-]?\d+)?")
 #: Apollo names its apertures MSPI<n>; atomiq110 names them XSPI<n>, with secure aliases (#120).
-_APERTURE = re.compile(r"^((?:MSPI|XSPI)\d+)_APERTURE_START(_SECURE)?_ADDR$")
+_APERTURE = re.compile(r"^((MSPI|XSPI)(\d+))_APERTURE_START(_SECURE)?_ADDR$")
+#: The controller id each aperture prefix belongs to: atomiq110's CMSIS blocks are XSPIMC<n>.
+_CONTROLLER = {"MSPI": "mspi", "XSPI": "xspimc"}
 _REPO = re.compile(r"^repo:(?P<repo>[^@]+)@(?P<rev>[^:]+):")
 MISSING = "in the catalog"
 
@@ -239,7 +241,7 @@ class _Comparison:
         yield from self.registers(name, block, soc)
         yield from self.hal_flash(name, block, soc)
         yield from self.containment(
-            SDK, ("socs", name, "linker"), _linker_regions(block), soc, _apertures(block)
+            SDK, ("socs", name, "linker"), _linker_regions(block), soc, _apertures(block, soc)
         )
 
     def hal_flash(self, name: str, block: Mapping[str, Any], soc: model.Soc) -> Iterator[Finding]:
@@ -329,7 +331,7 @@ class _Comparison:
         nodes = block["devicetree"]["memory"]
         regions = [((node,), n["base"], n["size"]) for node, n in nodes.items()]
         sdk_name = self._sdk_name(soc)
-        apertures = _apertures(self.sdk[sdk_name]) if sdk_name is not None else []
+        apertures = _apertures(self.sdk[sdk_name], target.soc) if sdk_name is not None else []
         yield from self.containment(
             ZEPHYR, (*at, "devicetree", "memory"), regions, target.soc, apertures
         )
@@ -434,17 +436,20 @@ def _linker_regions(
                 yield (toolchain, "scripts", script, region), r["origin"], r.get("length")
 
 
-def _apertures(block: Mapping[str, Any]) -> list[tuple[int, int]]:
-    """The memory-controller XIP apertures the register header defines, as ``[lo, hi)``.
+def _apertures(block: Mapping[str, Any], soc: model.Soc) -> list[tuple[int, int]]:
+    """The XIP apertures of ``soc``'s memory controllers that the header defines, as ``[lo, hi)``.
 
     ``*_APERTURE_END_ADDR`` is already exclusive: MSPI1's end is MSPI2's start. A secure
-    alias (``*_APERTURE_START_SECURE_ADDR``) is an aperture of its own.
+    alias (``*_APERTURE_START_SECURE_ADDR``) is an aperture of its own. A shared header's
+    aperture for a controller the Soc lacks (apollo510b's MSPI2) is not external memory.
     """
     defines = block["registers"]["values"]
+    controllers = set(soc.memory_controllers)
     found = []
     for name, start in defines.items():
-        if match := _APERTURE.match(name):
-            end = f"{match[1]}_APERTURE_END{match[2] or ''}_ADDR"
+        match = _APERTURE.match(name)
+        if match and f"{_CONTROLLER[match[2]]}{match[3]}" in controllers:
+            end = f"{match[1]}_APERTURE_END{match[4] or ''}_ADDR"
             if end in defines:
                 found.append((start, defines[end]))
     return found

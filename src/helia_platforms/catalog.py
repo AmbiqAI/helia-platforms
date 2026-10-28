@@ -436,6 +436,8 @@ class _Loader:
         self.sources: dict[tuple[str, str], str] = dict(base.sources)
         self.resolved: dict[tuple[str, str], Tree | None] = {}
         self.register = _provenance.Register()
+        #: Each part's own ``image_slots_removed``, which the merge consumes.
+        self.slots_removed: dict[str, list[str]] = {}
 
     def fail(self, origin: str, where: str, message: str) -> None:
         self.problems.append(f"{origin}: {where}: {message}")
@@ -445,6 +447,9 @@ class _Loader:
 
     def load(self, entries: dict, compositions: dict, shorthands: dict) -> Catalog:
         self.check_names(entries, compositions, shorthands)
+        for part_id, (raw, _) in entries.get("parts", {}).items():
+            if "image_slots_removed" in raw:
+                self.slots_removed[part_id] = list(raw["image_slots_removed"])
         new: dict[tuple[str, str], tuple[Tree, str]] = {}
         for kind in _KINDS:
             for entry_id, (_, origin) in entries.get(kind, {}).items():
@@ -771,6 +776,13 @@ class _Loader:
         slots = {**soc.image_slots, **part.image_slots}
         for name, problem in _slot_problems(soc, slots, own=set(part.image_slots)):
             self.fail(origin, where if name is None else f"{where}.image_slots.{name}", problem)
+        for name in self.slots_removed.get(part.id, ()):
+            if name in soc.image_slots and name not in part.image_slots:
+                message = (
+                    f"{name!r} is also the Soc's slot, which the part would keep; an "
+                    "Implementation's subset.image_slots_removed removes that"
+                )
+                self.fail(origin, f"{where}.image_slots_removed", message)
 
     def check_board(self, catalog: Catalog, board: model.Board, origin: str) -> None:
         where = f"boards.{board.id}"
@@ -794,8 +806,12 @@ class _Loader:
         impl = catalog._tables.get("implementations", {}).get(part.implementation)
         removed = _removed_controllers(impl) if impl is not None else ()
         self.check_interfaces(catalog, soc, board, where, origin, removed=removed)
+        # Target.interfaces holds both sets under one name each.
+        for name in board.interfaces.keys() & (impl.interfaces.keys() if impl else set()):
+            message = f"implementation {part.implementation!r} also has an interface {name!r}"
+            self.fail(origin, f"{where}.interfaces.{name}", message)
 
-    def check_addon(self, catalog: Catalog, addon: model.AddOn, origin: str) -> None:
+    def check_addon(self, catalog: Catalog, addon: model.AddOn, origin: str) -> None:  # noqa: PLR0912
         where = f"addons.{addon.id}"
         boards = catalog._tables.get("boards", {})
         for board in addon.fits_boards:
@@ -807,6 +823,8 @@ class _Loader:
                     self.fail(origin, f"{where}.{key}", f"{interface!r} is not in occupies")
         self.check_population(catalog, None, addon.population, where, origin)
         devices = catalog._tables.get("memory_devices", {})
+        for name, problem in _device_mode_problems(addon, devices):
+            self.fail(origin, f"{where}.modes.{name}", problem)
         for board in (boards[b] for b in addon.fits_boards if b in boards):
             for problem in _placement_problems(board, [addon]):
                 self.fail(origin, where, problem)
@@ -935,6 +953,22 @@ def _narrowing_problems(addon: model.AddOn, board: model.Board) -> list[tuple[st
             problems.append(
                 (name, f"{', '.join(extra)} not among board {board.id!r}'s {name!r} modes")
             )
+    return problems
+
+
+def _device_mode_problems(
+    addon: model.AddOn, devices: Mapping[str, model.MemoryDevice]
+) -> list[tuple[str, str]]:
+    """``(interface, problem)`` for each narrowing that leaves the add-on's device no mode.
+
+    A device that lists no modes is not checked.
+    """
+    problems = []
+    for name, modes in addon.modes.items():
+        device = devices.get(addon.population.get(name, ""))
+        if device is not None and device.modes and not set(modes) & set(device.modes):
+            modes_text = " ".join(device.modes)
+            problems.append((name, f"leaves {device.id!r} none of its modes ({modes_text})"))
     return problems
 
 
@@ -1162,8 +1196,9 @@ def _slot_problems(
 ) -> list[tuple[str | None, str]]:
     """``(slot name or None, problem)`` for the ``own`` slots among ``slots`` on ``soc``.
 
-    A slot needs a programmable owner that reaches its region, ends inside that region,
-    and overlaps no other slot, no reservation and no other core's application start.
+    A slot needs a programmable owner that reaches its region, a size, an end inside
+    that region, and no overlap with another slot, a reservation or another core's
+    application start. A customer-supplied slot needs a core the customer programs.
     """
     cores = {c.id: c for c in soc.cores}
     regions = {r.name: r.size for r in soc.memories}
@@ -1178,6 +1213,12 @@ def _slot_problems(
             problems.append(
                 (name, f"core {slot.core!r} is not programmable, so it cannot own a slot")
             )
+        elif slot.supplier == "customer" and cores[slot.core].programmable_by == "vendor":
+            problems.append(
+                (name, f"supplier is customer, but only the vendor programs {slot.core!r}")
+            )
+        if slot.size == 0:
+            problems.append((name, "has size 0"))
         if slot.region not in regions:
             problems.append((name, f"no region {slot.region!r}"))
             continue

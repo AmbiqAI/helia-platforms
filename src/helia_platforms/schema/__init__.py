@@ -91,7 +91,8 @@ class _Generator:
             schema: dict[str, Any] = {"type": "array", "items": self.field_schema(item_tp, facts)}
             if fmt.BY_VALUE in markers:
                 schema["uniqueItems"] = True
-            return schema
+            minimum = _walk.marker(markers, fmt.Minimum)
+            return {**schema, **({"minItems": minimum.value} if minimum else {})}
         if bare is str:
             pattern = _walk.marker(markers, fmt.Pattern)
             return {"type": "string", **({"pattern": pattern.regex} if pattern else {})}
