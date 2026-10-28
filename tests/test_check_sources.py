@@ -214,11 +214,10 @@ def test_a_linker_region_outside_every_run_of_regions_is_reported(snapshots):
     assert found.at[-2:] == ("linker_script_sbl.ld", "MCU_MRAM")
 
 
-@pytest.mark.parametrize("length", [0, -1])
-def test_a_linker_region_without_a_positive_length_is_reported(snapshots, length):
+def test_a_linker_region_with_a_negative_length_is_reported(snapshots):
     def change(data):
         scripts = data["socs"]["apollo510"]["linker"]["gcc"]["scripts"]
-        scripts["linker_script_sbl.ld"]["MCU_MRAM"]["length"] = length
+        scripts["linker_script_sbl.ld"]["MCU_MRAM"]["length"] = -1
 
     edit(snapshots, _check_sources.SDK, change)
     (found,) = findings(snapshots)
@@ -226,7 +225,21 @@ def test_a_linker_region_without_a_positive_length_is_reported(snapshots, length
         "region containment",
         ("linker_script_sbl.ld", "MCU_MRAM"),
     )
-    assert found.message.endswith(f"has length {length}")
+    assert found.message.endswith("has length -1")
+
+
+def test_a_zero_length_region_is_checked_by_its_origin(snapshots):
+    """An armclang ``EMPTY 0`` region, such as Apollo3's ARM_LIB_HEAP, occupies nothing."""
+
+    def change(data, origin):
+        scripts = data["socs"]["apollo510"]["linker"]["gcc"]["scripts"]
+        scripts["linker_script_sbl.ld"]["MCU_MRAM"].update(origin=origin, length=0)
+
+    edit(snapshots, _check_sources.SDK, lambda d: change(d, 0x00410000))
+    assert findings(snapshots) == []
+    edit(snapshots, _check_sources.SDK, lambda d: change(d, 0x00800000))
+    (found,) = findings(snapshots)
+    assert found.rule == "region containment"
 
 
 def test_an_unsized_scatter_region_is_checked_by_its_origin(snapshots):
