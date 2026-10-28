@@ -60,7 +60,10 @@ def test_apollo510b_evb_answers_the_consumer_queries(catalog):
 
 
 def test_apollo510b_derives_from_apollo510_with_its_own_peripherals(catalog):
-    """Equal physical regions; IOM6, MSPI2, MSPI3 and the IOS are absent (DS-A510B p94, p19)."""
+    """Equal physical regions; MSPI2, MSPI3 and the IOS are absent (DS-A510B p94, p19, p91).
+
+    IOM6 is not pinned out (p94), but the BSP drives the BLE controller through it.
+    """
     soc = catalog.resolve("apollo510b").soc
     apollo510 = catalog.resolve("apollo510").soc
     assert soc.derives_from == "apollo510"
@@ -69,12 +72,8 @@ def test_apollo510b_derives_from_apollo510_with_its_own_peripherals(catalog):
         return [(r.name, r.technology, r.attachment, r.base, r.size) for r in s.memories]
 
     assert physical(soc) == physical(apollo510)
-    assert set(apollo510.peripherals) - set(soc.peripherals) == {
-        "iom6",
-        "ioslave",
-        "mspi2",
-        "mspi3",
-    }
+    assert set(apollo510.peripherals) - set(soc.peripherals) == {"ioslave", "mspi2", "mspi3"}
+    assert "iom6" in soc.peripherals
     assert set(soc.peripherals) <= set(apollo510.peripherals)
     assert soc.memory_controllers == ("mspi0", "mspi1")
 
@@ -93,22 +92,28 @@ def test_a_shorthand_names_its_socs(catalog, shorthand):
     assert exc.value.candidates == ("apollo510", "apollo510b")
 
 
-def test_records_cite_the_best_available_source(catalog):
+@pytest.mark.parametrize(
+    ("board", "sdk_only", "guide"),
+    [
+        ("apollo510_evb", {"fpio"}, "doc:QS-A510@2.1:p10"),
+        ("apollo510b_evb", {"fpio", "iom6"}, "doc:QS-A510B@1.1:p10"),
+    ],
+)
+def test_records_cite_the_best_available_source(catalog, board, sdk_only, guide):
     """Datasheet where a page states the value; the SDK only for what only it sets."""
-    soc = catalog.resolve("apollo510_evb").soc
+    target = catalog.resolve(board)
+    soc = target.soc
     peripherals = {name: soc.field_provenance[f"peripherals.{name}"] for name in soc.peripherals}
-    assert {name for name, record in peripherals.items() if record.status != "datasheet"} == {
-        "fpio"
-    }
+    assert {n for n, record in peripherals.items() if record.status != "datasheet"} == sdk_only
     m55 = next(c for c in catalog.cores() if c.id == "cortex-m55")
     assert (m55.provenance.status, m55.field_provenance["pmu"].status) == ("datasheet", "sdk")
-    board = catalog.resolve("apollo510_evb").board
-    assert board.field_provenance["interfaces.mspi0.controller"].source == ("doc:QS-A510@2.1:p10",)
+    assert target.board.field_provenance["interfaces.mspi0.controller"].source == (guide,)
 
 
-def test_the_app_start_offset_names_the_mram_base_it_is_derived_from(catalog):
-    sbl = catalog.resolve("apollo510_evb").boot
+@pytest.mark.parametrize("board", ["apollo510_evb", "apollo510b_evb"])
+def test_the_app_start_offset_names_the_mram_base_it_is_derived_from(catalog, board):
+    target = catalog.resolve(board)
     assert (
-        "fact:soc:apollo510:memories.mram.base"
-        in sbl.field_provenance["app_start.cm55_0.offset"].source
+        f"fact:soc:{target.soc.id}:memories.mram.base"
+        in target.boot.field_provenance["app_start.cm55_0.offset"].source
     )

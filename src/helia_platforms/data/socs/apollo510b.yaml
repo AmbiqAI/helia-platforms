@@ -140,8 +140,9 @@ socs:
           "All of the memory is memory mapped and accessible by the CPU." One core; DMA,
           GPU and display controller are bus masters (p51), omitted with accelerators (#88).
 
-    # The datasheet's list, not the SDK header's: IOM6, MSPI2 and MSPI3 are not pinned
-    # out (p94), and the half-duplex IOS is absent (p19, p91). fpio carries its own record.
+    # The datasheet's list, not the SDK header's: MSPI2 and MSPI3 are not pinned out
+    # (p94), and the half-duplex IOS is absent (p19, p91). iom6 and fpio carry their own
+    # records.
     peripherals:
       - value: adc
         provenance: &table5
@@ -171,6 +172,18 @@ socs:
       - {value: iom3, provenance: *table5}
       - {value: iom4, provenance: *table5}
       - {value: iom5, provenance: *table5}
+      - value: iom6
+        provenance:
+          status: sdk
+          source:
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo510.h:29564"
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/boards/apollo510b_evb/bsp/am_bsp.h:47-48"
+          verified_on: 2026-10-28
+          verified_by: evanchen11
+          notes: >-
+            IOM6_BASE 0x40056000, which DS-A510B Table 5 shows as Reserved (p36); Table 1
+            counts 7 IOMs (p19). IOM6 is not pinned out (p94): it is dedicated to the BLE
+            controller, which the BSP drives through it (am_bsp.h:47-48).
       - {value: iom7, provenance: *table5}
       - {value: ioslavefd0, provenance: *table5}
       - {value: ioslavefd1, provenance: *table5}
