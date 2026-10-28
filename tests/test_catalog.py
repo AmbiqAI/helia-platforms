@@ -1096,7 +1096,9 @@ def test_a_delta_that_keeps_a_removed_peripheral_as_a_memory_controller_is_an_er
 
 
 def test_an_interface_on_a_controller_the_implementation_removed_is_an_error(document):
-    interfaces = {"fpga_mspi0": copy.deepcopy(document["boards"]["board_a"]["interfaces"]["mspi0"])}
+    fpga_mspi0 = copy.deepcopy(document["boards"]["board_a"]["interfaces"]["mspi0"])
+    fpga_mspi0["aperture_base"] = 0x70000000  # clear of the board's mspi0 window
+    interfaces = {"fpga_mspi0": fpga_mspi0}
     document["implementations"] = {
         "cut": {
             "soc": "soc_a",
@@ -1114,6 +1116,19 @@ def test_an_interface_on_a_controller_the_implementation_removed_is_an_error(doc
     assert f"boards.board_a.interfaces.mspi0: {removed}" in found
 
 
+def test_a_board_window_may_not_overlap_its_implementations_windows(document):
+    fpga_mspi0 = copy.deepcopy(document["boards"]["board_a"]["interfaces"]["mspi0"])
+    document["implementations"] = {
+        "cut": {"soc": "soc_a", "kind": "fpga", "interfaces": {"fpga_mspi0": fpga_mspi0}}
+    }
+    document["parts"]["PART-A"]["implementation"] = "cut"
+    found = problems_of(document)
+    assert "boards.board_a.interfaces.mspi0: window 0x60000000" in found
+    assert "overlaps implementation 'cut''s fpga_mspi0 window 0x60000000" in found
+    fpga_mspi0["aperture_base"] = 0x70000000
+    load_quietly(document)
+
+
 def test_a_board_and_its_implementation_may_not_name_the_same_interface(document):
     interfaces = copy.deepcopy(document["boards"]["board_a"]["interfaces"])
     document["implementations"] = {
@@ -1123,7 +1138,8 @@ def test_a_board_and_its_implementation_may_not_name_the_same_interface(document
     assert (
         "boards.board_a.interfaces.mspi0: implementation 'cut' also has an interface 'mspi0'"
     ) in problems_of(document)
-    document["implementations"]["cut"]["interfaces"] = {"fpga_mspi0": interfaces["mspi0"]}
+    renamed = {**interfaces["mspi0"], "aperture_base": 0x70000000}  # and clear of mspi0's window
+    document["implementations"]["cut"]["interfaces"] = {"fpga_mspi0": renamed}
     load_quietly(document)
 
 

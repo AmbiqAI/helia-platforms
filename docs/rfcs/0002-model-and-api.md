@@ -373,7 +373,7 @@ customers add daughter boards.
   0x04000000 as an alternate base (DS-A3P p82, p244, p249). An alternate
   base needs an aperture base, and no window (the aperture base or an
   alternate base, `aperture_max` long) may overlap an on-chip Soc region
-  or another interface's window. The
+  or another interface's window, the board's Implementation's included. The
   controller is a memory controller of the Soc (a `Soc.memory_controllers`
   entry); devices populated on the interface inherit that controller's
   access entries ([0002-multicore.md](0002-multicore.md)). An interface

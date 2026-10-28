@@ -810,6 +810,15 @@ class _Loader:
         for name in board.interfaces.keys() & (impl.interfaces.keys() if impl else set()):
             message = f"implementation {part.implementation!r} also has an interface {name!r}"
             self.fail(origin, f"{where}.interfaces.{name}", message)
+        theirs = list(_windows(impl.interfaces)) if impl is not None else []
+        for name, base, size in _windows(board.interfaces):
+            for other, lo, length in theirs:
+                if base < lo + length and lo < base + size:
+                    message = (
+                        f"window {base:#x} ({size} bytes) overlaps implementation "
+                        f"{part.implementation!r}'s {other} window {lo:#x} ({length} bytes)"
+                    )
+                    self.fail(origin, f"{where}.interfaces.{name}", message)
 
     def check_addon(self, catalog: Catalog, addon: model.AddOn, origin: str) -> None:  # noqa: PLR0912
         where = f"addons.{addon.id}"
@@ -907,6 +916,15 @@ class _Loader:
                 f"{device.id!r} ({device.capacity} bytes) exceeds the {interface.name!r} "
                 f"aperture ({interface.aperture_max} bytes)",
             )
+
+
+def _windows(interfaces: Mapping[str, model.MemoryInterface]) -> Iterator[tuple[str, int, int]]:
+    """``(interface, base, size)`` for each window: the aperture base and every alternate base."""
+    for name, interface in interfaces.items():
+        size = interface.aperture_max or 1
+        for base in (interface.aperture_base, *interface.alternate_bases):
+            if base is not None:
+                yield name, base, size
 
 
 def _window_problems(
