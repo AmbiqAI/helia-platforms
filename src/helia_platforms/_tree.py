@@ -283,7 +283,7 @@ def _drop_dangling_access(values: dict, deltas: dict, written: dict) -> None:
     """
     own = {(a["master"], a["target"]) for a in written.get("access", [])}
     gone = set()
-    for key in ("memories", "peripherals", "cores", "npus", "accelerators"):
+    for key in ("memories", "peripherals", "memory_controllers", "cores", "npus", "accelerators"):
         gone.update(deltas.get(f"{key}_removed", []))
     if gone and "access" in values:
         values["access"] = [
@@ -350,6 +350,7 @@ _SUBSET_DELTAS = (
     "memories_resized",
     "memories_rebased",
     "peripherals_removed",
+    "memory_controllers_removed",
     "cores_removed",
     "npus_removed",
     "accelerators_removed",

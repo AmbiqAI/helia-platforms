@@ -303,6 +303,7 @@ class Soc(_Entity):
     npus_removed: NotRequired[Annotated[Names, NOT_FACT, FILE_ONLY]]
     accelerators_removed: NotRequired[Annotated[Names, NOT_FACT, FILE_ONLY]]
     peripherals_removed: NotRequired[Annotated[Names, NOT_FACT, FILE_ONLY]]
+    memory_controllers_removed: NotRequired[Annotated[Names, NOT_FACT, FILE_ONLY]]
     clock_domains_removed: NotRequired[
         Annotated[list[DomainPointRef], BY_VALUE, NOT_FACT, FILE_ONLY]
     ]
@@ -318,6 +319,7 @@ class Subset(_Facts, total=False):
     memories_resized: dict[Name, Size]
     memories_rebased: dict[Name, Address]
     peripherals_removed: Names
+    memory_controllers_removed: Names
     cores_removed: Names
     npus_removed: Names
     accelerators_removed: Names

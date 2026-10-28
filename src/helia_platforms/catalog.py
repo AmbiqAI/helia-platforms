@@ -749,7 +749,7 @@ class _Loader:
         if impl.provisioning is not None and impl.provisioning not in realized.boot_configs:
             self.fail(origin, where, f"provisioning {impl.provisioning!r} is not a boot config")
         self.check_population(catalog, impl.interfaces, impl.population, where, origin)
-        removed = impl.subset.peripherals_removed
+        removed = _removed_controllers(impl)
         self.check_interfaces(catalog, realized, impl, where, origin, removed=removed)
 
     def check_part(self, catalog: Catalog, part: model.Part, origin: str) -> None:
@@ -801,7 +801,7 @@ class _Loader:
         if board.provisioning is not None and board.provisioning not in soc.boot_configs:
             self.fail(origin, where, f"provisioning {board.provisioning!r} is not a boot config")
         impl = catalog._tables.get("implementations", {}).get(part.implementation)
-        removed = impl.subset.peripherals_removed if impl is not None else ()
+        removed = _removed_controllers(impl) if impl is not None else ()
         self.check_interfaces(catalog, soc, board, where, origin, removed=removed)
 
     def check_addon(self, catalog: Catalog, addon: model.AddOn, origin: str) -> None:
@@ -893,6 +893,11 @@ class _Loader:
                 f"{device.id!r} ({device.capacity} bytes) exceeds the {interface.name!r} "
                 f"aperture ({interface.aperture_max} bytes)",
             )
+
+
+def _removed_controllers(impl: model.Implementation) -> tuple[str, ...]:
+    """The memory controllers ``impl`` removes, as peripherals or as memory controllers."""
+    return (*impl.subset.peripherals_removed, *impl.subset.memory_controllers_removed)
 
 
 def _soc_reference_problems(soc: model.Soc, catalog: Catalog) -> list[str]:

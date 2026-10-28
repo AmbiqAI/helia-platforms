@@ -168,7 +168,7 @@ Definitions, queries and an example are in [0002-multicore.md](0002-multicore.md
 | `access: [Access]`, `default_access` | structural | Reachability per (master, target), never inferred; `default_access` is a declared shorthand with provenance. |
 | `clock_domains: [ClockDomain]` | structural | Each with its own named points. |
 | `peripherals: [name]` | structural | Named list of every peripheral; an implementation's `peripherals_removed` removes from it. |
-| `memory_controllers: [name]` | structural | The peripherals that are memory controllers (mspi0, iom4), each also in `peripherals`; empty by default. Only these, besides regions, may be an `Access` target, a `default_access` grant or a `MemoryInterface.controller`. Removing a peripheral removes it here too. |
+| `memory_controllers: [name]` | structural | The peripherals that are memory controllers (mspi0, iom4), each also in `peripherals`; empty by default. Only these, besides regions, may be an `Access` target, a `default_access` grant or a `MemoryInterface.controller`. Removing a peripheral removes it here too; `memory_controllers_removed` removes only the controller, for a package that pins out no memory on it (MSPI1 on the Apollo4 Blue Plus KBR, DS-A4BP p118). |
 | `operating_points: [OperatingPoint]` | structural | System points: name, one point per clock domain, system HAL mode where the HAL has one; `target.cpu_mhz()` and `target.npu_mhz()` read the core-0 and npu-0 domains. heliaAOT `speeds` and the profiler `ClockDomain` are views. |
 | `default_operating_point` | SDK fact, optional | Set where the SDK names a default; otherwise absent and the choice is tool policy. |
 | `boot_configs: {name: BootConfig}`, `default_boot` | structural or SDK fact | The boot layouts the SDKs support, and the default. See Boot configurations. |
@@ -217,7 +217,8 @@ is that tool's marker.
 
 An `Implementation` names a `soc`, a `kind` and a subset expression:
 memories removed, resized or rebased; peripherals removed from
-`Soc.peripherals` (and so from `Soc.memory_controllers`); clock caps;
+`Soc.peripherals` (and so from `Soc.memory_controllers`); memory
+controllers removed from `Soc.memory_controllers` alone; clock caps;
 cores or accelerators removed. Everything not mentioned is inherited
 from the specification. The validator rejects an implementation that
 adds a memory or exceeds a clock; an FVP's own memory list, below, is
@@ -524,7 +525,7 @@ Semantics every overlay entry shares:
   never bits. ADR #7 may change the spelling but not the unit.
 - A Soc delta uses the same vocabulary as an implementation `Subset` where
   it applies: `memories_removed`, `memories_resized`, `memories_rebased`,
-  `peripherals_removed`.
+  `peripherals_removed`, `memory_controllers_removed`.
 - Removing a region, memory controller, core, NPU or accelerator, in a
   delta or an implementation `subset`, also removes the inherited `access`
   entries that name it, and removing a peripheral removes it from the
@@ -829,7 +830,7 @@ one of them.
 @dataclass(frozen=True) class BuildFacts: abi, float_abi
 @dataclass(frozen=True) class Soc:        id, series, aliases, cores, npus, accelerators, memories, access, default_access: DefaultAccess | None, peripherals, memory_controllers, clock_domains, operating_points, default_operating_point: str | None, boot_configs, default_boot, sdk, derives_from, default_board: str | None, revision, release_status, extensions, provenance
 @dataclass(frozen=True) class Implementation: id, soc, kind, model: str | None, subset: Subset, memories: tuple | None, access: tuple | None, clock_domains: tuple | None, operating_points: tuple | None, boot_configs: Mapping | None, default_boot: str | None, provisioning: str | None, jlink_device, trace_clock_mhz, interfaces, population, aliases, release_status, extensions, provenance   # None: inherit the Soc's (after clock caps); memories and access: kind fvp only (ADR 0007)
-@dataclass(frozen=True) class Subset:     memories_removed, memories_resized, memories_rebased, peripherals_removed, cores_removed, npus_removed, accelerators_removed, clock_domains_removed, boot_configs_removed, operating_points_removed, access_removed, max_cpu_mhz, max_npu_mhz, max_domain_mhz
+@dataclass(frozen=True) class Subset:     memories_removed, memories_resized, memories_rebased, peripherals_removed, memory_controllers_removed, cores_removed, npus_removed, accelerators_removed, clock_domains_removed, boot_configs_removed, operating_points_removed, access_removed, max_cpu_mhz, max_npu_mhz, max_domain_mhz
 @dataclass(frozen=True) class BootConfig: name, reserved: tuple[Reservation, ...], app_start: Mapping[str, AppStart], requires, provenance   # AppStart: region, offset; reserved in written key order
 @dataclass(frozen=True) class Reservation: region, offset, size, purpose, provenance
 @dataclass(frozen=True) class Part:       id, soc, implementation: str | None, silicon_revision, package, radio, jlink_device, image_slots, aliases, release_status, provenance
@@ -929,7 +930,8 @@ Soc as realized; after `default_access` expansion every region and every memory 
 built-in interface names has at least one entry (which may be
 `access: none`); a Board, AddOn or Implementation interface whose controller has no
 Soc-level entries draws a warning that its devices are unreachable,
-and is an error when an Implementation removed that controller; a
+and is an error when an Implementation removed that controller (by
+`peripherals_removed` or `memory_controllers_removed`); a
 `default_access` expansion that would grant core 0 a region another core
 has an entry for is excluded, per the multicore document;
 `app_start` keys name programmable cores; every `ImageSlot` owner is a

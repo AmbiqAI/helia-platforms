@@ -1033,6 +1033,26 @@ def test_an_interface_on_a_controller_the_implementation_removed_is_an_error(doc
     assert f"boards.board_a.{removed}" in found
 
 
+def test_a_subset_can_remove_a_memory_controller_and_keep_the_peripheral(document):
+    soc(document)["access"].append({"master": "npu_0", "target": "mspi0", "access": "direct"})
+    subset = {"memory_controllers_removed": ["mspi0"]}
+    document["implementations"] = {"cut": {"soc": "soc_a", "kind": "silicon", "subset": subset}}
+    realized = load_quietly(document)._realized("cut")
+    assert (realized.memory_controllers, "mspi0" in realized.peripherals) == (("iom0",), True)
+    assert ("npu_0", "mspi0") not in [(e.master, e.target) for e in realized.access]
+    document["parts"]["PART-A"]["implementation"] = "cut"
+    removed = "interfaces.mspi0: controller 'mspi0' is removed by the implementation"
+    assert f"boards.board_a.{removed}" in problems_of(document)
+
+
+def test_memory_controllers_removed_names_a_memory_controller(document):
+    subset = {"memory_controllers_removed": ["iom1"]}
+    document["implementations"] = {"cut": {"soc": "soc_a", "kind": "silicon", "subset": subset}}
+    assert (
+        "implementations.cut.subset: memory_controllers_removed names 'iom1', which the base lacks"
+    ) in problems_of(document)
+
+
 @pytest.mark.parametrize(("programmable_by", "ok"), [("vendor", True), (None, False)])
 def test_app_start_keys_name_programmable_cores(document, programmable_by, ok):
     add_radio(document, programmable_by)
