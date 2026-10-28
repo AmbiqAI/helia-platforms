@@ -477,7 +477,9 @@ socs:
             NSX_SEGGER_CPUFREQ is the TPIU trace clock (:47-48). am_bsp_itm_printf_enable()
             calls am_hal_itm_enable(), which in the prebuilt libam_hal.a passes
             DBGTPIUCLKSEL_HFRC_48MHz (1) to am_hal_tpiu_config; the SDK comment's XTAL_HS
-            is wrong. DS-A330PS p72 lists only 192 and 96 MHz TPIU sources (#19).
+            is wrong. DS-A330PS p72 lists only 192 and 96 MHz TPIU sources (#19). On apollo330mP_evb
+            the firmware sets DBGCTRL (0x4000AA50) to HFRC_48MHz (#19, 2026-10-28); SWO
+            decodes whatever clock J-Link is given, so decoding cannot confirm the frequency.
       hal_enums:
         ssram_full_power:
           value: AM_HAL_PWRCTRL_SRAM_1P75M
