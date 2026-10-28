@@ -122,24 +122,30 @@ def test_the_radio_core_reaches_its_tcm_nvm_and_system_sram(catalog):
         ("hp", 96),
     ]
     assert not target.isa("radio_m4").has_mve
+    assert not target.isa("radio_m4").has_pmu  # a Cortex-M4 has DWT, not a PMU
+    assert dict(target.usable_nvm("radio_m4")) == {}  # only the vendor programs it
 
 
 @pytest.mark.parametrize(
-    ("part", "usable"),
+    ("name", "slot_kb"),
     [
-        ("AP510NLA-CBR", 2 * 1024 * 1024 - 64 * 1024 - 16 * 1024),
-        ("AP330NPA-IBR", 2 * 1024 * 1024 - 64 * 1024 - 16 * 1024),
-        ("AP510BLA-ICR", 2 * 1024 * 1024 - 64 * 1024 - 288 * 1024),
-        ("AP330MPA-CCR", 2 * 1024 * 1024 - 64 * 1024 - 432 * 1024),
+        ("apollo510L", 16),
+        ("AP510NLA-CBR", 16),
+        ("AP330NPA-IBR", 16),
+        ("AP510BLA-ICR", 288),
+        ("AP330MPA-CCR", 432),
+        ("apollo330P", 16),
     ],
 )
-def test_nvm_m41_is_left_out_on_every_part(catalog, part, usable):
-    """A no-radio part has no radio core; its 16 KB NVM-M41 is a boot reservation instead."""
-    target = catalog.resolve(part)
-    assert dict(target.usable_nvm()) == {"mram": usable}
-    has_radio = target.part.radio != "none"
-    assert bool(target.cores(role="radio")) == has_radio
-    assert target.has_region("rs_tcm") == has_radio
+def test_nvm_m41_is_the_radio_core_s_slot_on_every_part_and_the_soc(catalog, name, slot_kb):
+    """The #127 review: every part keeps the Cortex-M4, whose factory firmware is in NVM-M41."""
+    target = catalog.resolve(name)
+    assert {(s.name, s.core, s.size // 1024) for s in target.image_slots.values()} == {
+        ("nvm_m41", "radio_m4", slot_kb)
+    }
+    assert dict(target.usable_nvm()) == {"mram": (2048 - 64 - slot_kb) * 1024}
+    assert [c.id for c in target.cores(role="radio")] == ["radio_m4"]
+    assert target.has_region("rs_tcm")
 
 
 def test_apollo330p_has_no_display_or_gpu(catalog):

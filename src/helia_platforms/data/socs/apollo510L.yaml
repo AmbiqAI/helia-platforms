@@ -1,6 +1,5 @@
 # yaml-language-server: $schema=../../schema/helia-platforms-v1.schema.json
-# The apollo510L Soc, its no-radio Implementation, its parts and its board. Owner
-# decisions: #65.
+# The apollo510L Soc, its parts and its board. Owner decisions: #65 and the #127 review.
 schema_version: 1
 socs:
   apollo510L:
@@ -89,12 +88,15 @@ socs:
               available".
         provenance:
           status: datasheet
-          source: ["doc:DS-A510LS@0.9.0:p55"]
-          verified_on: 2026-10-08
+          source: ["doc:DS-A510LS@0.9.0:p2", "doc:DS-A510LS@0.9.0:p33", "doc:DS-A510LS@0.9.0:p55"]
+          verified_on: 2026-10-28
           verified_by: evanchen11
           notes: >-
-            "Arm Cortex-M4F Processor"; a "dedicated Cortex-M4 processor with a reduced
-            feature set" in the Radio Subsystem (RSS) of the B and D Lite parts.
+            p55 "Arm Cortex-M4F Processor", a "dedicated Cortex-M4 processor with a reduced
+            feature set" in the Radio Subsystem (RSS), which it places on the B and D Lite
+            parts. Every part has the core: p33 gives each variant, the plain 510 Lite
+            included, an NVM-M41 "NVM for Cortex-M4 Firmware", and p2's factory-installed
+            Cortex-M4 firmware note covers "each series derivative".
         options:
           fpu:
             value: fpv4-sp-d16
@@ -165,7 +167,7 @@ socs:
           verified_by: evanchen11
           notes: >-
             p33 gives NVM-APPL and NVM-M41 across 0x00400000-0x005FFFFF, both Executable Y;
-            p254 "NVM (MRAM)", 2 MB. NVM-M41 is a per-part image slot or reservation.
+            p254 "NVM (MRAM)", 2 MB. NVM-M41 is the radio core's image slot (image_slots).
       rs_tcm:
         technology: sram
         attachment: tcm
@@ -422,6 +424,32 @@ socs:
           The default armclang (:24) and gcc (:29) linker scripts are the sbl scripts;
           NSX_SEGGER_PF_ADDR 0x00410000 (facts/apollo510L.cmake:52) agrees.
 
+    image_slots:
+      nvm_m41:
+        core: radio_m4
+        region: mram
+        offset:
+          value: 2032K
+          provenance: &m41_16
+            status: derived
+            source: ["doc:DS-A510LS@0.9.0:p33", "fact:soc:apollo510L:memories.mram.base"]
+            verified_on: 2026-10-08
+            verified_by: evanchen11
+            notes: >-
+              NVM-M41 0x005FC000-0x005FFFFF (510 Lite row): offset 0x005FC000 - 0x00400000
+              = 0x1FC000 = 2032K; size 0x4000 = 16K. Each radio part replaces it.
+        size: {value: 16K, provenance: *m41_16}
+        supplier: vendor
+        provenance: &slot_ds
+          status: datasheet
+          source: ["doc:DS-A510LS@0.9.0:p2", "doc:DS-A510LS@0.9.0:p33"]
+          verified_on: 2026-10-28
+          verified_by: evanchen11
+          notes: >-
+            p33 NVM-M41 "NVM for Cortex-M4 Firmware" on every variant; p2 "Factory-installed
+            Cortex-M4 firmware reduces the amount of available NVM which varies for each
+            series derivative".
+
     sdk:
       c_define: AM_PART_APOLLO510L
       provenance:
@@ -468,62 +496,10 @@ socs:
           verified_on: 2026-10-26
           verified_by: evanchen11
 
-implementations:
-  apollo510nL:
-    release_status: public
-    soc: apollo510L
-    kind: silicon
-    provenance: &ds_plain
-      status: datasheet
-      source: ["doc:DS-A510LS@0.9.0:p33", "doc:DS-A510LS@0.9.0:p55"]
-      verified_on: 2026-10-08
-      verified_by: evanchen11
-      notes: >-
-        The plain Apollo510 Lite (AP510NLA-*): p55 says only the B and D Lite parts include
-        the radio subsystem, so it has no Cortex-M4 or RS TCM. p33 still reserves NVM-M41
-        (16 kB) on it; the datasheet gives no reason.
-    subset:
-      cores_removed: [radio_m4]
-      memories_removed: [rs_tcm]
-      clock_domains_removed: [radio]
-      provenance: *ds_plain
-    boot_configs:
-      sbl:
-        reserved:
-          sbl:
-            region: mram
-            offset: 0
-            size: 64K
-            provenance: *sbl_derived
-          nvm_m41:
-            region: mram
-            offset: 2032K
-            size: 16K
-            provenance:
-              status: derived
-              source: ["doc:DS-A510LS@0.9.0:p33", "fact:soc:apollo510L:memories.mram.base"]
-              verified_on: 2026-10-08
-              verified_by: evanchen11
-              notes: >-
-                NVM-M41 0x005FC000-0x005FFFFF (510 Lite row): offset 0x005FC000 - 0x00400000
-                = 0x1FC000 = 2032K; size 0x4000 = 16K.
-        app_start:
-          region: mram
-          offset: 64K
-          provenance: *sbl_derived
-        requires: sbl
-        provenance:
-          status: datasheet
-          source: ["doc:DS-A510LS@0.9.0:p86"]
-          verified_on: 2026-10-08
-          verified_by: evanchen11
-          notes: '"The Secure Bootloader (SBL) uses GPIO28 as the SWO output".'
-
 parts:
   AP510NLA-CCR:
     release_status: public
     soc: apollo510L
-    implementation: apollo510nL
     package: "110-pin WLCSP, 4.047 x 3.948 mm"
     radio: none
     provenance: &ds_order
@@ -538,7 +514,6 @@ parts:
   AP510NLA-CBR:
     release_status: public
     soc: apollo510L
-    implementation: apollo510nL
     package: "169-pin BGA, 5.3 x 5.3 mm"
     radio: none
     provenance: *ds_order
@@ -563,14 +538,7 @@ parts:
               = 0x1B8000 = 1760K; size 0x48000 = 288K.
         size: {value: 288K, provenance: *m41_288}
         supplier: vendor
-        provenance: &slot_ds
-          status: datasheet
-          source: ["doc:DS-A510LS@0.9.0:p2", "doc:DS-A510LS@0.9.0:p33"]
-          verified_on: 2026-10-08
-          verified_by: evanchen11
-          notes: >-
-            p33 NVM-M41 "NVM for Cortex-M4 Firmware"; p2 "Factory-installed Cortex-M4
-            firmware reduces the amount of available NVM".
+        provenance: *slot_ds
     provenance: *ds_order
   AP510DLA-CCR:
     release_status: public
