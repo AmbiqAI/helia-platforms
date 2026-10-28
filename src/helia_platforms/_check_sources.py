@@ -35,7 +35,8 @@ REGISTERS: dict[str, dict[str, tuple[str, str]]] = {
         "mram": ("MRAM_BASEADDR", "MRAM_MAX_SIZE"),
     },
 }
-REGISTERS["apollo510b"] = REGISTERS["apollo510"]  # the same regions in its own header
+#: apollo510b builds against mcu/apollo510, so its snapshot reads apollo510's header.
+REGISTERS["apollo510b"] = dict(REGISTERS["apollo510"])
 #: CMake's boolean constants, compared case-insensitively; a non-zero number is also true
 #: (CMake reads one with ``strtod``, so in decimal or hexadecimal).
 _CMAKE_TRUE = {"1", "ON", "YES", "TRUE", "Y"}
@@ -212,8 +213,12 @@ class _Comparison:
         for region in soc.memories:
             names = REGISTERS.get(soc.id, {}).get(region.name, ())
             for define, ours in zip(names, (region.base, region.size), strict=False):
-                if define in defines:
-                    yield from _equal(SDK, (*at, define), "register", ours, defines[define])
+                if not define:
+                    continue  # the header has no such define
+                if define not in defines:
+                    yield Finding(SDK, (*at, define), "register", f"{define} is not defined")
+                    continue
+                yield from _equal(SDK, (*at, define), "register", ours, defines[define])
 
     def containment(
         self,
@@ -225,10 +230,16 @@ class _Comparison:
     ) -> Iterator[Finding]:
         """Each region inside one gap-free run of physical regions, or an external aperture.
 
-        A region with no length (an unsized scatter execution region) is checked by its origin.
+        A region with no length (an unsized scatter execution region) is checked by its origin;
+        a length must be positive.
         """
         runs = _runs(soc)
         for path, base, size in regions:
+            if size is not None and size <= 0:
+                yield Finding(
+                    snapshot, (*at, *path), "region containment", f"{base:#x} has length {size}"
+                )
+                continue
             end = base + (1 if size is None else size)
             if any(lo <= base and end <= hi for lo, hi in apertures):
                 continue  # external memory, which ADR 0006 does not compare
