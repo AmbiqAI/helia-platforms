@@ -60,16 +60,16 @@ and is not a pending correction. The PSRAM pin definitions show that the
 board is wired for PSRAM, not that the part is fitted, so whether it is
 fitted is a hardware question (#19).
 
-An inference, not proof, supports treating `apollo3p_evb`'s MSPI0 as an
-add-on interface. Its generic MSPI0 pins use pads 22 (D0) and 23 (D3)
-(`am_bsp_pins.h:490, 514`), which the BSP also assigns to COM_UART TX and
-RX (`am_bsp_pins.h:105, 113`). helia-profiler records that pads 22 and 23
-are the J-Link virtual-COM UART that carries its `uart` transport
-(`board.py:57-61`). A part on MSPI0 would therefore share the console UART
-pads. The cygnus PSRAM pins are pads 51 to 54, 59 and 69, which do not
-clash with its COM_UART pads 22 and 23 (the same lines in the cygnus BSP).
-#67 decided on MSPI1: the APS6404L is the `cygnus` add-on's, and
-`apollo3p_evb_cygnus` is the composition of `apollo3p_evb` with it.
+#67 decided on MSPI1: the APS6404L is the `cygnus` add-on's, on MSPI1, and
+`apollo3p_evb_cygnus` is the composition of `apollo3p_evb` with it. An
+inference, not proof, argues against the `apollo3p_evb` BSP's MSPI0. Its
+generic MSPI0 pins use pads 22 (D0) and 23 (D3) (`am_bsp_pins.h:490, 514`),
+which the BSP also assigns to COM_UART TX and RX (`am_bsp_pins.h:105, 113`).
+helia-profiler records that pads 22 and 23 are the J-Link virtual-COM UART
+that carries its `uart` transport (`board.py:57-61`), so a part on MSPI0
+would share the console UART pads. The cygnus PSRAM pins on MSPI1 are pads
+51 to 54, 59 and 69, which do not clash with its COM_UART pads 22 and 23
+(the same lines in the cygnus BSP).
 
 ## heliaAOT
 
