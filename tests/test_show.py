@@ -258,11 +258,23 @@ def test_an_interface_an_add_on_occupies_without_a_device_is_not_unpopulated():
 
 def test_a_fitted_add_on_prints_the_modes_it_narrows_an_interface_to():
     document = full_document()
-    document["boards"]["board_a"]["interfaces"]["mspi1"]["modes"] = ["hex-ddr", "octal-ddr"]
-    document["addons"]["shield"]["modes"] = {"mspi1": ["octal-ddr"]}
+    document["boards"]["board_a"]["interfaces"]["mspi1"]["modes"] = ["hex", "octal"]
+    document["addons"]["shield"]["modes"] = {"mspi1": ["octal"]}
     target = load_overlay(document, base=builtin(include_plugins=False)).resolve("board_a_shield")
     (addon,) = row_texts(target, "add-on")
-    assert "modes.mspi1 octal-ddr" in addon
+    assert "modes.mspi1 octal" in addon
     (psram,) = row_texts(target, "psram1")
-    assert "modes octal-ddr while the add-on is fitted" in psram
+    assert "controller mspi1, modes octal (add-on shield), aperture_base" in psram
+    assert "hex" not in psram
+    assert ("addons", "shield", ("modes", "mspi1", "octal")) in printed(target)
+    assert _show.stated_facts(target) <= printed(target)
+
+
+def test_an_add_on_that_reorders_an_interface_s_modes_does_not_narrow_them():
+    document = full_document()
+    document["boards"]["board_a"]["interfaces"]["mspi1"]["modes"] = ["hex", "octal"]
+    document["addons"]["shield"]["modes"] = {"mspi1": ["octal", "hex"]}
+    target = load_overlay(document, base=builtin(include_plugins=False)).resolve("board_a_shield")
+    (psram,) = row_texts(target, "psram1")
+    assert "modes hex octal, aperture_base" in psram and "(add-on shield)" not in psram
     assert _show.stated_facts(target) <= printed(target)
