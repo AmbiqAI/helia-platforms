@@ -119,7 +119,7 @@ socs:
         executable: true
         provenance:
           status: datasheet
-          source: ["doc:DS-A510B@1.1.0:p34", "doc:DS-A510B@1.1.0:p263"]
+          source: ["doc:DS-A510B@1.1.0:p34", "doc:DS-A510B@1.1.0:p263", "doc:DS-A510B@1.1.0:p21"]
           verified_on: 2026-10-08
           verified_by: evanchen11
           notes: >-
@@ -220,7 +220,7 @@ socs:
       value: [mspi0, mspi1]
       provenance:
         status: datasheet
-        source: ["doc:DS-A510B@1.1.0:p35"]
+        source: ["doc:DS-A510B@1.1.0:p35", "doc:DS-A510B@1.1.0:p94", "doc:DS-A510B@1.1.0:p105"]
         verified_on: 2026-10-08
         verified_by: evanchen11
         notes: >-
@@ -387,7 +387,7 @@ parts:
           NSX_SEGGER_DEVICE "AP510NFA-CBR" (facts/apollo510b.cmake:52), is apollo510's.
     provenance:
       status: datasheet
-      source: ["doc:DS-A510B@1.1.0:p263"]
+      source: ["doc:DS-A510B@1.1.0:p263", "doc:DS-A510B@1.1.0:p199", "doc:QS-A510B@1.1:p25"]
       verified_on: 2026-10-08
       verified_by: evanchen11
       notes: >-
