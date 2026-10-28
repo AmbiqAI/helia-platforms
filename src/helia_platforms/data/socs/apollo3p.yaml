@@ -366,27 +366,44 @@ boards:
             verified_on: 2026-10-26
             verified_by: evanchen11
             notes: The BSP routes MSPI1 CE0 and CE1, D0-D7, SCK and DQS (pads 50-62).
-        aperture_base: 0x04000000
-        alternate_bases:
-          value: [0x54000000]
+        aperture_base:
+          value: 0x54000000
           provenance:
             status: datasheet
-            source: ["doc:DS-A3P@1.3.0:p82", "doc:DS-A3P@1.3.0:p244", "doc:DS-A3P@1.3.0:p249"]
+            source:
+              - "doc:DS-A3P@1.3.0:p82"
+              - "doc:DS-A3P@1.3.0:p244"
+              - "doc:DS-A3P@1.3.0:p249"
+              - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/mcu/apollo3p/regs/am_reg_base_addresses.h:45"
+              - "repo:zephyrproject-rtos/zephyr@8f62a4ab82b5c2121c088842d3233f75b603ce35:dts/arm/ambiq/ambiq_apollo3p_blue.dtsi:84-88"
             verified_on: 2026-10-28
             verified_by: evanchen11
             notes: >-
-              The MSPI1 XIPMM window, 0x54000000-0x55FFFFFF (p82, p249), also Zephyr's XIP1
-              node. p244: XIP is cached and read-only, XIPMM "direct read/write accesses
-              (non-cached)"; p249: writes through XIP "do not flush cached data".
+              The MSPI1 XIPMM window, "Read/Write External Memory (MSPI1)" at 0x54000000-0x55FFFFFF
+              (p82, p249), MSPI1_XIPMM_BASEADDR, Zephyr's XIP1 node. p244: XIPMM is "direct
+              read/write accesses (non-cached)", so placement uses it; p82 marks it not executable.
+        alternate_bases:
+          value: [0x04000000]
+          provenance:
+            status: datasheet
+            source:
+              - "doc:DS-A3P@1.3.0:p82"
+              - "doc:DS-A3P@1.3.0:p244"
+              - "doc:DS-A3P@1.3.0:p249"
+              - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/mcu/apollo3p/regs/am_reg_base_addresses.h:44"
+            verified_on: 2026-10-28
+            verified_by: evanchen11
+            notes: >-
+              The MSPI1 XIP window, "External XIP Memory (MSPI1)" at 0x04000000-0x05FFFFFF (p82),
+              MSPI1_XIP_BASEADDR. p244: XIP is cached and read-only; p249: writes to XIP "do not
+              flush cached data", so it is for code and constants, not placement.
         aperture_max: 32M
         provenance:
           status: datasheet
           source: ["doc:DS-A3P@1.3.0:p82"]
-          verified_on: 2026-10-08
+          verified_on: 2026-10-28
           verified_by: evanchen11
-          notes: >-
-            "0x04000000 - 0x05FFFFFF External XiP Memory1 Y External XIP Memory (MSPI1)"; the
-            register header's MSPI1_XIP_BASEADDR agrees.
+          notes: Both MSPI1 windows, XIP and XIPMM, are 32 MB (p82).
     provisioning:
       value: sbl
       provenance:

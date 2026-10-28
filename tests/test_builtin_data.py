@@ -199,9 +199,14 @@ def test_the_cygnus_composition_adds_its_psram_on_mspi1(catalog):
     target = catalog.resolve("apollo3p_evb_cygnus")
     assert (target.id, [a.id for a in target.addons]) == ("apollo3p_evb", ["cygnus"])
     (psram,) = target.external_memories()
-    assert (psram.name, psram.base, psram.size) == ("psram0", 0x04000000, 8 * 1024 * 1024)
-    assert psram.alternate_bases == (0x54000000,)  # the read/write XIPMM window
-    assert target.placement_ranges()["psram0"] == (0x04000000, 8 * 1024 * 1024)
+    # Placement uses the read/write XIPMM window; the cached XIP window is read-only.
+    assert (psram.name, psram.base, psram.size) == ("psram0", 0x54000000, 8 * 1024 * 1024)
+    assert psram.alternate_bases == (0x04000000,)
+    assert target.placement_ranges()["psram0"] == (0x54000000, 8 * 1024 * 1024)
+    assert target.classify_address(0x04000010) == "psram0"
+    window = ("doc:DS-A3P@1.3.0:p82", "doc:DS-A3P@1.3.0:p244", "doc:DS-A3P@1.3.0:p249")
+    for key in ("base", "alternate_bases.0x4000000"):
+        assert psram.field_provenance[key].source[:3] == window  # the board's, not the device's
     assert target.board.interfaces["mspi1"].controller == "mspi1"
     assert "psram" in target.capabilities
 

@@ -346,8 +346,10 @@ class MemoryInterface(_Facts):
     controller: Required[Name]
     modes: NotRequired[Annotated[list[str], BY_VALUE]]
     aperture_base: NotRequired[Address]
-    # Other windows onto the same device (an uncached read/write alias); a populated
-    # device's region carries them as its alternate_bases.
+    # Other windows onto the same device (Apollo3 Blue Plus's cached, read-only XIP window,
+    # where aperture_base is the read/write one); needs aperture_base, and no window may
+    # overlap an on-chip region or another interface's. A populated device's region
+    # carries them as its alternate_bases.
     alternate_bases: NotRequired[Annotated[list[Address], BY_VALUE]]
     aperture_max: NotRequired[Size]
 

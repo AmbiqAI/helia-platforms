@@ -361,11 +361,17 @@ earlier Apollo4 display shield a different flash, QS-A4PDK p13), and
 customers add daughter boards.
 
 - `MemoryInterface` on the Board: name, controller (mspi0, mspi1, iom4),
-  modes (octal DDR, hex), XIP aperture base and maximum size, and optional
-  `alternate_bases`: other windows onto the same device, such as Apollo3
-  Blue Plus's uncached read/write XIPMM window. A device populated on the
-  interface carries them as its region's `alternate_bases`; its `base`,
-  and so `placement_ranges()`, stays the aperture base. The
+  modes (octal DDR, hex), aperture base and maximum size, and optional
+  `alternate_bases`: other windows onto the same device. A device
+  populated on the interface takes the aperture base as its region's
+  `base`, which `placement_ranges()` gives, and the others as its
+  `alternate_bases`. Where a controller has a read/write window and a
+  cached read-only XIP window, the read/write one is the aperture base:
+  Apollo3 Blue Plus's MSPI1 is at 0x54000000 (XIPMM) with its XIP window
+  0x04000000 as an alternate base (DS-A3P p82, p244, p249). An alternate
+  base needs an aperture base, and no window (the aperture base or an
+  alternate base, `aperture_max` long) may overlap an on-chip Soc region
+  or another interface's window. The
   controller is a memory controller of the Soc (a `Soc.memory_controllers`
   entry); devices populated on the interface inherit that controller's
   access entries ([0002-multicore.md](0002-multicore.md)). An interface
