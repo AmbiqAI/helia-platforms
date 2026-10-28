@@ -1373,13 +1373,13 @@ def test_an_image_slot_has_a_size(document):
     [
         ("vendor", "vendor", True),
         ("either", "customer", True),
-        ("customer", "vendor", True),  # a vendor binary the customer flashes
+        ("either", "vendor", True),
+        ("customer", "customer", True),
+        ("customer", "vendor", False),
         ("vendor", "customer", False),
     ],
 )
-def test_a_customer_slot_needs_a_core_the_customer_programs(
-    document, programmable_by, supplier, ok
-):
+def test_a_slots_supplier_must_program_its_core(document, programmable_by, supplier, ok):
     add_reaching_radio(document, programmable_by)
     document["parts"]["PART-A"]["image_slots"] = {
         "radio": {**slot("3M", "64K"), "supplier": supplier}
@@ -1388,8 +1388,8 @@ def test_a_customer_slot_needs_a_core_the_customer_programs(
         load_quietly(document)
     else:
         assert (
-            "parts.PART-A.image_slots.radio: supplier is customer, but only the vendor "
-            "programs 'radio_m4'"
+            f"parts.PART-A.image_slots.radio: supplier is {supplier}, but only the "
+            f"{programmable_by} programs 'radio_m4'"
         ) in problems_of(document)
 
 

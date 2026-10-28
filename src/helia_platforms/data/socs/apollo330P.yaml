@@ -102,10 +102,10 @@ socs:
             330 Plus included, an NVM-M41 "NVM for Cortex-M4 Firmware"; p2's factory-installed
             Cortex-M4 firmware note covers "each series derivative"; and p67, "Clock Sources for
             the Apollo330 Plus Series SoCs", lists RF_XTAL_HS, which p55 calls an "integral part
-            of the RF transceiver". The #127 review adds AmbiqSuite (stable)
-            tools/apollo510L_scripts/firmware_updates/, CM4 firmware for the plain parts at
-            0x005FC000-0x005FFFFF; neither local AmbiqSuite copy nor nsx-ambiq-sdk v5.2.26 has
-            that directory, so it is not cited. The review applies it to the 330 Plus parts too.
+            of the RF transceiver". AmbiqSuite 5.2.0 ships that firmware
+            (tools/apollo510L_scripts/firmware_updates/): README.txt:12-13 names the "factory
+            installed XTALHS_only firmware", whose history.txt gives INFO1 0x005FC000-0x005FFFFF.
+            A release archive has no repo: form, so it is named here, not in source. The review applies it to the 330 Plus parts too.
         options:
           fpu:
             value: fpv4-sp-d16
@@ -458,7 +458,8 @@ socs:
             verified_by: evanchen11
             notes: >-
               NVM-M41 0x005FC000-0x005FFFFF (330 Plus row): offset 0x005FC000 - 0x00400000
-              = 0x1FC000 = 2032K; size 0x4000 = 16K. Each radio part replaces it.
+              = 0x1FC000 = 2032K; size 0x4000 = 16K. Each radio part replaces it. AmbiqSuite 5.2.0 tools/apollo510L_scripts/firmware_updates/
+              cm4_xtalhs_only_updates/history.txt installs the factory image at 0x005FC000.
         size: {value: 16K, provenance: *m41_16}
         supplier: vendor
         provenance: &slot_ds
@@ -562,7 +563,8 @@ parts:
             verified_by: evanchen11
             notes: >-
               NVM-M41 0x005B8000-0x005FFFFF (330B Plus row): offset 0x005B8000 - 0x00400000
-              = 0x1B8000 = 1760K; size 0x48000 = 288K.
+              = 0x1B8000 = 1760K; size 0x48000 = 288K. AmbiqSuite 5.2.0 tools/apollo510L_scripts/firmware_updates/
+              cm4_ble_updates/history.txt installs the BLE image at 0x5B8000.
         size: {value: 288K, provenance: *m41_288}
         supplier: vendor
         provenance: *slot_ds
@@ -592,7 +594,8 @@ parts:
             verified_by: evanchen11
             notes: >-
               NVM-M41 0x00594000-0x005FFFFF (330M Plus row): offset 0x00594000 - 0x00400000
-              = 0x194000 = 1616K; size 0x6C000 = 432K.
+              = 0x194000 = 1616K; size 0x6C000 = 432K. AmbiqSuite 5.2.0 tools/apollo510L_scripts/firmware_updates/
+              cm4_btdm_updates/history.txt installs the BR/EDR and BLE image at 0x594000.
         size: {value: 432K, provenance: *m41_432}
         supplier: vendor
         provenance: *slot_ds
