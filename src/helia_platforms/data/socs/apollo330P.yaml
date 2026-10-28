@@ -469,12 +469,15 @@ socs:
           source:
             - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo330P.cmake:53"
             - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-core/src/apollo510/nsx_system_platform.c:66-70"
-          verified_on: 2026-10-26
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/lib/gcc/apollo330P/libam_hal.a"
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo330P.h:63088"
+          verified_on: 2026-10-28
           verified_by: evanchen11
           notes: >-
-            NSX_SEGGER_CPUFREQ is the TPIU trace clock (:47-48); on 510L and 330P the BSP's
-            am_bsp_itm_printf_enable() runs it from XTAL_HS 48 MHz. DS-A330PS p72 lists
-            only 192 and 96 MHz TPIU sources; which one firmware selects is open (#63).
+            NSX_SEGGER_CPUFREQ is the TPIU trace clock (:47-48). am_bsp_itm_printf_enable()
+            calls am_hal_itm_enable(), which in the prebuilt libam_hal.a passes
+            DBGTPIUCLKSEL_HFRC_48MHz (1) to am_hal_tpiu_config; the SDK comment's XTAL_HS
+            is wrong. DS-A330PS p72 lists only 192 and 96 MHz TPIU sources (#19).
       hal_enums:
         ssram_full_power:
           value: AM_HAL_PWRCTRL_SRAM_1P75M
