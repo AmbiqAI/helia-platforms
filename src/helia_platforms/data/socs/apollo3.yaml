@@ -183,8 +183,8 @@ socs:
       value: [mspi0]
       provenance:
         status: datasheet
-        source: ["doc:DS-A3@1.3.0:p78"]
-        verified_on: 2026-10-26
+        source: ["doc:DS-A3@1.3.0:p78", "doc:DS-A3@1.3.0:p2"]
+        verified_on: 2026-10-28
         verified_by: evanchen11
         notes: >-
           Table 5's "External MSPI Flash" XIP window, 0x04000000-0x07FFFFFF; p2 lists one

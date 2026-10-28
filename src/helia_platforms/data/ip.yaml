@@ -30,10 +30,10 @@ cores:
     provenance:
       status: sdk
       source:
-        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo4p.cmake:11"
-        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo4p.cmake:13"
-        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo4p.cmake:16"
-      verified_on: 2026-10-13
+        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo3.cmake:11"
+        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo3.cmake:13"
+        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo3.cmake:16"
+      verified_on: 2026-10-28
       verified_by: evanchen11
       notes: >-
         NSX_SOC_ARCH_CLASS "armv7e_m", NSX_SOC_HAS_DSP TRUE, NSX_SOC_PMU_TIER "none"

@@ -109,8 +109,10 @@ exceptions:
     at: [boards, apollo3p_evb, devicetree, memory, /memory@52000000]
     rule: region containment
     reason: &xipmm >-
-      An MSPI read/write (XIPMM) aperture, external memory (DS-A3P p82). The register
-      header gives only its base, so check-sources finds no aperture to skip it by.
+      An MSPI read/write (XIPMM) aperture, external memory (DS-A3P p82). The Zephyr check
+      looks apertures up by Zephyr's SoC name, apollo3p_blue, which matches no SDK Soc;
+      and apollo3p's register header gives only the XIPMM base, with no end define.
+      Both must change before these entries can go.
     issue: "#129"
   - snapshot: zephyr.json
     at: [boards, apollo3p_evb, devicetree, memory, /memory@54000000]

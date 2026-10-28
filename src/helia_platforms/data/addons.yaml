@@ -15,14 +15,15 @@ addons:
             - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/boards/apollo3p_evb_cygnus/bsp/am_bsp_pins.h:966-1011"
             - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/boards/apollo3p_evb_cygnus/bsp/am_bsp.h:118"
             - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-psram/CMakeLists.txt:21-29"
-            - "repo:zephyrproject-rtos/zephyr@8f62a4ab82b5c2121c088842d3233f75b603ce35:samples/drivers/memc/boards/apollo3p_evb.overlay:21-54"
-          verified_on: 2026-10-26
+            - "repo:zephyrproject-rtos/zephyr@8f62a4ab82b5c2121c088842d3233f75b603ce35:samples/drivers/memc/boards/apollo3p_evb.overlay:34-35"
+            - "repo:zephyrproject-rtos/zephyr@8f62a4ab82b5c2121c088842d3233f75b603ce35:samples/drivers/memc/boards/apollo3p_evb.overlay:73-105"
+          verified_on: 2026-10-28
           verified_by: evanchen11
           notes: >-
             The cygnus BSP wires a PSRAM to MSPI1 (CE0 pad 69, D0-D3 and SCK pads 51-54 and
             59) with AM_BSP_MSPI_PSRAM_INST 1, and nsx-psram builds its APS6404L driver for
-            the board. Zephyr's PSRAM sample wires an APS6404L on the same pads. Wired, not
-            confirmed fitted (#19).
+            the board. Zephyr's PSRAM sample wires an APS6404L (:34-35) on the same pads,
+            and D4-D7 on pads 55-58 (:73-105). Wired, not confirmed fitted (#19).
     provenance:
       status: sdk
       source:
