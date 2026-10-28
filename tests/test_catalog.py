@@ -799,9 +799,9 @@ def test_an_add_on_may_not_put_a_second_device_on_a_board_interface(document):
     document["addons"] = {"shield": shield({"mspi1": "psram_8m"})}
     load_quietly(document)
     document["addons"] = {"shield": shield({"mspi0": "psram_8m"})}
-    assert (
-        "addons.shield: add-on 'shield' and board 'board_a' both put a device on 'mspi0'"
-    ) in problems_of(document)
+    assert "addons.shield: add-on 'shield' and board 'board_a' both use 'mspi0'" in problems_of(
+        document
+    )
 
 
 def test_an_add_on_uses_only_interfaces_its_boards_have(document):
@@ -839,9 +839,53 @@ def test_a_composition_puts_one_device_on_each_interface(document):
     document["compositions"] = {"one": {"board": "board_a", "addons": ["first"]}}
     load_quietly(document)
     document["compositions"]["two"] = {"board": "board_a", "addons": ["first", "second"]}
-    assert (
-        "compositions.two: add-on 'second' and add-on 'first' both put a device on 'mspi1'"
-    ) in problems_of(document)
+    assert "compositions.two: add-on 'second' and add-on 'first' both use 'mspi1'" in problems_of(
+        document
+    )
+
+
+def test_an_interface_an_add_on_occupies_without_a_device_is_still_taken(document):
+    with_mspi1(document)
+    document["addons"] = {
+        "display": {"fits_boards": ["board_a"], "occupies": ["mspi0", "mspi1"], "population": {}},
+        "flash": shield({"mspi1": "psram_8m"}),
+    }
+    document["compositions"] = {"both": {"board": "board_a", "addons": ["display", "flash"]}}
+    problems = problems_of(document)
+    assert "addons.display: add-on 'display' and board 'board_a' both use 'mspi0'" in problems
+    assert "compositions.both: add-on 'flash' and add-on 'display' both use 'mspi1'" in problems
+
+
+def test_an_add_on_narrows_the_modes_of_an_interface_while_fitted(document):
+    with_mspi1(document)
+    document["boards"]["board_a"]["interfaces"]["mspi1"]["modes"] = ["hex-ddr", "octal-ddr"]
+    document["addons"] = {
+        "shield": {**shield({"mspi1": "psram_8m"}), "modes": {"mspi1": ["octal-ddr"]}}
+    }
+    document["compositions"] = {"fitted": {"board": "board_a", "addons": ["shield"]}}
+    cat = load_quietly(document)
+    assert cat.resolve("board_a").interfaces["mspi1"].modes == ("hex-ddr", "octal-ddr")
+    fitted = cat.resolve("fitted")
+    assert fitted.interfaces["mspi1"].modes == ("octal-ddr",)
+    assert [i.modes for i, _ in fitted._devices] == [(), ("octal-ddr",)]
+    assert fitted.board.interfaces["mspi1"].modes == ("hex-ddr", "octal-ddr")
+
+
+@pytest.mark.parametrize(
+    ("modes", "problem"),
+    [
+        (
+            {"mspi1": ["quad"]},
+            "addons.shield.modes.mspi1: quad not among board 'board_a''s 'mspi1' modes",
+        ),
+        ({"mspi0": ["octal-ddr"]}, "addons.shield.modes: 'mspi0' is not in occupies"),
+    ],
+)
+def test_an_add_on_narrows_only_the_modes_of_interfaces_it_occupies(document, modes, problem):
+    with_mspi1(document)
+    document["boards"]["board_a"]["interfaces"]["mspi1"]["modes"] = ["octal-ddr"]
+    document["addons"] = {"shield": {**shield({"mspi1": "psram_8m"}), "modes": modes}}
+    assert problem in problems_of(document)
 
 
 def test_default_access_grants_core_0_what_no_core_has_an_entry_for(document):
@@ -1021,6 +1065,26 @@ def test_an_interface_on_a_controller_the_implementation_removed_is_an_error(doc
     assert f"boards.board_a.{removed}" in found
 
 
+def test_a_subset_can_remove_a_memory_controller_and_keep_the_peripheral(document):
+    soc(document)["access"].append({"master": "npu_0", "target": "mspi0", "access": "direct"})
+    subset = {"memory_controllers_removed": ["mspi0"]}
+    document["implementations"] = {"cut": {"soc": "soc_a", "kind": "silicon", "subset": subset}}
+    realized = load_quietly(document)._realized("cut")
+    assert (realized.memory_controllers, "mspi0" in realized.peripherals) == (("iom0",), True)
+    assert ("npu_0", "mspi0") not in [(e.master, e.target) for e in realized.access]
+    document["parts"]["PART-A"]["implementation"] = "cut"
+    removed = "interfaces.mspi0: controller 'mspi0' is removed by the implementation"
+    assert f"boards.board_a.{removed}" in problems_of(document)
+
+
+def test_memory_controllers_removed_names_a_memory_controller(document):
+    subset = {"memory_controllers_removed": ["iom1"]}
+    document["implementations"] = {"cut": {"soc": "soc_a", "kind": "silicon", "subset": subset}}
+    assert (
+        "implementations.cut.subset: memory_controllers_removed names 'iom1', which the base lacks"
+    ) in problems_of(document)
+
+
 @pytest.mark.parametrize(("programmable_by", "ok"), [("vendor", True), (None, False)])
 def test_app_start_keys_name_programmable_cores(document, programmable_by, ok):
     add_radio(document, programmable_by)
@@ -1040,9 +1104,16 @@ def slot(offset, size, core="radio_m4"):
     return {"core": core, "region": "nvm", "offset": offset, "size": size, "supplier": "vendor"}
 
 
+def add_reaching_radio(document, programmable_by="vendor"):
+    """A radio core with an nvm entry; core 0 then needs its own, which default_access skips."""
+    add_radio(document, programmable_by)
+    for master in ("cm55_0", "radio_m4"):
+        soc(document)["access"].append({"master": master, "target": "nvm", "access": "direct"})
+
+
 @pytest.mark.parametrize(("programmable_by", "ok"), [("either", True), (None, False)])
 def test_an_image_slot_owner_is_a_programmable_core(document, programmable_by, ok):
-    add_radio(document, programmable_by)
+    add_reaching_radio(document, programmable_by)
     document["parts"]["PART-A"]["image_slots"] = {"radio": slot("1M", "64K")}
     if ok:
         load_quietly(document)
@@ -1053,7 +1124,7 @@ def test_an_image_slot_owner_is_a_programmable_core(document, programmable_by, o
 
 
 def test_image_slots_overlap_neither_each_other_nor_boot_reservations(document):
-    add_radio(document, "vendor")
+    add_reaching_radio(document)
     slots = document["parts"]["PART-A"]["image_slots"] = {
         "a": slot(0x100000, 0x10000),
         "b": slot(0x110000, 0x10000),  # touches a
@@ -1064,6 +1135,65 @@ def test_image_slots_overlap_neither_each_other_nor_boot_reservations(document):
     found = problems_of(document)
     assert "parts.PART-A: image_slots.a overlaps image_slots.b in region 'nvm'" in found
     assert "parts.PART-A: image_slots.c overlaps boot_configs.sbl.reserved.sbl" in found
+
+
+def test_an_image_slot_ends_inside_its_region(document):
+    add_reaching_radio(document)
+    document["parts"]["PART-A"]["image_slots"] = {"radio": slot("3M", "1M")}  # ends at 4M
+    load_quietly(document)
+    document["parts"]["PART-A"]["image_slots"]["radio"]["size"] = "2M"
+    assert "parts.PART-A.image_slots.radio: runs past the end of region 'nvm'" in problems_of(
+        document
+    )
+
+
+def test_a_slot_past_the_end_of_mram_is_rejected_before_usable_nvm_goes_negative():
+    """A 4M slot on apollo510L's 2M of MRAM once loaded, and usable_nvm() gave -2162688."""
+    part = {"soc": "apollo510L", "image_slots": {"nvm_m41": slot("1M", "4M")}}
+    part["image_slots"]["nvm_m41"]["region"] = "mram"
+    found = problems_of({"parts": {"MY-PART": part}}, base=builtin(include_plugins=False))
+    assert "parts.MY-PART.image_slots.nvm_m41: runs past the end of region 'mram'" in found
+
+
+def test_an_image_slot_sits_in_memory_its_core_reaches(document):
+    add_radio(document, "vendor")
+    document["parts"]["PART-A"]["image_slots"] = {"radio": slot("3M", "64K")}
+    assert (
+        "parts.PART-A.image_slots.radio: core 'radio_m4' has no direct access to 'nvm'"
+    ) in problems_of(document)
+
+
+def test_an_image_slot_holds_no_other_core_s_application_start(document):
+    add_reaching_radio(document)
+    document["parts"]["PART-A"]["image_slots"] = {"radio": slot("64K", "64K")}
+    assert (
+        "parts.PART-A.image_slots.radio: holds another core's start, "
+        "boot_configs.sbl.app_start.cm55_0"
+    ) in problems_of(document)
+
+
+def test_a_soc_image_slot_is_checked_and_a_part_slot_replaces_it_by_name(document):
+    add_reaching_radio(document)
+    soc(document)["image_slots"] = {"radio": slot("3M", "2M")}
+    assert "socs.soc_a: image_slots.radio: runs past the end of region 'nvm'" in problems_of(
+        document
+    )
+    soc(document)["image_slots"]["radio"]["size"] = "16K"
+    document["parts"]["PART-A"]["image_slots"] = {"radio": slot("2M", "1M")}
+    part = load_quietly(document).resolve("PART-A")
+    assert {n: (s.offset, s.size) for n, s in part.image_slots.items()} == {
+        "radio": (2 * 1024 * 1024, 1024 * 1024)
+    }
+
+
+def test_removing_a_slot_s_core_removes_the_soc_slot(document):
+    add_reaching_radio(document)
+    soc(document)["image_slots"] = {"radio": slot("3M", "16K")}
+    document["implementations"] = {
+        "no_radio": {"soc": "soc_a", "kind": "silicon", "subset": {"cores_removed": ["radio_m4"]}}
+    }
+    target = load_quietly(document).resolve("no_radio")
+    assert dict(target.image_slots) == {}
 
 
 # ---- builtin() and side-loaded catalogs (RFC 0002 private silicon) ---------------

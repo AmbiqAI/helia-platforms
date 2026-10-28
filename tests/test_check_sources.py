@@ -198,6 +198,52 @@ def test_a_flash_header_define_the_snapshot_lacks_is_reported(snapshots, define)
     assert (found.at[-1], found.message) == (define, f"the snapshot has no {define}")
 
 
+@pytest.mark.parametrize("soc", ["apollo510", "apollo510b", "apollo510L", "apollo330P"])
+@pytest.mark.parametrize(
+    "define",
+    [
+        "DTCM_BASEADDR",
+        "DTCM_MAX_SIZE",
+        "SSRAM_BASEADDR",
+        "SSRAM_MAX_SIZE",
+        "MRAM_BASEADDR",
+        "MRAM_MAX_SIZE",
+    ],
+)
+def test_each_apollo5_soc_compares_every_register_define(snapshots, soc, define):
+    def change(data):
+        data["socs"][soc]["registers"]["values"][define] += 0x400
+
+    edit(snapshots, _check_sources.SDK, change)
+    (found,) = [f for f in findings(snapshots) if f.rule == "register"]
+    assert found.at[1:2] + found.at[-1:] == (soc, define)
+
+
+def test_a_register_define_missing_from_the_header_is_reported(snapshots):
+    edit(
+        snapshots,
+        _check_sources.SDK,
+        lambda d: d["socs"]["apollo510"]["registers"]["values"].pop("DTCM_MAX_SIZE"),
+    )
+    (found,) = findings(snapshots)
+    assert (found.rule, found.at[-1], found.message) == (
+        "register",
+        "DTCM_MAX_SIZE",
+        "DTCM_MAX_SIZE is not defined",
+    )
+
+
+def test_an_empty_register_define_is_skipped(snapshots, monkeypatch):
+    registers = dict(_check_sources.REGISTERS["apollo510"], dtcm=("", ""))
+    monkeypatch.setitem(_check_sources.REGISTERS, "apollo510", registers)
+    edit(
+        snapshots,
+        _check_sources.SDK,
+        lambda d: d["socs"]["apollo510"]["registers"]["values"].pop("DTCM_MAX_SIZE"),
+    )
+    assert findings(snapshots) == []
+
+
 def test_a_linker_region_outside_every_run_of_regions_is_reported(snapshots):
     def change(data):
         scripts = data["socs"]["apollo510"]["linker"]["gcc"]["scripts"]
@@ -206,6 +252,34 @@ def test_a_linker_region_outside_every_run_of_regions_is_reported(snapshots):
     edit(snapshots, _check_sources.SDK, change)
     (found,) = [f for f in findings(snapshots) if f.rule == "region containment"]
     assert found.at[-2:] == ("linker_script_sbl.ld", "MCU_MRAM")
+
+
+def test_a_linker_region_with_a_negative_length_is_reported(snapshots):
+    def change(data):
+        scripts = data["socs"]["apollo510"]["linker"]["gcc"]["scripts"]
+        scripts["linker_script_sbl.ld"]["MCU_MRAM"]["length"] = -1
+
+    edit(snapshots, _check_sources.SDK, change)
+    (found,) = findings(snapshots)
+    assert (found.rule, found.at[-2:]) == (
+        "region containment",
+        ("linker_script_sbl.ld", "MCU_MRAM"),
+    )
+    assert found.message.endswith("has length -1")
+
+
+def test_a_zero_length_region_is_checked_by_its_origin(snapshots):
+    """An armclang ``EMPTY 0`` region, such as Apollo3's ARM_LIB_HEAP, occupies nothing."""
+
+    def change(data, origin):
+        scripts = data["socs"]["apollo510"]["linker"]["gcc"]["scripts"]
+        scripts["linker_script_sbl.ld"]["MCU_MRAM"].update(origin=origin, length=0)
+
+    edit(snapshots, _check_sources.SDK, lambda d: change(d, 0x00410000))
+    assert findings(snapshots) == []
+    edit(snapshots, _check_sources.SDK, lambda d: change(d, 0x00800000))
+    (found,) = findings(snapshots)
+    assert found.rule == "region containment"
 
 
 def test_an_unsized_scatter_region_is_checked_by_its_origin(snapshots):
@@ -320,16 +394,21 @@ def test_an_exception_that_covers_nothing_is_stale(snapshots):
     assert not result.ok
 
 
-def test_an_exception_under_an_id_the_catalog_lacks_is_not_stale():
-    result = _check_sources.check(builtin(include_plugins=False), ROOT / "snapshots")
-    held = [e for _, e in result.excepted]
-    socs = {s.id for s in builtin(include_plugins=False).socs()}
-    containment = [
-        e
-        for e in _check_sources.load_exceptions(ROOT / "snapshots/exceptions.yaml")
-        if e.rule == "region containment" and e.at[:1] == ("socs",) and e.at[1] not in socs
+def test_an_exception_under_an_id_the_catalog_lacks_is_not_stale(snapshots):
+    path = snapshots / "exceptions.yaml"
+    entry = (
+        "  - snapshot: nsx-ambiq-sdk.json\n"
+        "    at: [socs, apollo2, linker, gcc, scripts, linker_script.ld]\n"
+        "    rule: region containment\n"
+        "    reason: apollo2 is left out of the catalog.\n"
+        '    issue: "#79"\n'
+    )
+    path.write_text(path.read_text() + entry)
+    result = _check_sources.check(builtin(include_plugins=False), snapshots)
+    (added,) = [
+        e for e in _check_sources.load_exceptions(path) if e.at[1] == "apollo2" and e.at[2:]
     ]
-    assert containment and not any(e in held for e in containment)
+    assert added not in [e for _, e in result.excepted]
     assert result.stale == ()
 
 

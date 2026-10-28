@@ -247,6 +247,14 @@ class BootConfig(_Facts):
     reserved: NotRequired[dict[Name, Reservation]]
 
 
+class ImageSlot(_Facts):
+    core: Required[Name]
+    region: Required[Name]
+    offset: Required[Size]
+    size: Required[Size]
+    supplier: Required[Literal["vendor", "customer"]]
+
+
 # ---- SDK facts ----------------------------------------------------------------
 
 
@@ -291,6 +299,7 @@ class Soc(_Entity):
     default_operating_point: NotRequired[Name]
     boot_configs: NotRequired[dict[Name, BootConfig]]
     default_boot: NotRequired[Name]
+    image_slots: NotRequired[dict[Name, ImageSlot]]  # every Part's, unless it writes the name
     sdk: NotRequired[SdkFacts]
     derives_from: NotRequired[Annotated[Id, NOT_FACT]]
     default_board: NotRequired[Annotated[Id, NOT_FACT]]
@@ -303,11 +312,13 @@ class Soc(_Entity):
     npus_removed: NotRequired[Annotated[Names, NOT_FACT, FILE_ONLY]]
     accelerators_removed: NotRequired[Annotated[Names, NOT_FACT, FILE_ONLY]]
     peripherals_removed: NotRequired[Annotated[Names, NOT_FACT, FILE_ONLY]]
+    memory_controllers_removed: NotRequired[Annotated[Names, NOT_FACT, FILE_ONLY]]
     clock_domains_removed: NotRequired[
         Annotated[list[DomainPointRef], BY_VALUE, NOT_FACT, FILE_ONLY]
     ]
     boot_configs_removed: NotRequired[Annotated[Names, NOT_FACT, FILE_ONLY]]
     operating_points_removed: NotRequired[Annotated[Names, NOT_FACT, FILE_ONLY]]
+    image_slots_removed: NotRequired[Annotated[Names, NOT_FACT, FILE_ONLY]]
     access_removed: NotRequired[
         Annotated[list[AccessKey], Keyed(("master", "target")), NOT_FACT, FILE_ONLY]
     ]
@@ -318,6 +329,7 @@ class Subset(_Facts, total=False):
     memories_resized: dict[Name, Size]
     memories_rebased: dict[Name, Address]
     peripherals_removed: Names
+    memory_controllers_removed: Names
     cores_removed: Names
     npus_removed: Names
     accelerators_removed: Names
@@ -360,14 +372,6 @@ class Implementation(_Entity):
     extensions: NotRequired[Extensions]
 
 
-class ImageSlot(_Facts):
-    core: Required[Name]
-    region: Required[Name]
-    offset: Required[Size]
-    size: Required[Size]
-    supplier: Required[Literal["vendor", "customer"]]
-
-
 class Part(_Entity):
     soc: Required[Id]
     implementation: NotRequired[Id]
@@ -395,6 +399,8 @@ class AddOn(_Entity):
     fits_boards: Required[Ids]
     occupies: Required[Names]
     population: Required[dict[Name, Id]]
+    # Modes of an occupied interface while the add-on is fitted, narrowing the board's.
+    modes: NotRequired[dict[Name, Annotated[list[str], BY_VALUE]]]
     revision: NotRequired[str]
     extensions: NotRequired[Extensions]
 

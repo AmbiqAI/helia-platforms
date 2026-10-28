@@ -38,3 +38,18 @@ cores:
       notes: >-
         NSX_SOC_ARCH_CLASS "armv7e_m", NSX_SOC_HAS_DSP TRUE, NSX_SOC_PMU_TIER "none"
         (ADR 0006 spells a DWT-only tier dwt).
+  cortex-m0:
+    arch: armv6-m
+    pmu: none
+    has_dsp_extension: false
+    provenance:
+      status: sdk
+      source:
+        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-cmsis-core/Include/core_cm0.h:535-542"
+        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-cmsis-core/Include/core_cm0.h:624"
+      verified_on: 2026-10-28
+      verified_by: evanchen11
+      notes: >-
+        CMSIS core_cm0.h: "Armv6-M" (:624), which has no DSP extension, and a core map of
+        SysTick, NVIC and SCB only (:535-542), with no DWT or PMU. No Soc's SDK facts name
+        this core: it is the Apollo4 Blue BLE controller's (DS-A4BP p96).

@@ -35,6 +35,26 @@ REGISTERS: dict[str, dict[str, tuple[str, str]]] = {
         "ssram": ("SSRAM_BASEADDR", "SSRAM_MAX_SIZE"),
         "mram": ("MRAM_BASEADDR", "MRAM_MAX_SIZE"),
     },
+    "apollo4p": {
+        "tcm": ("TCM_BASEADDR", "TCM_MAX_SIZE"),
+        "ssram0": ("SSRAM0_BASEADDR", "SSRAM0_MAX_SIZE"),
+        "extram": ("EXTRAM_BASEADDR", "EXTRAM_MAX_SIZE"),
+        "ssram1": ("SSRAM1_BASEADDR", "SSRAM1_MAX_SIZE"),
+        "mram": ("MRAM_BASEADDR", "MRAM_MAX_SIZE"),
+    },
+    "apollo4l": {
+        "tcm": ("TCM_BASEADDR", "TCM_MAX_SIZE"),
+        "ssram0": ("SSRAM0_BASEADDR", "SSRAM0_MAX_SIZE"),
+        "mram": ("MRAM_BASEADDR", "MRAM_MAX_SIZE"),
+    },
+    **{
+        soc: {
+            "dtcm": ("DTCM_BASEADDR", "DTCM_MAX_SIZE"),
+            "ssram": ("SSRAM_BASEADDR", "SSRAM_MAX_SIZE"),
+            "mram": ("MRAM_BASEADDR", "MRAM_MAX_SIZE"),
+        }
+        for soc in ("apollo510L", "apollo330P")
+    },
     # SRAM_BASEADDR is the start of TCM, not of the catalog's sram region, so it is left out.
     "apollo3": {"tcm": ("TCM_BASEADDR", "TCM_MAX_SIZE"), "flash": ("FLASH_BASEADDR", "")},
     "apollo3p": {"tcm": ("TCM_BASEADDR", "TCM_MAX_SIZE"), "flash": ("FLASH_BASEADDR", "")},
@@ -45,6 +65,8 @@ HAL_FLASH: dict[str, dict[str, tuple[str, ...]]] = {
     soc: {"AM_HAL_FLASH_TOTAL_SIZE": ("flash",), "AM_HAL_FLASH_SRAM_SIZE": ("tcm", "sram")}
     for soc in ("apollo3", "apollo3p")
 }
+#: apollo510b builds against mcu/apollo510, so its snapshot reads apollo510's header.
+REGISTERS["apollo510b"] = dict(REGISTERS["apollo510"])
 #: CMake's boolean constants, compared case-insensitively; a non-zero number is also true
 #: (CMake reads one with ``strtod``, so in decimal or hexadecimal).
 _CMAKE_TRUE = {"1", "ON", "YES", "TRUE", "Y"}
@@ -234,8 +256,12 @@ class _Comparison:
         for region in soc.memories:
             names = REGISTERS.get(soc.id, {}).get(region.name, ())
             for define, ours in zip(names, (region.base, region.size), strict=False):
-                if define in defines:
-                    yield from _equal(SDK, (*at, define), "register", ours, defines[define])
+                if not define:
+                    continue  # the header has no such define
+                if define not in defines:
+                    yield Finding(SDK, (*at, define), "register", f"{define} is not defined")
+                    continue
+                yield from _equal(SDK, (*at, define), "register", ours, defines[define])
 
     def containment(
         self,
@@ -247,11 +273,17 @@ class _Comparison:
     ) -> Iterator[Finding]:
         """Each region inside one gap-free run of physical regions, or an external aperture.
 
-        A region with no length (an unsized scatter execution region) is checked by its origin.
+        A region with no length or a zero one (an unsized or ``EMPTY 0`` scatter region) is
+        checked by its origin; a negative length is a finding.
         """
         runs = _runs(soc)
         for path, base, size in regions:
-            end = base + (1 if size is None else size)
+            if size is not None and size < 0:
+                yield Finding(
+                    snapshot, (*at, *path), "region containment", f"{base:#x} has length {size}"
+                )
+                continue
+            end = base + (size or 1)
             if any(lo <= base and end <= hi for lo, hi in apertures):
                 continue  # external memory, which ADR 0006 does not compare
             if not any(lo <= base and end <= hi for lo, hi in runs):

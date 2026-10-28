@@ -165,7 +165,7 @@ keyed by name or id wherever possible, because a mapping cannot hold a key
 twice: `memories`, `clock_domains` (each domain a mapping of point name to
 point), `operating_points`, `boot_configs`, a boot configuration's
 `reserved` (keyed by purpose: `reserved: {sbl: {region: mram, offset: 0,
-size: 64K}}`), `interfaces`, `population`, a Part's `image_slots` (keyed
+size: 64K}}`), `interfaces`, `population`, a Soc's or Part's `image_slots` (keyed
 by slot name, with `core` as a field), an FVP Implementation's
 `substitutions` (keyed by the region the model provides), and
 `max_domain_mhz` (domain id to MHz). Three kinds of list remain:
@@ -197,7 +197,7 @@ over its `based_on` entry and to an Implementation over its Soc:
    collection that rule 2 merges (`memories_removed`, `cores_removed`,
    `npus_removed`, `accelerators_removed`, `peripherals_removed`,
    `clock_domains_removed`, `boot_configs_removed`,
-   `operating_points_removed`, and on a Part `image_slots_removed`);
+   `operating_points_removed`, and on a Soc or Part `image_slots_removed`);
    `access_removed` takes `{master, target}` pairs. A collection inside a
    nested object, such as a boot configuration's `reserved`, is replaced
    with that object and has no `_removed` key. `clock_domains_removed`

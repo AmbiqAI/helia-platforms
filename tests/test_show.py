@@ -244,3 +244,25 @@ def test_each_population_row_shows_its_own_device_and_region():
     (psram1,) = row_texts(target, "psram1")
     assert psram1.startswith("population.mspi0 psram_8m, controller mspi0,")
     assert "(8M at 0x60000000, computed)" in psram1 and psram1.endswith("[unverified]")
+
+
+def test_an_interface_an_add_on_occupies_without_a_device_is_not_unpopulated():
+    document = full_document()
+    document["addons"]["shield"]["occupies"].append("iom0")
+    catalog = load_overlay(document, base=builtin(include_plugins=False))
+    (bare,) = row_texts(catalog.resolve("board_a"), "interface iom0")
+    (fitted,) = row_texts(catalog.resolve("board_a_shield"), "interface iom0")
+    assert "(unpopulated)" in bare
+    assert "(occupied by add-on shield)" in fitted
+
+
+def test_a_fitted_add_on_prints_the_modes_it_narrows_an_interface_to():
+    document = full_document()
+    document["boards"]["board_a"]["interfaces"]["mspi1"]["modes"] = ["hex-ddr", "octal-ddr"]
+    document["addons"]["shield"]["modes"] = {"mspi1": ["octal-ddr"]}
+    target = load_overlay(document, base=builtin(include_plugins=False)).resolve("board_a_shield")
+    (addon,) = row_texts(target, "add-on")
+    assert "modes.mspi1 octal-ddr" in addon
+    (psram,) = row_texts(target, "psram1")
+    assert "modes octal-ddr while the add-on is fitted" in psram
+    assert _show.stated_facts(target) <= printed(target)

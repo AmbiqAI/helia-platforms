@@ -261,6 +261,7 @@ class Soc(_Carrier):
     default_operating_point: str | None = None
     boot_configs: Mapping[str, BootConfig] = field(default_factory=_empty)
     default_boot: str | None = None
+    image_slots: Mapping[str, ImageSlot] = field(default_factory=_empty)
     sdk: SdkFacts | None = None
     derives_from: str | None = None
     default_board: str | None = None
@@ -281,6 +282,7 @@ class Subset:
     memories_resized: Mapping[str, int] = field(default_factory=_empty)
     memories_rebased: Mapping[str, int] = field(default_factory=_empty)
     peripherals_removed: tuple[str, ...] = ()
+    memory_controllers_removed: tuple[str, ...] = ()
     cores_removed: tuple[str, ...] = ()
     npus_removed: tuple[str, ...] = ()
     accelerators_removed: tuple[str, ...] = ()
@@ -382,6 +384,7 @@ class AddOn(_Carrier):
     fits_boards: tuple[str, ...]
     occupies: tuple[str, ...]
     population: Mapping[str, str]
+    modes: Mapping[str, tuple[str, ...]] = field(default_factory=_empty)
     revision: str | None = None
     aliases: tuple[str, ...] = ()
     release_status: ReleaseStatus = "embargoed"
