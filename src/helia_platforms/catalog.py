@@ -436,6 +436,8 @@ class _Loader:
         self.sources: dict[tuple[str, str], str] = dict(base.sources)
         self.resolved: dict[tuple[str, str], Tree | None] = {}
         self.register = _provenance.Register()
+        #: Each part's own ``image_slots_removed``, which the merge consumes.
+        self.slots_removed: dict[str, list[str]] = {}
 
     def fail(self, origin: str, where: str, message: str) -> None:
         self.problems.append(f"{origin}: {where}: {message}")
@@ -445,6 +447,9 @@ class _Loader:
 
     def load(self, entries: dict, compositions: dict, shorthands: dict) -> Catalog:
         self.check_names(entries, compositions, shorthands)
+        for part_id, (raw, _) in entries.get("parts", {}).items():
+            if "image_slots_removed" in raw:
+                self.slots_removed[part_id] = list(raw["image_slots_removed"])
         new: dict[tuple[str, str], tuple[Tree, str]] = {}
         for kind in _KINDS:
             for entry_id, (_, origin) in entries.get(kind, {}).items():
@@ -771,6 +776,13 @@ class _Loader:
         slots = {**soc.image_slots, **part.image_slots}
         for name, problem in _slot_problems(soc, slots, own=set(part.image_slots)):
             self.fail(origin, where if name is None else f"{where}.image_slots.{name}", problem)
+        for name in self.slots_removed.get(part.id, ()):
+            if name in soc.image_slots and name not in part.image_slots:
+                message = (
+                    f"{name!r} is also the Soc's slot, which the part would keep; an "
+                    "Implementation's subset.image_slots_removed removes that"
+                )
+                self.fail(origin, f"{where}.image_slots_removed", message)
 
     def check_board(self, catalog: Catalog, board: model.Board, origin: str) -> None:
         where = f"boards.{board.id}"
@@ -1103,8 +1115,9 @@ def _slot_problems(
 ) -> list[tuple[str | None, str]]:
     """``(slot name or None, problem)`` for the ``own`` slots among ``slots`` on ``soc``.
 
-    A slot needs a programmable owner that reaches its region, ends inside that region,
-    and overlaps no other slot, no reservation and no other core's application start.
+    A slot needs a programmable owner that reaches its region, a size, an end inside
+    that region, and no overlap with another slot, a reservation or another core's
+    application start. A customer-supplied slot needs a core the customer programs.
     """
     cores = {c.id: c for c in soc.cores}
     regions = {r.name: r.size for r in soc.memories}
@@ -1119,6 +1132,12 @@ def _slot_problems(
             problems.append(
                 (name, f"core {slot.core!r} is not programmable, so it cannot own a slot")
             )
+        elif slot.supplier == "customer" and cores[slot.core].programmable_by == "vendor":
+            problems.append(
+                (name, f"supplier is customer, but only the vendor programs {slot.core!r}")
+            )
+        if slot.size == 0:
+            problems.append((name, "has size 0"))
         if slot.region not in regions:
             problems.append((name, f"no region {slot.region!r}"))
             continue

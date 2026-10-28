@@ -127,7 +127,10 @@ the Soc carries the 16 KB one. That the slot is flashable by the customer
 is recorded as an owner statement until a document confirms it.
 `usable_nvm(core=)` subtracts the slots of other cores and the boot
 reservations, and is empty for a core only the vendor programs or with
-no loadable image.
+no loadable image. An Implementation's `subset.image_slots_removed`
+removes a Soc's slot; a Part removes only a slot its `based_on` Part
+wrote, and naming a slot its Soc also carries is an error, since the
+Soc's slot would take its place.
 
 A boot configuration gives one application start per programmable core:
 `BootConfig.app_start` maps core id to (region, offset). A single

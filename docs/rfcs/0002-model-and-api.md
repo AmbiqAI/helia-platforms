@@ -99,9 +99,11 @@ Soc ── cores: [CoreInstance(id, role, core, options: CoreOptions, clock_doma
  │     peripherals: [name]   memory_controllers: [name] (those peripherals that are memory controllers)
  │     clock_domains: [ClockDomain]   operating_points: [OperatingPoint] (system points)
  │     boot_configs: {name: BootConfig}, default_boot    (sbl, nbl; app_start per programmable core)
+ │     image_slots: {name: ImageSlot(core, region, offset, size, supplier)} (every Part's, unless replaced)
  │     sdk: SdkFacts (c_define, cmsis_header, ...)   default_board   aliases, release_status, provenance
  │
  ├── Implementation (kind: silicon | fpga | fvp | rtl; model; subset of the Soc; default = all;
+ │                   the subset may remove the Soc's image slots;
  │                   may replace boot_configs, operating_points, clock domain points; an FPGA
  │                   carries jlink_device, trace clock, provisioning, interfaces; no board needed;
  │                   an FVP declares its own memories, each naming what it stands_in_for)
@@ -827,7 +829,7 @@ one of them.
 @dataclass(frozen=True) class BuildFacts: abi, float_abi
 @dataclass(frozen=True) class Soc:        id, series, aliases, cores, npus, accelerators, memories, access, default_access: DefaultAccess | None, peripherals, memory_controllers, clock_domains, operating_points, default_operating_point: str | None, boot_configs, default_boot, image_slots, sdk, derives_from, default_board: str | None, revision, release_status, extensions, provenance
 @dataclass(frozen=True) class Implementation: id, soc, kind, model: str | None, subset: Subset, memories: tuple | None, access: tuple | None, clock_domains: tuple | None, operating_points: tuple | None, boot_configs: Mapping | None, default_boot: str | None, provisioning: str | None, jlink_device, trace_clock_mhz, interfaces, population, aliases, release_status, extensions, provenance   # None: inherit the Soc's (after clock caps); memories and access: kind fvp only (ADR 0007)
-@dataclass(frozen=True) class Subset:     memories_removed, memories_resized, memories_rebased, peripherals_removed, cores_removed, npus_removed, accelerators_removed, clock_domains_removed, boot_configs_removed, operating_points_removed, access_removed, max_cpu_mhz, max_npu_mhz, max_domain_mhz
+@dataclass(frozen=True) class Subset:     memories_removed, memories_resized, memories_rebased, peripherals_removed, cores_removed, npus_removed, accelerators_removed, clock_domains_removed, boot_configs_removed, operating_points_removed, image_slots_removed, access_removed, max_cpu_mhz, max_npu_mhz, max_domain_mhz
 @dataclass(frozen=True) class BootConfig: name, reserved: tuple[Reservation, ...], app_start: Mapping[str, AppStart], requires, provenance   # AppStart: region, offset; reserved in written key order
 @dataclass(frozen=True) class Reservation: region, offset, size, purpose, provenance
 @dataclass(frozen=True) class Part:       id, soc, implementation: str | None, silicon_revision, package, radio, jlink_device, image_slots, aliases, release_status, provenance
@@ -932,10 +934,12 @@ and is an error when an Implementation removed that controller; a
 `default_access` expansion that would grant core 0 a region another core
 has an entry for is excluded, per the multicore document;
 `app_start` keys name programmable cores; every `ImageSlot` owner is a
-programmable core with a `direct` entry for the slot's region; a slot ends
-inside its region and overlaps no other slot, no boot reservation and no
-other core's `app_start`; removing a core or region removes the inherited
-slots it owns or holds. `helia_platforms.export` writes the JSON catalog,
+programmable core with a `direct` entry for the slot's region; a slot has
+a nonzero size, ends inside its region and overlaps no other slot, no boot
+reservation and no other core's `app_start`; a `customer` slot's owner is
+not programmed by the vendor only; removing a core or region removes the
+inherited slots it owns or holds, and a Part's `image_slots_removed` may
+not name a slot its Soc carries. `helia_platforms.export` writes the JSON catalog,
 filtered and scrubbed by effective release status, and the JSON Schemas
 ([RFC 0003](0003-export-and-pages.md)). The Markdown pages and the release
 assets are built only from `builtin(include_plugins=False)`.

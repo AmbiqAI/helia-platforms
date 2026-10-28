@@ -334,6 +334,7 @@ class Subset(_Facts, total=False):
     clock_domains_removed: Annotated[list[DomainPointRef], BY_VALUE]
     boot_configs_removed: Names
     operating_points_removed: Names
+    image_slots_removed: Names
     access_removed: Annotated[list[RemovedAccess], Keyed(("master", "target"))]
     max_cpu_mhz: Mhz
     max_npu_mhz: Mhz

@@ -288,6 +288,7 @@ class Subset:
     clock_domains_removed: tuple[str, ...] = ()
     boot_configs_removed: tuple[str, ...] = ()
     operating_points_removed: tuple[str, ...] = ()
+    image_slots_removed: tuple[str, ...] = ()
     access_removed: tuple[AccessKey, ...] = ()
     max_cpu_mhz: float | None = None
     max_npu_mhz: float | None = None
