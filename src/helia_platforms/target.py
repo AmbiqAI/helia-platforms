@@ -13,6 +13,8 @@ from helia_platforms.catalog import Catalog, _expanded_access
 from helia_platforms.errors import PlatformError
 
 Kind = Literal["board", "part", "implementation", "soc"]
+#: Tiers that are not a PMU: DWT has a cycle counter and 8-bit profiling counters only.
+_NO_PMU = frozenset({"none", "dwt"})
 #: Technologies a region can hold non-volatile code in (``usable_nvm``).
 _NVM = frozenset({"mram", "rram", "flash", "nvm"})
 
@@ -94,7 +96,7 @@ class Target:
             supports_fp16=options.mve == "fp",
             supports_fp32=options.fpu != "none",
             supports_fp64=options.fpu_dp,
-            has_pmu=ip.pmu != "none",
+            has_pmu=ip.pmu not in _NO_PMU,
             pmu_kind=ip.pmu,
         )
 
