@@ -768,18 +768,9 @@ class _Loader:
                     soc = catalog._realized(impl.id)  # slots name what the Implementation keeps
                 except MergeError:
                     return  # reported against the implementation
-        cores = {c.id: c for c in soc.cores}
-        regions = {r.name for r in soc.memories}
-        for name, slot in part.image_slots.items():
-            if slot.core not in cores:
-                self.fail(origin, f"{where}.image_slots.{name}", f"no core {slot.core!r}")
-            elif cores[slot.core].programmable_by is None:
-                message = f"core {slot.core!r} is not programmable, so it cannot own a slot"
-                self.fail(origin, f"{where}.image_slots.{name}", message)
-            if slot.region not in regions:
-                self.fail(origin, f"{where}.image_slots.{name}", f"no region {slot.region!r}")
-        for problem in _slot_overlap_problems(part, soc):
-            self.fail(origin, where, problem)
+        slots = {**soc.image_slots, **part.image_slots}
+        for name, problem in _slot_problems(soc, slots, own=set(part.image_slots)):
+            self.fail(origin, where if name is None else f"{where}.image_slots.{name}", problem)
 
     def check_board(self, catalog: Catalog, board: model.Board, origin: str) -> None:
         where = f"boards.{board.id}"
@@ -904,6 +895,10 @@ def _soc_reference_problems(soc: model.Soc, catalog: Catalog) -> list[str]:
         *_access_problems(soc),
         *_relation_problems(soc, catalog),
         *_layout_problems(soc),
+        *(
+            problem if name is None else f"image_slots.{name}: {problem}"
+            for name, problem in _slot_problems(soc, soc.image_slots, own=set(soc.image_slots))
+        ),
     ]
 
 
@@ -1103,22 +1098,59 @@ def _placement_problems(board: model.Board, addons: Iterable[model.AddOn]) -> li
     return problems
 
 
-def _slot_overlap_problems(part: model.Part, soc: model.Soc) -> list[str]:
-    """Image slots that overlap each other or any boot configuration's reservation."""
-    slots = [
-        (f"image_slots.{name}", s.region, s.offset, s.size) for name, s in part.image_slots.items()
-    ]
+def _slot_problems(
+    soc: model.Soc, slots: Mapping[str, model.ImageSlot], own: set[str]
+) -> list[tuple[str | None, str]]:
+    """``(slot name or None, problem)`` for the ``own`` slots among ``slots`` on ``soc``.
+
+    A slot needs a programmable owner that reaches its region, ends inside that region,
+    and overlaps no other slot, no reservation and no other core's application start.
+    """
+    cores = {c.id: c for c in soc.cores}
+    regions = {r.name: r.size for r in soc.memories}
+    reached = {(a.master, a.target) for a in _expanded_access(soc) if a.access == "direct"}
+    problems: list[tuple[str | None, str]] = []
+    for name, slot in slots.items():
+        if name not in own:
+            continue
+        if slot.core not in cores:
+            problems.append((name, f"no core {slot.core!r}"))
+        elif cores[slot.core].programmable_by is None:
+            problems.append(
+                (name, f"core {slot.core!r} is not programmable, so it cannot own a slot")
+            )
+        if slot.region not in regions:
+            problems.append((name, f"no region {slot.region!r}"))
+            continue
+        if slot.offset + slot.size > regions[slot.region]:
+            problems.append((name, f"runs past the end of region {slot.region!r}"))
+        if slot.core in cores and (slot.core, slot.region) not in reached:
+            problems.append((name, f"core {slot.core!r} has no direct access to {slot.region!r}"))
+        for config, boot in soc.boot_configs.items():
+            for core, start in boot.app_start.items():
+                if (
+                    core != slot.core
+                    and start.region == slot.region
+                    and slot.offset <= start.offset < slot.offset + slot.size
+                ):
+                    message = f"holds another core's start, boot_configs.{config}.app_start.{core}"
+                    problems.append((name, message))
+    spans = [(f"image_slots.{n}", n, s.region, s.offset, s.size) for n, s in slots.items()]
     reserved = [
-        (f"boot_configs.{config}.reserved.{r.purpose}", r.region, r.offset, r.size)
+        (f"boot_configs.{config}.reserved.{r.purpose}", None, r.region, r.offset, r.size)
         for config, boot in soc.boot_configs.items()
         for r in boot.reserved
     ]
-    return [
-        f"{a} overlaps {b} in region {a_region!r}"
-        for i, (a, a_region, a_offset, a_size) in enumerate(slots)
-        for b, b_region, b_offset, b_size in (*slots[i + 1 :], *reserved)
-        if a_region == b_region and a_offset < b_offset + b_size and b_offset < a_offset + a_size
-    ]
+    problems.extend(
+        (None, f"{a} overlaps {b} in region {a_region!r}")
+        for i, (a, a_name, a_region, a_offset, a_size) in enumerate(spans)
+        for b, b_name, b_region, b_offset, b_size in (*spans[i + 1 :], *reserved)
+        if (a_name in own or b_name in own)
+        and a_region == b_region
+        and a_offset < b_offset + b_size
+        and b_offset < a_offset + a_size
+    )
+    return problems
 
 
 def _plain(value: Any) -> Any:

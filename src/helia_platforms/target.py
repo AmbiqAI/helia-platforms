@@ -285,14 +285,19 @@ class Target:
             raise PlatformError(f"{self.id}: region {start.region!r} has no base")
         return base + start.offset
 
+    @property
+    def image_slots(self) -> Mapping[str, model.ImageSlot]:
+        """The Soc's image slots, each replaced by the part's slot of the same name."""
+        own = self.part.image_slots if self.part else {}
+        return MappingProxyType({**self.soc.image_slots, **own})
+
     def usable_nvm(self, core: int | str = 0) -> Mapping[str, int]:
         """Bytes per non-volatile region ``core`` reaches, less reservations and others' slots."""
         instance = self._core(core)
         taken: dict[str, int] = {}
         for reservation in self.boot.reserved if self.boot else ():
             taken[reservation.region] = taken.get(reservation.region, 0) + reservation.size
-        slots = self.part.image_slots.values() if self.part else ()
-        for slot in slots:
+        for slot in self.image_slots.values():
             if slot.core != instance.id:
                 taken[slot.region] = taken.get(slot.region, 0) + slot.size
         return MappingProxyType(

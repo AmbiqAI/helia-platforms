@@ -119,12 +119,14 @@ error, not a warning: the hardware to attach the device does not exist.
 
 Per-part NVM reservations become `ImageSlot`s owned by a core:
 `ImageSlot` = `name`, `core`, `region`, `offset`, `size`, `supplier` (`vendor` or
-`customer`), provenance. On the Apollo510 Lite and Apollo330 Plus parts,
-NVM-M41 is the radio core's slot, sized per variant (16, 288 or 432 KB,
-DS-A510LS p33, DS-A330PS p33), supplier `vendor` by default. That the
-slot is flashable by the customer is recorded as an owner statement until
-a document confirms it. `usable_nvm(core=)` subtracts the slots of other
-cores and the boot reservations.
+`customer`), provenance. A Soc's slots apply to every Part, and a Part's
+slot of the same name replaces one. On the Apollo510 Lite and Apollo330
+Plus parts, NVM-M41 is the radio core's slot, sized per variant (16, 288
+or 432 KB, DS-A510LS p33, DS-A330PS p33), supplier `vendor` by default;
+the Soc carries the 16 KB one. That the slot is flashable by the customer
+is recorded as an owner statement until a document confirms it.
+`usable_nvm(core=)` subtracts the slots of other cores and the boot
+reservations.
 
 A boot configuration gives one application start per programmable core:
 `BootConfig.app_start` maps core id to (region, offset). A single

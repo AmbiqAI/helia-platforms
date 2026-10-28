@@ -247,6 +247,14 @@ class BootConfig(_Facts):
     reserved: NotRequired[dict[Name, Reservation]]
 
 
+class ImageSlot(_Facts):
+    core: Required[Name]
+    region: Required[Name]
+    offset: Required[Size]
+    size: Required[Size]
+    supplier: Required[Literal["vendor", "customer"]]
+
+
 # ---- SDK facts ----------------------------------------------------------------
 
 
@@ -291,6 +299,7 @@ class Soc(_Entity):
     default_operating_point: NotRequired[Name]
     boot_configs: NotRequired[dict[Name, BootConfig]]
     default_boot: NotRequired[Name]
+    image_slots: NotRequired[dict[Name, ImageSlot]]  # every Part's, unless it writes the name
     sdk: NotRequired[SdkFacts]
     derives_from: NotRequired[Annotated[Id, NOT_FACT]]
     default_board: NotRequired[Annotated[Id, NOT_FACT]]
@@ -308,6 +317,7 @@ class Soc(_Entity):
     ]
     boot_configs_removed: NotRequired[Annotated[Names, NOT_FACT, FILE_ONLY]]
     operating_points_removed: NotRequired[Annotated[Names, NOT_FACT, FILE_ONLY]]
+    image_slots_removed: NotRequired[Annotated[Names, NOT_FACT, FILE_ONLY]]
     access_removed: NotRequired[
         Annotated[list[AccessKey], Keyed(("master", "target")), NOT_FACT, FILE_ONLY]
     ]
@@ -355,14 +365,6 @@ class Implementation(_Entity):
     interfaces: NotRequired[dict[Name, MemoryInterface]]
     population: NotRequired[dict[Name, Id]]
     extensions: NotRequired[Extensions]
-
-
-class ImageSlot(_Facts):
-    core: Required[Name]
-    region: Required[Name]
-    offset: Required[Size]
-    size: Required[Size]
-    supplier: Required[Literal["vendor", "customer"]]
 
 
 class Part(_Entity):
