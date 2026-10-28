@@ -226,20 +226,24 @@ allowed:
   - consumer: neuralspotx
     target: apollo3_evb
     field: trace_clock_mhz
-    reason: &a3_trace >-
+    reason: >-
+      The catalog's trace clock is the physical TPIU clock, HFRC/8, 6 MHz, the clock the
+      HAL selects; it is unverified on apollo3, measured only on apollo3p_evb (#67).
+      neuralspotx passes NSX_SEGGER_CPUFREQ, 48 MHz, the HFRC that J-Link's Apollo3
+      support divides by 8.
+    issue: "#67"
+  - consumer: neuralspotx
+    target: apollo3p_evb
+    field: trace_clock_mhz
+    reason: &a3p_trace >-
       The catalog's trace clock is the physical TPIU clock, HFRC/8, 6 MHz, measured on
       apollo3p_evb (#67). neuralspotx passes NSX_SEGGER_CPUFREQ, 48 MHz, the HFRC that
       J-Link's Apollo3 support divides by 8.
     issue: "#67"
   - consumer: neuralspotx
-    target: apollo3p_evb
-    field: trace_clock_mhz
-    reason: *a3_trace
-    issue: "#67"
-  - consumer: neuralspotx
     target: apollo3p_evb_cygnus
     field: trace_clock_mhz
-    reason: *a3_trace
+    reason: *a3p_trace
     issue: "#67"
   - consumer: neuralspotx
     target: apollo3_evb_cygnus

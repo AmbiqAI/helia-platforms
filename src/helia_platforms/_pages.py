@@ -12,6 +12,9 @@ from helia_platforms import export
 from helia_platforms._show import size
 from helia_platforms.errors import PlatformError
 
+#: Series whose J-Link support takes ``-cpufreq`` as the HFRC and divides it by 8 itself.
+_JLINK_CPUFREQ_MHZ = {"apollo3": 48}
+
 if TYPE_CHECKING:
     from helia_platforms.catalog import Catalog
     from helia_platforms.target import Target
@@ -254,6 +257,7 @@ def _board(
     lines += [
         f"- J-Link device: {target.jlink_device or 'not stated'}",
         f"- Trace clock: {_mhz(target.trace_clock_mhz)}",
+        *_cpufreq(target),
         "",
     ]
     lines += ["## Derived values", ""]
@@ -274,6 +278,17 @@ def _board(
     ]
     lines += _aliases(board)
     return "\n".join(lines)
+
+
+def _cpufreq(target: Target) -> list[str]:
+    """J-Link's ``-cpufreq`` where it is not the trace clock: per series, measured on #67."""
+    mhz = _JLINK_CPUFREQ_MHZ.get(target.soc.series)
+    if mhz is None:
+        return []
+    return [
+        f"- J-Link's `-cpufreq` takes {mhz} MHz (the HFRC) on the {target.soc.series} series, "
+        f"not the {_mhz(target.trace_clock_mhz)} trace clock; J-Link divides it by 8 itself."
+    ]
 
 
 def _base(board: Mapping[str, Any], interface: str) -> str:

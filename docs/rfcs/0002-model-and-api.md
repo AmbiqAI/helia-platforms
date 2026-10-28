@@ -706,7 +706,7 @@ below is the resolved object returned by `resolve()`.
 | D-cache present | `target.core_options.dcache_kb` | package |
 | Shared SSRAM power domain, HAL enum names, C define, CMSIS header | `target.sdk` | package |
 | Radio present | `target.part.radio` (`target.part` is `None` on Soc and implementation targets) | package |
-| Trace clock | `target.trace_clock_mhz` (board, else implementation, else SDK default; `None` means core-clocked) | package |
+| Trace clock | `target.trace_clock_mhz` (board, else implementation, else SDK default; `None` means core-clocked). On Apollo3 it is the 6 MHz TPIU clock, and J-Link's `-cpufreq` takes 48 MHz (the HFRC) instead, which J-Link divides by 8 itself (#67) | package |
 | Is this an FPGA | `target.implementation.kind == "fpga"` (`target.implementation` is `None` on Soc targets and on parts with no non-default implementation) | package |
 | RTT scan ranges | profiler rule over `target.region("dtcm")` or the M4 aperture | profiler |
 | Reset strategy, clean-window timer, debug-domain gating, probe-attached cycle reads | profiler policy keyed by `target.soc.series` or id | profiler |

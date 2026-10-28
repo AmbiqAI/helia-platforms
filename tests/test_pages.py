@@ -56,6 +56,14 @@ def test_the_built_in_pages():
     assert all(page.endswith(f"catalog `{digest}`.\n") for page in pages.values())
 
 
+def test_an_apollo3_board_page_gives_j_links_cpufreq_apart_from_the_trace_clock():
+    pages = _pages.render(builtin(include_plugins=False))
+    line = "- J-Link's `-cpufreq` takes 48 MHz (the HFRC) on the apollo3 series, not the 6 MHz"
+    for board in ("apollo3_evb", "apollo3p_evb"):
+        assert f"- Trace clock: 6 MHz\n{line} trace clock;" in pages[f"boards/{board}.md"]
+    assert "`-cpufreq`" not in pages["boards/apollo4p_evb.md"]
+
+
 def test_a_board_with_no_boot_configuration_says_so(document):
     soc = document["socs"]["soc_a"]
     del soc["boot_configs"], soc["default_boot"]
