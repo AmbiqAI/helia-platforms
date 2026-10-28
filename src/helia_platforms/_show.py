@@ -417,11 +417,15 @@ def _memories(target: Target, at: _Entries) -> list[_Row]:
         computed = f"{size(region.size)} {base}, computed"
         row.text = f"population.{interface} {device.id}, {iface.text} ({computed})"
         rows.append(_Row(row.label, row.text, row.facts + iface.facts))
+    # A fitted add-on uses every interface it occupies, with a device there or not.
+    held = {name: addon.id for addon in target.addons for name in addon.occupies}
     for owner in _interface_owners(target, at):
         for name in owner.obj.interfaces:
             if (owner.entry, name) not in populated:
                 row = _interface(owner, name)
-                rows.append(_Row(f"interface {name}", f"{row.text} (unpopulated)", row.facts))
+                holder = held.get(name) if owner.table == "boards" else None
+                state = "unpopulated" if holder is None else f"occupied by add-on {holder}"
+                rows.append(_Row(f"interface {name}", f"{row.text} ({state})", row.facts))
     for device_id in dict.fromkeys(d.id for _, d in target._devices):
         device = target._catalog._entry("memory_devices", device_id)
         device_at = at.at("memory_devices", device_id, device)

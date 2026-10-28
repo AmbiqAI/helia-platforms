@@ -916,10 +916,12 @@ the `memories_*` deltas, and `stands_in_for` only on an FVP's regions,
 naming Soc regions the FVP does not list, each in at most one region
 ([ADR 0007](../adr/0007-fvp-memory-maps.md));
 `derives_from` requires equal physical regions; no two devices on one
-interface, no add-on on a board it does not fit, no device larger than
-its aperture; provenance required on built-ins; built-in entries may not
-carry `extensions`. Multicore rules (this is the one list; 0002-multicore.md
-refers to it): core ids unique; index 0 has role `application`; every
+interface, no add-on on an interface the board or another add-on already
+uses (an occupied interface counts even without a device), no add-on on
+a board it does not fit, no device larger than its aperture; provenance
+required on built-ins; built-in entries may not carry `extensions`.
+Multicore rules (this is the one list; 0002-multicore.md refers to it):
+core ids unique; index 0 has role `application`; every
 `driven_by` names a core; every `clock_domain` reference names a domain;
 `OperatingPoint.domains` keys name domains and values name points of
 those domains; every `Access` master is a core, NPU or accelerator id and
