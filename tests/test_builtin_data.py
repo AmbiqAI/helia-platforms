@@ -91,8 +91,11 @@ def test_the_atomiq110_soc_answers_the_consumer_queries(catalog):
     assert (target.jlink_device, target.trace_clock_mhz) == (None, None)
     npu_reach = [(a.target, a.port) for a in target.soc.access if a.master == "npu_0"]
     assert npu_reach == [("ssram", 0), ("hblram", 1), ("rram", 1)]
-    # The characterization waits on #131 (may it ship in the public package?).
-    assert all(a.characterization is None for a in target.soc.access)
+    timing = {a.target: a.characterization for a in target.soc.access if a.master == "npu_0"}
+    assert (timing["ssram"].read_latency_ns, timing["ssram"].max_outstanding) == (64, 8)
+    assert (timing["ssram"].burst_bytes, timing["ssram"].axi_clock_hz) == (256, 250_000_000)
+    assert timing["rram"] is None  # helia-npu's rram timing is fitted, not a hardware fact
+    assert target.soc.npus[0].sram_port_hash == 0x80
 
 
 def test_the_soc_and_part_names_resolve(catalog):

@@ -97,6 +97,13 @@ socs:
         driven_by: cm55_0
         clock_domain: npu
         base_address: 0x400E0000
+        sram_port_hash:
+          value: 0x80
+          provenance:
+            status: unverified
+            notes: >-
+              helia-npu socs/atomiq110.yaml:31-45 (helia-estimator 3312025): the NPU picks
+              the SRAM port by address bit 7, measured with FPGA PMU captures on 2026-10-01.
         irq: 117
         axi_width_bits:
           value: 128
@@ -251,11 +258,25 @@ socs:
           notes: >-
             No SDK script links HBLRAM. helia-estimator says the CPU shares the HBLRAM ports,
             and heliaAOT calls it on-chip (#68 item 2, #19).
-      # The NPU's reach and port classes (#68 item 4). Their characterization waits on #131.
+      # The NPU's reach and port classes (#68 item 4), and the hardware timing of each path
+      # (#131). rram's helia-npu timing is a fitted stand-in for its rate, so it is left out.
       - master: npu_0
         target: ssram
         access: direct
         port: 0
+        characterization:
+          read_latency_ns: 64
+          max_outstanding: 8
+          burst_bytes: 256
+          axi_clock_hz: 250000000
+          provenance:
+            status: unverified
+            notes: >-
+              helia-npu socs/atomiq110.yaml:49-87 (helia-estimator 3312025): an internal Ambiq
+              specification gives 64 ns, 8 outstanding and the 250 MHz fabric clock; the
+              path takes 256 B bursts. helia-npu's 128 B is the driver's AXI_SRAM max_beats
+              setting (AmbiqAI/nsx-ethos-u-driver#11); its write latency is assumed and its
+              4 outstanding writes are fitted, so neither is recorded.
         provenance:
           status: unverified
           notes: &npu_reach >-
@@ -266,6 +287,17 @@ socs:
         target: hblram
         access: direct
         port: 1
+        characterization:
+          read_latency_ns: 88
+          max_outstanding: 12
+          burst_bytes: 256
+          axi_clock_hz: 250000000
+          provenance:
+            status: unverified
+            notes: >-
+              helia-npu socs/atomiq110.yaml:88-110 (helia-estimator 3312025): 12 outstanding
+              and 256 B bursts from the HBLRAM controller documentation, the 250 MHz fabric
+              clock, and an 88 ns read latency that is an architect estimate, not measured.
         provenance: {status: unverified, notes: *npu_reach}
       - master: npu_0
         target: rram
