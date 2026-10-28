@@ -168,9 +168,19 @@ def test_register_defines_are_compared_with_region_bases_and_sizes(snapshots):
     assert found.at[-1] == "DTCM_MAX_SIZE"
 
 
-@pytest.mark.parametrize("soc", ["apollo510L", "apollo330P"])
-@pytest.mark.parametrize("define", ["DTCM_BASEADDR", "DTCM_MAX_SIZE", "MRAM_MAX_SIZE"])
-def test_each_apollo5_soc_compares_its_register_defines(snapshots, soc, define):
+@pytest.mark.parametrize("soc", ["apollo510L", "apollo330P"])  # series apollo5 and apollo330
+@pytest.mark.parametrize(
+    "define",
+    [
+        "DTCM_BASEADDR",
+        "DTCM_MAX_SIZE",
+        "SSRAM_BASEADDR",
+        "SSRAM_MAX_SIZE",
+        "MRAM_BASEADDR",
+        "MRAM_MAX_SIZE",
+    ],
+)
+def test_apollo510l_and_apollo330p_compare_every_register_define(snapshots, soc, define):
     def change(data):
         data["socs"][soc]["registers"]["values"][define] += 0x400
 
