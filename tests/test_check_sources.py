@@ -168,7 +168,7 @@ def test_register_defines_are_compared_with_region_bases_and_sizes(snapshots):
     assert found.at[-1] == "DTCM_MAX_SIZE"
 
 
-@pytest.mark.parametrize("soc", ["apollo510L", "apollo330P"])  # series apollo5 and apollo330
+@pytest.mark.parametrize("soc", ["apollo510", "apollo510b", "apollo510L", "apollo330P"])
 @pytest.mark.parametrize(
     "define",
     [
@@ -180,13 +180,38 @@ def test_register_defines_are_compared_with_region_bases_and_sizes(snapshots):
         "MRAM_MAX_SIZE",
     ],
 )
-def test_apollo510l_and_apollo330p_compare_every_register_define(snapshots, soc, define):
+def test_each_apollo5_soc_compares_every_register_define(snapshots, soc, define):
     def change(data):
         data["socs"][soc]["registers"]["values"][define] += 0x400
 
     edit(snapshots, _check_sources.SDK, change)
     (found,) = [f for f in findings(snapshots) if f.rule == "register"]
     assert found.at[1:2] + found.at[-1:] == (soc, define)
+
+
+def test_a_register_define_missing_from_the_header_is_reported(snapshots):
+    edit(
+        snapshots,
+        _check_sources.SDK,
+        lambda d: d["socs"]["apollo510"]["registers"]["values"].pop("DTCM_MAX_SIZE"),
+    )
+    (found,) = findings(snapshots)
+    assert (found.rule, found.at[-1], found.message) == (
+        "register",
+        "DTCM_MAX_SIZE",
+        "DTCM_MAX_SIZE is not defined",
+    )
+
+
+def test_an_empty_register_define_is_skipped(snapshots, monkeypatch):
+    registers = dict(_check_sources.REGISTERS["apollo510"], dtcm=("", ""))
+    monkeypatch.setitem(_check_sources.REGISTERS, "apollo510", registers)
+    edit(
+        snapshots,
+        _check_sources.SDK,
+        lambda d: d["socs"]["apollo510"]["registers"]["values"].pop("DTCM_MAX_SIZE"),
+    )
+    assert findings(snapshots) == []
 
 
 def test_a_linker_region_outside_every_run_of_regions_is_reported(snapshots):
@@ -197,6 +222,21 @@ def test_a_linker_region_outside_every_run_of_regions_is_reported(snapshots):
     edit(snapshots, _check_sources.SDK, change)
     (found,) = [f for f in findings(snapshots) if f.rule == "region containment"]
     assert found.at[-2:] == ("linker_script_sbl.ld", "MCU_MRAM")
+
+
+@pytest.mark.parametrize("length", [0, -1])
+def test_a_linker_region_without_a_positive_length_is_reported(snapshots, length):
+    def change(data):
+        scripts = data["socs"]["apollo510"]["linker"]["gcc"]["scripts"]
+        scripts["linker_script_sbl.ld"]["MCU_MRAM"]["length"] = length
+
+    edit(snapshots, _check_sources.SDK, change)
+    (found,) = findings(snapshots)
+    assert (found.rule, found.at[-2:]) == (
+        "region containment",
+        ("linker_script_sbl.ld", "MCU_MRAM"),
+    )
+    assert found.message.endswith(f"has length {length}")
 
 
 def test_an_unsized_scatter_region_is_checked_by_its_origin(snapshots):

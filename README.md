@@ -17,8 +17,8 @@ with side-loaded private catalogs, the structural and semantic validation, the
 catalog digest, the provenance checks, the resolver that consumers query
 (RFC 0002), and the CLI's `list`, `show`, `validate` and `export --schema`
 commands. The
-built-in data holds apollo510, apollo510L and apollo330P so far, with their
-parts and evaluation boards.
+built-in data holds apollo510, apollo510b, apollo510L and apollo330P so far, with
+their parts and evaluation boards.
 
 ## Quickstart
 

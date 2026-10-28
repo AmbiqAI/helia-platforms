@@ -2,5 +2,5 @@
 # Shorthands (RFC 0002): members are Soc ids from nsx-ambiq-sdk's apollo5 series.
 schema_version: 1
 shorthands:
-  AP5: [apollo510, apollo510L]
-  AP510: [apollo510, apollo510L]
+  AP5: [apollo510, apollo510b, apollo510L]
+  AP510: [apollo510, apollo510b, apollo510L]
