@@ -1117,7 +1117,8 @@ def _slot_problems(
 
     A slot needs a programmable owner that reaches its region, a size, an end inside
     that region, and no overlap with another slot, a reservation or another core's
-    application start. A customer-supplied slot needs a core the customer programs.
+    application start. Its supplier must program its core: a customer slot needs a core the
+    customer programs, and a vendor slot a core the vendor programs.
     """
     cores = {c.id: c for c in soc.cores}
     regions = {r.name: r.size for r in soc.memories}
@@ -1132,9 +1133,10 @@ def _slot_problems(
             problems.append(
                 (name, f"core {slot.core!r} is not programmable, so it cannot own a slot")
             )
-        elif slot.supplier == "customer" and cores[slot.core].programmable_by == "vendor":
+        elif cores[slot.core].programmable_by not in (slot.supplier, "either"):
+            only = cores[slot.core].programmable_by
             problems.append(
-                (name, f"supplier is customer, but only the vendor programs {slot.core!r}")
+                (name, f"supplier is {slot.supplier}, but only the {only} programs {slot.core!r}")
             )
         if slot.size == 0:
             problems.append((name, "has size 0"))
