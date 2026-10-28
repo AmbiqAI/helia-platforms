@@ -33,6 +33,14 @@ addons:
             PSRAM only: "MSPI1 is not used in this configuration"; p11 draws both octal. #139
             tracks modelling both GPIO34 settings; until then no target with the shield
             fitted offers hex mode.
+      mspi1:
+        value: [octal-ddr]
+        provenance:
+          status: datasheet
+          source: ["doc:QS-A4PDK@1.2:p12"]
+          verified_on: 2026-10-28
+          verified_by: evanchen11
+          notes: The shield's MSPI1 flash is "Octal-SPI DDR-enabled".
     provenance:
       status: datasheet
       source:
