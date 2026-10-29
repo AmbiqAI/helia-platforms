@@ -1,7 +1,17 @@
 # 0004. Version the schema separately and ship data corrections as patches
 
 Date: 2026-10-05
-Status: Accepted
+Status: Accepted; amended 2026-10-28 (#66)
+
+## Amendment, 2026-10-28: no `schema_version` bump before 1.0 (#66)
+
+Before 1.0, a schema break keeps `schema_version` (`SCHEMA_VERSION` in
+`_format.py`) and is marked only by its `feat!:` commit and the minor
+release. In the table of point 2, the schema-break row's `schema_version`
+is unchanged before 1.0 and +1 from 1.0, and point 1's "Increments only on
+a schema break" applies from 1.0. The owner decided this on 2026-10-28,
+reviewing #126 (apollo4p and apollo4l built-in data), whose
+occupied-interface rule rejects version-1 overlays the base accepted.
 
 ## Context
 
@@ -139,11 +149,6 @@ spans several rows takes the row with the largest bump.
 | Snapshot refresh with no fact change (ADR 0006 (#11)), including the provenance revisions that cite the snapshots | `chore(data):` | unchanged | no release | no release |
 | Link-environment dataset change | as the addition or correction rows if the dataset ships in the wheel, otherwise `chore(data):`; it is outside the digest (open question 2) | unchanged | patch or none | minor, patch or none |
 | Documentation only | `docs:` | unchanged | no release | no release |
-
-Before 1.0, a schema break keeps `SCHEMA_VERSION` (`_format.py`) and is
-marked only by its `feat!:` commit and the minor release. The owner decided
-this on 2026-10-28, reviewing #126 (apollo4p and apollo4l built-in data),
-whose occupied-interface rule rejects version-1 overlays the base accepted.
 
 Reason: a correction that changes a value changes no contract, so semver
 gives it a patch even though consumer outputs such as placement budgets

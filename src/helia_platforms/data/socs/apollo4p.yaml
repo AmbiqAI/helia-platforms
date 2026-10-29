@@ -568,13 +568,16 @@ boards:
       mspi2:
         controller: mspi2
         modes:
-          value: [serial-sdr, dual-sdr, quad-sdr, octal-sdr]
+          value: [serial-sdr, dual-sdr, quad-sdr, octal-sdr, octal-ddr]
           provenance:
             status: datasheet
-            source: ["doc:DS-A4P@1.6.0:p114", "doc:DS-A4P@1.6.0:p117"]
-            verified_on: 2026-10-28
+            source: ["doc:DS-A4P@1.6.0:p114", "doc:DS-A4P@1.6.0:p115", "doc:DS-A4P@1.6.0:p117"]
+            verified_on: 2026-10-29
             verified_by: evanchen11
-            notes: The controller's SDR widths (p114, p117); no source gives MSPI2 a DDR mode.
+            notes: >-
+              The controller's modes, as on mspi1 (p114, p117). octal-ddr: p114 gives every
+              MSPI "Up to 48 MHz clock in non-DQS or DQS DDR mode", and p115 says "For MSPI2,
+              the maximum clock rate for non-DQS DDR octal data width is 12 MHz".
         aperture_base: 0x1C000000
         aperture_max: 64M
         provenance: *ds_aperture
