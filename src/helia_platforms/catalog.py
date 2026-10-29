@@ -754,7 +754,7 @@ class _Loader:
         if impl.provisioning is not None and impl.provisioning not in realized.boot_configs:
             self.fail(origin, where, f"provisioning {impl.provisioning!r} is not a boot config")
         self.check_population(catalog, impl.interfaces, impl.population, where, origin)
-        removed = impl.subset.peripherals_removed
+        removed = _removed_controllers(impl)
         self.check_interfaces(catalog, realized, impl, where, origin, removed=removed)
 
     def check_part(self, catalog: Catalog, part: model.Part, origin: str) -> None:
@@ -804,20 +804,27 @@ class _Loader:
         if board.provisioning is not None and board.provisioning not in soc.boot_configs:
             self.fail(origin, where, f"provisioning {board.provisioning!r} is not a boot config")
         impl = catalog._tables.get("implementations", {}).get(part.implementation)
-        removed = impl.subset.peripherals_removed if impl is not None else ()
+        removed = _removed_controllers(impl) if impl is not None else ()
         self.check_interfaces(catalog, soc, board, where, origin, removed=removed)
+        # Target.interfaces holds both sets under one name each.
+        for name in board.interfaces.keys() & (impl.interfaces.keys() if impl else set()):
+            message = f"implementation {part.implementation!r} also has an interface {name!r}"
+            self.fail(origin, f"{where}.interfaces.{name}", message)
 
-    def check_addon(self, catalog: Catalog, addon: model.AddOn, origin: str) -> None:
+    def check_addon(self, catalog: Catalog, addon: model.AddOn, origin: str) -> None:  # noqa: PLR0912
         where = f"addons.{addon.id}"
         boards = catalog._tables.get("boards", {})
         for board in addon.fits_boards:
             if board not in boards:
                 self.fail(origin, f"{where}.fits_boards", f"no board {board!r}")
-        for interface in addon.population:
-            if interface not in addon.occupies:
-                self.fail(origin, f"{where}.population", f"{interface!r} is not in occupies")
+        for key, names in (("population", addon.population), ("modes", addon.modes)):
+            for interface in names:
+                if interface not in addon.occupies:
+                    self.fail(origin, f"{where}.{key}", f"{interface!r} is not in occupies")
         self.check_population(catalog, None, addon.population, where, origin)
         devices = catalog._tables.get("memory_devices", {})
+        for name, problem in _device_mode_problems(addon, devices):
+            self.fail(origin, f"{where}.modes.{name}", problem)
         for board in (boards[b] for b in addon.fits_boards if b in boards):
             for problem in _placement_problems(board, [addon]):
                 self.fail(origin, where, problem)
@@ -828,6 +835,8 @@ class _Loader:
                 if name in board.interfaces and device in devices:
                     at = f"{where}.population.{name} on {board.id}"
                     self.check_aperture(board.interfaces[name], devices[device], at, origin)
+            for name, problem in _narrowing_problems(addon, board):
+                self.fail(origin, f"{where}.modes.{name}", problem)
 
     def check_population(
         self,
@@ -896,6 +905,41 @@ class _Loader:
                 f"{device.id!r} ({device.capacity} bytes) exceeds the {interface.name!r} "
                 f"aperture ({interface.aperture_max} bytes)",
             )
+
+
+def _narrowing_problems(addon: model.AddOn, board: model.Board) -> list[tuple[str, str]]:
+    """``(interface, problem)`` for each mode ``addon`` keeps that ``board``'s interface lacks."""
+    problems = []
+    for name, modes in addon.modes.items():
+        if name not in board.interfaces:
+            continue  # reported as an interface the board lacks
+        extra = [m for m in modes if m not in board.interfaces[name].modes]
+        if extra:
+            problems.append(
+                (name, f"{', '.join(extra)} not among board {board.id!r}'s {name!r} modes")
+            )
+    return problems
+
+
+def _device_mode_problems(
+    addon: model.AddOn, devices: Mapping[str, model.MemoryDevice]
+) -> list[tuple[str, str]]:
+    """``(interface, problem)`` for each narrowing that leaves the add-on's device no mode.
+
+    A device that lists no modes is not checked.
+    """
+    problems = []
+    for name, modes in addon.modes.items():
+        device = devices.get(addon.population.get(name, ""))
+        if device is not None and device.modes and not set(modes) & set(device.modes):
+            modes_text = " ".join(device.modes)
+            problems.append((name, f"leaves {device.id!r} none of its modes ({modes_text})"))
+    return problems
+
+
+def _removed_controllers(impl: model.Implementation) -> tuple[str, ...]:
+    """The memory controllers ``impl`` removes, as peripherals or as memory controllers."""
+    return (*impl.subset.peripherals_removed, *impl.subset.memory_controllers_removed)
 
 
 def _soc_reference_problems(soc: model.Soc, catalog: Catalog) -> list[str]:
@@ -1095,17 +1139,19 @@ def _expanded_access(soc: model.Soc) -> tuple[model.Access, ...]:
 
 
 def _placement_problems(board: model.Board, addons: Iterable[model.AddOn]) -> list[str]:
-    """Add-ons on ``board`` that do not fit it or put a second device on an interface."""
+    """Add-ons on ``board`` that do not fit it or use an interface something else uses.
+
+    An add-on uses every interface it occupies, populated or not; the board uses the ones it
+    populates.
+    """
     problems: list[str] = []
     holders = {name: f"board {board.id!r}" for name in board.population}
     for addon in addons:
         if board.id not in addon.fits_boards:
             problems.append(f"add-on {addon.id!r} does not fit board {board.id!r}")
-        for name in addon.population:
+        for name in addon.occupies:
             if name in holders:
-                problems.append(
-                    f"add-on {addon.id!r} and {holders[name]} both put a device on {name!r}"
-                )
+                problems.append(f"add-on {addon.id!r} and {holders[name]} both use {name!r}")
             holders[name] = f"add-on {addon.id!r}"
     return problems
 

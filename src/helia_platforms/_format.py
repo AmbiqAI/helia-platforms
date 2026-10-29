@@ -22,7 +22,7 @@ class Pattern:
 
 @dataclass(frozen=True)
 class Minimum:
-    """The number must be at least ``value``."""
+    """The number must be at least ``value``; a list must have at least ``value`` items."""
 
     value: int
 
@@ -312,6 +312,7 @@ class Soc(_Entity):
     npus_removed: NotRequired[Annotated[Names, NOT_FACT, FILE_ONLY]]
     accelerators_removed: NotRequired[Annotated[Names, NOT_FACT, FILE_ONLY]]
     peripherals_removed: NotRequired[Annotated[Names, NOT_FACT, FILE_ONLY]]
+    memory_controllers_removed: NotRequired[Annotated[Names, NOT_FACT, FILE_ONLY]]
     clock_domains_removed: NotRequired[
         Annotated[list[DomainPointRef], BY_VALUE, NOT_FACT, FILE_ONLY]
     ]
@@ -328,6 +329,7 @@ class Subset(_Facts, total=False):
     memories_resized: dict[Name, Size]
     memories_rebased: dict[Name, Address]
     peripherals_removed: Names
+    memory_controllers_removed: Names
     cores_removed: Names
     npus_removed: Names
     accelerators_removed: Names
@@ -395,6 +397,8 @@ class AddOn(_Entity):
     fits_boards: Required[Ids]
     occupies: Required[Names]
     population: Required[dict[Name, Id]]
+    # Modes of an occupied interface while the add-on is fitted, narrowing the board's.
+    modes: NotRequired[dict[Name, Annotated[list[str], BY_VALUE, Minimum(1)]]]
     revision: NotRequired[str]
     extensions: NotRequired[Extensions]
 

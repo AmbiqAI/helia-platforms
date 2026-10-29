@@ -224,6 +224,13 @@ def _apply_deltas(
     """Apply ``deltas`` to ``values`` in place; ``written`` is the delta's own values."""
     problems: list[str] = []
     for key, change in deltas.items():
+        if key == "memory_controllers_removed":
+            own = written.get("memory_controllers", [])
+            problems += [
+                f"memory_controllers_removed names {name!r}, which memory_controllers also lists"
+                for name in change
+                if name in own
+            ]
         if key.endswith("_removed"):
             target = key.removesuffix("_removed")
             problems += _remove(values, target, change, declared)
@@ -284,7 +291,7 @@ def _drop_dangling_access(values: dict, deltas: dict, written: dict) -> None:
     """
     own = {(a["master"], a["target"]) for a in written.get("access", [])}
     gone = set()
-    for key in ("memories", "peripherals", "cores", "npus", "accelerators"):
+    for key in ("memories", "peripherals", "memory_controllers", "cores", "npus", "accelerators"):
         gone.update(deltas.get(f"{key}_removed", []))
     if gone and "access" in values:
         values["access"] = [
@@ -367,6 +374,7 @@ _SUBSET_DELTAS = (
     "memories_resized",
     "memories_rebased",
     "peripherals_removed",
+    "memory_controllers_removed",
     "cores_removed",
     "npus_removed",
     "accelerators_removed",

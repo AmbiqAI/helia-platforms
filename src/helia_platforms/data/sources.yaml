@@ -50,6 +50,48 @@ documents:
       date: 2026-06
       pages: 32
       sha256: 3ed362a2ef243b7d2e82324257a5b8aa04aef95ebbc3754d0139d1ea18f18ae1
+  DS-A4P:
+    1.6.0:
+      document_id: DS-A4P-1p6p0
+      date: 2025-02
+      pages: 247
+      sha256: a16d4cd2bef867a028384324984c655b5e4dba4810495f0487c63fcc6af8277d
+  DS-A4BP:
+    1.8.0:
+      document_id: DS-A4BP-1p8p0
+      date: 2025-02
+      pages: 258
+      sha256: 6da2694a21e0ddde9064739aae7b935c7b035a3882a0659b3fa483005eb2e9aa
+  DS-A4L:
+    0.9.1:
+      document_id: DS-A4L-0p9p1
+      date: 2023-07
+      pages: 185
+      sha256: e9bc398995b17c699946c203582ddf5e4c77a9f08b31c5b3b7e722f9123b1e19
+  DS-A4BL:
+    0.9.0:
+      document_id: DS-A4BL-0p9p0
+      date: 2023-07
+      pages: 189
+      sha256: 72df1d74f61871d32bbbe7bc3083d4bf34c316971124ad3e662488e2b8149bd2
+  QS-A4P:
+    "1.5":
+      document_id: QS-A4P-1p5
+      date: 2025-12
+      pages: 22
+      sha256: c8b7a803582466ec84e936a4679bd5e487aadf39b6f6ddeab00f44c18bde079a
+  QS-A4BP:
+    "1.4":
+      document_id: QS-A4BP_KBR-1p4
+      date: 2025-12
+      pages: 22
+      sha256: def3e953943305f2df8f0c334586c5e7318122a06970e27d56a70193758159b5
+  QS-A4PDK:
+    "1.2":
+      document_id: QS-A4PDK-1p2
+      date: 2023-03
+      pages: 19
+      sha256: c304d267be2116694491c88193ca5414ba5b08eb85230b418cee5c41976b724b
 repositories:
   AmbiqAI/nsx-ambiq-sdk:
     url: https://github.com/AmbiqAI/nsx-ambiq-sdk

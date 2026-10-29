@@ -116,11 +116,18 @@ def entries(target: Target) -> list[tuple[str, str]]:
 
 
 def stated_facts(target: Target) -> set[Where]:
-    """The place of every leaf fact the target's entries state."""
+    """The place of every leaf fact the target's entries state.
+
+    A board interface's modes that a fitted add-on narrows are left out: the add-on's apply.
+    """
     found = set()
+    narrowed = _narrowings(target)
     for table, entry in entries(target):
         values = _tree(target, table, entry).values
         for path, value in iter_values(values, fmt.ENTITY_TABLES[table]):
+            replaced = table == "boards" and path[:1] == ("interfaces",) and path[2:3] == ("modes",)
+            if replaced and path[1] in narrowed:
+                continue
             if not isinstance(value, dict | list):
                 found.add((table, entry, path))
     return found
@@ -158,7 +165,7 @@ def _leaves(path: Path, value: Any) -> Iterator[tuple[str, Path, str]]:
             yield from _leaves((*path, f.name), getattr(value, f.name))
     elif isinstance(value, Mapping):
         for key, item in value.items():
-            if dataclasses.is_dataclass(item):
+            if dataclasses.is_dataclass(item) or isinstance(item, tuple):
                 yield from _leaves((*path, key), item)
             else:
                 yield group, (*path, key), f"{key}={_text(path[-1], item)}"
@@ -340,7 +347,7 @@ def _identity(target: Target, at: _Entries, sources: bool) -> list[_Row]:
         names = ["part", "category", "revision"]
         rows.append(_row("board", at.at("boards", board.id, board), board, names, lead=board.id))
     for addon in target.addons:
-        names = ["fits_boards", "occupies", "revision"]
+        names = ["fits_boards", "occupies", "modes", "revision"]
         rows.append(_row("add-on", at.at("addons", addon.id, addon), addon, names, lead=addon.id))
     for alias in target.aliases:
         composition = target._catalog.compositions.get(alias)
@@ -412,16 +419,20 @@ def _memories(target: Target, at: _Entries) -> list[_Row]:
         populated.add((owner.entry, interface))
         row = _row(region.name, populator, populator.obj, ["population"])
         row.facts = [f for f in row.facts if f.where[2] == ("population", interface)]
-        iface = _interface(owner, interface)
+        iface = _interface(target, at, owner, interface)
         base = "no base" if region.base is None else f"at {region.base:#010x}"
         computed = f"{size(region.size)} {base}, computed"
         row.text = f"population.{interface} {device.id}, {iface.text} ({computed})"
         rows.append(_Row(row.label, row.text, row.facts + iface.facts))
+    # A fitted add-on uses every interface it occupies, with a device there or not.
+    held = {name: addon.id for addon in target.addons for name in addon.occupies}
     for owner in _interface_owners(target, at):
         for name in owner.obj.interfaces:
             if (owner.entry, name) not in populated:
-                row = _interface(owner, name)
-                rows.append(_Row(f"interface {name}", f"{row.text} (unpopulated)", row.facts))
+                row = _interface(target, at, owner, name)
+                holder = held.get(name) if owner.table == "boards" else None
+                state = "unpopulated" if holder is None else f"occupied by add-on {holder}"
+                rows.append(_Row(f"interface {name}", f"{row.text} ({state})", row.facts))
     for device_id in dict.fromkeys(d.id for _, d in target._devices):
         device = target._catalog._entry("memory_devices", device_id)
         device_at = at.at("memory_devices", device_id, device)
@@ -433,9 +444,34 @@ def _memories(target: Target, at: _Entries) -> list[_Row]:
     return rows
 
 
-def _interface(owner: _At, name: str) -> _Row:
-    interface = owner.obj.interfaces[name]
-    return _row("", owner.inner("interfaces", name), interface, _INTERFACE)
+def _narrowings(target: Target) -> dict[str, model.AddOn]:
+    """The fitted add-on that narrows each board interface to a different set of modes."""
+    if target.board is None:
+        return {}
+    interfaces = target.board.interfaces
+    return {
+        name: addon
+        for addon in target.addons
+        for name, modes in addon.modes.items()
+        if name in interfaces and set(modes) != set(interfaces[name].modes)
+    }
+
+
+def _interface(target: Target, at: _Entries, owner: _At, name: str) -> _Row:
+    """An interface's row; a fitted add-on's narrowed modes and record replace the board's."""
+    interface, place = owner.obj.interfaces[name], owner.inner("interfaces", name)
+    addon = _narrowings(target).get(name) if owner.table == "boards" else None
+    if addon is None:
+        return _row("", place, interface, _INTERFACE)
+    head = _row("", place, interface, ["controller"])
+    tail = _row("", place, interface, ["aperture_base", "aperture_max"])
+    addon_at = at.at("addons", addon.id, addon)
+    modes = addon.modes[name]
+    wheres = [("modes", name, segment(m)) for m in modes]
+    facts = [_Fact(f"modes.{name}", addon_at.record(w), ("addons", addon.id, w)) for w in wheres]
+    chunk = f"modes {' '.join(modes)} (add-on {addon.id})"
+    text = ", ".join(t for t in (head.text, chunk, tail.text) if t)
+    return _Row("", text, head.facts + facts + tail.facts)
 
 
 def _interface_owners(target: Target, at: _Entries) -> list[_At]:

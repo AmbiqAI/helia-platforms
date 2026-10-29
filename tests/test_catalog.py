@@ -799,9 +799,9 @@ def test_an_add_on_may_not_put_a_second_device_on_a_board_interface(document):
     document["addons"] = {"shield": shield({"mspi1": "psram_8m"})}
     load_quietly(document)
     document["addons"] = {"shield": shield({"mspi0": "psram_8m"})}
-    assert (
-        "addons.shield: add-on 'shield' and board 'board_a' both put a device on 'mspi0'"
-    ) in problems_of(document)
+    assert "addons.shield: add-on 'shield' and board 'board_a' both use 'mspi0'" in problems_of(
+        document
+    )
 
 
 def test_an_add_on_uses_only_interfaces_its_boards_have(document):
@@ -839,8 +839,71 @@ def test_a_composition_puts_one_device_on_each_interface(document):
     document["compositions"] = {"one": {"board": "board_a", "addons": ["first"]}}
     load_quietly(document)
     document["compositions"]["two"] = {"board": "board_a", "addons": ["first", "second"]}
+    assert "compositions.two: add-on 'second' and add-on 'first' both use 'mspi1'" in problems_of(
+        document
+    )
+
+
+def test_an_interface_an_add_on_occupies_without_a_device_is_still_taken(document):
+    with_mspi1(document)
+    document["addons"] = {
+        "display": {"fits_boards": ["board_a"], "occupies": ["mspi0", "mspi1"], "population": {}},
+        "flash": shield({"mspi1": "psram_8m"}),
+    }
+    document["compositions"] = {"both": {"board": "board_a", "addons": ["display", "flash"]}}
+    problems = problems_of(document)
+    assert "addons.display: add-on 'display' and board 'board_a' both use 'mspi0'" in problems
+    assert "compositions.both: add-on 'flash' and add-on 'display' both use 'mspi1'" in problems
+
+
+def test_an_add_on_narrows_the_modes_of_an_interface_while_fitted(document):
+    with_mspi1(document)
+    document["boards"]["board_a"]["interfaces"]["mspi1"]["modes"] = ["hex-ddr", "octal-ddr"]
+    document["addons"] = {
+        "shield": {**shield({"mspi1": "psram_8m"}), "modes": {"mspi1": ["octal-ddr"]}}
+    }
+    document["compositions"] = {"fitted": {"board": "board_a", "addons": ["shield"]}}
+    cat = load_quietly(document)
+    assert cat.resolve("board_a").interfaces["mspi1"].modes == ("hex-ddr", "octal-ddr")
+    fitted = cat.resolve("fitted")
+    assert fitted.interfaces["mspi1"].modes == ("octal-ddr",)
+    assert [i.modes for i, _ in fitted._devices] == [(), ("octal-ddr",)]
+    assert fitted.board.interfaces["mspi1"].modes == ("hex-ddr", "octal-ddr")
+
+
+@pytest.mark.parametrize(
+    ("modes", "problem"),
+    [
+        (
+            {"mspi1": ["quad"]},
+            "addons.shield.modes.mspi1: quad not among board 'board_a''s 'mspi1' modes",
+        ),
+        ({"mspi0": ["octal-ddr"]}, "addons.shield.modes: 'mspi0' is not in occupies"),
+        ({"mspi1": []}, "addons.shield.modes.mspi1: must list at least 1 item(s)"),
+    ],
+)
+def test_an_add_on_narrows_only_the_modes_of_interfaces_it_occupies(document, modes, problem):
+    with_mspi1(document)
+    document["boards"]["board_a"]["interfaces"]["mspi1"]["modes"] = ["octal-ddr"]
+    document["addons"] = {"shield": {**shield({"mspi1": "psram_8m"}), "modes": modes}}
+    assert problem in problems_of(document)
+
+
+def test_an_add_on_may_not_narrow_an_interface_past_its_own_device_s_modes(document):
+    with_mspi1(document)
+    document["memory_devices"]["hex_psram"] = {
+        "technology": "psram",
+        "capacity": "8M",
+        "modes": ["hex-ddr"],
+    }
+    document["boards"]["board_a"]["interfaces"]["mspi1"]["modes"] = ["hex-ddr", "octal-ddr"]
+    document["addons"] = {
+        "shield": {**shield({"mspi1": "hex_psram"}), "modes": {"mspi1": ["hex-ddr"]}}
+    }
+    load_quietly(document)
+    document["addons"]["shield"]["modes"] = {"mspi1": ["octal-ddr"]}
     assert (
-        "compositions.two: add-on 'second' and add-on 'first' both put a device on 'mspi1'"
+        "addons.shield.modes.mspi1: leaves 'hex_psram' none of its modes (hex-ddr)"
     ) in problems_of(document)
 
 
@@ -1003,7 +1066,7 @@ def test_a_delta_that_keeps_a_removed_peripheral_as_a_memory_controller_is_an_er
 
 
 def test_an_interface_on_a_controller_the_implementation_removed_is_an_error(document):
-    interfaces = copy.deepcopy(document["boards"]["board_a"]["interfaces"])
+    interfaces = {"fpga_mspi0": copy.deepcopy(document["boards"]["board_a"]["interfaces"]["mspi0"])}
     document["implementations"] = {
         "cut": {
             "soc": "soc_a",
@@ -1016,9 +1079,62 @@ def test_an_interface_on_a_controller_the_implementation_removed_is_an_error(doc
     load_quietly(document)
     document["implementations"]["cut"]["subset"]["peripherals_removed"] = ["mspi0"]
     found = problems_of(document)
+    removed = "controller 'mspi0' is removed by the implementation"
+    assert f"implementations.cut.interfaces.fpga_mspi0: {removed}" in found
+    assert f"boards.board_a.interfaces.mspi0: {removed}" in found
+
+
+def test_a_board_and_its_implementation_may_not_name_the_same_interface(document):
+    interfaces = copy.deepcopy(document["boards"]["board_a"]["interfaces"])
+    document["implementations"] = {
+        "cut": {"soc": "soc_a", "kind": "fpga", "interfaces": interfaces, "subset": {}}
+    }
+    document["parts"]["PART-A"]["implementation"] = "cut"
+    assert (
+        "boards.board_a.interfaces.mspi0: implementation 'cut' also has an interface 'mspi0'"
+    ) in problems_of(document)
+    document["implementations"]["cut"]["interfaces"] = {"fpga_mspi0": interfaces["mspi0"]}
+    load_quietly(document)
+
+
+def test_a_subset_can_remove_a_memory_controller_and_keep_the_peripheral(document):
+    soc(document)["access"].append({"master": "npu_0", "target": "mspi0", "access": "direct"})
+    subset = {"memory_controllers_removed": ["mspi0"]}
+    document["implementations"] = {"cut": {"soc": "soc_a", "kind": "silicon", "subset": subset}}
+    realized = load_quietly(document)._realized("cut")
+    assert (realized.memory_controllers, "mspi0" in realized.peripherals) == (("iom0",), True)
+    assert ("npu_0", "mspi0") not in [(e.master, e.target) for e in realized.access]
+    document["parts"]["PART-A"]["implementation"] = "cut"
     removed = "interfaces.mspi0: controller 'mspi0' is removed by the implementation"
-    assert f"implementations.cut.{removed}" in found
-    assert f"boards.board_a.{removed}" in found
+    assert f"boards.board_a.{removed}" in problems_of(document)
+
+
+def test_a_soc_delta_can_remove_a_memory_controller_and_keep_the_peripheral(document):
+    soc(document)["access"].append({"master": "npu_0", "target": "mspi0", "access": "direct"})
+    document["socs"]["soc_b"] = {"based_on": "soc_a", "memory_controllers_removed": ["mspi0"]}
+    b = load_quietly(document)._entry("socs", "soc_b")
+    assert (b.memory_controllers, "mspi0" in b.peripherals) == (("iom0",), True)
+    assert "memory_controllers.mspi0" not in b.field_provenance
+    assert ("npu_0", "mspi0") not in [(e.master, e.target) for e in b.access]
+
+
+def test_a_delta_that_writes_and_removes_a_memory_controller_is_an_error(document):
+    document["socs"]["soc_b"] = {
+        "based_on": "soc_a",
+        "memory_controllers_removed": ["mspi0"],
+        "memory_controllers": ["mspi0"],
+    }
+    assert (
+        "socs.soc_b: memory_controllers_removed names 'mspi0', which memory_controllers also lists"
+    ) in problems_of(document)
+
+
+def test_memory_controllers_removed_names_a_memory_controller(document):
+    subset = {"memory_controllers_removed": ["iom1"]}
+    document["implementations"] = {"cut": {"soc": "soc_a", "kind": "silicon", "subset": subset}}
+    assert (
+        "implementations.cut.subset: memory_controllers_removed names 'iom1', which the base lacks"
+    ) in problems_of(document)
 
 
 @pytest.mark.parametrize(("programmable_by", "ok"), [("vendor", True), (None, False)])

@@ -93,7 +93,8 @@ def test_a_target_that_is_not_public_stops_the_pages(document):
 
 
 def test_the_release_assets_are_stable():
-    first, second = (_pages.release(builtin(include_plugins=False)) for _ in range(2))
+    catalog = builtin(include_plugins=False)
+    first, second = (_pages.release(catalog) for _ in range(2))
     assert first == second
     zipped = first["helia-platforms-pages.zip"]
     assert isinstance(zipped, bytes)

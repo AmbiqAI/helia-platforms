@@ -282,6 +282,7 @@ class Subset:
     memories_resized: Mapping[str, int] = field(default_factory=_empty)
     memories_rebased: Mapping[str, int] = field(default_factory=_empty)
     peripherals_removed: tuple[str, ...] = ()
+    memory_controllers_removed: tuple[str, ...] = ()
     cores_removed: tuple[str, ...] = ()
     npus_removed: tuple[str, ...] = ()
     accelerators_removed: tuple[str, ...] = ()
@@ -383,6 +384,7 @@ class AddOn(_Carrier):
     fits_boards: tuple[str, ...]
     occupies: tuple[str, ...]
     population: Mapping[str, str]
+    modes: Mapping[str, tuple[str, ...]] = field(default_factory=_empty)
     revision: str | None = None
     aliases: tuple[str, ...] = ()
     release_status: ReleaseStatus = "embargoed"
