@@ -23,8 +23,8 @@ their parts and evaluation boards.
 ## Upgrade notes
 
 - apollo510b_evb's `jlink_device` is `AP510BFA-CBR`, the Apollo510B ordering
-  number, which SEGGER lists as its own J-Link device. J-Link V9.42 has it and
-  V8.10b does not, so update an older J-Link, or pass the SDK's default
+  number, which SEGGER lists as its own J-Link device. SEGGER added it in J-Link
+  V8.94 (2025-12-10), so update an older J-Link, or pass the SDK's default
   `AP510NFA-CBR` yourself.
 
 ## Quickstart
