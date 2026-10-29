@@ -489,18 +489,6 @@ implementations:
           notes: >-
             "FPGA supports only IOM0 and 1" is only in AmbiqSuite, at an abbreviated revision;
             the BSP header nsx-ambiq-sdk ships defines pins for IOM0 to IOM6 (#68 item 13, #19).
-      clock_domains_removed:
-        value: [cpu.ulp]
-        provenance: &owner_clocks
-          status: unverified
-          notes: >-
-            The helia-estimator owner (2026-10-27, #68): "The silicon is X10 for any clock.
-            FPGA is clocked down", naming CM55 250 and 500 MHz and NPU 100 and 500 MHz, so
-            the FPGA runs the CPU at 25 and 50 MHz and the NPU at 10 and 50 MHz. The CPU's
-            100 MHz ULP mode is not named, so the FPGA drops it.
-      operating_points_removed:
-        value: [ulp_ulp, ulp_hp]
-        provenance: *owner_clocks
       boot_configs_removed: [sbl]
       provenance:
         status: sdk
@@ -514,19 +502,31 @@ implementations:
           "no HBLRAM" (board.cmake :26) and "HBLRAM / some peripherals present on silicon are
           not available" (README :9-10); the sbl scripts are kept only for future silicon.
     # Each point replaces the Soc's point of the same name whole (ADR 0002 section 2.5), so
-    # it restates hal_mode; the silicon operating points and lp_ulp carry over.
+    # it restates hal_mode; all six silicon operating points carry over.
     clock_domains:
       cpu:
-        lp:
-          mhz: 25
+        ulp:
+          mhz: 10
           hal_mode:
-            value: AM_HAL_PWRCTRL_MCU_MODE_LOW_POWER
+            value: AM_HAL_PWRCTRL_MCU_MODE_ULTRA_LOW_POWER
             provenance: &fpga_mcu_mode
               status: sdk
               source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/mcu/atomiq110/hal/am_hal_pwrctrl.h:228-230"]
               verified_on: 2026-10-27
               verified_by: evanchen11
               notes: The FPGA HAL keeps the silicon mode enumerators; the image sets the clock.
+          provenance:
+            status: unverified
+            notes: >-
+              The helia-estimator owner (2026-10-27, #68): "The silicon is X10 for any clock.
+              FPGA is clocked down", so each FPGA point is a tenth of silicon's. The review of
+              #133 selected ULP, LP and HP on the FPGA and read each mode back; the MHz printed
+              are nominal tenths, not measured.
+        lp:
+          mhz: 25
+          hal_mode:
+            value: AM_HAL_PWRCTRL_MCU_MODE_LOW_POWER
+            provenance: *fpga_mcu_mode
           provenance:
             status: sdk
             source:
@@ -545,7 +545,7 @@ implementations:
           provenance:
             status: unverified
             notes: >-
-              The helia-estimator owner's statement (see subset). nsx-ambiq-sdk v5.2.26
+              The helia-estimator owner's statement (see cpu.ulp). nsx-ambiq-sdk v5.2.26
               disagrees for this HAL build: atomiq110/nsx_system_platform.c:66-69 says the
               FPGA's HFRC "is fixed at the ATOMIQ11X_FPGA emulation frequency (25 MHz ...),
               independent of CPU perf mode".
@@ -563,7 +563,7 @@ implementations:
           provenance: &owner_npu
             status: unverified
             notes: >-
-              The helia-estimator owner's statement (see subset); helia-npu's v10 notes
+              The helia-estimator owner's statement (see cpu.ulp); helia-npu's v10 notes
               record FPGA captures "at NPU 10 and 50 MHz" (socs/atomiq110.yaml:21,
               helia-estimator 785dfe42). nsx_npu.c:86-87 says an FPGA's clock tree "is fixed
               by the image", so the two may be different images (#19).

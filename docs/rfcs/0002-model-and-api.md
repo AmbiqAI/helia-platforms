@@ -261,11 +261,11 @@ neuralspotx and helia-profiler use) carrying Implementation
 - Clocks: each FPGA domain point overrides the Soc's point of the same
   name at the silicon clock divided by 10 (the helia-estimator owner,
   2026-10-27, #68). CPU `lp` is 25 MHz, status `sdk`: the HAL is built for
-  `ATOMIQ11X_FPGA 25` (`mcu/atomiq110/am_mcu_apollo.h:85-87`). CPU `hp`
-  50 MHz and NPU `ulp` 10 and `hp` 50 MHz are `unverified`. The CPU's
-  `ulp` point and the two system points using it are removed. The other
-  four keep the Soc's names, and the default `lp_ulp` is 25 MHz CPU and
-  10 MHz NPU. nsx-core says the FPGA's HFRC is fixed at 25 MHz whatever
+  `ATOMIQ11X_FPGA 25` (`mcu/atomiq110/am_mcu_apollo.h:85-87`). CPU `ulp`
+  10 and `hp` 50 MHz and NPU `ulp` 10 and `hp` 50 MHz are `unverified`; a
+  reviewer selected the CPU's three modes on the FPGA and read each back
+  (review of #133). All six system points keep the Soc's names, and the
+  default `lp_ulp` is 25 MHz CPU and 10 MHz NPU. nsx-core says the FPGA's HFRC is fixed at 25 MHz whatever
   the CPU mode (`modules/nsx-core/src/atomiq110/nsx_system_platform.c:66-69`),
   which disagrees with the 50 MHz point (#19). The 12 and 48 MHz in the
   HAL's comment are examples of other images, not points.
