@@ -24,7 +24,7 @@ unverified_allowed:
     reason: "the FPGA's scaled-down FIFO limits are a reviewer's statement and helia-npu's FPGA fit"
     issue: "#19"
   - fact: "fact:implementation:atomiq110_fpga:access.npu_0@rram"
-    reason: "helia-npu's RRAM timing is fitted to an RTL run, with no hardware source"
+    reason: "the NPU's reach and port class come from helia-npu only"
     issue: "#19"
   - fact: "fact:soc:atomiq110:npus.npu_0.sram_port_hash"
     reason: "measured on the FPGA by helia-npu's maintainers; no record of the method is public"

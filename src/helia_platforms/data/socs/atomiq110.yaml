@@ -583,15 +583,13 @@ implementations:
             provenance: *fpga_npu_mode
           provenance: *owner_npu
     access:
-      # helia-npu's timing at the FPGA's clock, a tenth of silicon's; the FPGA's NPU-to-SSRAM
-      # FIFO is scaled down from silicon's. Each entry replaces the Soc's whole.
+      # The FPGA's own path facts. It gives cycle counts; silicon's latencies give performance
+      # (review of #133), so no latency is stated. Each entry replaces the Soc's whole.
       - master: npu_0
         target: ssram
         access: direct
         port: 0
         characterization:
-          read_latency_ns: 640
-          write_latency_ns: 640
           max_outstanding_reads: 8
           max_outstanding_writes: 4
           burst_bytes: 128
@@ -600,29 +598,22 @@ implementations:
             status: unverified
             notes: >-
               The review of #133: the outstanding limit is a FIFO's depth, scaled down on the
-              FPGA; the AXI clock is 25 MHz; 64 ns is silicon's latency. helia-npu
-              socs/atomiq110.yaml:49-87 (helia-estimator 3312025) matches FPGA PMU cycle
-              counts with 8 reads, 4 writes (fitted), 64 ns and 250 MHz, so at a tenth of the
-              clock the latency is 640 ns; write latency is assumed equal to read latency.
-              Bursts split at the 128 B stripe.
+              FPGA, and the AXI clock is 25 MHz. helia-npu socs/atomiq110.yaml:49-87
+              (helia-estimator 3312025) matches FPGA PMU captures with 8 reads and 4 writes
+              (fitted). Bursts split at the 128 B stripe. helia-npu's FPGA target has
+              zero-wait SSRAM at the FPGA clock (targets/atomiq110-fpga-turbo-npu.yaml:32,
+              helia-estimator e2b9300), so silicon's 64 ns does not apply.
         provenance: {status: unverified, notes: *npu_reach}
       - master: npu_0
         target: rram
         access: direct
         port: 1
-        characterization:
-          read_latency_ns: 2400
-          max_outstanding_reads: 2
-          burst_bytes: 256
-          axi_clock_hz: 25000000
-          provenance:
-            status: unverified
-            notes: >-
-              helia-npu socs/atomiq110.yaml:125-138 (helia-estimator 3312025): 2 reads in
-              flight at 240 ns and 250 MHz, fitted to an RTL run of MobileNetV2 with weights
-              in RRAM, as a stand-in for the path's rate; at the FPGA's tenth of the clock
-              (review of #133) that is 2400 ns at 25 MHz. AXI writes to RRAM return an error.
-        provenance: {status: unverified, notes: *npu_reach}
+        provenance:
+          status: unverified
+          notes: >-
+            Restated without the Soc's timing: on the FPGA, RRAM is "FPGA block RAM; not RRAM
+            timing" (helia-npu targets/atomiq110-fpga-turbo-npu.yaml:25, helia-estimator
+            e2b9300). Reach and port class as on the Soc (#19).
     trace_clock_mhz:
       value: 50
       provenance:

@@ -77,17 +77,11 @@ def test_the_atomiq110_fpga_board_answers_the_consumer_queries(catalog):
     }
     assert {"iom2", "iom11", "hblram"} & set(target.soc.peripherals) == {"hblram"}
     npu = {a.target: a.characterization for a in target.soc.access if a.master == "npu_0"}
-    rram = npu["rram"]
-    assert rram is not None and (rram.read_latency_ns, rram.max_outstanding_reads) == (2400, 2)
-    assert rram.axi_clock_hz == 25_000_000
-    timing = npu["ssram"]
-    assert timing is not None and timing.write_latency_ns == 640
+    assert npu["rram"] is None  # block RAM on the FPGA, so not the Soc's RRAM timing
+    timing = npu["ssram"]  # the FPGA gives cycle counts, so it states no latency
+    assert timing is not None and (timing.read_latency_ns, timing.write_latency_ns) == (None, None)
     assert (timing.max_outstanding_reads, timing.max_outstanding_writes) == (8, 4)
-    assert (timing.read_latency_ns, timing.burst_bytes, timing.axi_clock_hz) == (
-        640,
-        128,
-        25_000_000,
-    )
+    assert (timing.burst_bytes, timing.axi_clock_hz) == (128, 25_000_000)
 
 
 def test_the_atomiq110_soc_answers_the_consumer_queries(catalog):
