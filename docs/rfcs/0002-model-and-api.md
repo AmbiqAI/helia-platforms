@@ -936,8 +936,7 @@ has an entry for is excluded, per the multicore document;
 `app_start` keys name programmable cores; every `ImageSlot` owner is a
 programmable core with a `direct` entry for the slot's region; a slot has
 a nonzero size, ends inside its region and overlaps no other slot, no boot
-reservation and no other core's `app_start`; a `customer` slot's owner is
-not programmed by the vendor only; removing a core or region removes the
+reservation and no other core's `app_start`; removing a core or region removes the
 inherited slots it owns or holds, and a Part's `image_slots_removed` may
 not name a slot its Soc carries. `helia_platforms.export` writes the JSON catalog,
 filtered and scrubbed by effective release status, and the JSON Schemas

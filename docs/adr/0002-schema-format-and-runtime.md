@@ -1,7 +1,19 @@
 # 0002. Ship the catalogue as YAML data with a generated JSON Schema and a stdlib dataclass runtime
 
 Date: 2026-10-05
-Status: Accepted
+Status: Accepted; amended 2026-10-29 (#65)
+
+## Amendment, 2026-10-29: a Soc's image slots (#65)
+
+Section 2 changes as follows:
+
+- A Soc carries `image_slots` as a Part does, keyed by slot name with
+  `core` as a field, and has `image_slots_removed` under rule 3.
+- `Subset` gains `image_slots_removed`, which removes a Soc's image slot
+  for every Part of the Implementation.
+- A Part's `image_slots_removed` applies over its `based_on` Part only.
+  Naming a slot its Soc also carries is an error, because the Soc's slot
+  would take the removed one's place.
 
 ## Context
 
@@ -165,7 +177,7 @@ keyed by name or id wherever possible, because a mapping cannot hold a key
 twice: `memories`, `clock_domains` (each domain a mapping of point name to
 point), `operating_points`, `boot_configs`, a boot configuration's
 `reserved` (keyed by purpose: `reserved: {sbl: {region: mram, offset: 0,
-size: 64K}}`), `interfaces`, `population`, a Soc's or Part's `image_slots` (keyed
+size: 64K}}`), `interfaces`, `population`, a Part's `image_slots` (keyed
 by slot name, with `core` as a field), an FVP Implementation's
 `substitutions` (keyed by the region the model provides), and
 `max_domain_mhz` (domain id to MHz). Three kinds of list remain:
@@ -197,7 +209,7 @@ over its `based_on` entry and to an Implementation over its Soc:
    collection that rule 2 merges (`memories_removed`, `cores_removed`,
    `npus_removed`, `accelerators_removed`, `peripherals_removed`,
    `clock_domains_removed`, `boot_configs_removed`,
-   `operating_points_removed`, and on a Soc or Part `image_slots_removed`);
+   `operating_points_removed`, and on a Part `image_slots_removed`);
    `access_removed` takes `{master, target}` pairs. A collection inside a
    nested object, such as a boot configuration's `reserved`, is replaced
    with that object and has no `_removed` key. `clock_domains_removed`
@@ -211,11 +223,8 @@ as an operating point that names a removed point, are checked after the
 merge. An Implementation writes its removals, resizes, rebases and clock
 caps under `subset:`; `Subset` gains a field for each `_removed` key,
 including `accelerators_removed`, which RFC 0002's prose allows (`:214`)
-but its `Subset` (`:738`) lacks, and `image_slots_removed`, which removes
-a Soc's image slot for every Part of the Implementation. A Part's
-`image_slots_removed` applies over its `based_on` Part only; naming a slot
-its Soc also carries is an error, because the Soc's slot would take the
-removed one's place. Because collections merge, an FPGA that must not offer the
+but its `Subset` (`:738`) lacks; a Part's `image_slots_removed` is not a
+subset field. Because collections merge, an FPGA that must not offer the
 Soc's `sbl` configuration says `boot_configs_removed: [sbl]`. In
 an entry with `based_on` no key is required, because the base supplies
 them; required keys are checked after the merge. RFC 0002's shorthands
