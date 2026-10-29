@@ -50,16 +50,6 @@ exceptions:
   # Ids the snapshots carry that the catalog does not have yet. Remove each entry with
   # the data PR that adds the id.
   - snapshot: nsx-ambiq-sdk.json
-    at: [socs, apollo510b]
-    rule: in the catalog
-    reason: apollo510b's data lands with #64.
-    issue: "#64"
-  - snapshot: nsx-ambiq-sdk.json
-    at: [socs, apollo5b]
-    rule: in the catalog
-    reason: apollo5b is dropped (owner decision on #64): no datasheet, guide or ordering number exists.
-    issue: "#64"
-  - snapshot: nsx-ambiq-sdk.json
     at: [socs, apollo510L]
     rule: in the catalog
     reason: apollo510L and apollo330P's data lands with #65.
@@ -114,7 +104,7 @@ exceptions:
     rule: in the catalog
     reason: atomiq110's data lands with #68, once #104 decides how its FPGA is modelled.
     issue: "#68"
-  # These stay as long as the catalog leaves apollo2 out.
+  # These stay as long as the catalog leaves apollo2 and apollo5b out.
   - snapshot: nsx-ambiq-sdk.json
     at: [socs, apollo2]
     rule: in the catalog
@@ -124,4 +114,11 @@ exceptions:
     at: [boards, apollo2_evb]
     rule: in the catalog
     reason: The catalog leaves apollo2 out, decided 2026-10-19 on #79.
+    issue: "#79"
+  - snapshot: nsx-ambiq-sdk.json
+    at: [socs, apollo5b]
+    rule: in the catalog
+    reason: >-
+      The catalog leaves apollo5b out, decided 2026-10-07 on #64: no datasheet, guide or
+      ordering number exists. #79 records the decision.
     issue: "#79"

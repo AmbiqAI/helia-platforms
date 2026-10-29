@@ -20,6 +20,21 @@ allowed:
       RAM budgets are physical sizes: DTCM goes from the nsx gcc sbl script's 507904
       bytes to the physical 524288 (0002-migration.md, heliaAOT budgets).
     issue: "#28"
+  - consumer: helia-aot
+    target: apollo510b_evb
+    field: memories.DTCM
+    reason: >-
+      RAM budgets are physical sizes: DTCM goes from the nsx gcc sbl script's 507904
+      bytes to the physical 524288 (0002-migration.md, heliaAOT budgets).
+    issue: "#28"
+  - consumer: neuralspotx
+    target: apollo510b_evb
+    field: jlink_device
+    reason: >-
+      neuralspotx sets no board override, so it uses the SDK's Soc-level AP510NFA-CBR
+      (facts/apollo510b.cmake:52). The catalog records the part, AP510BFA-CBR, which
+      J-Link has listed since V8.94; #19 tracks the J-Link name checks.
+    issue: "#19"
   # Targets the catalog does not resolve yet; each data PR removes its own.
   - consumer: helia-aot
     target: apollo330mp_evb
@@ -82,28 +97,11 @@ allowed:
     reason: Not in the built-in data yet.
     issue: "#66"
   - consumer: helia-aot
-    target: apollo510b_evb
-    field: target
-    reason: Not in the built-in data yet.
-    issue: "#64"
-  - consumer: helia-aot
     target: atomiq110
     field: target
     reason: Not in the built-in data yet.
     issue: "#68"
   # neuralspotx boards the catalog does not resolve yet; each data PR removes its own.
-  - consumer: neuralspotx
-    target: apollo510b_evb
-    field: target
-    reason: >-
-      apollo510b's data lands with
-    issue: "#64"
-  - consumer: neuralspotx
-    target: apollo5b_evb
-    field: target
-    reason: >-
-      apollo5b is dropped (owner decision on
-    issue: "#64"
   - consumer: neuralspotx
     target: apollo510dL_evb
     field: target
@@ -187,4 +185,11 @@ allowed:
     field: target
     reason: >-
       The catalog leaves apollo2 out, decided 2026-10-19 on
+    issue: "#79"
+  - consumer: neuralspotx
+    target: apollo5b_evb
+    field: target
+    reason: >-
+      The catalog leaves apollo5b out, decided 2026-10-07 on #64: no datasheet, guide or
+      ordering number exists. #79 records the decision.
     issue: "#79"

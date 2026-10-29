@@ -19,13 +19,20 @@ memory_devices:
         status: measured
         source:
           - "meas:apollo510_evb/xip-alias/2026-07-05"
+          - "meas:apollo510b_evb/xip-alias/2026-07-05"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-psram/CMakeLists.txt:66-67"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-psram/CMakeLists.txt:87-93"
           - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-psram/CMakeLists.txt:106-110"
-        verified_on: 2026-10-13
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-psram/CMakeLists.txt:126"
+          - "doc:DS-A510@1.1.0:p36"
+        verified_on: 2026-10-28
         verified_by: evanchen11
         notes: >-
-          Measured by apage224 and added in AmbiqAI/nsx-ambiq-sdk#38: heliaPROFILER ran a
-          model from PSRAM XIP, and XIP address aliasing showed 512 Mbit = 64 MB ("+32 MB
-          holds distinct data; +64 MB falls off the MSPI aperture"). No document states
+          Measured and added in AmbiqAI/nsx-ambiq-sdk#38: on apollo510_evb, heliaPROFILER ran
+          a model from PSRAM XIP, and XIP address aliasing showed 512 Mbit = 64 MB
+          (:106-110). apollo510b_evb rev 2.0 (:66-67) was measured the morning of 2026-07-05
+          (:87-93, :126). The apollo510_evb comment's "+64 MB falls off the MSPI aperture"
+          is wrong: apollo510's MSPI0 aperture is 256 MB (DS-A510 p36). No document states
           the capacity.
     driver_family:
       value: aps25616ba
@@ -33,12 +40,13 @@ memory_devices:
         status: sdk
         source:
           - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/boards/apollo510_evb/bsp/am_bsp.h:188"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/boards/apollo510b_evb/bsp/am_bsp.h:203"
           - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-psram/CMakeLists.txt:123-131"
-        verified_on: 2026-10-13
+        verified_on: 2026-10-26
         verified_by: evanchen11
         notes: >-
           The BSP defines AM_BSP_MSPI_PSRAM_DEVICE_APS25616BA, and nsx-psram builds the
-          1.2 V "BA" driver am_devices_mspi_psram_aps25616ba_1p2v.c for this board. The
+          1.2 V "BA" driver am_devices_mspi_psram_aps25616ba_1p2v.c for both 510 EVBs. The
           part marking is not the driver family (CMakeLists.txt:99-104).
     modes:
       value: [hex-ddr]

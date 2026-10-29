@@ -329,7 +329,9 @@ socs:
           notes: >-
             NSX_SEGGER_CPUFREQ is the TPIU trace clock, not the CPU clock (:51-52); nsx
             firmware selects DBGTPIUCLKSEL_HFRC_96MHz, "fixed, independent of CPU perf
-            mode". DS-A510 p72 lists HFRC_96MHz as a TPIU clock source.
+            mode". DS-A510 p72 lists HFRC_96MHz as a TPIU clock source. On apollo510_evb the
+            firmware sets DBGCTRL to HFRC_96MHz (#19, 2026-10-28); SWO decodes whatever clock
+            J-Link is given, so decoding cannot confirm the frequency.
       hal_enums:
         ssram_full_power:
           value: AM_HAL_PWRCTRL_SRAM_3M

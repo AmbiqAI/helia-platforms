@@ -14,6 +14,18 @@ documents:
       date: 2025-11
       pages: 24
       sha256: 4350d3f28bf41a664ceefbdaa2cf6a78cdc3f40cf8f158c6b48a2ac8eee9032b
+  DS-A510B:
+    1.1.0:
+      document_id: DS-A510B-1p1p0
+      date: 2026-06
+      pages: 266
+      sha256: 892c109be268ab72dd0e32b5a8068a57b09cc9f8722f35f4cba2ab7cc47bd03d
+  QS-A510B:
+    "1.1":
+      document_id: QS-A510B-1p1
+      date: 2025-11
+      pages: 26
+      sha256: d3b5c54e7762ae7fc1eed35ba11a29fd6ca798b8f96e5548d53b1ffb0fda96f0
 repositories:
   AmbiqAI/nsx-ambiq-sdk:
     url: https://github.com/AmbiqAI/nsx-ambiq-sdk
