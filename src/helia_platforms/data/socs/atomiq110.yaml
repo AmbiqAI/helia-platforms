@@ -287,11 +287,12 @@ socs:
             status: unverified
             notes: >-
               helia-npu socs/atomiq110.yaml:49-87 (helia-estimator 3312025): an internal Ambiq
-              specification gives 64 ns and the 250 MHz fabric clock; its 8 outstanding gives
-              way to the TRM's per-port limits (review of #133). Bursts
-              are 128 B, the stripe size: sram_port_hash 0x80 picks the SRAM port by addr[7]
+              specification gives 64 ns and the 250 MHz fabric clock. The outstanding limits
+              are the NPU's per-port ceilings; the path's FIFO depth on silicon is unsourced,
+              and atomiq110_fpga states its scaled-down FIFO's (review of #133). Bursts are
+              128 B, the stripe size: sram_port_hash 0x80 picks the SRAM port by addr[7]
               (TRM-U85 Table 2-1, p24), per the review of #133. helia-npu's write latency is
-              assumed and its 4 outstanding writes are fitted, so neither is recorded.
+              assumed, so it is not recorded.
         provenance:
           status: unverified
           notes: &npu_reach >-
@@ -572,6 +573,27 @@ implementations:
             value: AM_HAL_PWRCTRL_NPU_MODE_HIGH_PERFORMANCE
             provenance: *fpga_npu_mode
           provenance: *owner_npu
+    access:
+      # The FPGA's NPU-to-SSRAM FIFO is scaled down from silicon's, so it states its own
+      # limits; the entry replaces the Soc's whole.
+      - master: npu_0
+        target: ssram
+        access: direct
+        port: 0
+        characterization:
+          read_latency_ns: 64
+          max_outstanding_reads: 8
+          max_outstanding_writes: 4
+          burst_bytes: 128
+          axi_clock_hz: 250000000
+          provenance:
+            status: unverified
+            notes: >-
+              The review of #133: the outstanding limit is a FIFO's depth, scaled down on the
+              FPGA. helia-npu socs/atomiq110.yaml:49-87 (helia-estimator 3312025) matches FPGA
+              PMU captures with 8 reads (the specification's 8), 4 writes (fitted), and the
+              specification's 64 ns and 250 MHz. Bursts split at the 128 B stripe.
+        provenance: {status: unverified, notes: *npu_reach}
     trace_clock_mhz:
       value: 50
       provenance:

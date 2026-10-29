@@ -73,6 +73,15 @@ def test_the_atomiq110_fpga_board_answers_the_consumer_queries(catalog):
         ("npu", "hp"): "AM_HAL_PWRCTRL_NPU_MODE_HIGH_PERFORMANCE",
     }
     assert {"iom2", "iom11", "hblram"} & set(target.soc.peripherals) == {"hblram"}
+    ssram = {a.target: a for a in target.soc.access if a.master == "npu_0"}["ssram"]
+    assert ssram.characterization is not None
+    timing = ssram.characterization
+    assert (timing.max_outstanding_reads, timing.max_outstanding_writes) == (8, 4)
+    assert (timing.read_latency_ns, timing.burst_bytes, timing.axi_clock_hz) == (
+        64,
+        128,
+        250_000_000,
+    )
 
 
 def test_the_atomiq110_soc_answers_the_consumer_queries(catalog):
