@@ -96,6 +96,7 @@ def _edit(path: str, value):
 
 _DELETE = object()
 SOC = "socs.soc_a"
+SDK = {"status": "sdk"}
 CORPUS = {
     "base": (BASE_DOCUMENT, True),
     "size suffix": (_edit(f"{SOC}.memories.tcm.size", "1G"), True),
@@ -143,6 +144,35 @@ CORPUS = {
     "wrapper on list item": (
         _edit(f"{SOC}.peripherals", ["mspi0", {"value": "iom0", "provenance": {"status": "sdk"}}]),
         True,
+    ),
+    "wrapper around wrapped items": (
+        _edit(
+            f"{SOC}.peripherals",
+            {"value": [{"value": "iom0", "provenance": SDK}], "provenance": SDK},
+        ),
+        False,
+    ),
+    "wrapper around plain items": (
+        _edit(f"{SOC}.peripherals", {"value": ["mspi0", "iom0"], "provenance": SDK}),
+        True,
+    ),
+    "subset removal wrapped twice": (
+        _edit(
+            "implementations",
+            {
+                "cut": {
+                    "soc": "soc_a",
+                    "kind": "fpga",
+                    "subset": {
+                        "peripherals_removed": {
+                            "value": [{"value": "iom0", "provenance": SDK}],
+                            "provenance": SDK,
+                        }
+                    },
+                }
+            },
+        ),
+        False,
     ),
     "per-core app_start": (
         _edit(f"{SOC}.boot_configs.sbl.app_start", {"cm55_0": {"region": "nvm", "offset": 0}}),
