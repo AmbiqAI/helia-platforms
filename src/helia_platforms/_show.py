@@ -464,7 +464,7 @@ def _interface(target: Target, at: _Entries, owner: _At, name: str) -> _Row:
     if addon is None:
         return _row("", place, interface, _INTERFACE)
     head = _row("", place, interface, ["controller"])
-    tail = _row("", place, interface, ["aperture_base", "aperture_max"])
+    tail = _row("", place, interface, ["aperture_base", "alternate_bases", "aperture_max"])
     addon_at = at.at("addons", addon.id, addon)
     modes = addon.modes[name]
     wheres = [("modes", name, segment(m)) for m in modes]

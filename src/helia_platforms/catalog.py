@@ -815,8 +815,8 @@ class _Loader:
             for other, lo, length in theirs:
                 if base < lo + length and lo < base + size:
                     message = (
-                        f"window {base:#x} ({size} bytes) overlaps implementation "
-                        f"{part.implementation!r}'s {other} window {lo:#x} ({length} bytes)"
+                        f"window {base:#x} ({size} bytes) overlaps the {other} window "
+                        f"{lo:#x} ({length} bytes) of implementation {part.implementation!r}"
                     )
                     self.fail(origin, f"{where}.interfaces.{name}", message)
 

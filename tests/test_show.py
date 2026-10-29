@@ -270,6 +270,21 @@ def test_a_fitted_add_on_prints_the_modes_it_narrows_an_interface_to():
     assert _show.stated_facts(target) <= printed(target)
 
 
+def test_a_narrowed_interface_keeps_its_alternate_bases():
+    document = full_document()
+    mspi1 = document["boards"]["board_a"]["interfaces"]["mspi1"]
+    mspi1.update(modes=["hex", "octal"], alternate_bases=[0x90000000])
+    document["addons"]["shield"]["modes"] = {"mspi1": ["octal"]}
+    target = load_overlay(document, base=builtin(include_plugins=False)).resolve("board_a_shield")
+    (psram,) = row_texts(target, "psram1")
+    assert (
+        "modes octal (add-on shield), aperture_base 0x70000000, alternate_bases 0x90000000" in psram
+    )
+    where = ("boards", "board_a", ("interfaces", "mspi1", "alternate_bases", "0x90000000"))
+    assert where in printed(target)
+    assert _show.stated_facts(target) <= printed(target)
+
+
 def test_an_add_on_that_reorders_an_interface_s_modes_does_not_narrow_them():
     document = full_document()
     document["boards"]["board_a"]["interfaces"]["mspi1"]["modes"] = ["hex", "octal"]

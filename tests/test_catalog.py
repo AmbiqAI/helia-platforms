@@ -1124,7 +1124,10 @@ def test_a_board_window_may_not_overlap_its_implementations_windows(document):
     document["parts"]["PART-A"]["implementation"] = "cut"
     found = problems_of(document)
     assert "boards.board_a.interfaces.mspi0: window 0x60000000" in found
-    assert "overlaps implementation 'cut''s fpga_mspi0 window 0x60000000" in found
+    assert (
+        "overlaps the fpga_mspi0 window 0x60000000 (268435456 bytes) of implementation 'cut'"
+        in found
+    )
     fpga_mspi0["aperture_base"] = 0x70000000
     load_quietly(document)
 

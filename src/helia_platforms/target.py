@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import functools
 from collections.abc import Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields
 from types import MappingProxyType
 from typing import Literal, TypeVar
 
@@ -156,7 +156,7 @@ class Target:
                 characterization=device.characterization,
                 provenance=device.provenance,
                 field_provenance=MappingProxyType(
-                    {**device.field_provenance, **self._window_records(interface, device)}
+                    {**_region_records(device), **self._window_records(interface, device)}
                 ),
             )
             regions.append((region, interface.controller))
@@ -440,6 +440,23 @@ def _pick(items: tuple[_Unit, ...], key: int | str, missing: str) -> _Unit:
             if item.id == key.casefold():
                 return item
     raise PlatformError(f"{missing} {key!r}")
+
+
+_REGION_FIELDS = frozenset(f.name for f in fields(model.MemoryRegion))
+
+
+def _region_records(device: model.MemoryDevice) -> dict[str, model.Provenance]:
+    """``device``'s field records keyed by the region's paths: ``capacity`` becomes ``size``.
+
+    A device field the region lacks (``driver_family``, ``modes``) is left out.
+    """
+    records = {}
+    for key, record in device.field_provenance.items():
+        head, dot, rest = key.partition(".")
+        head = "size" if head == "capacity" else head
+        if head in _REGION_FIELDS:
+            records[head + dot + rest] = record
+    return records
 
 
 def _record(owner: model.Board | model.Implementation, path: tuple[str, ...]) -> model.Provenance:

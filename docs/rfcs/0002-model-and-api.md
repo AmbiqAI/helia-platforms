@@ -870,7 +870,9 @@ one of them.
 A class that has `provenance` also has `field_provenance`: the records of
 single values that differ from the class's own record, keyed by their
 path within the object ([ADR 0003](../adr/0003-provenance-record.md)).
-A region `external_memories()` builds carries its device's record, except
+A region `external_memories()` builds carries its device's record and
+the device's field records under the region's keys (`capacity` as `size`;
+`driver_family` and `modes`, which a region lacks, are left out), except
 `base` and each `alternate_bases.<address>`, which carry the interface
 owner's (the board's or the implementation's) record for that window.
 

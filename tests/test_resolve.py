@@ -202,6 +202,16 @@ def test_an_interface_window_carries_the_boards_record_not_the_devices(document)
     assert psram.field_provenance["alternate_bases.0x80000000"].source == tuple(alias["source"])
 
 
+def test_an_external_region_keys_the_devices_records_by_its_own_fields(document):
+    measured = {**RECORD, "status": "measured", "source": ["meas:board_a/psram/2026-10-01"]}
+    psram = document["memory_devices"]["psram_8m"]
+    psram["capacity"] = {"value": psram["capacity"], "provenance": measured}
+    psram["driver_family"] = {"value": "aps", "provenance": measured}
+    (region,) = resolve("board_a", catalog=quiet(document)).external_memories()
+    assert region.field_provenance["size"].status == "measured"
+    assert {"capacity", "driver_family"}.isdisjoint(region.field_provenance)
+
+
 def test_a_discouraged_entry_stays_out_of_memories_and_placement(document):
     soc = document["socs"]["soc_a"]
     soc["access"].append(
