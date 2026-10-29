@@ -30,16 +30,16 @@ def public(document):
     return document
 
 
+def _page_names(catalog) -> set[str]:
+    """One page per Soc and per board, and the index."""
+    socs = {f"socs/{soc.id}.md" for soc in catalog.socs()}
+    return socs | {f"boards/{board.id}.md" for board in catalog.boards()} | {"index.md"}
+
+
 def test_the_built_in_pages():
     catalog = builtin(include_plugins=False)
     pages = _pages.render(catalog)
-    assert list(pages) == sorted(
-        [
-            "index.md",
-            *(f"socs/{s.id}.md" for s in catalog.socs()),
-            *(f"boards/{b.id}.md" for b in catalog.boards()),
-        ]
-    )
+    assert list(pages) == sorted(_page_names(catalog))
     soc, board = pages["socs/apollo510.md"], pages["boards/apollo510_evb.md"]
     assert soc.startswith("---\ntitle: apollo510\ndescription: ")
     assert "| dtcm | `0x20000000` | 512K | sram | tcm |" in soc
@@ -56,6 +56,14 @@ def test_the_built_in_pages():
     )
     digest = builtin(include_plugins=False).catalog_digest
     assert all(page.endswith(f"catalog `{digest}`.\n") for page in pages.values())
+
+
+def test_an_apollo3_board_page_gives_j_links_cpufreq_apart_from_the_trace_clock():
+    pages = _pages.render(builtin(include_plugins=False))
+    line = "- J-Link's `-cpufreq` takes 48 MHz (the HFRC) on the apollo3 series, not the 6 MHz"
+    for board in ("apollo3_evb", "apollo3p_evb"):
+        assert f"- Trace clock: 6 MHz\n{line} trace clock;" in pages[f"boards/{board}.md"]
+    assert "`-cpufreq`" not in pages["boards/apollo4p_evb.md"]
 
 
 def test_the_radio_core_pages_name_the_vendor_slot_and_who_programs_the_radio_core():

@@ -18,12 +18,14 @@ def test_the_packaged_data_loads(catalog):
         "apollo330P",
         "apollo4p",
         "apollo4l",
+        "apollo3",
+        "apollo3p",
     }
     assert {c.id for c in catalog.cores()} == {"cortex-m55", "cortex-m4", "cortex-m0"}
     assert {
         p.id
         for p in catalog.parts()
-        if p.soc in {"apollo510", "apollo510b", "apollo4p", "apollo4l"}
+        if p.soc in {"apollo510", "apollo510b", "apollo4p", "apollo4l", "apollo3", "apollo3p"}
     } == {
         "AP510NFA-CBR",
         "AP510NFA-IBR",
@@ -34,6 +36,8 @@ def test_the_packaged_data_loads(catalog):
         "AMA4B2KP-KXR",
         "AMAP42KL-KBR",
         "AMA4B2KL-KXR",
+        *("AMA3B1KK-KBR-B0", "AMA3B1KK-KCR-B0", "AMA3B1KK-KCR-TB", "AMA3B1KK-KQR"),
+        *("AMAP31KK-KBR", "AMAP31KK-KCR", "AMA3B2KK-KBR"),
     }
     assert {b.id for b in catalog.boards()} == {
         "apollo510_evb",
@@ -45,9 +49,16 @@ def test_the_packaged_data_loads(catalog):
         "apollo4p_blue_kxr_evb",
         "apollo4l_evb",
         "apollo4l_blue_evb",
+        "apollo3_evb",
+        "apollo3p_evb",
     }
-    assert [a.id for a in catalog.addons()] == ["apollo4p_disp_shield"]
-    assert {d.id for d in catalog.memory_devices()} == {"APS512XX", "APS256XXN", "IS25WX064"}
+    assert {a.id for a in catalog.addons()} == {"apollo4p_disp_shield", "cygnus"}
+    assert {d.id for d in catalog.memory_devices()} == {
+        "APS512XX",
+        "APS256XXN",
+        "IS25WX064",
+        "APS6404L",
+    }
 
 
 def test_apollo510_evb_answers_the_consumer_queries(catalog):
@@ -147,6 +158,82 @@ def test_the_app_start_offset_names_the_mram_base_it_is_derived_from(catalog, bo
     assert (
         f"fact:soc:{target.soc.id}:memories.mram.base"
         in target.boot.field_provenance["app_start.cm55_0.offset"].source
+    )
+
+
+@pytest.mark.parametrize(
+    ("name", "sram", "flash"),
+    [("apollo3_evb", 320 * 1024, 1024 * 1024), ("apollo3p_evb", 704 * 1024, 2048 * 1024)],
+)
+def test_apollo3_boards_answer_the_consumer_queries(catalog, name, sram, flash):
+    """RFC 0002's heliaAOT and profiler questions, against #67's proposal section 1.6."""
+    target = catalog.resolve(name)
+    assert target.core.id == "cortex-m4"
+    assert target.capabilities == {"dsp", "fp32"}
+    assert {m.name: (m.base, m.size) for m in target.memories()} == {
+        "tcm": (0x10000000, 64 * 1024),
+        "sram": (0x10010000, sram),
+        "flash": (0x00000000, flash),
+    }
+    assert dict(target.usable_nvm()) == {"flash": flash - 48 * 1024}
+    assert target.flash_load_address() == 0xC000
+    assert (target.cpu_mhz(), target.cpu_mhz("hp")) == (48, 96)
+    assert target.default_operating_point.name == "lp"
+    assert target.trace_clock_mhz == 6
+    assert target.external_memories() == ()
+
+
+@pytest.mark.parametrize(
+    ("alias", "board"),
+    [
+        ("apollo3_blue_evb", "apollo3_evb"),
+        ("apollo3_blue_thin_evb", "AMA3B1KK-KCR-TB"),
+        ("apollo3_blue_plus_evb", "apollo3p_evb"),
+    ],
+)
+def test_heliaaot_apollo3_names_are_aliases(catalog, alias, board):
+    assert catalog.resolve(alias).id == board
+
+
+def test_the_cygnus_composition_adds_its_psram_on_mspi1(catalog):
+    target = catalog.resolve("apollo3p_evb_cygnus")
+    assert (target.id, [a.id for a in target.addons]) == ("apollo3p_evb", ["cygnus"])
+    (psram,) = target.external_memories()
+    # Placement uses the read/write XIPMM window; the cached XIP window is read-only.
+    assert (psram.name, psram.base, psram.size) == ("psram0", 0x54000000, 8 * 1024 * 1024)
+    assert psram.alternate_bases == (0x04000000,)
+    assert target.placement_ranges()["psram0"] == (0x54000000, 8 * 1024 * 1024)
+    assert target.classify_address(0x04000010) == "psram0"
+    window = ("doc:DS-A3P@1.3.0:p82", "doc:DS-A3P@1.3.0:p244", "doc:DS-A3P@1.3.0:p249")
+    for key in ("base", "alternate_bases.0x4000000"):
+        assert psram.field_provenance[key].source[:3] == window  # the board's, not the device's
+    assert target.board.interfaces["mspi1"].controller == "mspi1"
+    assert "psram" in target.capabilities
+
+
+def test_apollo3_parts_carry_their_radio_and_jlink_device(catalog):
+    assert catalog.resolve("apollo3_evb").jlink_device == "AMA3B1KK-KBR"
+    assert catalog.resolve("apollo3p_evb").jlink_device == "AMA3B2KK-KBR"
+    assert catalog.resolve("AMA3B1KK-KCR-B0").jlink_device == "AMA3B1KK-KCR"
+    assert catalog.resolve("AMA3B1KK-KQR").jlink_device == "AMA3B1KK-KQR"
+    thin = catalog.resolve("apollo3_blue_thin_evb")
+    assert (thin.kind, thin.part.package, thin.jlink_device) == (
+        "part",
+        "66-pin WLCSP",
+        "AMA3B1KK-KCR",
+    )
+    radios = {p.id: p.radio for p in catalog.parts(soc="apollo3")}
+    assert {part for part, radio in radios.items() if radio == "none"} == {
+        "AMAP31KK-KBR",
+        "AMAP31KK-KCR",
+    }
+
+
+def test_the_apollo3_reservation_is_derived_from_the_app_start(catalog):
+    (reservation,) = catalog.resolve("apollo3p_evb").boot.reserved
+    assert reservation.provenance.source == (
+        "fact:soc:apollo3p:boot_configs.sbl.app_start.cm4_0.offset",
+        "fact:soc:apollo3p:memories.flash.base",
     )
 
 

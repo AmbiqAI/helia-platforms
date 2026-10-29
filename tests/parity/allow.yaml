@@ -142,6 +142,35 @@ allowed:
       NSX_SEGGER_CPUFREQ's 96 MHz J-Link setting (decided on #66).
     issue: "#19"
   - consumer: helia-aot
+    target: apollo3_blue_evb
+    field: memories.MRAM
+    reason: &a3_mram >-
+      NVM budgets are usable_nvm(): 1048576 bytes of flash less the 48 KB below the
+      0xC000 application start, 999424 (0002-migration.md, heliaAOT budgets).
+    issue: "#28"
+  - consumer: helia-aot
+    target: apollo3_blue_thin_evb
+    field: memories.MRAM
+    reason: *a3_mram
+    issue: "#28"
+  - consumer: helia-aot
+    target: apollo3_evb
+    field: memories.MRAM
+    reason: *a3_mram
+    issue: "#28"
+  - consumer: helia-aot
+    target: apollo3_blue_plus_evb
+    field: memories.MRAM
+    reason: &a3p_mram >-
+      NVM budgets are usable_nvm(): 2097152 bytes of flash less the 48 KB below the
+      0xC000 application start, 2048000 (0002-migration.md, heliaAOT budgets).
+    issue: "#28"
+  - consumer: helia-aot
+    target: apollo3p_evb
+    field: memories.MRAM
+    reason: *a3p_mram
+    issue: "#28"
+  - consumer: helia-aot
     target: apollo330mp_evb
     field: memories.DTCM
     reason: >-
@@ -173,31 +202,6 @@ allowed:
     issue: "#65"
   # Targets the catalog does not resolve yet; each data PR removes its own.
   - consumer: helia-aot
-    target: apollo3_blue_evb
-    field: target
-    reason: Not in the built-in data yet.
-    issue: "#67"
-  - consumer: helia-aot
-    target: apollo3_blue_plus_evb
-    field: target
-    reason: Not in the built-in data yet.
-    issue: "#67"
-  - consumer: helia-aot
-    target: apollo3_blue_thin_evb
-    field: target
-    reason: Not in the built-in data yet.
-    issue: "#67"
-  - consumer: helia-aot
-    target: apollo3_evb
-    field: target
-    reason: Not in the built-in data yet.
-    issue: "#67"
-  - consumer: helia-aot
-    target: apollo3p_evb
-    field: target
-    reason: Not in the built-in data yet.
-    issue: "#67"
-  - consumer: helia-aot
     target: atomiq110
     field: target
     reason: Not in the built-in data yet.
@@ -221,27 +225,32 @@ allowed:
     issue: "#130"
   - consumer: neuralspotx
     target: apollo3_evb
-    field: target
+    field: trace_clock_mhz
     reason: >-
-      apollo3 and apollo3p's data lands with
+      The catalog's trace clock is the physical TPIU clock, HFRC/8, 6 MHz, the clock the
+      HAL selects; it is unverified on apollo3, measured only on apollo3p_evb (#67).
+      neuralspotx passes NSX_SEGGER_CPUFREQ, 48 MHz, the HFRC that J-Link's Apollo3
+      support divides by 8.
+    issue: "#67"
+  - consumer: neuralspotx
+    target: apollo3p_evb
+    field: trace_clock_mhz
+    reason: &a3p_trace >-
+      The catalog's trace clock is the physical TPIU clock, HFRC/8, 6 MHz, measured on
+      apollo3p_evb (#67). neuralspotx passes NSX_SEGGER_CPUFREQ, 48 MHz, the HFRC that
+      J-Link's Apollo3 support divides by 8.
+    issue: "#67"
+  - consumer: neuralspotx
+    target: apollo3p_evb_cygnus
+    field: trace_clock_mhz
+    reason: *a3p_trace
     issue: "#67"
   - consumer: neuralspotx
     target: apollo3_evb_cygnus
     field: target
     reason: >-
-      apollo3 and apollo3p's data lands with
-    issue: "#67"
-  - consumer: neuralspotx
-    target: apollo3p_evb
-    field: target
-    reason: >-
-      apollo3 and apollo3p's data lands with
-    issue: "#67"
-  - consumer: neuralspotx
-    target: apollo3p_evb_cygnus
-    field: target
-    reason: >-
-      apollo3 and apollo3p's data lands with
+      #67 leaves neuralspotx's Cygnus variant of apollo3_evb out: RFC 0001's review
+      excludes it, and its BSP defines no PSRAM.
     issue: "#67"
   - consumer: neuralspotx
     target: atomiq110_fpga_turbo

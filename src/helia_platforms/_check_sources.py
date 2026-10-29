@@ -26,7 +26,8 @@ SNAPSHOTTED = frozenset(
 #: The SDK's spellings of catalog values (``NSX_SOC_ARCH_CLASS``, ``NSX_SOC_PMU_TIER``).
 _ARCH = {"armv6_m": "armv6-m", "armv7e_m": "armv7e-m", "armv8_1m": "armv8.1-m"}
 _PMU = {"none": "dwt"}
-#: Each region's base and size defines in ``am_reg_base_addresses.h``, per Soc.
+#: Each region's base and size defines in ``am_reg_base_addresses.h``, per Soc; a size of
+#: ``""`` means the header has no size define for that region.
 REGISTERS: dict[str, dict[str, tuple[str, str]]] = {
     "apollo510": {
         "itcm": ("ITCM_BASEADDR", "ITCM_MAX_SIZE"),
@@ -54,6 +55,15 @@ REGISTERS: dict[str, dict[str, tuple[str, str]]] = {
         }
         for soc in ("apollo510L", "apollo330P")
     },
+    # SRAM_BASEADDR is the start of TCM, not of the catalog's sram region, so it is left out.
+    "apollo3": {"tcm": ("TCM_BASEADDR", "TCM_MAX_SIZE"), "flash": ("FLASH_BASEADDR", "")},
+    "apollo3p": {"tcm": ("TCM_BASEADDR", "TCM_MAX_SIZE"), "flash": ("FLASH_BASEADDR", "")},
+}
+#: The ``am_hal_flash.h`` sizes Apollo3 states and the regions whose sizes add up to each;
+#: its SRAM size covers TCM and SRAM together.
+HAL_FLASH: dict[str, dict[str, tuple[str, ...]]] = {
+    soc: {"AM_HAL_FLASH_TOTAL_SIZE": ("flash",), "AM_HAL_FLASH_SRAM_SIZE": ("tcm", "sram")}
+    for soc in ("apollo3", "apollo3p")
 }
 #: apollo510b builds against mcu/apollo510, so its snapshot reads apollo510's header.
 REGISTERS["apollo510b"] = dict(REGISTERS["apollo510"])
@@ -122,11 +132,15 @@ def check(catalog: Catalog, directory: Path) -> Result:
             used |= {id(e) for e in covers}  # an overlapping exception is in use too
         else:
             left.append(finding)
+    # Under an id the catalog lacks nothing is compared, so only a path the snapshot lacks is stale.
     stale = [
         e
         for e in exceptions
         if id(e) not in used
-        and not any(m.snapshot == e.snapshot and e.at[: len(m.at)] == m.at for m in missing)
+        and not (
+            _resolves(snapshots.get(e.snapshot), e.at)
+            and any(m.snapshot == e.snapshot and e.at[: len(m.at)] == m.at for m in missing)
+        )
     ]
     return Result(tuple(left), tuple(excepted), tuple(stale))
 
@@ -144,7 +158,7 @@ def load_exceptions(path: Path) -> list[Exception_]:
 def render(result: Result) -> str:
     lines = [f"{f.snapshot}: {'.'.join(f.at)}: {f.rule}: {f.message}" for f in result.findings]
     lines += [
-        f"{e.snapshot}: {'.'.join(e.at)}: {e.rule}: stale exception (compares equal)"
+        f"{e.snapshot}: {'.'.join(e.at)}: {e.rule}: stale exception (covers no finding)"
         for e in result.stale
     ]
     lines.append(
@@ -225,15 +239,36 @@ class _Comparison:
                 SDK, (*at, "NSX_SEGGER_PF_ADDR"), "flash load address", ours, int(address, 16)
             )
         yield from self.registers(name, block, soc)
+        yield from self.hal_flash(name, block, soc)
         yield from self.containment(
             SDK, ("socs", name, "linker"), _linker_regions(block), soc, _apertures(block, soc)
         )
 
+    def hal_flash(self, name: str, block: Mapping[str, Any], soc: model.Soc) -> Iterator[Finding]:
+        """Each ``HAL_FLASH`` size against its regions; an absent define or region is a finding."""
+        defines = block.get("flash", {}).get("values", {})
+        sizes = {r.name: r.size for r in soc.memories}
+        for define, regions in HAL_FLASH.get(soc.id, {}).items():
+            at = ("socs", name, "flash", "values", define)
+            lacking = [r for r in regions if r not in sizes]
+            if define not in defines:
+                yield Finding(SDK, at, "flash header", f"the snapshot has no {define}")
+            elif lacking:
+                yield Finding(SDK, at, "flash header", _no_region(soc, lacking))
+            else:
+                ours = sum(sizes[r] for r in regions)
+                yield from _equal(SDK, at, "flash header", ours, defines[define])
+
     def registers(self, name: str, block: Mapping[str, Any], soc: model.Soc) -> Iterator[Finding]:
+        """Each ``REGISTERS`` define against its region; an absent define or region is a finding."""
         defines = block["registers"]["values"]
         at = ("socs", name, "registers", "values")
-        for region in soc.memories:
-            names = REGISTERS.get(soc.id, {}).get(region.name, ())
+        regions = {r.name: r for r in soc.memories}
+        for region_name, names in REGISTERS.get(soc.id, {}).items():
+            region = regions.get(region_name)
+            if region is None:
+                yield Finding(SDK, (*at, names[0]), "register", _no_region(soc, [region_name]))
+                continue
             for define, ours in zip(names, (region.base, region.size), strict=False):
                 if not define:
                     continue  # the header has no such define
@@ -377,6 +412,19 @@ def _mhz(facts: Mapping[str, list[str]]) -> float | None:
         return None
     whole, rest = divmod(int(hz), 1_000_000)
     return whole if rest == 0 else int(hz) / 1_000_000
+
+
+def _resolves(data: Any, at: tuple[str, ...]) -> bool:
+    """True when every key of ``at`` is in ``data``, one level per key."""
+    for key in at:
+        if not isinstance(data, Mapping) or key not in data:
+            return False
+        data = data[key]
+    return True
+
+
+def _no_region(soc: model.Soc, names: Iterable[str]) -> str:
+    return f"the catalog's {soc.id} has no region {', '.join(map(repr, names))}"
 
 
 def _linker_regions(

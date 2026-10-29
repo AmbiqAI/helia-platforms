@@ -28,12 +28,13 @@ cores:
       value: armv7e-m
       provenance:
         status: derived
-        source: ["doc:DS-A510LS@0.9.0:p55", "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo4p.cmake:11"]
+        source: ["doc:DS-A510LS@0.9.0:p55", "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo4p.cmake:11", "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo3.cmake:11"]
         verified_on: 2026-10-28
         verified_by: evanchen11
         notes: >-
           DS-A510LS p55: "Arm v7-M architecture" with the DSP extension, which is Armv7E-M.
-          For Apollo4's application core the SDK gives NSX_SOC_ARCH_CLASS "armv7e_m" (:11).
+          For Apollo4's and Apollo3's application cores the SDK gives NSX_SOC_ARCH_CLASS
+          "armv7e_m" (apollo4p.cmake:11, apollo3.cmake:11).
     pmu:
       value: dwt
       provenance:
@@ -42,12 +43,13 @@ cores:
           - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo510L_cm4.h:175"
           - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-cmsis-core/Include/core_cm4.h:1552"
           - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo4p.cmake:16"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo3.cmake:16"
         verified_on: 2026-10-28
         verified_by: evanchen11
         notes: >-
           The Apollo510 Lite radio core's CMSIS header gives __PMU_PRESENT 0, and core_cm4.h
-          maps a DWT at 0xE0001000 (DWT_BASE); apollo4p.cmake:16 gives NSX_SOC_PMU_TIER
-          "none". ADR 0006 spells a DWT-only tier dwt.
+          maps a DWT at 0xE0001000 (DWT_BASE); apollo4p.cmake:16 and apollo3.cmake:16 give
+          NSX_SOC_PMU_TIER "none". ADR 0006 spells a DWT-only tier dwt.
     has_dsp_extension: true
     provenance:
       status: datasheet
@@ -55,12 +57,14 @@ cores:
         - "doc:DS-A510LS@0.9.0:p55"
         - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo510L_cm4.h:170"
         - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo4p.cmake:13"
+        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo3.cmake:13"
       verified_on: 2026-10-28
       verified_by: evanchen11
       notes: >-
         p55, the Apollo510 Lite radio core: "The CM4 supports the DSP and Security ISA
         extensions". apollo510L_cm4.h gives __DSP_PRESENT 0, a macro core_cm4.h does not
-        read. apollo4p.cmake:13 gives NSX_SOC_HAS_DSP TRUE for Apollo4's application core.
+        read. apollo4p.cmake:13 and apollo3.cmake:13 give NSX_SOC_HAS_DSP TRUE for the
+        Apollo4 and Apollo3 application cores.
   cortex-m0:
     arch:
       value: armv6-m

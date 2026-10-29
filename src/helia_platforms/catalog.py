@@ -810,6 +810,15 @@ class _Loader:
         for name in board.interfaces.keys() & (impl.interfaces.keys() if impl else set()):
             message = f"implementation {part.implementation!r} also has an interface {name!r}"
             self.fail(origin, f"{where}.interfaces.{name}", message)
+        theirs = list(_windows(impl.interfaces)) if impl is not None else []
+        for name, base, size in _windows(board.interfaces):
+            for other, lo, length in theirs:
+                if base < lo + length and lo < base + size:
+                    message = (
+                        f"window {base:#x} ({size} bytes) overlaps the {other} window "
+                        f"{lo:#x} ({length} bytes) of implementation {part.implementation!r}"
+                    )
+                    self.fail(origin, f"{where}.interfaces.{name}", message)
 
     def check_addon(self, catalog: Catalog, addon: model.AddOn, origin: str) -> None:  # noqa: PLR0912
         where = f"addons.{addon.id}"
@@ -884,6 +893,8 @@ class _Loader:
                 )
                 # Built-in interfaces must be covered (RFC 0002 "Overlays, validation").
                 (self.fail if self.builtin else self.warn)(origin, at, message)
+        for name, problem in _window_problems(soc, interfaces):
+            self.fail(origin, f"{where}.interfaces.{name}", problem)
         devices = catalog._tables.get("memory_devices", {})
         for name, device in population.items():
             if name in interfaces and device in devices:
@@ -905,6 +916,48 @@ class _Loader:
                 f"{device.id!r} ({device.capacity} bytes) exceeds the {interface.name!r} "
                 f"aperture ({interface.aperture_max} bytes)",
             )
+
+
+def _windows(interfaces: Mapping[str, model.MemoryInterface]) -> Iterator[tuple[str, int, int]]:
+    """``(interface, base, size)`` for each window: the aperture base and every alternate base."""
+    for name, interface in interfaces.items():
+        size = interface.aperture_max or 1
+        for base in (interface.aperture_base, *interface.alternate_bases):
+            if base is not None:
+                yield name, base, size
+
+
+def _window_problems(
+    soc: model.Soc, interfaces: Mapping[str, model.MemoryInterface]
+) -> list[tuple[str, str]]:
+    """``(interface, problem)``: an alias with no aperture base, or a window that overlaps.
+
+    A window is the aperture base or an alternate base, ``aperture_max`` long (else 1
+    byte); it may not overlap an on-chip Soc region, at any of its bases, or another window.
+    """
+    spans = [
+        (f"memories.{r.name}", base, r.size)
+        for r in soc.memories
+        if r.attachment != "external"
+        for base in (r.base, *r.alternate_bases)
+        if base is not None
+    ]
+    problems = []
+    for name, interface in interfaces.items():
+        if interface.alternate_bases and interface.aperture_base is None:
+            problems.append((name, "alternate_bases needs an aperture_base"))
+        size = interface.aperture_max or 1
+        for base in (interface.aperture_base, *interface.alternate_bases):
+            if base is None:
+                continue
+            what = f"window {base:#x} ({size} bytes)"
+            problems += [
+                (name, f"{what} overlaps {other} ({lo:#x}, {length} bytes)")
+                for other, lo, length in spans
+                if base < lo + length and lo < base + size
+            ]
+            spans.append((f"interfaces.{name} window {base:#x}", base, size))
+    return problems
 
 
 def _narrowing_problems(addon: model.AddOn, board: model.Board) -> list[tuple[str, str]]:

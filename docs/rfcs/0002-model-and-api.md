@@ -56,7 +56,7 @@ Each term has one meaning in this RFC, except `revision`, whose meaning depends 
 | revision (LinkEnvironment) | `LinkEnvironment.revision`: the revision of the source the windows were generated from (an SDK or Zephyr commit). |
 | add-on | An `AddOn`: a shield or daughter board that fits named boards, occupies board interfaces and brings its own population. |
 | memory device | A `MemoryDevice`: an external memory part with technology, capacity, driver family and modes. |
-| interface | A `MemoryInterface` on a board: controller, modes and XIP aperture. |
+| interface | A `MemoryInterface` on a board: controller, modes, XIP aperture and any alias windows. |
 | population | Which memory device sits on which interface, as a board ships or as an add-on brings it. A mapping from interface name to device id. |
 | provisioning | `Board.provisioning` (or `Implementation.provisioning` for an FPGA): the name of the boot configuration the fitted part or build ships with. |
 | source label | Where a catalog entry came from: `builtin`, `entry_point:<distribution>`, `env:<path>` or `overlay:<path>`; see `Catalog.sources`. |
@@ -363,7 +363,17 @@ earlier Apollo4 display shield a different flash, QS-A4PDK p13), and
 customers add daughter boards.
 
 - `MemoryInterface` on the Board: name, controller (mspi0, mspi1, iom4),
-  modes (octal DDR, hex), XIP aperture base and maximum size. The
+  modes (octal DDR, hex), aperture base and maximum size, and optional
+  `alternate_bases`: other windows onto the same device. A device
+  populated on the interface takes the aperture base as its region's
+  `base`, which `placement_ranges()` gives, and the others as its
+  `alternate_bases`. Where a controller has a read/write window and a
+  cached read-only XIP window, the read/write one is the aperture base:
+  Apollo3 Blue Plus's MSPI1 is at 0x54000000 (XIPMM) with its XIP window
+  0x04000000 as an alternate base (DS-A3P p82, p244, p249). An alternate
+  base needs an aperture base, and no window (the aperture base or an
+  alternate base, `aperture_max` long) may overlap an on-chip Soc region
+  or another interface's window, the board's Implementation's included. The
   controller is a memory controller of the Soc (a `Soc.memory_controllers`
   entry); devices populated on the interface inherit that controller's
   access entries ([0002-multicore.md](0002-multicore.md)). An interface
@@ -701,7 +711,7 @@ below is the resolved object returned by `resolve()`.
 | D-cache present | `target.core_options.dcache_kb` | package |
 | Shared SSRAM power domain, HAL enum names, C define, CMSIS header | `target.sdk` | package |
 | Radio present | `target.part.radio` (`target.part` is `None` on Soc and implementation targets) | package |
-| Trace clock | `target.trace_clock_mhz` (board, else implementation, else SDK default; `None` means core-clocked) | package |
+| Trace clock | `target.trace_clock_mhz` (board, else implementation, else SDK default; `None` means core-clocked). On Apollo3 it is the 6 MHz TPIU clock, and J-Link's `-cpufreq` takes 48 MHz (the HFRC) instead, which J-Link divides by 8 itself (#67) | package |
 | Is this an FPGA | `target.implementation.kind == "fpga"` (`target.implementation` is `None` on Soc targets and on parts with no non-default implementation) | package |
 | RTT scan ranges | profiler rule over `target.region("dtcm")` or the M4 aperture | profiler |
 | Reset strategy, clean-window timer, debug-domain gating, probe-attached cycle reads | profiler policy keyed by `target.soc.series` or id | profiler |
@@ -848,7 +858,7 @@ one of them.
 @dataclass(frozen=True) class Reservation: region, offset, size, purpose, provenance
 @dataclass(frozen=True) class Part:       id, soc, implementation: str | None, silicon_revision, package, radio, jlink_device, image_slots, aliases, release_status, provenance
 @dataclass(frozen=True) class ImageSlot:  name, core, region, offset, size, supplier, provenance
-@dataclass(frozen=True) class MemoryInterface: name, controller, modes, aperture_base, aperture_max
+@dataclass(frozen=True) class MemoryInterface: name, controller, modes, aperture_base, alternate_bases, aperture_max
 @dataclass(frozen=True) class MemoryDevice: id, technology, capacity, driver_family, modes, characterization, aliases, release_status, provenance
 @dataclass(frozen=True) class AddOn:      id, fits_boards, occupies, population: Mapping[str, str], modes: Mapping[str, tuple[str, ...]], revision, aliases, release_status, extensions, provenance
 @dataclass(frozen=True) class Board:      id, category, revision, part, interfaces, population: Mapping[str, str], provisioning, jlink_device, trace_clock_mhz, aliases, release_status, extensions, provenance
@@ -860,6 +870,11 @@ one of them.
 A class that has `provenance` also has `field_provenance`: the records of
 single values that differ from the class's own record, keyed by their
 path within the object ([ADR 0003](../adr/0003-provenance-record.md)).
+A region `external_memories()` builds carries its device's record and
+the device's field records under the region's keys (`capacity` as `size`;
+`driver_family` and `modes`, which a region lacks, are left out), except
+`base` and each `alternate_bases.<address>`, which carry the interface
+owner's (the board's or the implementation's) record for that window.
 
 ### `helia_platforms.target` (the resolved view)
 

@@ -119,3 +119,44 @@ memory_devices:
         verified_on: 2026-10-08
         verified_by: evanchen11
         notes: '"Octal-SPI DDR-enabled".'
+  APS6404L:
+    release_status: public
+    technology: psram
+    provenance:
+      status: sdk
+      source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-psram/CMakeLists.txt:26"]
+      verified_on: 2026-10-26
+      verified_by: evanchen11
+      notes: >-
+        nsx-psram builds am_devices_mspi_psram_aps6404l.c for the Apollo3 Blue Plus PSRAM
+        boards. No datasheet for the part is in the register.
+    capacity:
+      value: 8M
+      provenance:
+        status: sdk
+        source:
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-psram/CMakeLists.txt:27-29"
+          - "repo:zephyrproject-rtos/zephyr@8f62a4ab82b5c2121c088842d3233f75b603ce35:samples/drivers/memc/boards/apollo3p_evb.overlay:36"
+          - "repo:zephyrproject-rtos/zephyr@8f62a4ab82b5c2121c088842d3233f75b603ce35:drivers/memc/memc_mspi_aps6404l.c:438"
+        verified_on: 2026-10-26
+        verified_by: evanchen11
+        notes: >-
+          nsx-psram's default NSX_PSRAM_DEVICE_SIZE_BYTES 8388608; Zephyr's DT_SIZE_M(64)
+          is in bits, and the driver divides it by 8. Nothing was measured.
+    driver_family:
+      value: aps6404l
+      provenance:
+        status: sdk
+        source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-psram/CMakeLists.txt:26"]
+        verified_on: 2026-10-26
+        verified_by: evanchen11
+    modes:
+      value: [quad-sdr]
+      provenance:
+        status: sdk
+        source:
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-psram/src/apollo3/nsx_psram.c:105"
+          - "repo:zephyrproject-rtos/zephyr@8f62a4ab82b5c2121c088842d3233f75b603ce35:samples/drivers/memc/boards/apollo3p_evb.overlay:40-41"
+        verified_on: 2026-10-26
+        verified_by: evanchen11
+        notes: AM_HAL_MSPI_FLASH_QUAD_CE0; Zephyr's MSPI_IO_MODE_QUAD and MSPI_DATA_RATE_SINGLE.

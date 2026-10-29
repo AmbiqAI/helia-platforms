@@ -4,11 +4,12 @@ from __future__ import annotations
 
 import functools
 from collections.abc import Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields
 from types import MappingProxyType
 from typing import Literal, TypeVar
 
 from helia_platforms import model
+from helia_platforms._tree import segment
 from helia_platforms.catalog import Catalog, _expanded_access
 from helia_platforms.errors import PlatformError
 
@@ -151,12 +152,31 @@ class Target:
                 attachment="external",
                 size=device.capacity,
                 base=interface.aperture_base,
+                alternate_bases=interface.alternate_bases,
                 characterization=device.characterization,
                 provenance=device.provenance,
-                field_provenance=device.field_provenance,
+                field_provenance=MappingProxyType(
+                    {**_region_records(device), **self._window_records(interface, device)}
+                ),
             )
             regions.append((region, interface.controller))
         return tuple(regions)
+
+    def _window_records(
+        self, interface: model.MemoryInterface, device: model.MemoryDevice
+    ) -> dict[str, model.Provenance]:
+        """The interface owner's records for a device region's base and alternate bases."""
+        impl = self.implementation
+        owner = impl if impl and impl.interfaces.get(interface.name) is interface else self.board
+        if owner is None or interface.aperture_base is None:
+            return {}
+        at = ("interfaces", interface.name)
+        paths = {"base": (*at, "aperture_base")} | {
+            f"alternate_bases.{segment(b)}": (*at, "alternate_bases", segment(b))
+            for b in interface.alternate_bases
+        }
+        records = {key: _record(owner, path) for key, path in paths.items()}
+        return {key: r for key, r in records.items() if r != device.provenance}
 
     def external_memories(self) -> tuple[model.MemoryRegion, ...]:
         """Devices the board and its add-ons populate, at their interfaces' aperture bases."""
@@ -420,3 +440,29 @@ def _pick(items: tuple[_Unit, ...], key: int | str, missing: str) -> _Unit:
             if item.id == key.casefold():
                 return item
     raise PlatformError(f"{missing} {key!r}")
+
+
+_REGION_FIELDS = frozenset(f.name for f in fields(model.MemoryRegion))
+
+
+def _region_records(device: model.MemoryDevice) -> dict[str, model.Provenance]:
+    """``device``'s field records keyed by the region's paths: ``capacity`` becomes ``size``.
+
+    A device field the region lacks (``driver_family``, ``modes``) is left out.
+    """
+    records = {}
+    for key, record in device.field_provenance.items():
+        head, dot, rest = key.partition(".")
+        head = "size" if head == "capacity" else head
+        if head in _REGION_FIELDS:
+            records[head + dot + rest] = record
+    return records
+
+
+def _record(owner: model.Board | model.Implementation, path: tuple[str, ...]) -> model.Provenance:
+    """The record nearest ``path`` in ``owner``'s field provenance, else ``owner``'s own."""
+    for cut in range(len(path), 0, -1):
+        found = owner.field_provenance.get(".".join(path[:cut]))
+        if found is not None:
+            return found
+    return owner.provenance

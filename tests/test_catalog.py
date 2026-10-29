@@ -794,6 +794,36 @@ def with_mspi1(document, aperture_max="256M"):
     }
 
 
+def test_an_interface_alias_needs_an_aperture_base(document):
+    mspi0 = document["boards"]["board_a"]["interfaces"]["mspi0"]
+    mspi0["alternate_bases"] = [0x80000000]
+    load_quietly(document)
+    del mspi0["aperture_base"]
+    assert "boards.board_a.interfaces.mspi0: alternate_bases needs an aperture_base" in problems_of(
+        document
+    )
+
+
+def test_an_interface_alias_may_not_overlap_an_on_chip_region(document):
+    document["boards"]["board_a"]["interfaces"]["mspi0"]["alternate_bases"] = [0x00400000]
+    assert (
+        "boards.board_a.interfaces.mspi0: window 0x400000 (268435456 bytes) overlaps "
+        "memories.nvm (0x400000, 4194304 bytes)"
+    ) in problems_of(document)
+
+
+def test_two_interfaces_may_not_share_a_window(document):
+    with_mspi1(document)
+    document["boards"]["board_a"]["interfaces"]["mspi0"]["alternate_bases"] = [0x80000000]
+    document["boards"]["board_a"]["interfaces"]["mspi1"]["alternate_bases"] = [0x80000000]
+    assert (
+        "boards.board_a.interfaces.mspi1: window 0x80000000 (268435456 bytes) overlaps "
+        "interfaces.mspi0 window 0x80000000 (0x80000000, 268435456 bytes)"
+    ) in problems_of(document)
+    document["boards"]["board_a"]["interfaces"]["mspi1"]["alternate_bases"] = [0x64000000]
+    assert "overlaps interfaces.mspi0 window 0x60000000" in problems_of(document)
+
+
 def test_an_add_on_may_not_put_a_second_device_on_a_board_interface(document):
     with_mspi1(document)
     document["addons"] = {"shield": shield({"mspi1": "psram_8m"})}
@@ -1066,7 +1096,9 @@ def test_a_delta_that_keeps_a_removed_peripheral_as_a_memory_controller_is_an_er
 
 
 def test_an_interface_on_a_controller_the_implementation_removed_is_an_error(document):
-    interfaces = {"fpga_mspi0": copy.deepcopy(document["boards"]["board_a"]["interfaces"]["mspi0"])}
+    fpga_mspi0 = copy.deepcopy(document["boards"]["board_a"]["interfaces"]["mspi0"])
+    fpga_mspi0["aperture_base"] = 0x70000000  # clear of the board's mspi0 window
+    interfaces = {"fpga_mspi0": fpga_mspi0}
     document["implementations"] = {
         "cut": {
             "soc": "soc_a",
@@ -1084,6 +1116,22 @@ def test_an_interface_on_a_controller_the_implementation_removed_is_an_error(doc
     assert f"boards.board_a.interfaces.mspi0: {removed}" in found
 
 
+def test_a_board_window_may_not_overlap_its_implementations_windows(document):
+    fpga_mspi0 = copy.deepcopy(document["boards"]["board_a"]["interfaces"]["mspi0"])
+    document["implementations"] = {
+        "cut": {"soc": "soc_a", "kind": "fpga", "interfaces": {"fpga_mspi0": fpga_mspi0}}
+    }
+    document["parts"]["PART-A"]["implementation"] = "cut"
+    found = problems_of(document)
+    assert "boards.board_a.interfaces.mspi0: window 0x60000000" in found
+    assert (
+        "overlaps the fpga_mspi0 window 0x60000000 (268435456 bytes) of implementation 'cut'"
+        in found
+    )
+    fpga_mspi0["aperture_base"] = 0x70000000
+    load_quietly(document)
+
+
 def test_a_board_and_its_implementation_may_not_name_the_same_interface(document):
     interfaces = copy.deepcopy(document["boards"]["board_a"]["interfaces"])
     document["implementations"] = {
@@ -1093,7 +1141,8 @@ def test_a_board_and_its_implementation_may_not_name_the_same_interface(document
     assert (
         "boards.board_a.interfaces.mspi0: implementation 'cut' also has an interface 'mspi0'"
     ) in problems_of(document)
-    document["implementations"]["cut"]["interfaces"] = {"fpga_mspi0": interfaces["mspi0"]}
+    renamed = {**interfaces["mspi0"], "aperture_base": 0x70000000}  # and clear of mspi0's window
+    document["implementations"]["cut"]["interfaces"] = {"fpga_mspi0": renamed}
     load_quietly(document)
 
 

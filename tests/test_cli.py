@@ -21,8 +21,7 @@ def overlay(tmp_path: Path):
 
     def write(document=None) -> Path:
         document = document or copy.deepcopy(BASE_DOCUMENT)
-        for core in ("cortex-m55", "cortex-m4"):  # the built-in catalog under the overlay has them
-            del document["cores"][core]
+        del document["cores"]  # the built-in catalog under the overlay has them
         path = tmp_path / "fixture.yaml"
         path.write_text(yaml.safe_dump(document))
         return path

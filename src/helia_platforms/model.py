@@ -303,6 +303,7 @@ class MemoryInterface:
     controller: str
     modes: tuple[str, ...] = ()
     aperture_base: int | None = None
+    alternate_bases: tuple[int, ...] = ()
     aperture_max: int | None = None
 
 

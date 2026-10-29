@@ -230,7 +230,7 @@ def test_each_population_row_shows_its_own_device_and_region():
     board = document["boards"]["board_a"]
     board["interfaces"]["iom0"] = {
         "controller": "iom0",
-        "aperture_base": 0x68000000,
+        "aperture_base": 0x80000000,
         "aperture_max": "2M",
     }
     board["population"] = {  # not in name order
@@ -240,7 +240,7 @@ def test_each_population_row_shows_its_own_device_and_region():
     target = load_overlay(document, base=builtin(include_plugins=False)).resolve("board_a")
     (psram0,) = row_texts(target, "psram0")
     assert psram0.startswith("population.iom0 psram_2m, controller iom0,")
-    assert "(2M at 0x68000000, computed)" in psram0 and psram0.endswith("population.iom0: sdk]")
+    assert "(2M at 0x80000000, computed)" in psram0 and psram0.endswith("population.iom0: sdk]")
     (psram1,) = row_texts(target, "psram1")
     assert psram1.startswith("population.mspi0 psram_8m, controller mspi0,")
     assert "(8M at 0x60000000, computed)" in psram1 and psram1.endswith("[unverified]")
@@ -267,6 +267,21 @@ def test_a_fitted_add_on_prints_the_modes_it_narrows_an_interface_to():
     assert "controller mspi1, modes octal (add-on shield), aperture_base" in psram
     assert "hex" not in psram
     assert ("addons", "shield", ("modes", "mspi1", "octal")) in printed(target)
+    assert _show.stated_facts(target) <= printed(target)
+
+
+def test_a_narrowed_interface_keeps_its_alternate_bases():
+    document = full_document()
+    mspi1 = document["boards"]["board_a"]["interfaces"]["mspi1"]
+    mspi1.update(modes=["hex", "octal"], alternate_bases=[0x90000000])
+    document["addons"]["shield"]["modes"] = {"mspi1": ["octal"]}
+    target = load_overlay(document, base=builtin(include_plugins=False)).resolve("board_a_shield")
+    (psram,) = row_texts(target, "psram1")
+    assert (
+        "modes octal (add-on shield), aperture_base 0x70000000, alternate_bases 0x90000000" in psram
+    )
+    where = ("boards", "board_a", ("interfaces", "mspi1", "alternate_bases", "0x90000000"))
+    assert where in printed(target)
     assert _show.stated_facts(target) <= printed(target)
 
 
