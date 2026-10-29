@@ -393,7 +393,7 @@ def _apertures(block: Mapping[str, Any], soc: model.Soc) -> list[tuple[int, int]
 
     ``*_APERTURE_END_ADDR`` is already exclusive: MSPI1's end is MSPI2's start. A secure
     alias (``*_APERTURE_START_SECURE_ADDR``) is an aperture of its own. A shared header's
-    aperture for a controller the Soc lacks (apollo510b's MSPI2) is not external memory.
+    aperture for a controller the Soc lacks (apollo510b's MSPI2 and MSPI3) is not external memory.
     """
     defines = block["registers"]["values"]
     controllers = set(soc.memory_controllers)

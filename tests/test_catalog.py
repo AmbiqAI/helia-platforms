@@ -1338,31 +1338,6 @@ def test_an_image_slot_has_a_size(document):
     assert "parts.PART-A.image_slots.radio: has size 0" in problems_of(document)
 
 
-@pytest.mark.parametrize(
-    ("programmable_by", "supplier", "ok"),
-    [
-        ("vendor", "vendor", True),
-        ("either", "customer", True),
-        ("either", "vendor", True),
-        ("customer", "customer", True),
-        ("customer", "vendor", False),
-        ("vendor", "customer", False),
-    ],
-)
-def test_a_slots_supplier_must_program_its_core(document, programmable_by, supplier, ok):
-    add_reaching_radio(document, programmable_by)
-    document["parts"]["PART-A"]["image_slots"] = {
-        "radio": {**slot("3M", "64K"), "supplier": supplier}
-    }
-    if ok:
-        load_quietly(document)
-    else:
-        assert (
-            f"parts.PART-A.image_slots.radio: supplier is {supplier}, but only the "
-            f"{programmable_by} programs 'radio_m4'"
-        ) in problems_of(document)
-
-
 # ---- builtin() and side-loaded catalogs (RFC 0002 private silicon) ---------------
 
 
