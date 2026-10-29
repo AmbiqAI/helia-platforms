@@ -119,12 +119,18 @@ error, not a warning: the hardware to attach the device does not exist.
 
 Per-part NVM reservations become `ImageSlot`s owned by a core:
 `ImageSlot` = `name`, `core`, `region`, `offset`, `size`, `supplier` (`vendor` or
-`customer`), provenance. On the Apollo510 Lite and Apollo330 Plus parts,
-NVM-M41 is the radio core's slot, sized per variant (16, 288 or 432 KB,
-DS-A510LS p33, DS-A330PS p33), supplier `vendor` by default. That the
-slot is flashable by the customer is recorded as an owner statement until
-a document confirms it. `usable_nvm(core=)` subtracts the slots of other
-cores and the boot reservations.
+`customer`), provenance. A Soc's slots apply to every Part, and a Part's
+slot of the same name replaces one. On the Apollo510 Lite and Apollo330
+Plus parts, NVM-M41 is the radio core's slot, sized per variant (16, 288
+or 432 KB, DS-A510LS p33, DS-A330PS p33), supplier `vendor` by default;
+the Soc carries the 16 KB one. The slot holds the factory-installed radio
+firmware, and `radio_m4` is `programmable_by: vendor` (DS-A510LS p2, p55).
+`usable_nvm(core=)` subtracts the slots of other cores and the boot
+reservations, and is empty for a core only the vendor programs or with
+no loadable image. An Implementation's `subset.image_slots_removed`
+removes a Soc's slot; a Part removes only a slot its `based_on` Part
+wrote, and naming a slot its Soc also carries is an error, since the
+Soc's slot would take its place.
 
 A boot configuration gives one application start per programmable core:
 `BootConfig.app_start` maps core id to (region, offset). A single
@@ -154,7 +160,7 @@ domains. An Implementation may add or replace domain points through
 | Query | Meaning |
 |---|---|
 | `isa(core=0)` | Derived ISA features of that core |
-| `memories(core=0)` | Regions with a `direct` access entry for that core, plus external regions whose interface controller it has an entry for |
+| `memories(core=0)` | Regions with a `direct` access entry for that core, plus external regions whose interface controller it has an entry for; an entry with `guidance: discouraged` is left out, so no budget or placement counts it, though `reachable()` returns it |
 | `placement_ranges(core=0)` | (base, size) of the regions that core reaches |
 | `flash_load_address(core=0)`, `usable_nvm(core=0)` | From the selected boot configuration and that core's slots |
 | `budget(env, core=0)` | Only regions that core can reach |

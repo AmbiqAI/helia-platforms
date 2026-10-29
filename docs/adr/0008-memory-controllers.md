@@ -1,7 +1,19 @@
 # 0008. Mark a Soc's memory controllers in a list of their own
 
 Date: 2026-10-07
-Status: Accepted
+Status: Accepted; amended 2026-10-28 (#66)
+
+## Amendment, 2026-10-28: a subset can remove only the controller (#66)
+
+The Apollo4 Blue Plus maps "The three MSPI modules", but "MSPI1 is not
+pinned out on the Apollo4 Blue Plus KBR package" (DS-A4BP p118).
+`peripherals_removed` would say the block is gone. The owner decided on
+2026-10-27, reviewing #126, to add `memory_controllers_removed`, in a Soc
+delta and an Implementation subset. It removes a name from the inherited
+`memory_controllers` and drops the inherited access entries that name it,
+and leaves `peripherals` as it is. A Soc delta that also writes the name in
+its own `memory_controllers` is an error. This replaces the sentence "There
+is no `memory_controllers_removed`" in the Decision below.
 
 ## Context
 

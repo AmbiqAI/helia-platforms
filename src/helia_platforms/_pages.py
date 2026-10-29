@@ -12,6 +12,9 @@ from helia_platforms import export
 from helia_platforms._show import size
 from helia_platforms.errors import PlatformError
 
+#: Series whose J-Link support takes ``-cpufreq`` as the HFRC and divides it by 8 itself.
+_JLINK_CPUFREQ_MHZ = {"apollo3": 48}
+
 if TYPE_CHECKING:
     from helia_platforms.catalog import Catalog
     from helia_platforms.target import Target
@@ -112,8 +115,17 @@ def _soc(soc_id: str, soc: Mapping[str, Any], member: Mapping[str, Any]) -> str:
     lines += [f"# {soc_id}", "", f"Series: `{soc['series']}`.", ""]
     lines += ["## Cores and NPUs", ""]
     lines += _table(
-        ("Id", "Role", "Core", "Clock domain"),
-        ((c["id"], c["role"], c["core"], c["clock_domain"]) for c in soc["cores"]),
+        ("Id", "Role", "Core", "Clock domain", "Programmed by"),
+        (
+            (
+                c["id"],
+                c["role"],
+                c["core"],
+                c["clock_domain"],
+                _PROGRAMMED_BY[c.get("programmable_by")],
+            )
+            for c in soc["cores"]
+        ),
     )
     if npus := soc.get("npus"):
         lines += _table(
@@ -178,11 +190,29 @@ def _soc(soc_id: str, soc: Mapping[str, Any], member: Mapping[str, Any]) -> str:
                 for name, b in boot.items()
             ),
         )
+    parts = [p for p, e in member.get("parts", {}).items() if e["soc"] == soc_id]
+    slots = [("the Soc", n, s) for n, s in soc.get("image_slots", {}).items()]
+    slots += [
+        (p, n, s) for p in parts for n, s in member["parts"][p].get("image_slots", {}).items()
+    ]
+    if slots:
+        lines += [
+            "## Image slots",
+            "",
+            "A part's slot replaces the Soc's slot of the same name.",
+            "",
+        ]
+        lines += _table(
+            ("Slot", "On", "Core", "Region", "Offset", "Size", "Supplier"),
+            (
+                (n, on, s["core"], s["region"], size(s["offset"]), size(s["size"]), s["supplier"])
+                for on, n, s in slots
+            ),
+        )
     lines += ["## Implementations, parts and boards", ""]
     implementations = [
         i for i, e in member.get("implementations", {}).items() if e["soc"] == soc_id
     ]
-    parts = [p for p, e in member.get("parts", {}).items() if e["soc"] == soc_id]
     boards = [
         b
         for b, e in member.get("boards", {}).items()
@@ -196,6 +226,15 @@ def _soc(soc_id: str, soc: Mapping[str, Any], member: Mapping[str, Any]) -> str:
     ]
     lines += _aliases(soc)
     return "\n".join(lines)
+
+
+#: How a Soc page names each ``programmable_by`` (RFC 0002 multicore).
+_PROGRAMMED_BY = {
+    "customer": "customer",
+    "vendor": "vendor only",
+    "either": "customer or vendor",
+    None: "no loadable image",
+}
 
 
 def _app_start(app_start: Mapping[str, Any]) -> str:
@@ -266,6 +305,7 @@ def _board(
     lines += [
         f"- J-Link device: {target.jlink_device or 'not stated'}",
         f"- Trace clock: {_mhz(target.trace_clock_mhz)}",
+        *_cpufreq(target),
         "",
     ]
     lines += ["## Derived values", ""]
@@ -280,12 +320,46 @@ def _board(
     except PlatformError:
         usable, address = {}, "no boot configuration is selected"
     lines += [
-        f"Usable NVM (core 0): {_list(f'{n} {size(b)}' for n, b in usable.items())}.",
+        f"Usable NVM (core 0): {_list(f'{n} {size(b)}' for n, b in usable.items())}"
+        f"{_set_aside(target, usable)}.",
+        *(
+            f"Only the vendor programs {c.id}, so it has no usable NVM."
+            for c in target.soc.cores
+            if c.programmable_by == "vendor"
+        ),
         f"Flash load address (core 0): {address}.",
         "",
     ]
     lines += _aliases(board)
     return "\n".join(lines)
+
+
+def _cpufreq(target: Target) -> list[str]:
+    """J-Link's ``-cpufreq`` where it is not the trace clock: per series, measured on #67."""
+    mhz = _JLINK_CPUFREQ_MHZ.get(target.soc.series)
+    if mhz is None:
+        return []
+    return [
+        f"- J-Link's `-cpufreq` takes {mhz} MHz (the HFRC) on the {target.soc.series} series, "
+        f"not the {_mhz(target.trace_clock_mhz)} trace clock; J-Link divides it by 8 itself."
+    ]
+
+
+def _set_aside(target: Target, usable: Mapping[str, int]) -> str:
+    """What ``usable_nvm()`` leaves out of core 0's regions: reservations, other cores' slots."""
+    core = target.soc.cores[0].id
+    found = [
+        f"boot reservation {r.purpose} ({r.region} + {size(r.offset)}, {size(r.size)})"
+        for r in (target.boot.reserved if target.boot else ())
+        if r.region in usable
+    ]
+    found += [
+        f"{s.supplier}-supplied image slot {s.name} of {s.core} "
+        f"({s.region} + {size(s.offset)}, {size(s.size)})"
+        for s in target.image_slots.values()
+        if s.core != core and s.region in usable
+    ]
+    return f", after {' and '.join(found)}" if found else ""
 
 
 def _base(board: Mapping[str, Any], interface: str) -> str:

@@ -433,6 +433,8 @@ class _Loader:
         self.sources: dict[tuple[str, str], str] = dict(base.sources)
         self.resolved: dict[tuple[str, str], Tree | None] = {}
         self.register = _provenance.Register()
+        #: Each part's own ``image_slots_removed``, which the merge consumes.
+        self.slots_removed: dict[str, list[str]] = {}
 
     def fail(self, origin: str, where: str, message: str) -> None:
         self.problems.append(f"{origin}: {where}: {message}")
@@ -442,6 +444,9 @@ class _Loader:
 
     def load(self, entries: dict, compositions: dict, shorthands: dict) -> Catalog:
         self.check_names(entries, compositions, shorthands)
+        for part_id, (raw, _) in entries.get("parts", {}).items():
+            if "image_slots_removed" in raw:
+                self.slots_removed[part_id] = list(raw["image_slots_removed"])
         new: dict[tuple[str, str], tuple[Tree, str]] = {}
         for kind in _KINDS:
             for entry_id, (_, origin) in entries.get(kind, {}).items():
@@ -746,7 +751,7 @@ class _Loader:
         if impl.provisioning is not None and impl.provisioning not in realized.boot_configs:
             self.fail(origin, where, f"provisioning {impl.provisioning!r} is not a boot config")
         self.check_population(catalog, impl.interfaces, impl.population, where, origin)
-        removed = impl.subset.peripherals_removed
+        removed = _removed_controllers(impl)
         self.check_interfaces(catalog, realized, impl, where, origin, removed=removed)
 
     def check_part(self, catalog: Catalog, part: model.Part, origin: str) -> None:
@@ -768,20 +773,18 @@ class _Loader:
                     soc = catalog._realized(impl.id)  # slots name what the Implementation keeps
                 except MergeError:
                     return  # reported against the implementation
-        cores = {c.id: c for c in soc.cores}
-        regions = {r.name for r in soc.memories}
-        for name, slot in part.image_slots.items():
-            if slot.core not in cores:
-                self.fail(origin, f"{where}.image_slots.{name}", f"no core {slot.core!r}")
-            elif cores[slot.core].programmable_by is None:
-                message = f"core {slot.core!r} is not programmable, so it cannot own a slot"
-                self.fail(origin, f"{where}.image_slots.{name}", message)
-            if slot.region not in regions:
-                self.fail(origin, f"{where}.image_slots.{name}", f"no region {slot.region!r}")
-        for problem in _slot_overlap_problems(part, soc):
-            self.fail(origin, where, problem)
+        slots = {**soc.image_slots, **part.image_slots}
+        for name, problem in _slot_problems(soc, slots, own=set(part.image_slots)):
+            self.fail(origin, where if name is None else f"{where}.image_slots.{name}", problem)
+        for name in self.slots_removed.get(part.id, ()):
+            if name in soc.image_slots and name not in part.image_slots:
+                message = (
+                    f"{name!r} is also the Soc's slot, which the part would keep; an "
+                    "Implementation's subset.image_slots_removed removes that"
+                )
+                self.fail(origin, f"{where}.image_slots_removed", message)
 
-    def check_board(self, catalog: Catalog, board: model.Board, origin: str) -> None:
+    def check_board(self, catalog: Catalog, board: model.Board, origin: str) -> None:  # noqa: PLR0912
         where = f"boards.{board.id}"
         impls = catalog._tables.get("implementations", {})
         if (board.part is None) == (board.implementation is None):
@@ -815,20 +818,36 @@ class _Loader:
         if board.provisioning is not None and board.provisioning not in soc.boot_configs:
             self.fail(origin, where, f"provisioning {board.provisioning!r} is not a boot config")
         impl = impls.get(impl_id) if impl_id else None
-        removed = impl.subset.peripherals_removed if impl is not None else ()
+        removed = _removed_controllers(impl) if impl is not None else ()
         self.check_interfaces(catalog, soc, board, where, origin, removed=removed)
+        # Target.interfaces holds both sets under one name each.
+        for name in board.interfaces.keys() & (impl.interfaces.keys() if impl else set()):
+            message = f"implementation {impl_id!r} also has an interface {name!r}"
+            self.fail(origin, f"{where}.interfaces.{name}", message)
+        theirs = list(_windows(impl.interfaces)) if impl is not None else []
+        for name, base, size in _windows(board.interfaces):
+            for other, lo, length in theirs:
+                if base < lo + length and lo < base + size:
+                    message = (
+                        f"window {base:#x} ({size} bytes) overlaps the {other} window "
+                        f"{lo:#x} ({length} bytes) of implementation {impl_id!r}"
+                    )
+                    self.fail(origin, f"{where}.interfaces.{name}", message)
 
-    def check_addon(self, catalog: Catalog, addon: model.AddOn, origin: str) -> None:
+    def check_addon(self, catalog: Catalog, addon: model.AddOn, origin: str) -> None:  # noqa: PLR0912
         where = f"addons.{addon.id}"
         boards = catalog._tables.get("boards", {})
         for board in addon.fits_boards:
             if board not in boards:
                 self.fail(origin, f"{where}.fits_boards", f"no board {board!r}")
-        for interface in addon.population:
-            if interface not in addon.occupies:
-                self.fail(origin, f"{where}.population", f"{interface!r} is not in occupies")
+        for key, names in (("population", addon.population), ("modes", addon.modes)):
+            for interface in names:
+                if interface not in addon.occupies:
+                    self.fail(origin, f"{where}.{key}", f"{interface!r} is not in occupies")
         self.check_population(catalog, None, addon.population, where, origin)
         devices = catalog._tables.get("memory_devices", {})
+        for name, problem in _device_mode_problems(addon, devices):
+            self.fail(origin, f"{where}.modes.{name}", problem)
         for board in (boards[b] for b in addon.fits_boards if b in boards):
             for problem in _placement_problems(board, [addon]):
                 self.fail(origin, where, problem)
@@ -839,6 +858,8 @@ class _Loader:
                 if name in board.interfaces and device in devices:
                     at = f"{where}.population.{name} on {board.id}"
                     self.check_aperture(board.interfaces[name], devices[device], at, origin)
+            for name, problem in _narrowing_problems(addon, board):
+                self.fail(origin, f"{where}.modes.{name}", problem)
 
     def check_population(
         self,
@@ -886,6 +907,8 @@ class _Loader:
                 )
                 # Built-in interfaces must be covered (RFC 0002 "Overlays, validation").
                 (self.fail if self.builtin else self.warn)(origin, at, message)
+        for name, problem in _window_problems(soc, interfaces):
+            self.fail(origin, f"{where}.interfaces.{name}", problem)
         devices = catalog._tables.get("memory_devices", {})
         for name, device in population.items():
             if name in interfaces and device in devices:
@@ -909,6 +932,83 @@ class _Loader:
             )
 
 
+def _windows(interfaces: Mapping[str, model.MemoryInterface]) -> Iterator[tuple[str, int, int]]:
+    """``(interface, base, size)`` for each window: the aperture base and every alternate base."""
+    for name, interface in interfaces.items():
+        size = interface.aperture_max or 1
+        for base in (interface.aperture_base, *interface.alternate_bases):
+            if base is not None:
+                yield name, base, size
+
+
+def _window_problems(
+    soc: model.Soc, interfaces: Mapping[str, model.MemoryInterface]
+) -> list[tuple[str, str]]:
+    """``(interface, problem)``: an alias with no aperture base, or a window that overlaps.
+
+    A window is the aperture base or an alternate base, ``aperture_max`` long (else 1
+    byte); it may not overlap an on-chip Soc region, at any of its bases, or another window.
+    """
+    spans = [
+        (f"memories.{r.name}", base, r.size)
+        for r in soc.memories
+        if r.attachment != "external"
+        for base in (r.base, *r.alternate_bases)
+        if base is not None
+    ]
+    problems = []
+    for name, interface in interfaces.items():
+        if interface.alternate_bases and interface.aperture_base is None:
+            problems.append((name, "alternate_bases needs an aperture_base"))
+        size = interface.aperture_max or 1
+        for base in (interface.aperture_base, *interface.alternate_bases):
+            if base is None:
+                continue
+            what = f"window {base:#x} ({size} bytes)"
+            problems += [
+                (name, f"{what} overlaps {other} ({lo:#x}, {length} bytes)")
+                for other, lo, length in spans
+                if base < lo + length and lo < base + size
+            ]
+            spans.append((f"interfaces.{name} window {base:#x}", base, size))
+    return problems
+
+
+def _narrowing_problems(addon: model.AddOn, board: model.Board) -> list[tuple[str, str]]:
+    """``(interface, problem)`` for each mode ``addon`` keeps that ``board``'s interface lacks."""
+    problems = []
+    for name, modes in addon.modes.items():
+        if name not in board.interfaces:
+            continue  # reported as an interface the board lacks
+        extra = [m for m in modes if m not in board.interfaces[name].modes]
+        if extra:
+            problems.append(
+                (name, f"{', '.join(extra)} not among board {board.id!r}'s {name!r} modes")
+            )
+    return problems
+
+
+def _device_mode_problems(
+    addon: model.AddOn, devices: Mapping[str, model.MemoryDevice]
+) -> list[tuple[str, str]]:
+    """``(interface, problem)`` for each narrowing that leaves the add-on's device no mode.
+
+    A device that lists no modes is not checked.
+    """
+    problems = []
+    for name, modes in addon.modes.items():
+        device = devices.get(addon.population.get(name, ""))
+        if device is not None and device.modes and not set(modes) & set(device.modes):
+            modes_text = " ".join(device.modes)
+            problems.append((name, f"leaves {device.id!r} none of its modes ({modes_text})"))
+    return problems
+
+
+def _removed_controllers(impl: model.Implementation) -> tuple[str, ...]:
+    """The memory controllers ``impl`` removes, as peripherals or as memory controllers."""
+    return (*impl.subset.peripherals_removed, *impl.subset.memory_controllers_removed)
+
+
 def _soc_reference_problems(soc: model.Soc, catalog: Catalog) -> list[str]:
     """References inside one Soc that do not resolve (ADR 0002 section 2.5; RFC 0002)."""
     return [
@@ -918,6 +1018,10 @@ def _soc_reference_problems(soc: model.Soc, catalog: Catalog) -> list[str]:
         *_access_problems(soc),
         *_relation_problems(soc, catalog),
         *_layout_problems(soc),
+        *(
+            problem if name is None else f"image_slots.{name}: {problem}"
+            for name, problem in _slot_problems(soc, soc.image_slots, own=set(soc.image_slots))
+        ),
     ]
 
 
@@ -1112,37 +1216,79 @@ def _expanded_access(soc: model.Soc) -> tuple[model.Access, ...]:
 
 
 def _placement_problems(board: model.Board, addons: Iterable[model.AddOn]) -> list[str]:
-    """Add-ons on ``board`` that do not fit it or put a second device on an interface."""
+    """Add-ons on ``board`` that do not fit it or use an interface something else uses.
+
+    An add-on uses every interface it occupies, populated or not; the board uses the ones it
+    populates.
+    """
     problems: list[str] = []
     holders = {name: f"board {board.id!r}" for name in board.population}
     for addon in addons:
         if board.id not in addon.fits_boards:
             problems.append(f"add-on {addon.id!r} does not fit board {board.id!r}")
-        for name in addon.population:
+        for name in addon.occupies:
             if name in holders:
-                problems.append(
-                    f"add-on {addon.id!r} and {holders[name]} both put a device on {name!r}"
-                )
+                problems.append(f"add-on {addon.id!r} and {holders[name]} both use {name!r}")
             holders[name] = f"add-on {addon.id!r}"
     return problems
 
 
-def _slot_overlap_problems(part: model.Part, soc: model.Soc) -> list[str]:
-    """Image slots that overlap each other or any boot configuration's reservation."""
-    slots = [
-        (f"image_slots.{name}", s.region, s.offset, s.size) for name, s in part.image_slots.items()
-    ]
+def _slot_problems(
+    soc: model.Soc, slots: Mapping[str, model.ImageSlot], own: set[str]
+) -> list[tuple[str | None, str]]:
+    """``(slot name or None, problem)`` for the ``own`` slots among ``slots`` on ``soc``.
+
+    A slot needs a programmable owner that reaches its region, a size, an end inside
+    that region, and no overlap with another slot, a reservation or another core's
+    application start.
+    """
+    cores = {c.id: c for c in soc.cores}
+    regions = {r.name: r.size for r in soc.memories}
+    reached = {(a.master, a.target) for a in _expanded_access(soc) if a.access == "direct"}
+    problems: list[tuple[str | None, str]] = []
+    for name, slot in slots.items():
+        if name not in own:
+            continue
+        if slot.core not in cores:
+            problems.append((name, f"no core {slot.core!r}"))
+        elif cores[slot.core].programmable_by is None:
+            problems.append(
+                (name, f"core {slot.core!r} is not programmable, so it cannot own a slot")
+            )
+        if slot.size == 0:
+            problems.append((name, "has size 0"))
+        if slot.region not in regions:
+            problems.append((name, f"no region {slot.region!r}"))
+            continue
+        if slot.offset + slot.size > regions[slot.region]:
+            problems.append((name, f"runs past the end of region {slot.region!r}"))
+        if slot.core in cores and (slot.core, slot.region) not in reached:
+            problems.append((name, f"core {slot.core!r} has no direct access to {slot.region!r}"))
+        for config, boot in soc.boot_configs.items():
+            for core, start in boot.app_start.items():
+                if (
+                    core != slot.core
+                    and start.region == slot.region
+                    and slot.offset <= start.offset < slot.offset + slot.size
+                ):
+                    message = f"holds another core's start, boot_configs.{config}.app_start.{core}"
+                    problems.append((name, message))
+    spans = [(f"image_slots.{n}", n, s.region, s.offset, s.size) for n, s in slots.items()]
     reserved = [
-        (f"boot_configs.{config}.reserved.{r.purpose}", r.region, r.offset, r.size)
+        (f"boot_configs.{config}.reserved.{r.purpose}", None, r.region, r.offset, r.size)
         for config, boot in soc.boot_configs.items()
         for r in boot.reserved
     ]
-    return [
-        f"{a} overlaps {b} in region {a_region!r}"
-        for i, (a, a_region, a_offset, a_size) in enumerate(slots)
-        for b, b_region, b_offset, b_size in (*slots[i + 1 :], *reserved)
-        if a_region == b_region and a_offset < b_offset + b_size and b_offset < a_offset + a_size
-    ]
+    problems.extend(
+        (None, f"{a} overlaps {b} in region {a_region!r}")
+        for i, (a, a_name, a_region, a_offset, a_size) in enumerate(spans)
+        for b, b_name, b_region, b_offset, b_size in (*spans[i + 1 :], *reserved)
+        if (a_name in own or b_name in own)
+        and a_region == b_region
+        and a_offset < b_offset + b_size
+        and b_offset < a_offset + a_size
+    )
+    return problems
 
 
 def _plain(value: Any) -> Any:

@@ -22,7 +22,7 @@ class Pattern:
 
 @dataclass(frozen=True)
 class Minimum:
-    """The number must be at least ``value``."""
+    """The number must be at least ``value``; a list must have at least ``value`` items."""
 
     value: int
 
@@ -254,6 +254,14 @@ class BootConfig(_Facts):
     reserved: NotRequired[dict[Name, Reservation]]
 
 
+class ImageSlot(_Facts):
+    core: Required[Name]
+    region: Required[Name]
+    offset: Required[Size]
+    size: Required[Size]
+    supplier: Required[Literal["vendor", "customer"]]
+
+
 # ---- SDK facts ----------------------------------------------------------------
 
 
@@ -298,6 +306,7 @@ class Soc(_Entity):
     default_operating_point: NotRequired[Name]
     boot_configs: NotRequired[dict[Name, BootConfig]]
     default_boot: NotRequired[Name]
+    image_slots: NotRequired[dict[Name, ImageSlot]]  # every Part's, unless it writes the name
     sdk: NotRequired[SdkFacts]
     derives_from: NotRequired[Annotated[Id, NOT_FACT]]
     default_board: NotRequired[Annotated[Id, NOT_FACT]]
@@ -310,11 +319,13 @@ class Soc(_Entity):
     npus_removed: NotRequired[Annotated[Names, NOT_FACT, FILE_ONLY]]
     accelerators_removed: NotRequired[Annotated[Names, NOT_FACT, FILE_ONLY]]
     peripherals_removed: NotRequired[Annotated[Names, NOT_FACT, FILE_ONLY]]
+    memory_controllers_removed: NotRequired[Annotated[Names, NOT_FACT, FILE_ONLY]]
     clock_domains_removed: NotRequired[
         Annotated[list[DomainPointRef], BY_VALUE, NOT_FACT, FILE_ONLY]
     ]
     boot_configs_removed: NotRequired[Annotated[Names, NOT_FACT, FILE_ONLY]]
     operating_points_removed: NotRequired[Annotated[Names, NOT_FACT, FILE_ONLY]]
+    image_slots_removed: NotRequired[Annotated[Names, NOT_FACT, FILE_ONLY]]
     access_removed: NotRequired[
         Annotated[list[AccessKey], Keyed(("master", "target")), NOT_FACT, FILE_ONLY]
     ]
@@ -325,12 +336,14 @@ class Subset(_Facts, total=False):
     memories_resized: dict[Name, Size]
     memories_rebased: dict[Name, Address]
     peripherals_removed: Names
+    memory_controllers_removed: Names
     cores_removed: Names
     npus_removed: Names
     accelerators_removed: Names
     clock_domains_removed: Annotated[list[DomainPointRef], BY_VALUE]
     boot_configs_removed: Names
     operating_points_removed: Names
+    image_slots_removed: Names
     access_removed: Annotated[list[RemovedAccess], Keyed(("master", "target"))]
     max_cpu_mhz: Mhz
     max_npu_mhz: Mhz
@@ -341,6 +354,11 @@ class MemoryInterface(_Facts):
     controller: Required[Name]
     modes: NotRequired[Annotated[list[str], BY_VALUE]]
     aperture_base: NotRequired[Address]
+    # Other windows onto the same device (Apollo3 Blue Plus's cached, read-only XIP window,
+    # where aperture_base is the read/write one); needs aperture_base, and no window may
+    # overlap an on-chip region or another interface's. A populated device's region
+    # carries them as its alternate_bases.
+    alternate_bases: NotRequired[Annotated[list[Address], BY_VALUE]]
     aperture_max: NotRequired[Size]
 
 
@@ -362,14 +380,6 @@ class Implementation(_Entity):
     interfaces: NotRequired[dict[Name, MemoryInterface]]
     population: NotRequired[dict[Name, Id]]
     extensions: NotRequired[Extensions]
-
-
-class ImageSlot(_Facts):
-    core: Required[Name]
-    region: Required[Name]
-    offset: Required[Size]
-    size: Required[Size]
-    supplier: Required[Literal["vendor", "customer"]]
 
 
 class Part(_Entity):
@@ -401,6 +411,8 @@ class AddOn(_Entity):
     fits_boards: Required[Ids]
     occupies: Required[Names]
     population: Required[dict[Name, Id]]
+    # Modes of an occupied interface while the add-on is fitted, narrowing the board's.
+    modes: NotRequired[dict[Name, Annotated[list[str], BY_VALUE, Minimum(1)]]]
     revision: NotRequired[str]
     extensions: NotRequired[Extensions]
 

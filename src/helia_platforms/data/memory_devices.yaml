@@ -19,13 +19,20 @@ memory_devices:
         status: measured
         source:
           - "meas:apollo510_evb/xip-alias/2026-07-05"
+          - "meas:apollo510b_evb/xip-alias/2026-07-05"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-psram/CMakeLists.txt:66-67"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-psram/CMakeLists.txt:87-93"
           - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-psram/CMakeLists.txt:106-110"
-        verified_on: 2026-10-13
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-psram/CMakeLists.txt:126"
+          - "doc:DS-A510@1.1.0:p36"
+        verified_on: 2026-10-28
         verified_by: evanchen11
         notes: >-
-          Measured by apage224 and added in AmbiqAI/nsx-ambiq-sdk#38: heliaPROFILER ran a
-          model from PSRAM XIP, and XIP address aliasing showed 512 Mbit = 64 MB ("+32 MB
-          holds distinct data; +64 MB falls off the MSPI aperture"). No document states
+          Measured and added in AmbiqAI/nsx-ambiq-sdk#38: on apollo510_evb, heliaPROFILER ran
+          a model from PSRAM XIP, and XIP address aliasing showed 512 Mbit = 64 MB
+          (:106-110). apollo510b_evb rev 2.0 (:66-67) was measured the morning of 2026-07-05
+          (:87-93, :126). The apollo510_evb comment's "+64 MB falls off the MSPI aperture"
+          is wrong: apollo510's MSPI0 aperture is 256 MB (DS-A510 p36). No document states
           the capacity.
     driver_family:
       value: aps25616ba
@@ -33,12 +40,13 @@ memory_devices:
         status: sdk
         source:
           - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/boards/apollo510_evb/bsp/am_bsp.h:188"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/boards/apollo510b_evb/bsp/am_bsp.h:203"
           - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-psram/CMakeLists.txt:123-131"
-        verified_on: 2026-10-13
+        verified_on: 2026-10-26
         verified_by: evanchen11
         notes: >-
           The BSP defines AM_BSP_MSPI_PSRAM_DEVICE_APS25616BA, and nsx-psram builds the
-          1.2 V "BA" driver am_devices_mspi_psram_aps25616ba_1p2v.c for this board. The
+          1.2 V "BA" driver am_devices_mspi_psram_aps25616ba_1p2v.c for both 510 EVBs. The
           part marking is not the driver family (CMakeLists.txt:99-104).
     modes:
       value: [hex-ddr]
@@ -49,3 +57,106 @@ memory_devices:
         verified_on: 2026-10-13
         verified_by: evanchen11
         notes: "\"Hex (x16) DDR PSRAM on MSPI0\". QS-A510 p8 states x16 (Hex); DS-A510 p95 states DDR on MSPI0."
+  APS256XXN:
+    release_status: public
+    technology: psram
+    capacity: 32M
+    provenance:
+      status: datasheet
+      source: ["doc:QS-A4PDK@1.2:p12"]
+      verified_on: 2026-10-08
+      verified_by: evanchen11
+      notes: >-
+        "256 Mb HexSPI Double-Data-Rate (DDR) Enabled PSRAM - APS256XXN"; 256 Mbit is 32 MiB.
+        nsx-psram's Apollo4 default size, 33554432 bytes (CMakeLists.txt:46-48), agrees.
+    driver_family:
+      value: aps25616n
+      provenance:
+        status: sdk
+        source:
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/boards/apollo4p_evb_disp_shield_rev2/bsp/am_bsp.h:102"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-psram/CMakeLists.txt:45"
+        verified_on: 2026-10-26
+        verified_by: evanchen11
+        notes: >-
+          The BSP defines AM_BSP_MSPI_PSRAM_DEVICE_APS25616N, and nsx-psram builds
+          am_devices_mspi_psram_aps25616n.c for the shield board.
+    modes:
+      value: [hex-ddr, octal-ddr]
+      provenance:
+        status: sdk
+        source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/boards/apollo4p_evb_disp_shield_rev2/bsp/am_bsp.h:103-104"]
+        verified_on: 2026-10-26
+        verified_by: evanchen11
+        notes: >-
+          AM_BSP_MSPI_PSRAM_MODULE_OCTAL_DDR_CE and _HEX_DDR_CE. nsx-psram uses hex DDR
+          (CMakeLists.txt:42-44). QS-A4PDK p12 states hex DDR; p11 octal, without the rate.
+  IS25WX064:
+    release_status: public
+    technology: flash
+    capacity: 8M
+    provenance:
+      status: datasheet
+      source: ["doc:QS-A4PDK@1.2:p12"]
+      verified_on: 2026-10-08
+      verified_by: evanchen11
+      notes: >-
+        "64Mb Octal-SPI DDR-enabled flash memory - IS25WX064"; 64 Mbit is 8 MiB. #87 plans
+        the same part on apollo510_evb's MSPI1.
+    driver_family:
+      value: is25wx064
+      provenance:
+        status: sdk
+        source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/boards/apollo4p_evb_disp_shield_rev2/bsp/am_bsp.h:94"]
+        verified_on: 2026-10-26
+        verified_by: evanchen11
+        notes: AM_BSP_MSPI_FLASH_DEVICE_IS25WX064, on MSPI1 (AM_BSP_MSPI_FLASH_MODULE 1, :95).
+    modes:
+      value: [octal-ddr]
+      provenance:
+        status: datasheet
+        source: ["doc:QS-A4PDK@1.2:p12"]
+        verified_on: 2026-10-08
+        verified_by: evanchen11
+        notes: '"Octal-SPI DDR-enabled".'
+  APS6404L:
+    release_status: public
+    technology: psram
+    provenance:
+      status: sdk
+      source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-psram/CMakeLists.txt:26"]
+      verified_on: 2026-10-26
+      verified_by: evanchen11
+      notes: >-
+        nsx-psram builds am_devices_mspi_psram_aps6404l.c for the Apollo3 Blue Plus PSRAM
+        boards. No datasheet for the part is in the register.
+    capacity:
+      value: 8M
+      provenance:
+        status: sdk
+        source:
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-psram/CMakeLists.txt:27-29"
+          - "repo:zephyrproject-rtos/zephyr@8f62a4ab82b5c2121c088842d3233f75b603ce35:samples/drivers/memc/boards/apollo3p_evb.overlay:36"
+          - "repo:zephyrproject-rtos/zephyr@8f62a4ab82b5c2121c088842d3233f75b603ce35:drivers/memc/memc_mspi_aps6404l.c:438"
+        verified_on: 2026-10-26
+        verified_by: evanchen11
+        notes: >-
+          nsx-psram's default NSX_PSRAM_DEVICE_SIZE_BYTES 8388608; Zephyr's DT_SIZE_M(64)
+          is in bits, and the driver divides it by 8. Nothing was measured.
+    driver_family:
+      value: aps6404l
+      provenance:
+        status: sdk
+        source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-psram/CMakeLists.txt:26"]
+        verified_on: 2026-10-26
+        verified_by: evanchen11
+    modes:
+      value: [quad-sdr]
+      provenance:
+        status: sdk
+        source:
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-psram/src/apollo3/nsx_psram.c:105"
+          - "repo:zephyrproject-rtos/zephyr@8f62a4ab82b5c2121c088842d3233f75b603ce35:samples/drivers/memc/boards/apollo3p_evb.overlay:40-41"
+        verified_on: 2026-10-26
+        verified_by: evanchen11
+        notes: AM_HAL_MSPI_FLASH_QUAD_CE0; Zephyr's MSPI_IO_MODE_QUAD and MSPI_DATA_RATE_SINGLE.
