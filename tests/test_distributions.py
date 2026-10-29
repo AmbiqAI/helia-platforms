@@ -52,6 +52,9 @@ def dist_dir(tmp_path_factory: pytest.TempPathFactory) -> Path:
     uv = shutil.which("uv")
     if uv is None:
         pytest.skip("uv is not on PATH")
+    # The release workflow passes the files it will upload, so those are the files checked.
+    if built := os.environ.get("HELIA_PLATFORMS_TEST_DIST"):
+        return Path(built).resolve()
     out = tmp_path_factory.mktemp("dist")
     # Output is left uncaptured so pytest shows uv's diagnostics if the build fails.
     subprocess.run([uv, "build", "--out-dir", str(out)], cwd=ROOT, check=True)

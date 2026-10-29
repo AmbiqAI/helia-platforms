@@ -443,7 +443,8 @@ that no exported Soc references (ADR 0005,
 
 ### Private and future silicon
 
-Unreleased SoCs never enter this repository, so the export filter is
+Unreleased hardware never enters this repository (an unreleased SoC, or a
+board, add-on or memory device for a released one), so the export filter is
 defence in depth, not the primary control. `builtin()` side-loads them
 from private packages in the entry-point group `helia_platforms.catalogs`
 and from overlays in `HELIA_PLATFORMS_PATH`; side-loaded entries have

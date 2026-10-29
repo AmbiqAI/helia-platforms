@@ -7,7 +7,8 @@ as defined in RFC 0002's glossary.
 ## Rule
 
 Unreleased SoCs, and the implementations, parts and boards that realize
-them, never enter this repository. They live in a private package or in
+them, never enter this repository; nor does an unreleased board, add-on or
+memory device for a released SoC (ADR 0005, amended 2026-10-29). They live in a private package or in
 private overlay files, and reach the catalog only by side-loading on the
 machine that has them. The export embargo filter
 ([Release status](0002-model-and-api.md#release-status)) is defence in
