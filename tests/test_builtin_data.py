@@ -92,7 +92,12 @@ def test_the_atomiq110_soc_answers_the_consumer_queries(catalog):
     npu_reach = [(a.target, a.port) for a in target.soc.access if a.master == "npu_0"]
     assert npu_reach == [("ssram", 0), ("hblram", 1), ("rram", 1)]
     timing = {a.target: a.characterization for a in target.soc.access if a.master == "npu_0"}
-    assert (timing["ssram"].read_latency_ns, timing["ssram"].max_outstanding) == (64, 8)
+    ssram = timing["ssram"]
+    assert (ssram.read_latency_ns, ssram.max_outstanding_reads, ssram.max_outstanding_writes) == (
+        64,
+        12,
+        16,
+    )
     assert (timing["ssram"].burst_bytes, timing["ssram"].axi_clock_hz) == (128, 250_000_000)
     assert timing["rram"] is None  # helia-npu's rram timing is fitted, not a hardware fact
     assert target.soc.npus[0].sram_port_hash == 0x80

@@ -184,11 +184,12 @@ Definitions, queries and an example are in [0002-multicore.md](0002-multicore.md
 (sram, mram, rram, psram, flash, nvm, dram), `attachment` (tcm, system, external),
 `size`, `base`, optional `alternate_bases` where the silicon aliases the
 region, `executable`, `writeable`, `cacheable`, optional
-`characterization` (read and write latency, ports, max outstanding,
-burst, bandwidth) each value with provenance: latency, bandwidth and
+`characterization` (read and write latency, ports, max outstanding reads
+and writes per port, burst, bandwidth) each value with provenance: latency, bandwidth and
 ports only. The package carries no energy data; the estimator's energy
-coefficients stay in helia-estimator. Characterization is hardware: what the
-memory path accepts, as the SoC documents it or as measured. Outstanding
+coefficients stay in helia-estimator. Characterization is hardware: the
+path's limits, as the SoC or IP documentation states them or as measured,
+such as the Ethos-U85's per-port outstanding reads and writes. Outstanding
 and burst limits a driver programs (the Ethos-U `AXI_SRAM` and `AXI_EXT`
 registers) and values fitted to make a model match captures are the
 setting or fit of the tool that owns them, such as helia-npu, not facts here.
@@ -839,7 +840,7 @@ one of them.
 @dataclass(frozen=True) class MemoryRegion: name, technology, attachment, size, base, alternate_bases, executable, writeable, cacheable, characterization, stands_in_for: tuple[str, ...], provenance   # stands_in_for: FVP regions only (ADR 0007)
 @dataclass(frozen=True) class Access:     master, target, access, requires_awake, guidance, reason, address: int | None, port: int | None, characterization, provenance   # target: region or memory_controllers name
 @dataclass(frozen=True) class DefaultAccess: master, access, scope, provenance   # scope: on_die
-@dataclass(frozen=True) class MemoryCharacterization: read_latency_ns, write_latency_ns, max_outstanding, burst_bytes, ports, axi_clock_hz, bandwidth_fraction  (each value may carry its own Provenance)
+@dataclass(frozen=True) class MemoryCharacterization: read_latency_ns, write_latency_ns, max_outstanding_reads, max_outstanding_writes, burst_bytes, ports, axi_clock_hz, bandwidth_fraction  (each value may carry its own Provenance)
 @dataclass(frozen=True) class ClockDomain: id, points: tuple[DomainPoint, ...]   # DomainPoint: name, mhz, hal_mode, provenance
 @dataclass(frozen=True) class OperatingPoint: name, domains: Mapping[str, str], hal_mode, provenance   # domain id -> point name
 @dataclass(frozen=True) class SdkFacts:   c_define, cmsis_header, trace_clock_mhz, hal_enums: Mapping[str, str], build: BuildFacts

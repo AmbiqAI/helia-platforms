@@ -2532,7 +2532,32 @@
             }
           ]
         },
-        "max_outstanding": {
+        "max_outstanding_reads": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "object",
+              "properties": {
+                "value": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "provenance": {
+                  "$ref": "#/$defs/Provenance"
+                }
+              },
+              "required": [
+                "value",
+                "provenance"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        },
+        "max_outstanding_writes": {
           "anyOf": [
             {
               "type": "integer",

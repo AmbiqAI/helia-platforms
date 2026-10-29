@@ -272,14 +272,23 @@ socs:
         port: 0
         characterization:
           read_latency_ns: 64
-          max_outstanding: 8
+          max_outstanding_reads:
+            value: 12
+            provenance: &u85_sram_outstanding
+              status: datasheet
+              source: ["doc:TRM-U85@05:p67"]
+              verified_on: 2026-10-29
+              verified_by: evanchen11
+              notes: Table 3-21, 256 MACs/CC, 2 SRAM ports; 12 reads and 16 writes per port.
+          max_outstanding_writes: {value: 16, provenance: *u85_sram_outstanding}
           burst_bytes: 128
           axi_clock_hz: 250000000
           provenance:
             status: unverified
             notes: >-
               helia-npu socs/atomiq110.yaml:49-87 (helia-estimator 3312025): an internal Ambiq
-              specification gives 64 ns, 8 outstanding and the 250 MHz fabric clock. Bursts
+              specification gives 64 ns and the 250 MHz fabric clock; its 8 outstanding gives
+              way to the TRM's per-port limits (review of #133). Bursts
               are 128 B, the stripe size: sram_port_hash 0x80 picks the SRAM port by addr[7]
               (TRM-U85 Table 2-1, p24), per the review of #133. helia-npu's write latency is
               assumed and its 4 outstanding writes are fitted, so neither is recorded.
@@ -295,13 +304,13 @@ socs:
         port: 1
         characterization:
           read_latency_ns: 88
-          max_outstanding: 12
+          max_outstanding_reads: 12
           burst_bytes: 256
           axi_clock_hz: 250000000
           provenance:
             status: unverified
             notes: >-
-              helia-npu socs/atomiq110.yaml:88-110 (helia-estimator 3312025): 12 outstanding
+              helia-npu socs/atomiq110.yaml:88-110 (helia-estimator 3312025): 12 outstanding reads
               and 256 B bursts from the HBLRAM controller documentation, the 250 MHz fabric
               clock, and an 88 ns read latency that is an architect estimate, not measured.
         provenance: {status: unverified, notes: *npu_reach}

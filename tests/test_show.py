@@ -14,7 +14,7 @@ from helia_platforms.catalog import builtin, load_overlay
 SDK = {**RECORD, "status": "sdk", "source": [SDK_SOURCE]}
 #: Implementation keys merged into the realized Soc, whose rows print them.
 MERGED = {"memories", "access", "clock_domains", "operating_points", "boot_configs", "default_boot"}
-CHARACTERIZATION = {"read_latency_ns": 12.5, "max_outstanding": 4, "bandwidth_fraction": 0.5}
+CHARACTERIZATION = {"read_latency_ns": 12.5, "max_outstanding_reads": 4, "bandwidth_fraction": 0.5}
 
 
 def full_document() -> dict:

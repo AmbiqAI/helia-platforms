@@ -1096,13 +1096,18 @@ def test_an_fpga_boards_provisioning_is_checked_against_its_implementation(docum
 
 def test_the_npu_port_hash_and_an_access_characterization_load(document):
     soc(document)["npus"][0]["sram_port_hash"] = 0x80
-    soc(document)["access"][0]["characterization"] = {"max_outstanding": 8, "burst_bytes": 256}
+    soc(document)["access"][0]["characterization"] = {
+        "max_outstanding_reads": 12,
+        "max_outstanding_writes": 16,
+        "burst_bytes": 128,
+    }
     a = load_overlay(document)._entry("socs", "soc_a")
     assert a.npus[0].sram_port_hash == 0x80
     assert (
-        a.access[0].characterization.max_outstanding,
+        a.access[0].characterization.max_outstanding_reads,
+        a.access[0].characterization.max_outstanding_writes,
         a.access[0].characterization.burst_bytes,
-    ) == (8, 256)
+    ) == (12, 16, 128)
 
 
 def test_an_interface_on_a_controller_the_implementation_removed_is_an_error(document):
