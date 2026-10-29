@@ -273,16 +273,16 @@ socs:
         characterization:
           read_latency_ns: 64
           max_outstanding: 8
-          burst_bytes: 256
+          burst_bytes: 128
           axi_clock_hz: 250000000
           provenance:
             status: unverified
             notes: >-
               helia-npu socs/atomiq110.yaml:49-87 (helia-estimator 3312025): an internal Ambiq
-              specification gives 64 ns, 8 outstanding and the 250 MHz fabric clock; the
-              path takes 256 B bursts. helia-npu's 128 B is the driver's AXI_SRAM max_beats
-              setting (AmbiqAI/nsx-ethos-u-driver#11); its write latency is assumed and its
-              4 outstanding writes are fitted, so neither is recorded.
+              specification gives 64 ns, 8 outstanding and the 250 MHz fabric clock. Bursts
+              are 128 B, the stripe size: sram_port_hash 0x80 picks the SRAM port by addr[7]
+              (TRM-U85 Table 2-1, p24), per the review of #133. helia-npu's write latency is
+              assumed and its 4 outstanding writes are fitted, so neither is recorded.
         provenance:
           status: unverified
           notes: &npu_reach >-
