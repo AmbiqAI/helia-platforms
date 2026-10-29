@@ -273,16 +273,17 @@ neuralspotx and helia-profiler use) carrying Implementation
   defines pins for IOM0 to IOM6.
 - No J-Link device: no atomiq110 spelling is in SEGGER's stock database
   (#130).
-- `trace_clock_mhz: 50`, status `unverified`, from the review of #133
-  (https://github.com/AmbiqAI/helia-platforms/pull/133#discussion_r4405639903). neuralspotx `neuralspotx-v0.9.0`,
+- `trace_clock_mhz: 50`, status `measured` by mbhssain in the review of
+  #133 (https://github.com/AmbiqAI/helia-platforms/pull/133#discussion_r4414528238).
+  An AmbiqSuite program prints a numbered line over ITM, and
+  `JLinkSWOViewerCLExe` samples SWO at 1 Mbaud while the SWO prescaler
+  (ACPR) is swept and read back over SWD. Lines decode only for ACPR+1 =
+  49 to 52, which puts the trace clock at 50.5 ± 0.5 MHz, the HFRC's
+  500 MHz divided by 10 (AmbiqSuite `am_hal_itm.c`, `ATOMIQ11X_FPGA`
+  branch). neuralspotx `neuralspotx-v0.9.0`,
   `src/neuralspotx/boards/atomiq110_fpga_turbo/debug.cmake:6-18`, says
-  48 MHz: the TPIU trace clock stays at its hardware reset default, which
-  firmware cannot change, and the firmware programs the SWO prescaler
-  (ACPR) for 25 MHz. A J-Link Compact PLUS then decoded SWO cleanly at
-  1.92 Mbaud (2026-08) and not at 1 Mbaud. That decode rules out 25 MHz
-  but fits 50 MHz as well, since 50 / 25 = 2.00 Mbaud is within UART
-  tolerance, so neither figure is measured. Whether the trace clock varies
-  by FPGA image is open (#19).
+  48 MHz, but 48 MHz decodes no lines at 1 Mbaud, nor at its own
+  1.92 Mbaud. Whether the trace clock varies by FPGA image is open (#19).
 - No external memory on the Board: nsx-psram has no mapping for it, and
   neither helia-profiler nor helia-npu says anything is fitted. The
   Implementation removes HBLRAM, which nsx-ambiq-sdk says the FPGA lacks

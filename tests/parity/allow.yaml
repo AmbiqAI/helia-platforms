@@ -182,9 +182,9 @@ allowed:
     target: atomiq110_fpga_turbo
     field: trace_clock_mhz
     reason: >-
-      neuralspotx's debug.cmake sets 48 MHz from a decode that also fits 50 MHz; the
-      catalog records 50 MHz from the review of #133, unverified until measured (#19).
-    issue: "#19"
+      neuralspotx's debug.cmake sets 48 MHz; an ACPR sweep measured 50.5 +/- 0.5 MHz, and
+      48 MHz decodes no SWO lines (the review of #133).
+    issue: "#68"
   - consumer: neuralspotx
     target: atomiq110_fpga_turbo
     field: jlink_device
