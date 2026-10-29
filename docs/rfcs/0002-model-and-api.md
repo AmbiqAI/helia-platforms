@@ -297,9 +297,10 @@ region. A model region lists the Soc regions it emulates in
 `stands_in_for`; the Corstone-320's DDR region stands in for `hblram`,
 `psram` and `rram`. Inherited access entries to Soc regions the FVP does
 not list are dropped, and the FVP adds or replaces entries with its own
-`access`. `memories`, `access` and `stands_in_for` are allowed only for
-kind `fvp`, and `memories` replaces the `memories_*` deltas rather than
-combining with them ([ADR 0007](../adr/0007-fvp-memory-maps.md)). The
+`access`. `memories` and `stands_in_for` are allowed only for kind `fvp`;
+`access` is allowed for any kind, so an FPGA can restate a path whose
+limits differ from silicon's. An FVP's `memories` replaces the
+`memories_*` deltas rather than combining with them ([ADR 0007](../adr/0007-fvp-memory-maps.md)). The
 estimator's Corstone-320 model of atomiq110 is therefore first-class
 rather than a private convention. An Implementation's boot configurations
 and operating points merge with the Soc's by key, and it removes any it
@@ -846,7 +847,7 @@ one of them.
 @dataclass(frozen=True) class SdkFacts:   c_define, cmsis_header, trace_clock_mhz, hal_enums: Mapping[str, str], build: BuildFacts
 @dataclass(frozen=True) class BuildFacts: abi, float_abi
 @dataclass(frozen=True) class Soc:        id, series, aliases, cores, npus, accelerators, memories, access, default_access: DefaultAccess | None, peripherals, memory_controllers, clock_domains, operating_points, default_operating_point: str | None, boot_configs, default_boot, sdk, derives_from, default_board: str | None, revision, release_status, extensions, provenance
-@dataclass(frozen=True) class Implementation: id, soc, kind, model: str | None, subset: Subset, memories: tuple | None, access: tuple | None, clock_domains: tuple | None, operating_points: tuple | None, boot_configs: Mapping | None, default_boot: str | None, provisioning: str | None, jlink_device, trace_clock_mhz, interfaces, population, aliases, release_status, extensions, provenance   # None: inherit the Soc's (after clock caps); memories and access: kind fvp only (ADR 0007)
+@dataclass(frozen=True) class Implementation: id, soc, kind, model: str | None, subset: Subset, memories: tuple | None, access: tuple | None, clock_domains: tuple | None, operating_points: tuple | None, boot_configs: Mapping | None, default_boot: str | None, provisioning: str | None, jlink_device, trace_clock_mhz, interfaces, population, aliases, release_status, extensions, provenance   # None: inherit the Soc's (after clock caps); memories: kind fvp only (ADR 0007)
 @dataclass(frozen=True) class Subset:     memories_removed, memories_resized, memories_rebased, peripherals_removed, cores_removed, npus_removed, accelerators_removed, clock_domains_removed, boot_configs_removed, operating_points_removed, access_removed, max_cpu_mhz, max_npu_mhz, max_domain_mhz
 @dataclass(frozen=True) class BootConfig: name, reserved: tuple[Reservation, ...], app_start: Mapping[str, AppStart], requires, provenance   # AppStart: region, offset; reserved in written key order
 @dataclass(frozen=True) class Reservation: region, offset, size, purpose, provenance
@@ -928,7 +929,7 @@ compositions or shorthands; overlays add no shorthands; `based_on`
 resolves; regions inside physical bounds and non-overlapping; a subset
 never adds a memory or exceeds a clock; an implementation whose clock caps
 drop every operating point declares its own; an Implementation's
-`memories` and `access` only on kind `fvp`, `memories` not combined with
+`memories` only on kind `fvp`, `memories` not combined with
 the `memories_*` deltas, and `stands_in_for` only on an FVP's regions,
 naming Soc regions the FVP does not list, each in at most one region
 ([ADR 0007](../adr/0007-fvp-memory-maps.md));

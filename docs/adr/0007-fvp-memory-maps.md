@@ -1,7 +1,7 @@
 # 0007. Model an FVP's memories as its own list, not as substitutions
 
 Date: 2026-10-07
-Status: Accepted
+Status: Accepted; amended 2026-10-29 (#68)
 
 ## Context
 
@@ -76,12 +76,14 @@ of them that describe substitutions.
 3. **Access follows the list.** An inherited Soc `access` entry whose
    target is a Soc region absent from the FVP's list is dropped, as
    `memories_removed` drops it; an entry whose target is present by name
-   is kept. `Implementation.access`, allowed only when `kind` is `fvp`,
-   adds entries and merges with the inherited ones by (`master`, `target`),
-   replacing an inherited entry with the same pair. An entry the FVP
+   is kept. `Implementation.access` adds entries and merges with the
+   inherited ones by (`master`, `target`), replacing an inherited entry
+   with the same pair. An entry the FVP
    writes for a Soc region it does not list is a reference error, as for
    any removed region. The Soc's `default_access` applies to the realized
-   Soc as usual.
+   Soc as usual. Amended for #68: `access` was allowed only when `kind` is
+   `fvp`; any kind may now write it, so an FPGA can state its own path
+   limits (`atomiq110_fpga`'s scaled-down NPU-to-SSRAM FIFO).
 4. **Substitutions are removed.** `Substitution` and `Subset.substitutions`
    leave the file format, the model and the committed JSON Schema. Clock
    caps and the subset limits are unchanged.

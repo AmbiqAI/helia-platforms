@@ -560,7 +560,7 @@ def test_stands_in_for_names_soc_regions_the_fvp_does_not_list_once(document):
     assert "Soc region 'ssram' is in the stands_in_for of more than one region (b, c)" in found
 
 
-def test_only_an_fvp_declares_memories_access_and_stands_in_for(document):
+def test_only_an_fvp_declares_memories_and_stands_in_for(document):
     soc(document)["memories"]["tcm"]["stands_in_for"] = ["ssram"]
     access = [{"master": "npu_0", "target": "tcm", "access": "direct"}]
     found = problems_of(with_cut(document, "rtl", memories=fvp_memories(), access=access))
@@ -569,7 +569,23 @@ def test_only_an_fvp_declares_memories_access_and_stands_in_for(document):
         "only a region of an fvp Implementation may stand in for others"
     ) in found
     assert "implementations.cut: memories is allowed only for kind fvp, not 'rtl'" in found
-    assert "implementations.cut: access is allowed only for kind fvp, not 'rtl'" in found
+    assert not any("access is allowed only" in problem for problem in found)
+
+
+def test_an_fpga_access_entry_replaces_the_socs_for_its_pair(document):
+    entry = {
+        "master": "npu_0",
+        "target": "ssram",
+        "access": "direct",
+        "port": 0,
+        "characterization": {"max_outstanding_reads": 8, "max_outstanding_writes": 4},
+    }
+    realized = implementation(document, access=[entry])
+    by_pair = {(a.master, a.target): a for a in realized.access}
+    timing = by_pair[("npu_0", "ssram")].characterization
+    assert timing is not None
+    assert (timing.max_outstanding_reads, timing.max_outstanding_writes) == (8, 4)
+    assert ("npu_0", "tcm") in by_pair
 
 
 def test_fvp_memories_cannot_be_combined_with_region_deltas(document):

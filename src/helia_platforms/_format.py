@@ -351,8 +351,9 @@ class Implementation(_Entity):
     kind: Required[Literal["silicon", "fpga", "fvp", "rtl"]]
     model: NotRequired[str]
     subset: NotRequired[Subset]
-    # Kind fvp only: the complete memory list and added access entries (ADR 0007).
+    # Kind fvp only: the complete memory list (ADR 0007).
     memories: NotRequired[dict[Name, MemoryRegion]]
+    # Any kind: entries that add to or replace the Soc's, by (master, target).
     access: NotRequired[Annotated[list[Access], Keyed(("master", "target"))]]
     clock_domains: NotRequired[ClockDomains]
     operating_points: NotRequired[dict[Name, OperatingPoint]]
