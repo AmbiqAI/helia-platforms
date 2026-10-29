@@ -96,8 +96,7 @@ socs:
             verified_by: evanchen11
             notes: >-
               ":3 Arm Ethos-U85 NPU"; ":52-56 Models must be compiled offline with Vela for
-              the Atomiq110 MAC configuration: vela --accelerator-config ethos-u85-256". The
-              Arm Ethos-U85 TRM is not in the source register.
+              the Atomiq110 MAC configuration: vela --accelerator-config ethos-u85-256".
         driven_by: cm55_0
         clock_domain: npu
         base_address: 0x400E0000
@@ -113,12 +112,12 @@ socs:
           value: 128
           provenance:
             status: datasheet
-            source: ["doc:TO-U85@03:p20"]
+            source: ["doc:TRM-U85@05:p347-349"]
             verified_on: 2026-10-29
             verified_by: evanchen11
             notes: >-
-              Table 2-2: the 256-MAC configuration has 2 SRAM and 1 EXT AXI ports, each
-              128b. helia-npu socs/atomiq110.yaml:25 (helia-estimator 785dfe42) also has 128.
+              Tables 5-10 and 5-13: WDATA<X>[127:0] and RDATA<X>[127:0] on every AXI manager
+              port (SRAM0-3, EXT0-1, p347). helia-npu socs/atomiq110.yaml:25 also has 128.
         provenance:
           status: sdk
           source:

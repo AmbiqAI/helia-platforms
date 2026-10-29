@@ -62,7 +62,7 @@ One public Arm document, outside the Ambiq library, is also in the source regist
 
 | Key | URL | Document id, revision, date | Pages | SHA256 (16) |
 | --- | --- | --- | --- | --- |
-| TO-U85 | https://documentation-service.arm.com/static/67b5b9e6fdbd9d54ee93e7d0 (Arm Ethos-U85 NPU Technical Overview, r0p0) | 102684_0000_03_en, Issue 03, 2025-01-31 (p2) | 33 | f3223fde24281b15 |
+| TRM-U85 | https://documentation-service.arm.com/static/67b5ba01ce2747241fce860f (Arm Ethos-U85 NPU Technical Reference Manual, r0p0, Non-Confidential) | 102685_0000_05_en, Issue 05, 2025-01-31 (p2) | 362 | 3fc6287d861b482e |
 
 ## 2. Boot and NVM partitioning by family
 

@@ -14,12 +14,12 @@ documents:
       date: 2025-11
       pages: 24
       sha256: 4350d3f28bf41a664ceefbdaa2cf6a78cdc3f40cf8f158c6b48a2ac8eee9032b
-  TO-U85:
-    "03":
-      document_id: 102684_0000_03_en
+  TRM-U85:
+    "05":
+      document_id: 102685_0000_05_en
       date: 2025-01-31
-      pages: 33
-      sha256: f3223fde24281b151c4e689172214b7d88ec89f2320387bf9f95c1c6adfe7b04
+      pages: 362
+      sha256: 3fc6287d861b482e12f29ecd02103128fece6a78ffbe4656332ebb08aaffb8ca
 repositories:
   AmbiqAI/nsx-ambiq-sdk:
     url: https://github.com/AmbiqAI/nsx-ambiq-sdk
