@@ -948,17 +948,22 @@ naming Soc regions the FVP does not list, each in at most one region
 `derives_from` requires equal physical regions; no two devices on one
 interface, no add-on on an interface the board or another add-on already
 uses (an occupied interface counts even without a device), no add-on on
-a board it does not fit, no device larger than its aperture, an add-on's
-`modes` only on interfaces it occupies and only modes the board's
-interface lists; provenance required on built-ins; built-in entries may
-not carry `extensions`.
+a board it does not fit, no device larger than its aperture, no board
+interface with the same name as one of its Implementation's, an add-on's
+`modes` only on interfaces it occupies, with at least one mode, only
+modes the board's interface lists, and at least one mode of the add-on's
+device on that interface (a device that lists no modes is not checked);
+provenance required on built-ins; built-in entries may not carry
+`extensions`.
 Multicore rules (this is the one list; 0002-multicore.md refers to it):
 core ids unique; index 0 has role `application`; every
 `driven_by` names a core; every `clock_domain` reference names a domain;
 `OperatingPoint.domains` keys name domains and values name points of
 those domains; every `Access` master is a core, NPU or accelerator id and
 every `Access` target is a region or memory controller of the Soc;
-every `memory_controllers` name is in `peripherals`; every Board, AddOn
+every `memory_controllers` name is in `peripherals`; a Soc delta does not
+both remove a memory controller and write it in its own
+`memory_controllers`; every Board, AddOn
 or Implementation interface's controller is a memory controller of the
 Soc as realized; after `default_access` expansion every region and every memory controller a
 built-in interface names has at least one entry (which may be
@@ -971,8 +976,7 @@ has an entry for is excluded, per the multicore document;
 `app_start` keys name programmable cores; every `ImageSlot` owner is a
 programmable core with a `direct` entry for the slot's region; a slot has
 a nonzero size, ends inside its region and overlaps no other slot, no boot
-reservation and no other core's `app_start`; a `customer` slot's owner is
-not programmed by the vendor only; removing a core or region removes the
+reservation and no other core's `app_start`; removing a core or region removes the
 inherited slots it owns or holds, and a Part's `image_slots_removed` may
 not name a slot its Soc carries. `helia_platforms.export` writes the JSON catalog,
 filtered and scrubbed by effective release status, and the JSON Schemas

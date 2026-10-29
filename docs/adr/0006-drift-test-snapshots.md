@@ -1,7 +1,7 @@
 # 0006. Check the catalogue against committed source snapshots
 
 Date: 2026-10-05
-Status: Accepted; amended 2026-10-27 (#18)
+Status: Accepted; amended 2026-10-27 (#18) and 2026-10-29 (#64)
 
 ## Amendment, 2026-10-27: neuralspotx is a consumer (#18)
 
@@ -32,6 +32,18 @@ catalog with itself. From this amendment:
   loads for the fact-change check.
 - A citation of neuralspotx at a pinned pre-adoption revision stays valid
   evidence (ADR 0003).
+
+## Amendment, 2026-10-29: two rows of the check table (#64)
+
+Two rows of the table in section 3 change as follows:
+
+- `MemoryRegion.base`, `size` against the register defines: equal, and a
+  define the per-SoC map names but the header lacks is a finding. The map
+  leaves a name empty where the header has no such define.
+- An extracted linker or devicetree region may also lie inside the header's
+  XIP aperture of one of the Soc's `memory_controllers`. An aperture of a
+  controller the Soc lacks, which a shared header can define (apollo510b
+  reads apollo510's header, with its MSPI2 and MSPI3), does not count.
 
 ## Context
 
@@ -265,8 +277,8 @@ and dataset rows.
 | `SdkFacts.build.abi`, `float_abi` | `NSX_ABI_FLAGS`, `NSX_FLOAT_ABI` | equal |
 | `SdkFacts.trace_clock_mhz` | `NSX_SEGGER_CPUFREQ` of the facts file | equal after the snapshot's value, a string in Hz, is converted to MHz (`"48000000"` is 48) |
 | `flash_load_address()` of the Soc target, under its `default_boot` | `NSX_SEGGER_PF_ADDR` | equal |
-| `MemoryRegion.base`, `size` | register defines, through a per-SoC map of region to define expression | equal; a define the map names and the header lacks is a finding (the map leaves a name empty where the header has no such define) |
-| every extracted linker and devicetree region | the catalogue's physical regions | lies inside one contiguous, gap-free run of them, or inside the header's XIP aperture of one of the Soc's `memory_controllers` |
+| `MemoryRegion.base`, `size` | register defines, through a per-SoC map of region to define expression | equal where a define exists |
+| every extracted linker and devicetree region | the catalogue's physical regions | lies inside one contiguous, gap-free run of them |
 | an `sdk` record that cites a snapshotted repository (nsx-ambiq-sdk, neuralspotx, zephyr, hal_ambiq) | the snapshots | cites a `revision` the snapshots hold: a tag by name, a commit as the exact full SHA; a reference matches a snapshot's `revision` field only |
 | a `#<symbol>` reference in such a record | the source at that revision | names a single definition (checked by the extract jobs, which hold the source trees) |
 | the link-environment dataset | the snapshots | regenerates byte for byte (section 4) |

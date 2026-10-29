@@ -70,14 +70,18 @@ cores:
       value: armv6-m
       provenance:
         status: derived
-        source: ["doc:DS-A4BP@1.8.0:p96", "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-cmsis-core/Include/core_cm0.h:67"]
-        verified_on: 2026-10-28
+        source:
+          - "doc:DS-A4BP@1.8.0:p96"
+          - "doc:DS-A4BL@0.9.0:p84"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-cmsis-core/Include/core_cm0.h:67"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-cmsis-core/Include/core_cm0.h:624"
+        verified_on: 2026-10-29
         verified_by: evanchen11
         notes: >-
-          DS-A4BP p96: the BLE controller "incorporates a dedicated Arm Cortex-M0 processor",
-          and core_cm0.h, the CMSIS header for that core, defines __CORTEX_M (0U) (:67). A
-          Cortex-M0 implements Armv6-M by Arm's definition; no source in the register states
-          the architecture in so many words.
+          The Apollo4 Blue Plus (DS-A4BP p96) and Blue Lite (DS-A4BL p84) BLE controller
+          "incorporates a dedicated Arm Cortex-M0 processor". core_cm0.h, the CMSIS header
+          for that core, defines __CORTEX_M (0U) (:67) and reads "Interrupt Priorities are
+          WORD accessible only under Armv6-M" (:624).
     pmu: none
     has_dsp_extension: false
     provenance:
@@ -87,5 +91,5 @@ cores:
       verified_by: evanchen11
       notes: >-
         The core map is SysTick, NVIC and SCB only (:535-542), with no DWT or PMU, and
-        Armv6-M has no DSP extension. No Soc's SDK facts name this core: it is the Apollo4
-        Blue BLE controller's (DS-A4BP p96).
+        Armv6-M has no DSP extension. No Soc's SDK facts name this core: it is the BLE
+        controller of Apollo4 Blue Plus and Blue Lite (the arch record cites both).

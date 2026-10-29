@@ -280,12 +280,12 @@ def test_the_display_kit_compositions_add_psram_and_flash(catalog, name):
     assert (target.id, target.aliases) == ("apollo4p_evb", (name,))
     assert [a.id for a in target.addons] == ["apollo4p_disp_shield"]
     fitted = {name: i.modes for name, i in target.interfaces.items()}
-    sdr = ("serial-sdr", "dual-sdr", "quad-sdr", "octal-sdr")
-    assert fitted == {"mspi0": ("octal-ddr",), "mspi1": ("octal-ddr",), "mspi2": sdr}
+    octal = ("serial-sdr", "dual-sdr", "quad-sdr", "octal-sdr", "octal-ddr")
+    assert fitted == {"mspi0": ("octal-ddr",), "mspi1": ("octal-ddr",), "mspi2": octal}
     evb_modes = ("serial-sdr", "dual-sdr", "quad-sdr", "octal-sdr", "octal-ddr", "hex-ddr")
     assert target.board.interfaces["mspi0"].modes == evb_modes
     assert catalog.resolve("apollo4p_evb").interfaces["mspi0"].modes == evb_modes
-    assert "quad-sdr" in catalog.resolve("apollo4p_evb").interfaces["mspi2"].modes
+    assert catalog.resolve("apollo4p_evb").interfaces["mspi2"].modes == octal
     external = {(r.technology, r.base, r.size) for r in target.external_memories()}
     assert external == {("psram", 0x14000000, 32 * 1024 * 1024), ("flash", 0x18000000, 8 << 20)}
     assert target.has_external_memory("psram")
