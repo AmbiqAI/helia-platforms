@@ -574,14 +574,15 @@ implementations:
             provenance: *fpga_npu_mode
           provenance: *owner_npu
     access:
-      # The FPGA's NPU-to-SSRAM FIFO is scaled down from silicon's, so it states its own
-      # limits; the entry replaces the Soc's whole.
+      # helia-npu's timing, which the FPGA runs with today; the FPGA's NPU-to-SSRAM FIFO is
+      # scaled down from silicon's. Each entry replaces the Soc's whole.
       - master: npu_0
         target: ssram
         access: direct
         port: 0
         characterization:
           read_latency_ns: 64
+          write_latency_ns: 64
           max_outstanding_reads: 8
           max_outstanding_writes: 4
           burst_bytes: 128
@@ -592,7 +593,24 @@ implementations:
               The review of #133: the outstanding limit is a FIFO's depth, scaled down on the
               FPGA. helia-npu socs/atomiq110.yaml:49-87 (helia-estimator 3312025) matches FPGA
               PMU captures with 8 reads (the specification's 8), 4 writes (fitted), and the
-              specification's 64 ns and 250 MHz. Bursts split at the 128 B stripe.
+              specification's 64 ns and 250 MHz; write latency is assumed equal to read
+              latency. Bursts split at the 128 B stripe.
+        provenance: {status: unverified, notes: *npu_reach}
+      - master: npu_0
+        target: rram
+        access: direct
+        port: 1
+        characterization:
+          read_latency_ns: 240
+          max_outstanding_reads: 2
+          burst_bytes: 256
+          axi_clock_hz: 250000000
+          provenance:
+            status: unverified
+            notes: >-
+              helia-npu socs/atomiq110.yaml:125-138 (helia-estimator 3312025): 2 reads in
+              flight at 240 ns, fitted to an RTL run of MobileNetV2 with weights in RRAM, as
+              a stand-in for the path's rate. AXI writes to RRAM return an error.
         provenance: {status: unverified, notes: *npu_reach}
     trace_clock_mhz:
       value: 50
