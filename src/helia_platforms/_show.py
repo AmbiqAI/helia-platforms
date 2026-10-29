@@ -521,12 +521,12 @@ def _boot(target: Target, at: _Entries, requested: str | None) -> list[_Row]:
     rows += [r for r in selectors if r.facts]
     if target.boot is not None:
         rows.append(_selection(target.boot.name, selectors, requested))
-    if target.part is not None:
-        part = at.at("parts", target.part.id, target.part)
-        for slot in target.part.image_slots.values():
-            names = ["core", "region", "offset", "size", "supplier"]
-            slot_at = part.child(slot, "image_slots", slot.name)
-            rows.append(_row(f"image slot {slot.name}", slot_at, slot, names))
+    part = at.at("parts", target.part.id, target.part) if target.part is not None else None
+    for slot in target.image_slots.values():
+        owner = part if part is not None and slot.name in part.obj.image_slots else soc
+        slot_at = owner.child(slot, "image_slots", slot.name)
+        names = ["core", "region", "offset", "size", "supplier"]
+        rows.append(_row(f"image slot {slot.name}", slot_at, slot, names))
     for index, core in enumerate(target.soc.cores):
         if target.boot is None or core.id not in target.boot.app_start:
             continue

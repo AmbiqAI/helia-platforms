@@ -13,6 +13,8 @@ from helia_platforms.catalog import Catalog, _expanded_access
 from helia_platforms.errors import PlatformError
 
 Kind = Literal["board", "part", "implementation", "soc"]
+#: Tiers that are not a PMU: DWT has a cycle counter and 8-bit profiling counters only.
+_NO_PMU = frozenset({"none", "dwt"})
 #: Technologies a region can hold non-volatile code in (``usable_nvm``).
 _NVM = frozenset({"mram", "rram", "flash", "nvm"})
 
@@ -94,7 +96,7 @@ class Target:
             supports_fp16=options.mve == "fp",
             supports_fp32=options.fpu != "none",
             supports_fp64=options.fpu_dp,
-            has_pmu=ip.pmu != "none",
+            has_pmu=ip.pmu not in _NO_PMU,
             pmu_kind=ip.pmu,
         )
 
@@ -162,9 +164,17 @@ class Target:
         return any(technology in (None, r.technology) for r in self.external_memories())
 
     def memories(self, core: int | str = 0) -> tuple[model.MemoryRegion, ...]:
-        """Regions ``core`` has a ``direct`` entry for, then external regions it reaches."""
+        """Regions ``core`` has a ``direct`` entry for, then external regions it reaches.
+
+        An entry with ``guidance: discouraged`` is left out, so no budget or placement
+        counts that region; ``reachable()`` still returns the entry.
+        """
         master = self._core(core).id
-        direct = {a.target for a in self._access if a.master == master and a.access == "direct"}
+        direct = {
+            a.target
+            for a in self._access
+            if a.master == master and a.access == "direct" and a.guidance != "discouraged"
+        }
         own = tuple(r for r in self.soc.memories if r.name in direct)
         return own + tuple(r for r, controller in self._external if controller in direct)
 
@@ -283,14 +293,25 @@ class Target:
             raise PlatformError(f"{self.id}: region {start.region!r} has no base")
         return base + start.offset
 
+    @property
+    def image_slots(self) -> Mapping[str, model.ImageSlot]:
+        """The Soc's image slots, each replaced by the part's slot of the same name."""
+        own = self.part.image_slots if self.part else {}
+        return MappingProxyType({**self.soc.image_slots, **own})
+
     def usable_nvm(self, core: int | str = 0) -> Mapping[str, int]:
-        """Bytes per non-volatile region ``core`` reaches, less reservations and others' slots."""
+        """Bytes per non-volatile region ``core`` reaches, less reservations and others' slots.
+
+        Empty for a core only the vendor programs or with no loadable image
+        (``programmable_by`` unset), since no customer image goes there.
+        """
         instance = self._core(core)
+        if instance.programmable_by in (None, "vendor"):
+            return MappingProxyType({})
         taken: dict[str, int] = {}
         for reservation in self.boot.reserved if self.boot else ():
             taken[reservation.region] = taken.get(reservation.region, 0) + reservation.size
-        slots = self.part.image_slots.values() if self.part else ()
-        for slot in slots:
+        for slot in self.image_slots.values():
             if slot.core != instance.id:
                 taken[slot.region] = taken.get(slot.region, 0) + slot.size
         return MappingProxyType(

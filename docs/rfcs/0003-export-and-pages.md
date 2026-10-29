@@ -89,7 +89,7 @@ One JSON document, built from a `Catalog`, with three top-level keys:
 |---|---|
 | `schema_version` | ADR 0004's integer. |
 | `identity` | `Catalog.identity().to_dict()` (ADR 0004 point 4): package version, `schema_version`, `catalog_digest`, and one entry per source applied on top of the built-in data. In every export that may be published, there is no such entry (see "One publishable path"). |
-| `catalog` | The entities, written as a complete document in ADR 0002's file format: `schema_version`, equal to the export's top-level `schema_version`, then `cores`, `socs`, `implementations`, `parts`, `boards`, `addons`, `memory_devices`, `compositions`, `shorthands`. Every entry is written after the `based_on` merge, so no entry carries `based_on` or a file-only delta key that applies over a base (a Soc's `memories_removed` and the like, a Part's `image_slots_removed`; #49 at `af7482b`, `_format.py:286-301`, `:369`). An Implementation entry keeps its `subset` as in the file format, because its removals, resizes, rebases and clock caps live only there (ADR 0002 `:211-216`); a reader that wants the realized Implementation calls `resolve()` with its id. |
+| `catalog` | The entities, written as a complete document in ADR 0002's file format: `schema_version`, equal to the export's top-level `schema_version`, then `cores`, `socs`, `implementations`, `parts`, `boards`, `addons`, `memory_devices`, `compositions`, `shorthands`. Every entry is written after the `based_on` merge, so no entry carries `based_on` or a file-only delta key that applies over a base (a Soc's `memories_removed` and the like, a Soc's or Part's `image_slots_removed`; #49 at `af7482b`, `_format.py:286-301`, `:369`). A Soc entry carries its `image_slots` and a Part entry only its own, each replacing the Soc's slot of the same name; `Target.image_slots` gives the merged set. An Implementation entry keeps its `subset` as in the file format, because its removals (`image_slots_removed` among them), resizes, rebases and clock caps live only there (ADR 0002 `:211-216`); a reader that wants the realized Implementation calls `resolve()` with its id. |
 
 `catalog` is the raw data: a tool can rebuild any view from it, and
 because it is in the file format, the file-format JSON Schema of the same
@@ -293,13 +293,15 @@ instead of failing.
 
 - One page per Soc, `socs/<id>.md`: series, cores and NPUs, the memory
   map (region, base, size, technology, attachment), clock domains and
-  operating points, boot configurations and reservations, its
+  operating points, boot configurations and reservations, image slots
+  (the Soc's and each Part's), who programs each core, its
   implementations and parts, the boards that carry it, aliases, and the
   provenance status per group.
 - One page per board, `boards/<id>.md`: its part and Soc (linked),
   populated external memory, add-ons that fit and compositions, debug
   facts, the values `resolve()` derives for it (`Target.capabilities`,
-  `usable_nvm()`, `cpu_mhz()` per operating point), and aliases.
+  `usable_nvm()` with the other cores' image slots it leaves out,
+  `cpu_mhz()` per operating point), and aliases.
 - An index page listing both, grouped by series.
 
 Pages therefore show derived values that the JSON does not carry.

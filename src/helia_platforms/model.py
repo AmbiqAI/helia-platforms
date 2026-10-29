@@ -261,6 +261,7 @@ class Soc(_Carrier):
     default_operating_point: str | None = None
     boot_configs: Mapping[str, BootConfig] = field(default_factory=_empty)
     default_boot: str | None = None
+    image_slots: Mapping[str, ImageSlot] = field(default_factory=_empty)
     sdk: SdkFacts | None = None
     derives_from: str | None = None
     default_board: str | None = None
@@ -287,6 +288,7 @@ class Subset:
     clock_domains_removed: tuple[str, ...] = ()
     boot_configs_removed: tuple[str, ...] = ()
     operating_points_removed: tuple[str, ...] = ()
+    image_slots_removed: tuple[str, ...] = ()
     access_removed: tuple[AccessKey, ...] = ()
     max_cpu_mhz: float | None = None
     max_npu_mhz: float | None = None

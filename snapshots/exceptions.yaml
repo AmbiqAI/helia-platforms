@@ -50,16 +50,6 @@ exceptions:
   # Ids the snapshots carry that the catalog does not have yet. Remove each entry with
   # the data PR that adds the id.
   - snapshot: nsx-ambiq-sdk.json
-    at: [socs, apollo510L]
-    rule: in the catalog
-    reason: apollo510L and apollo330P's data lands with #65.
-    issue: "#65"
-  - snapshot: nsx-ambiq-sdk.json
-    at: [socs, apollo330P]
-    rule: in the catalog
-    reason: apollo510L and apollo330P's data lands with #65.
-    issue: "#65"
-  - snapshot: nsx-ambiq-sdk.json
     at: [socs, apollo4p]
     rule: in the catalog
     reason: apollo4p and apollo4l's data lands with #66.

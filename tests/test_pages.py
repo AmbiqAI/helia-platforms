@@ -31,21 +31,24 @@ def public(document):
 
 
 def test_the_built_in_pages():
-    pages = _pages.render(builtin(include_plugins=False))
-    assert list(pages) == [
-        "boards/apollo510_evb.md",
-        "boards/apollo510b_evb.md",
-        "index.md",
-        "socs/apollo510.md",
-        "socs/apollo510b.md",
-    ]
+    catalog = builtin(include_plugins=False)
+    pages = _pages.render(catalog)
+    assert list(pages) == sorted(
+        [
+            "index.md",
+            *(f"socs/{s.id}.md" for s in catalog.socs()),
+            *(f"boards/{b.id}.md" for b in catalog.boards()),
+        ]
+    )
     soc, board = pages["socs/apollo510.md"], pages["boards/apollo510_evb.md"]
     assert soc.startswith("---\ntitle: apollo510\ndescription: ")
     assert "| dtcm | `0x20000000` | 512K | sram | tcm |" in soc
     assert "| sbl | sbl | cm55_0: mram + 64K | sbl: mram + 0, 64K | yes |" in soc
     assert "- Boards: [apollo510_evb](../boards/apollo510_evb.md)" in soc
     assert "| mspi0 | APS512XX | psram | 64M | `0x60000000` |" in board
-    assert "Usable NVM (core 0): mram 4032K." in board
+    assert "| cm55_0 | application | cortex-m55 | cpu | customer |" in soc
+    assert "## Image slots" not in soc
+    assert "Usable NVM (core 0): mram 4032K, after boot reservation sbl (mram + 0, 64K)." in board
     assert "Flash load address (core 0): `0x00410000`." in board
     assert (
         "- [apollo510](socs/apollo510.md): [apollo510_evb](boards/apollo510_evb.md)"
@@ -53,6 +56,26 @@ def test_the_built_in_pages():
     )
     digest = builtin(include_plugins=False).catalog_digest
     assert all(page.endswith(f"catalog `{digest}`.\n") for page in pages.values())
+
+
+def test_the_radio_core_pages_name_the_vendor_slot_and_who_programs_the_radio_core():
+    pages = _pages.render(builtin(include_plugins=False))
+    soc, board = pages["socs/apollo330P.md"], pages["boards/apollo510dL_evb.md"]
+    assert "| radio_m4 | radio | cortex-m4 | radio | vendor only |" in soc
+    slots = [line for line in soc.splitlines() if line.startswith("| nvm_m41 |")]
+    assert slots == [
+        "| nvm_m41 | the Soc | radio_m4 | mram | 2032K | 16K | vendor |",
+        "| nvm_m41 | AP330BPA-CCR | radio_m4 | mram | 1760K | 288K | vendor |",
+        "| nvm_m41 | AP330BPA-ICR | radio_m4 | mram | 1760K | 288K | vendor |",
+        "| nvm_m41 | AP330MPA-CCR | radio_m4 | mram | 1616K | 432K | vendor |",
+        "| nvm_m41 | AP330MPA-IBR | radio_m4 | mram | 1616K | 432K | vendor |",
+        "| nvm_m41 | AP330MPA-CBR | radio_m4 | mram | 1616K | 432K | vendor |",
+    ]
+    assert (
+        "Usable NVM (core 0): mram 1552K, after boot reservation sbl (mram + 0, 64K) and "
+        "vendor-supplied image slot nvm_m41 of radio_m4 (mram + 1616K, 432K).\n"
+        "Only the vendor programs radio_m4, so it has no usable NVM.\n"
+    ) in board
 
 
 def test_a_board_with_no_boot_configuration_says_so(document):
@@ -75,13 +98,8 @@ def test_the_release_assets_are_stable():
     zipped = first["helia-platforms-pages.zip"]
     assert isinstance(zipped, bytes)
     archive = zipfile.ZipFile(io.BytesIO(zipped))
-    assert sorted(archive.namelist()) == [
-        "pages/boards/apollo510_evb.md",
-        "pages/boards/apollo510b_evb.md",
-        "pages/index.md",
-        "pages/socs/apollo510.md",
-        "pages/socs/apollo510b.md",
-    ]
+    pages = _pages.render(builtin(include_plugins=False))
+    assert archive.namelist() == [f"pages/{name}" for name in pages]
     assert json.loads(first["helia-platforms-export.json"])["identity"]["sources"] == []
 
 

@@ -237,6 +237,7 @@ def _apply_deltas(
                 regions[name] = {**regions[name], field_name: new}
                 moved[("memories", name, field_name)] = (key, name)
     _drop_dangling_access(values, deltas, written)
+    _drop_dangling_slots(values, deltas, written)
     _drop_removed_controllers(values, deltas, written)
     return problems
 
@@ -292,6 +293,22 @@ def _drop_dangling_access(values: dict, deltas: dict, written: dict) -> None:
             if (a["master"], a["target"]) in own
             or (a["master"] not in gone and a["target"] not in gone)
         ]
+
+
+def _drop_dangling_slots(values: dict, deltas: dict, written: dict) -> None:
+    """Removing a core or region removes the inherited image slots it owns or holds.
+
+    Slots the delta itself writes stay, so the reference check reports them.
+    """
+    gone = set(deltas.get("cores_removed", [])) | set(deltas.get("memories_removed", []))
+    own = set(written.get("image_slots", {}))
+    slots = values.get("image_slots")
+    if gone and slots:
+        values["image_slots"] = {
+            name: slot
+            for name, slot in slots.items()
+            if name in own or (slot["core"] not in gone and slot["region"] not in gone)
+        }
 
 
 def _drop_removed_controllers(values: dict, deltas: dict, written: dict) -> None:
@@ -356,6 +373,7 @@ _SUBSET_DELTAS = (
     "clock_domains_removed",
     "boot_configs_removed",
     "operating_points_removed",
+    "image_slots_removed",
     "access_removed",
 )
 #: Region deltas an FVP's own memories replace (ADR 0007).

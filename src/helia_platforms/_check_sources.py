@@ -34,6 +34,14 @@ REGISTERS: dict[str, dict[str, tuple[str, str]]] = {
         "ssram": ("SSRAM_BASEADDR", "SSRAM_MAX_SIZE"),
         "mram": ("MRAM_BASEADDR", "MRAM_MAX_SIZE"),
     },
+    **{
+        soc: {
+            "dtcm": ("DTCM_BASEADDR", "DTCM_MAX_SIZE"),
+            "ssram": ("SSRAM_BASEADDR", "SSRAM_MAX_SIZE"),
+            "mram": ("MRAM_BASEADDR", "MRAM_MAX_SIZE"),
+        }
+        for soc in ("apollo510L", "apollo330P")
+    },
 }
 #: apollo510b builds against mcu/apollo510, so its snapshot reads apollo510's header.
 REGISTERS["apollo510b"] = dict(REGISTERS["apollo510"])
