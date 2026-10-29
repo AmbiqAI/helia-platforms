@@ -53,9 +53,11 @@ class _Generator:
             return {}
         schema = self.plain(bare, markers, facts)
         if facts and _walk.is_scalar_like(tp):
+            # Inside a wrapper nothing is wrapped again, as the loader checks it (#140).
+            inner = self.plain(bare, markers, facts=False)
             wrapper = {
                 "type": "object",
-                "properties": {"value": schema, "provenance": self.ref(fmt.Provenance)},
+                "properties": {"value": inner, "provenance": self.ref(fmt.Provenance)},
                 "required": ["value", "provenance"],
                 "additionalProperties": False,
             }
