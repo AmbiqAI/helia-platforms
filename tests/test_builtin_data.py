@@ -78,14 +78,15 @@ def test_the_atomiq110_fpga_board_answers_the_consumer_queries(catalog):
     assert {"iom2", "iom11", "hblram"} & set(target.soc.peripherals) == {"hblram"}
     npu = {a.target: a.characterization for a in target.soc.access if a.master == "npu_0"}
     rram = npu["rram"]
-    assert rram is not None and (rram.read_latency_ns, rram.max_outstanding_reads) == (240, 2)
+    assert rram is not None and (rram.read_latency_ns, rram.max_outstanding_reads) == (2400, 2)
+    assert rram.axi_clock_hz == 25_000_000
     timing = npu["ssram"]
-    assert timing is not None and timing.write_latency_ns == 64
+    assert timing is not None and timing.write_latency_ns == 640
     assert (timing.max_outstanding_reads, timing.max_outstanding_writes) == (8, 4)
     assert (timing.read_latency_ns, timing.burst_bytes, timing.axi_clock_hz) == (
-        64,
+        640,
         128,
-        250_000_000,
+        25_000_000,
     )
 
 
@@ -113,7 +114,8 @@ def test_the_atomiq110_soc_answers_the_consumer_queries(catalog):
         16,
     )
     assert (timing["ssram"].burst_bytes, timing["ssram"].axi_clock_hz) == (128, 250_000_000)
-    assert timing["rram"] is None  # helia-npu's rram timing is fitted, not a hardware fact
+    rram = timing["rram"]  # silicon's latency only; helia-npu's outstanding limit is fitted
+    assert rram is not None and (rram.read_latency_ns, rram.max_outstanding_reads) == (240, None)
     assert target.soc.npus[0].sram_port_hash == 0x80
 
 
