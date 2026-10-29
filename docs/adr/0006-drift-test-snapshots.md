@@ -1,7 +1,7 @@
 # 0006. Check the catalogue against committed source snapshots
 
 Date: 2026-10-05
-Status: Accepted; amended 2026-10-27 (#18)
+Status: Accepted; amended 2026-10-27 (#18) and 2026-10-29 (#64)
 
 ## Amendment, 2026-10-27: neuralspotx is a consumer (#18)
 
@@ -32,6 +32,18 @@ catalog with itself. From this amendment:
   loads for the fact-change check.
 - A citation of neuralspotx at a pinned pre-adoption revision stays valid
   evidence (ADR 0003).
+
+## Amendment, 2026-10-29: two rows of the check table (#64)
+
+Two rows of the table in section 3 change as follows:
+
+- `MemoryRegion.base`, `size` against the register defines: equal, and a
+  define the per-SoC map names but the header lacks is a finding. The map
+  leaves a name empty where the header has no such define.
+- An extracted linker or devicetree region may also lie inside the header's
+  XIP aperture of one of the Soc's `memory_controllers`. An aperture of a
+  controller the Soc lacks, which a shared header can define (apollo510b
+  reads apollo510's header, with its MSPI2 and MSPI3), does not count.
 
 ## Context
 

@@ -59,7 +59,11 @@ def project(value: Any) -> Any:
 
 
 def _keyed(entries: Mapping[str, Any]) -> dict[str, Any]:
-    return {key: project(item) for key, item in entries.items()}
+    """Each item projected; a tuple of values (``AddOn.modes``) sorts like a value list."""
+    return {
+        key: sorted(item) if isinstance(item, tuple) else project(item)
+        for key, item in entries.items()
+    }
 
 
 def _field(cls: type, name: str, value: Any) -> Any:

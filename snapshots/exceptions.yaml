@@ -47,76 +47,77 @@ exceptions:
     reason: Declares apollo510-sized memory regions.
     issue: AmbiqAI/nsx-ambiq-sdk#60
 
-  # Ids the snapshots carry that the catalog does not have yet. Remove each entry with
-  # the data PR that adds the id.
-  - snapshot: nsx-ambiq-sdk.json
-    at: [socs, apollo510b]
-    rule: in the catalog
-    reason: apollo510b's data lands with #64.
-    issue: "#64"
-  - snapshot: nsx-ambiq-sdk.json
-    at: [socs, apollo5b]
-    rule: in the catalog
-    reason: apollo5b is dropped (owner decision on #64): no datasheet, guide or ordering number exists.
-    issue: "#64"
-  - snapshot: nsx-ambiq-sdk.json
-    at: [socs, apollo510L]
-    rule: in the catalog
-    reason: apollo510L and apollo330P's data lands with #65.
-    issue: "#65"
-  - snapshot: nsx-ambiq-sdk.json
-    at: [socs, apollo330P]
-    rule: in the catalog
-    reason: apollo510L and apollo330P's data lands with #65.
-    issue: "#65"
-  - snapshot: nsx-ambiq-sdk.json
-    at: [socs, apollo4p]
-    rule: in the catalog
-    reason: apollo4p and apollo4l's data lands with #66.
-    issue: "#66"
-  - snapshot: nsx-ambiq-sdk.json
-    at: [socs, apollo4l]
-    rule: in the catalog
-    reason: apollo4p and apollo4l's data lands with #66.
-    issue: "#66"
+  # The catalog puts the Blue Plus parts on apollo4p, as nsx-ambiq-sdk and neuralspotx
+  # do (decided on #66); Zephyr names a Soc of their own.
   - snapshot: zephyr.json
-    at: [boards, apollo4p_evb]
-    rule: in the catalog
-    reason: apollo4p and apollo4l's data lands with #66.
-    issue: "#66"
-  - snapshot: zephyr.json
-    at: [boards, apollo4p_blue_kxr_evb]
-    rule: in the catalog
-    reason: The Apollo4 Blue boards' data lands with #91.
-    issue: "#91"
+    at: [boards, apollo4p_blue_kxr_evb, board, values, soc]
+    rule: board soc
+    reason: "Zephyr's apollo4p_blue Soc is apollo4p as the Blue Plus implementations realize it."
+    issue: "#129"
+  # The catalog's trace clock is the TPIU clock the HAL selects, HFRC48 (decided on #66);
+  # NSX_SEGGER_CPUFREQ is the J-Link setting.
   - snapshot: nsx-ambiq-sdk.json
-    at: [socs, apollo3]
-    rule: in the catalog
-    reason: apollo3 and apollo3p's data lands with #67.
+    at: [socs, apollo4p, facts, values, NSX_SEGGER_CPUFREQ]
+    rule: trace clock
+    reason: "am_hal_tpiu_enable clocks the TPIU from HFRC48; 96 MHz is J-Link's setting (#19)."
+    issue: "#19"
+  - snapshot: nsx-ambiq-sdk.json
+    at: [socs, apollo4l, facts, values, NSX_SEGGER_CPUFREQ]
+    rule: trace clock
+    reason: "am_hal_tpiu_enable clocks the TPIU from HFRC48; 96 MHz is J-Link's setting (#19)."
+    issue: "#19"
+  # apollo3 and apollo3p differences that are not data errors (#67).
+  - snapshot: zephyr.json
+    at: [boards, apollo3_evb, board, values, soc]
+    rule: board soc
+    reason: Zephyr names the Apollo3 Blue SoC apollo3_blue; nsx-ambiq-sdk and the catalog name it apollo3.
+    issue: "#129"
+  - snapshot: zephyr.json
+    at: [boards, apollo3p_evb, board, values, soc]
+    rule: board soc
+    reason: Zephyr names the Apollo3 Blue Plus SoC apollo3p_blue; nsx-ambiq-sdk and the catalog name it apollo3p.
+    issue: "#129"
+  - snapshot: zephyr.json
+    at: [boards, apollo3p_evb, devicetree, memory, /memory@52000000]
+    rule: region containment
+    reason: &xipmm >-
+      An MSPI read/write (XIPMM) aperture, external memory (DS-A3P p82). The Zephyr check
+      looks apertures up by Zephyr's SoC name, apollo3p_blue, which matches no SDK Soc;
+      and apollo3p's register header gives only the XIPMM base, with no end define.
+      Both must change before these entries can go.
+    issue: "#129"
+  - snapshot: zephyr.json
+    at: [boards, apollo3p_evb, devicetree, memory, /memory@54000000]
+    rule: region containment
+    reason: *xipmm
+    issue: "#129"
+  - snapshot: zephyr.json
+    at: [boards, apollo3p_evb, devicetree, memory, /memory@56000000]
+    rule: region containment
+    reason: *xipmm
+    issue: "#129"
+  # The catalog's trace clock is the physical TPIU clock, HFRC/8 (measured on apollo3p_evb
+  # on #67; apollo3's is the HAL's setting, unverified). NSX_SEGGER_CPUFREQ is the HFRC,
+  # which J-Link's Apollo3 support divides by 8.
+  - snapshot: nsx-ambiq-sdk.json
+    at: [socs, apollo3, facts, values, NSX_SEGGER_CPUFREQ]
+    rule: trace clock
+    reason: "The TPIU clock is HFRC/8, 6 MHz, the clock the HAL selects; it is not measured on apollo3, only on apollo3p (#67). NSX_SEGGER_CPUFREQ's 48 MHz is the HFRC J-Link expects."
     issue: "#67"
   - snapshot: nsx-ambiq-sdk.json
-    at: [socs, apollo3p]
-    rule: in the catalog
-    reason: apollo3 and apollo3p's data lands with #67.
-    issue: "#67"
-  - snapshot: zephyr.json
-    at: [boards, apollo3_evb]
-    rule: in the catalog
-    reason: apollo3 and apollo3p's data lands with #67.
-    issue: "#67"
-  - snapshot: zephyr.json
-    at: [boards, apollo3p_evb]
-    rule: in the catalog
-    reason: apollo3 and apollo3p's data lands with #67.
+    at: [socs, apollo3p, facts, values, NSX_SEGGER_CPUFREQ]
+    rule: trace clock
+    reason: "The TPIU clock is HFRC/8, 6 MHz, measured on apollo3p_evb (#67); NSX_SEGGER_CPUFREQ's 48 MHz is the HFRC J-Link expects."
     issue: "#67"
   - snapshot: nsx-ambiq-sdk.json
     at: [socs, atomiq110, facts, values, NSX_SEGGER_CPUFREQ]
     rule: trace clock
     reason: >-
       atomiq110's NSX_SEGGER_CPUFREQ (25 MHz) is the FPGA image's clock, not a trace clock,
-      so the Soc records none. The FPGA's measured 48 MHz is on atomiq110_fpga (RFC 0002).
+      so the Soc records none. The FPGA's measured 50 MHz is on atomiq110_fpga (RFC 0002).
     issue: "#68"
-  # These stay as long as the catalog leaves apollo2 out.
+
+  # These stay as long as the catalog leaves apollo2 and apollo5b out.
   - snapshot: nsx-ambiq-sdk.json
     at: [socs, apollo2]
     rule: in the catalog
@@ -126,4 +127,11 @@ exceptions:
     at: [boards, apollo2_evb]
     rule: in the catalog
     reason: The catalog leaves apollo2 out, decided 2026-10-19 on #79.
+    issue: "#79"
+  - snapshot: nsx-ambiq-sdk.json
+    at: [socs, apollo5b]
+    rule: in the catalog
+    reason: >-
+      The catalog leaves apollo5b out, decided 2026-10-07 on #64: no datasheet, guide or
+      ordering number exists. #79 records the decision.
     issue: "#79"

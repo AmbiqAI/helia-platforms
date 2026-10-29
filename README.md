@@ -17,8 +17,15 @@ with side-loaded private catalogs, the structural and semantic validation, the
 catalog digest, the provenance checks, the resolver that consumers query
 (RFC 0002), and the CLI's `list`, `show`, `validate` and `export --schema`
 commands. The
-built-in data holds one Soc so far: apollo510, with its parts and the
-apollo510_evb board.
+built-in data grows one Soc family per data issue (#63 to #68);
+`helia-platforms list` prints what it holds.
+
+## Upgrade notes
+
+- apollo510b_evb's `jlink_device` is `AP510BFA-CBR`, the Apollo510B ordering
+  number, which SEGGER lists as its own J-Link device. SEGGER added it in J-Link
+  V8.94 (2025-12-10), so update an older J-Link, or pass the SDK's default
+  `AP510NFA-CBR` yourself.
 
 ## Quickstart
 

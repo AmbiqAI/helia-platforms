@@ -4,15 +4,18 @@ from __future__ import annotations
 
 import functools
 from collections.abc import Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields
 from types import MappingProxyType
 from typing import Literal, TypeVar
 
 from helia_platforms import model
+from helia_platforms._tree import segment
 from helia_platforms.catalog import Catalog, _expanded_access
 from helia_platforms.errors import PlatformError
 
 Kind = Literal["board", "part", "implementation", "soc"]
+#: Tiers that are not a PMU: DWT has a cycle counter and 8-bit profiling counters only.
+_NO_PMU = frozenset({"none", "dwt"})
 #: Technologies a region can hold non-volatile code in (``usable_nvm``).
 _NVM = frozenset({"mram", "rram", "flash", "nvm"})
 
@@ -50,6 +53,8 @@ class Target:
     addons: tuple[model.AddOn, ...]
     aliases: tuple[str, ...]
     boot: model.BootConfig | None
+    #: The implementation's and the board's interfaces, with modes the fitted add-ons narrow.
+    interfaces: Mapping[str, model.MemoryInterface]
     _catalog: Catalog = field(repr=False, compare=False)
     _devices: tuple[tuple[model.MemoryInterface, model.MemoryDevice], ...] = field(
         default=(), repr=False, compare=False
@@ -94,7 +99,7 @@ class Target:
             supports_fp16=options.mve == "fp",
             supports_fp32=options.fpu != "none",
             supports_fp64=options.fpu_dp,
-            has_pmu=ip.pmu != "none",
+            has_pmu=ip.pmu not in _NO_PMU,
             pmu_kind=ip.pmu,
         )
 
@@ -147,12 +152,31 @@ class Target:
                 attachment="external",
                 size=device.capacity,
                 base=interface.aperture_base,
+                alternate_bases=interface.alternate_bases,
                 characterization=device.characterization,
                 provenance=device.provenance,
-                field_provenance=device.field_provenance,
+                field_provenance=MappingProxyType(
+                    {**_region_records(device), **self._window_records(interface, device)}
+                ),
             )
             regions.append((region, interface.controller))
         return tuple(regions)
+
+    def _window_records(
+        self, interface: model.MemoryInterface, device: model.MemoryDevice
+    ) -> dict[str, model.Provenance]:
+        """The interface owner's records for a device region's base and alternate bases."""
+        impl = self.implementation
+        owner = impl if impl and impl.interfaces.get(interface.name) is interface else self.board
+        if owner is None or interface.aperture_base is None:
+            return {}
+        at = ("interfaces", interface.name)
+        paths = {"base": (*at, "aperture_base")} | {
+            f"alternate_bases.{segment(b)}": (*at, "alternate_bases", segment(b))
+            for b in interface.alternate_bases
+        }
+        records = {key: _record(owner, path) for key, path in paths.items()}
+        return {key: r for key, r in records.items() if r != device.provenance}
 
     def external_memories(self) -> tuple[model.MemoryRegion, ...]:
         """Devices the board and its add-ons populate, at their interfaces' aperture bases."""
@@ -162,9 +186,17 @@ class Target:
         return any(technology in (None, r.technology) for r in self.external_memories())
 
     def memories(self, core: int | str = 0) -> tuple[model.MemoryRegion, ...]:
-        """Regions ``core`` has a ``direct`` entry for, then external regions it reaches."""
+        """Regions ``core`` has a ``direct`` entry for, then external regions it reaches.
+
+        An entry with ``guidance: discouraged`` is left out, so no budget or placement
+        counts that region; ``reachable()`` still returns the entry.
+        """
         master = self._core(core).id
-        direct = {a.target for a in self._access if a.master == master and a.access == "direct"}
+        direct = {
+            a.target
+            for a in self._access
+            if a.master == master and a.access == "direct" and a.guidance != "discouraged"
+        }
         own = tuple(r for r in self.soc.memories if r.name in direct)
         return own + tuple(r for r, controller in self._external if controller in direct)
 
@@ -283,14 +315,25 @@ class Target:
             raise PlatformError(f"{self.id}: region {start.region!r} has no base")
         return base + start.offset
 
+    @property
+    def image_slots(self) -> Mapping[str, model.ImageSlot]:
+        """The Soc's image slots, each replaced by the part's slot of the same name."""
+        own = self.part.image_slots if self.part else {}
+        return MappingProxyType({**self.soc.image_slots, **own})
+
     def usable_nvm(self, core: int | str = 0) -> Mapping[str, int]:
-        """Bytes per non-volatile region ``core`` reaches, less reservations and others' slots."""
+        """Bytes per non-volatile region ``core`` reaches, less reservations and others' slots.
+
+        Empty for a core only the vendor programs or with no loadable image
+        (``programmable_by`` unset), since no customer image goes there.
+        """
         instance = self._core(core)
+        if instance.programmable_by in (None, "vendor"):
+            return MappingProxyType({})
         taken: dict[str, int] = {}
         for reservation in self.boot.reserved if self.boot else ():
             taken[reservation.region] = taken.get(reservation.region, 0) + reservation.size
-        slots = self.part.image_slots.values() if self.part else ()
-        for slot in slots:
+        for slot in self.image_slots.values():
             if slot.core != instance.id:
                 taken[slot.region] = taken.get(slot.region, 0) + slot.size
         return MappingProxyType(
@@ -397,3 +440,29 @@ def _pick(items: tuple[_Unit, ...], key: int | str, missing: str) -> _Unit:
             if item.id == key.casefold():
                 return item
     raise PlatformError(f"{missing} {key!r}")
+
+
+_REGION_FIELDS = frozenset(f.name for f in fields(model.MemoryRegion))
+
+
+def _region_records(device: model.MemoryDevice) -> dict[str, model.Provenance]:
+    """``device``'s field records keyed by the region's paths: ``capacity`` becomes ``size``.
+
+    A device field the region lacks (``driver_family``, ``modes``) is left out.
+    """
+    records = {}
+    for key, record in device.field_provenance.items():
+        head, dot, rest = key.partition(".")
+        head = "size" if head == "capacity" else head
+        if head in _REGION_FIELDS:
+            records[head + dot + rest] = record
+    return records
+
+
+def _record(owner: model.Board | model.Implementation, path: tuple[str, ...]) -> model.Provenance:
+    """The record nearest ``path`` in ``owner``'s field provenance, else ``owner``'s own."""
+    for cut in range(len(path), 0, -1):
+        found = owner.field_provenance.get(".".join(path[:cut]))
+        if found is not None:
+            return found
+    return owner.provenance

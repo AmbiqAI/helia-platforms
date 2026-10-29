@@ -143,6 +143,8 @@ class _Builder:
                 )
             if item_hint is float:  # as for a plain float field below
                 return MappingProxyType({k: float(v) for k, v in value.items()})
+            if get_origin(item_hint) is tuple:
+                return MappingProxyType({k: tuple(v) for k, v in value.items()})
             return MappingProxyType(dict(value))
         if hint is float and isinstance(value, int):
             return float(value)

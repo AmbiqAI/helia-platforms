@@ -1,7 +1,32 @@
 # 0005. Gate PyPI publication and choose the path to public
 
 Date: 2026-10-05
-Status: Accepted
+Status: Accepted; amended 2026-10-29 (#77)
+
+## Amendment, 2026-10-29: PyPI from the private repository (#77)
+
+The owner decided on 2026-10-29, for the 0.1.0 release:
+
+- **Path (point 2, open question 3):** PyPI from the private repository,
+  starting with 0.1.0. This repository stays private; point 3 still
+  applies if the code goes public later.
+- **Review (open question 1):** the owner's audit of
+  `src/helia_platforms/data/` (point 2) is the only review before an
+  upload. No product or legal review is required.
+- **Token (open question 2):** not needed once 0.1.0 is on PyPI, since
+  private consumers install from PyPI like the public ones.
+- **Widened rule (open question 4):** confirmed. No unreleased Soc,
+  Implementation, Part, Board, AddOn or MemoryDevice enters this
+  repository, including a new board or add-on for a released Soc.
+- **Trusted publisher (open question 5):** an owner of the `AITG` PyPI
+  organization added it, as point 4 describes.
+
+Of point 4's steps before the first publish, the required reviewer on
+`pypi` does not apply while the repository is private (Context: the Team
+plan offers none). The data audit stays a precondition, and the variable
+is set to `true` after it. Point 4's other changes are made: every action
+is pinned by commit SHA, and a `build` job builds and tests the
+distributions that `publish` downloads and uploads.
 
 ## Context
 

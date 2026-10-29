@@ -1,7 +1,19 @@
 # 0002. Ship the catalogue as YAML data with a generated JSON Schema and a stdlib dataclass runtime
 
 Date: 2026-10-05
-Status: Accepted
+Status: Accepted; amended 2026-10-29 (#65)
+
+## Amendment, 2026-10-29: a Soc's image slots (#65)
+
+Section 2 changes as follows:
+
+- A Soc carries `image_slots` as a Part does, keyed by slot name with
+  `core` as a field, and has `image_slots_removed` under rule 3.
+- `Subset` gains `image_slots_removed`, which removes a Soc's image slot
+  for every Part of the Implementation.
+- A Part's `image_slots_removed` applies over its `based_on` Part only.
+  Naming a slot its Soc also carries is an error, because the Soc's slot
+  would take the removed one's place.
 
 ## Context
 

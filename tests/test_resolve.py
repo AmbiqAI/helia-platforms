@@ -4,7 +4,7 @@ import warnings
 import pytest
 
 import helia_platforms
-from conftest import as_builtin
+from conftest import RECORD, as_builtin
 from helia_platforms import (
     AmbiguousPlatform,
     PlatformError,
@@ -193,6 +193,49 @@ def test_memories_are_what_the_core_reaches_plus_populated_devices(catalog):
     assert resolve("soc_a", catalog=catalog).external_memories() == ()
 
 
+def test_an_interface_alias_is_the_device_regions_alternate_base(document):
+    document["boards"]["board_a"]["interfaces"]["mspi0"]["alternate_bases"] = [0x80000000]
+    target = resolve("board_a", catalog=quiet(document))
+    (psram,) = target.external_memories()
+    assert (psram.base, psram.alternate_bases) == (0x60000000, (0x80000000,))
+    assert target.placement_ranges()["psram0"] == (0x60000000, 8 * KB * KB)
+    assert target.classify_address(0x80000010) == "psram0"
+
+
+def test_an_interface_window_carries_the_boards_record_not_the_devices(document):
+    alias = {**RECORD, "source": ["doc:DS-OTHER@2.0:p2"]}
+    document["boards"]["board_a"]["provenance"] = RECORD
+    mspi0 = document["boards"]["board_a"]["interfaces"]["mspi0"]
+    mspi0["alternate_bases"] = {"value": [0x80000000], "provenance": alias}
+    (psram,) = resolve("board_a", catalog=quiet(document)).external_memories()
+    assert psram.provenance.status == "unverified"  # the device's record
+    assert psram.field_provenance["base"].source == tuple(RECORD["source"])
+    assert psram.field_provenance["alternate_bases.0x80000000"].source == tuple(alias["source"])
+
+
+def test_an_external_region_keys_the_devices_records_by_its_own_fields(document):
+    measured = {**RECORD, "status": "measured", "source": ["meas:board_a/psram/2026-10-01"]}
+    psram = document["memory_devices"]["psram_8m"]
+    psram["capacity"] = {"value": psram["capacity"], "provenance": measured}
+    psram["driver_family"] = {"value": "aps", "provenance": measured}
+    (region,) = resolve("board_a", catalog=quiet(document)).external_memories()
+    assert region.field_provenance["size"].status == "measured"
+    assert {"capacity", "driver_family"}.isdisjoint(region.field_provenance)
+
+
+def test_a_discouraged_entry_stays_out_of_memories_and_placement(document):
+    soc = document["socs"]["soc_a"]
+    soc["access"].append(
+        {"master": "cm55_0", "target": "tcm", "access": "direct", "guidance": "discouraged"}
+    )
+    target = resolve("board_a", catalog=quiet(document))
+    assert [r.name for r in target.memories()] == ["ssram", "nvm", "psram0"]
+    assert "tcm" not in target.placement_ranges()
+    entry = target.reachable("cm55_0", "tcm")
+    assert entry is not None and entry.guidance == "discouraged"
+    assert target.classify_address(0x20000000) == "tcm"
+
+
 def test_placement_leaves_out_an_external_device_with_no_base(document):
     del document["boards"]["board_a"]["interfaces"]["mspi0"]["aperture_base"]
     target = resolve("board_a", catalog=quiet(document))
@@ -295,8 +338,10 @@ def test_an_explicit_boot_wins_and_warns_when_it_differs(catalog):
         resolve("board_a", boot="xbl", catalog=catalog)
 
 
-def test_usable_nvm_leaves_out_other_cores_image_slots(document):
-    document["socs"]["soc_a"]["cores"].append(
+def add_vendor_radio(document):
+    """A vendor-programmed radio core; both cores get the nvm entries its slots need."""
+    soc = document["socs"]["soc_a"]
+    soc["cores"].append(
         {
             "id": "radio_m4",
             "role": "radio",
@@ -306,16 +351,62 @@ def test_usable_nvm_leaves_out_other_cores_image_slots(document):
             "programmable_by": "vendor",
         }
     )
-    slot = {
+    for master in ("cm55_0", "radio_m4"):
+        soc["access"].append({"master": master, "target": "nvm", "access": "direct"})
+
+
+def radio_slot(offset, size):
+    return {
         "core": "radio_m4",
         "region": "nvm",
-        "offset": "3M",
-        "size": "432K",
+        "offset": offset,
+        "size": size,
         "supplier": "vendor",
     }
-    document["parts"]["PART-A"]["image_slots"] = {"radio": slot}
+
+
+def test_usable_nvm_leaves_out_other_cores_image_slots(document):
+    add_vendor_radio(document)
+    document["parts"]["PART-A"]["image_slots"] = {"radio": radio_slot("3M", "432K")}
     target = resolve("board_a", catalog=quiet(document))
     assert dict(target.usable_nvm()) == {"nvm": 4 * KB * KB - 64 * KB - 432 * KB}
+    assert dict(target.usable_nvm("radio_m4")) == {}  # only the vendor programs it
+
+
+def test_a_soc_image_slot_applies_to_the_bare_soc_unless_the_part_replaces_it(document):
+    add_vendor_radio(document)
+    document["socs"]["soc_a"]["image_slots"] = {"radio": radio_slot("4080K", "16K")}
+    catalog = quiet(document)
+    soc_nvm = dict(resolve("soc_a", catalog=catalog).usable_nvm())
+    assert soc_nvm == {"nvm": 4 * KB * KB - 64 * KB - 16 * KB}
+    document["parts"]["PART-A"]["image_slots"] = {"radio": radio_slot("3M", "432K")}
+    target = resolve("board_a", catalog=quiet(document))
+    assert dict(target.usable_nvm()) == {"nvm": 4 * KB * KB - 64 * KB - 432 * KB}
+
+
+@pytest.mark.parametrize("pmu", ["dwt", "none"])
+def test_a_core_with_no_pmu_tier_reports_no_pmu(document, pmu):
+    document["cores"]["cortex-m4"]["pmu"] = pmu
+    document["socs"]["soc_a"]["cores"][0]["core"] = "cortex-m4"
+    document["socs"]["soc_a"]["cores"][0]["options"] = {"fpu": "fpv4-sp-d16", "mve": "none"}
+    target = resolve("board_a", catalog=quiet(document))
+    assert (target.isa().has_pmu, target.isa().pmu_kind) == (False, pmu)
+    assert "pmu" not in target.capabilities
+
+
+@pytest.mark.parametrize(
+    ("programmable_by", "free"), [("either", 4032), ("vendor", None), (None, None)]
+)
+def test_usable_nvm_is_empty_for_a_core_no_customer_programs(document, programmable_by, free):
+    """RFC 0002 multicore: an unset programmable_by is a core with no loadable image."""
+    add_vendor_radio(document)
+    radio = document["socs"]["soc_a"]["cores"][1]
+    del radio["programmable_by"]
+    if programmable_by is not None:
+        radio["programmable_by"] = programmable_by
+    target = resolve("board_a", catalog=quiet(document))
+    expected = {} if free is None else {"nvm": free * KB}
+    assert dict(target.usable_nvm("radio_m4")) == expected
 
 
 def test_debug_facts_fall_back_from_board_to_part(document):

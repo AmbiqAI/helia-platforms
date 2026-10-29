@@ -27,156 +27,231 @@ allowed:
       RAM budgets are physical sizes: DTCM goes from the nsx gcc nbl script's 507904
       bytes to the physical 524288 (0002-migration.md, heliaAOT budgets).
     issue: "#28"
-  # Targets the catalog does not resolve yet; each data PR removes its own.
+  - consumer: helia-aot
+    target: apollo510b_evb
+    field: memories.DTCM
+    reason: >-
+      RAM budgets are physical sizes: DTCM goes from the nsx gcc sbl script's 507904
+      bytes to the physical 524288 (0002-migration.md, heliaAOT budgets).
+    issue: "#28"
+  - consumer: neuralspotx
+    target: apollo510b_evb
+    field: jlink_device
+    reason: >-
+      neuralspotx sets no board override, so it uses the SDK's Soc-level AP510NFA-CBR
+      (facts/apollo510b.cmake:52). The catalog records the part, AP510BFA-CBR, which
+      J-Link has listed since V8.94; #19 tracks the J-Link name checks.
+    issue: "#19"
+  - consumer: helia-aot
+    target: apollo4p_evb
+    field: memories.SRAM
+    reason: >-
+      RAM budgets are physical sizes: SRAM goes from the nsx scripts' 1048576 bytes
+      (SSRAM0 only) to 2490368, SSRAM0, extended RAM and SSRAM1 (0002-migration.md,
+      heliaAOT budgets).
+    issue: "#28"
+  - consumer: helia-aot
+    target: apollo4p_blue_kbr_evb
+    field: memories.SRAM
+    reason: >-
+      RAM budgets are physical sizes: SRAM goes from the nsx scripts' 1048576 bytes
+      (SSRAM0 only) to 2490368, SSRAM0, extended RAM and SSRAM1 (0002-migration.md,
+      heliaAOT budgets).
+    issue: "#28"
+  - consumer: helia-aot
+    target: apollo4p_blue_kxr_evb
+    field: memories.SRAM
+    reason: >-
+      RAM budgets are physical sizes: SRAM goes from the nsx scripts' 1048576 bytes
+      (SSRAM0 only) to 2490368, SSRAM0, extended RAM and SSRAM1 (0002-migration.md,
+      heliaAOT budgets).
+    issue: "#28"
+  - consumer: helia-aot
+    target: apollo4p_evb
+    field: memories.MRAM
+    reason: >-
+      MRAM goes from 2048000 bytes, which no source gives, to usable_nvm() 1998848: the
+      2 MB MRAM less the 96K below the 0x18000 application start (0002-migration.md,
+      heliaAOT budgets).
+    issue: "#28"
+  - consumer: helia-aot
+    target: apollo4p_blue_kbr_evb
+    field: memories.MRAM
+    reason: >-
+      MRAM goes from 2048000 bytes, which no source gives, to usable_nvm() 1998848: the
+      2 MB MRAM less the 96K below the 0x18000 application start (0002-migration.md,
+      heliaAOT budgets).
+    issue: "#28"
+  - consumer: helia-aot
+    target: apollo4p_blue_kxr_evb
+    field: memories.MRAM
+    reason: >-
+      MRAM goes from 2048000 bytes, which no source gives, to usable_nvm() 1998848: the
+      2 MB MRAM less the 96K below the 0x18000 application start (0002-migration.md,
+      heliaAOT budgets).
+    issue: "#28"
+  - consumer: helia-aot
+    target: apollo4l_evb
+    field: memories.MRAM
+    reason: >-
+      MRAM goes from 2048000 bytes, which no source gives, to usable_nvm() 1998848: the
+      2 MB MRAM less the 96K below the 0x18000 application start (0002-migration.md,
+      heliaAOT budgets).
+    issue: "#28"
+  - consumer: helia-aot
+    target: apollo4l_blue_evb
+    field: memories.MRAM
+    reason: >-
+      MRAM goes from 2048000 bytes, which no source gives, to usable_nvm() 1998848: the
+      2 MB MRAM less the 96K below the 0x18000 application start (0002-migration.md,
+      heliaAOT budgets).
+    issue: "#28"
+  - consumer: neuralspotx
+    target: apollo4p_evb
+    field: trace_clock_mhz
+    reason: >-
+      The trace clock is the 48 MHz TPIU clock am_hal_tpiu_enable selects (HFRC48), not
+      NSX_SEGGER_CPUFREQ's 96 MHz J-Link setting (decided on #66).
+    issue: "#19"
+  - consumer: neuralspotx
+    target: apollo4p_evb_disp_shield_rev2
+    field: trace_clock_mhz
+    reason: >-
+      The trace clock is the 48 MHz TPIU clock am_hal_tpiu_enable selects (HFRC48), not
+      NSX_SEGGER_CPUFREQ's 96 MHz J-Link setting (decided on #66).
+    issue: "#19"
+  - consumer: neuralspotx
+    target: apollo4p_blue_kbr_evb
+    field: trace_clock_mhz
+    reason: >-
+      The trace clock is the 48 MHz TPIU clock am_hal_tpiu_enable selects (HFRC48), not
+      NSX_SEGGER_CPUFREQ's 96 MHz J-Link setting (decided on #66).
+    issue: "#19"
+  - consumer: neuralspotx
+    target: apollo4p_blue_kxr_evb
+    field: trace_clock_mhz
+    reason: >-
+      The trace clock is the 48 MHz TPIU clock am_hal_tpiu_enable selects (HFRC48), not
+      NSX_SEGGER_CPUFREQ's 96 MHz J-Link setting (decided on #66).
+    issue: "#19"
+  - consumer: neuralspotx
+    target: apollo4l_evb
+    field: trace_clock_mhz
+    reason: >-
+      The trace clock is the 48 MHz TPIU clock am_hal_tpiu_enable selects (HFRC48), not
+      NSX_SEGGER_CPUFREQ's 96 MHz J-Link setting (decided on #66).
+    issue: "#19"
+  - consumer: neuralspotx
+    target: apollo4l_blue_evb
+    field: trace_clock_mhz
+    reason: >-
+      The trace clock is the 48 MHz TPIU clock am_hal_tpiu_enable selects (HFRC48), not
+      NSX_SEGGER_CPUFREQ's 96 MHz J-Link setting (decided on #66).
+    issue: "#19"
+  - consumer: helia-aot
+    target: apollo3_blue_evb
+    field: memories.MRAM
+    reason: &a3_mram >-
+      NVM budgets are usable_nvm(): 1048576 bytes of flash less the 48 KB below the
+      0xC000 application start, 999424 (0002-migration.md, heliaAOT budgets).
+    issue: "#28"
+  - consumer: helia-aot
+    target: apollo3_blue_thin_evb
+    field: memories.MRAM
+    reason: *a3_mram
+    issue: "#28"
+  - consumer: helia-aot
+    target: apollo3_evb
+    field: memories.MRAM
+    reason: *a3_mram
+    issue: "#28"
+  - consumer: helia-aot
+    target: apollo3_blue_plus_evb
+    field: memories.MRAM
+    reason: &a3p_mram >-
+      NVM budgets are usable_nvm(): 2097152 bytes of flash less the 48 KB below the
+      0xC000 application start, 2048000 (0002-migration.md, heliaAOT budgets).
+    issue: "#28"
+  - consumer: helia-aot
+    target: apollo3p_evb
+    field: memories.MRAM
+    reason: *a3p_mram
+    issue: "#28"
   - consumer: helia-aot
     target: apollo330mp_evb
-    field: target
-    reason: Not in the built-in data yet.
+    field: memories.DTCM
+    reason: >-
+      RAM budgets are physical sizes: DTCM goes from the nsx gcc sbl script's 245760
+      bytes to the physical 262144 (0002-migration.md, heliaAOT budgets).
+    issue: "#28"
+  - consumer: helia-aot
+    target: apollo330mp_evb
+    field: memories.MRAM
+    reason: >-
+      usable_nvm() leaves out the 432K NVM-M41 radio slot. The nsx window, 2031616 bytes
+      from 0x00410000 to the end of MRAM, already starts above the 64K SBL reservation and
+      runs into NVM-M41: 2031616 - 442368 = 1589248.
     issue: "#65"
   - consumer: helia-aot
     target: apollo510l_evb
-    field: target
-    reason: Not in the built-in data yet.
+    field: memories.DTCM
+    reason: >-
+      RAM budgets are physical sizes: DTCM goes from the nsx gcc sbl script's 245760
+      bytes to the physical 262144 (0002-migration.md, heliaAOT budgets).
+    issue: "#28"
+  - consumer: helia-aot
+    target: apollo510l_evb
+    field: memories.MRAM
+    reason: >-
+      usable_nvm() leaves out the 432K NVM-M41 radio slot. The nsx window, 2031616 bytes
+      from 0x00410000 to the end of MRAM, already starts above the 64K SBL reservation and
+      runs into NVM-M41: 2031616 - 442368 = 1589248.
     issue: "#65"
-  - consumer: helia-aot
-    target: apollo3_blue_evb
-    field: target
-    reason: Not in the built-in data yet.
-    issue: "#67"
-  - consumer: helia-aot
-    target: apollo3_blue_plus_evb
-    field: target
-    reason: Not in the built-in data yet.
-    issue: "#67"
-  - consumer: helia-aot
-    target: apollo3_blue_thin_evb
-    field: target
-    reason: Not in the built-in data yet.
-    issue: "#67"
-  - consumer: helia-aot
-    target: apollo3_evb
-    field: target
-    reason: Not in the built-in data yet.
-    issue: "#67"
-  - consumer: helia-aot
-    target: apollo3p_evb
-    field: target
-    reason: Not in the built-in data yet.
-    issue: "#67"
-  - consumer: helia-aot
-    target: apollo4l_blue_evb
-    field: target
-    reason: Not in the built-in data yet.
-    issue: "#91"
-  - consumer: helia-aot
-    target: apollo4p_blue_kbr_evb
-    field: target
-    reason: Not in the built-in data yet.
-    issue: "#91"
-  - consumer: helia-aot
-    target: apollo4p_blue_kxr_evb
-    field: target
-    reason: Not in the built-in data yet.
-    issue: "#91"
-  - consumer: helia-aot
-    target: apollo4l_evb
-    field: target
-    reason: Not in the built-in data yet.
-    issue: "#66"
-  - consumer: helia-aot
-    target: apollo4p_evb
-    field: target
-    reason: Not in the built-in data yet.
-    issue: "#66"
-  - consumer: helia-aot
-    target: apollo510b_evb
-    field: target
-    reason: Not in the built-in data yet.
-    issue: "#64"
   # neuralspotx boards the catalog does not resolve yet; each data PR removes its own.
   - consumer: neuralspotx
-    target: apollo510b_evb
-    field: target
-    reason: >-
-      apollo510b's data lands with
-    issue: "#64"
-  - consumer: neuralspotx
-    target: apollo5b_evb
-    field: target
-    reason: >-
-      apollo5b is dropped (owner decision on
-    issue: "#64"
-  - consumer: neuralspotx
     target: apollo510dL_evb
-    field: target
+    field: jlink_device
     reason: >-
-      apollo510L and apollo330P's data lands with
-    issue: "#65"
+      neuralspotx uses the SDK's AP510DLA-CBR (facts/apollo510L.cmake:50), which
+      is not in SEGGER's stock database and failed on the bench; the catalog records no
+      J-Link device until an official name exists (#130).
+    issue: "#130"
   - consumer: neuralspotx
     target: apollo330mP_evb
-    field: target
+    field: jlink_device
     reason: >-
-      apollo510L and apollo330P's data lands with
-    issue: "#65"
-  - consumer: neuralspotx
-    target: apollo4p_evb
-    field: target
-    reason: >-
-      apollo4p and apollo4l's data lands with
-    issue: "#66"
-  - consumer: neuralspotx
-    target: apollo4l_evb
-    field: target
-    reason: >-
-      apollo4p and apollo4l's data lands with
-    issue: "#66"
-  - consumer: neuralspotx
-    target: apollo4p_evb_disp_shield_rev2
-    field: target
-    reason: >-
-      apollo4p and apollo4l's data lands with
-    issue: "#66"
-  - consumer: neuralspotx
-    target: apollo4l_blue_evb
-    field: target
-    reason: >-
-      The Apollo4 Blue boards' data lands with
-    issue: "#91"
-  - consumer: neuralspotx
-    target: apollo4p_blue_kbr_evb
-    field: target
-    reason: >-
-      The Apollo4 Blue boards' data lands with
-    issue: "#91"
-  - consumer: neuralspotx
-    target: apollo4p_blue_kxr_evb
-    field: target
-    reason: >-
-      The Apollo4 Blue boards' data lands with
-    issue: "#91"
+      neuralspotx's debug.cmake sets Apollo330P_510L, a custom device that only an
+      Ambiq device file defines; the catalog records no J-Link device until an official
+      name exists (#130).
+    issue: "#130"
   - consumer: neuralspotx
     target: apollo3_evb
-    field: target
+    field: trace_clock_mhz
     reason: >-
-      apollo3 and apollo3p's data lands with
+      The catalog's trace clock is the physical TPIU clock, HFRC/8, 6 MHz, the clock the
+      HAL selects; it is unverified on apollo3, measured only on apollo3p_evb (#67).
+      neuralspotx passes NSX_SEGGER_CPUFREQ, 48 MHz, the HFRC that J-Link's Apollo3
+      support divides by 8.
+    issue: "#67"
+  - consumer: neuralspotx
+    target: apollo3p_evb
+    field: trace_clock_mhz
+    reason: &a3p_trace >-
+      The catalog's trace clock is the physical TPIU clock, HFRC/8, 6 MHz, measured on
+      apollo3p_evb (#67). neuralspotx passes NSX_SEGGER_CPUFREQ, 48 MHz, the HFRC that
+      J-Link's Apollo3 support divides by 8.
+    issue: "#67"
+  - consumer: neuralspotx
+    target: apollo3p_evb_cygnus
+    field: trace_clock_mhz
+    reason: *a3p_trace
     issue: "#67"
   - consumer: neuralspotx
     target: apollo3_evb_cygnus
     field: target
     reason: >-
-      apollo3 and apollo3p's data lands with
-    issue: "#67"
-  - consumer: neuralspotx
-    target: apollo3p_evb
-    field: target
-    reason: >-
-      apollo3 and apollo3p's data lands with
-    issue: "#67"
-  - consumer: neuralspotx
-    target: apollo3p_evb_cygnus
-    field: target
-    reason: >-
-      apollo3 and apollo3p's data lands with
+      #67 leaves neuralspotx's Cygnus variant of apollo3_evb out: RFC 0001's review
+      excludes it, and its BSP defines no PSRAM.
     issue: "#67"
   - consumer: neuralspotx
     target: atomiq110_fpga_turbo
@@ -198,4 +273,11 @@ allowed:
     field: target
     reason: >-
       The catalog leaves apollo2 out, decided 2026-10-19 on
+    issue: "#79"
+  - consumer: neuralspotx
+    target: apollo5b_evb
+    field: target
+    reason: >-
+      The catalog leaves apollo5b out, decided 2026-10-07 on #64: no datasheet, guide or
+      ordering number exists. #79 records the decision.
     issue: "#79"

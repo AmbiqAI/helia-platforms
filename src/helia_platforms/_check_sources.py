@@ -26,7 +26,8 @@ SNAPSHOTTED = frozenset(
 #: The SDK's spellings of catalog values (``NSX_SOC_ARCH_CLASS``, ``NSX_SOC_PMU_TIER``).
 _ARCH = {"armv6_m": "armv6-m", "armv7e_m": "armv7e-m", "armv8_1m": "armv8.1-m"}
 _PMU = {"none": "dwt"}
-#: Each region's base and size defines in ``am_reg_base_addresses.h``, per Soc.
+#: Each region's base and size defines in ``am_reg_base_addresses.h``, per Soc; a size of
+#: ``""`` means the header has no size define for that region.
 REGISTERS: dict[str, dict[str, tuple[str, str]]] = {
     "apollo510": {
         "itcm": ("ITCM_BASEADDR", "ITCM_MAX_SIZE"),
@@ -34,6 +35,29 @@ REGISTERS: dict[str, dict[str, tuple[str, str]]] = {
         "ssram": ("SSRAM_BASEADDR", "SSRAM_MAX_SIZE"),
         "mram": ("MRAM_BASEADDR", "MRAM_MAX_SIZE"),
     },
+    "apollo4p": {
+        "tcm": ("TCM_BASEADDR", "TCM_MAX_SIZE"),
+        "ssram0": ("SSRAM0_BASEADDR", "SSRAM0_MAX_SIZE"),
+        "extram": ("EXTRAM_BASEADDR", "EXTRAM_MAX_SIZE"),
+        "ssram1": ("SSRAM1_BASEADDR", "SSRAM1_MAX_SIZE"),
+        "mram": ("MRAM_BASEADDR", "MRAM_MAX_SIZE"),
+    },
+    "apollo4l": {
+        "tcm": ("TCM_BASEADDR", "TCM_MAX_SIZE"),
+        "ssram0": ("SSRAM0_BASEADDR", "SSRAM0_MAX_SIZE"),
+        "mram": ("MRAM_BASEADDR", "MRAM_MAX_SIZE"),
+    },
+    **{
+        soc: {
+            "dtcm": ("DTCM_BASEADDR", "DTCM_MAX_SIZE"),
+            "ssram": ("SSRAM_BASEADDR", "SSRAM_MAX_SIZE"),
+            "mram": ("MRAM_BASEADDR", "MRAM_MAX_SIZE"),
+        }
+        for soc in ("apollo510L", "apollo330P")
+    },
+    # SRAM_BASEADDR is the start of TCM, not of the catalog's sram region, so it is left out.
+    "apollo3": {"tcm": ("TCM_BASEADDR", "TCM_MAX_SIZE"), "flash": ("FLASH_BASEADDR", "")},
+    "apollo3p": {"tcm": ("TCM_BASEADDR", "TCM_MAX_SIZE"), "flash": ("FLASH_BASEADDR", "")},
     # No ITCM define; the itcm region comes from the linker scripts (#68).
     "atomiq110": {
         "dtcm": ("DTCM_BASEADDR", "DTCM_MAX_SIZE"),
@@ -42,6 +66,14 @@ REGISTERS: dict[str, dict[str, tuple[str, str]]] = {
         "hblram": ("HBLRAM_BASEADDR", "HBLRAM_MAX_SIZE"),
     },
 }
+#: The ``am_hal_flash.h`` sizes Apollo3 states and the regions whose sizes add up to each;
+#: its SRAM size covers TCM and SRAM together.
+HAL_FLASH: dict[str, dict[str, tuple[str, ...]]] = {
+    soc: {"AM_HAL_FLASH_TOTAL_SIZE": ("flash",), "AM_HAL_FLASH_SRAM_SIZE": ("tcm", "sram")}
+    for soc in ("apollo3", "apollo3p")
+}
+#: apollo510b builds against mcu/apollo510, so its snapshot reads apollo510's header.
+REGISTERS["apollo510b"] = dict(REGISTERS["apollo510"])
 #: CMake's boolean constants, compared case-insensitively; a non-zero number is also true
 #: (CMake reads one with ``strtod``, so in decimal or hexadecimal).
 _CMAKE_TRUE = {"1", "ON", "YES", "TRUE", "Y"}
@@ -49,7 +81,9 @@ _CMAKE_FALSE = {"0", "OFF", "NO", "FALSE", "N", "IGNORE", "NOTFOUND", ""}
 _NUMBER = re.compile(r"[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?")
 _HEX = re.compile(r"[+-]?0[xX]([0-9a-fA-F]+\.?[0-9a-fA-F]*|\.[0-9a-fA-F]+)([pP][+-]?\d+)?")
 #: Apollo names its apertures MSPI<n>; atomiq110 names them XSPI<n>, with secure aliases (#120).
-_APERTURE = re.compile(r"^((?:MSPI|XSPI)\d+)_APERTURE_START(_SECURE)?_ADDR$")
+_APERTURE = re.compile(r"^((MSPI|XSPI)(\d+))_APERTURE_START(_SECURE)?_ADDR$")
+#: The controller id each aperture prefix belongs to: atomiq110's CMSIS blocks are XSPIMC<n>.
+_CONTROLLER = {"MSPI": "mspi", "XSPI": "xspimc"}
 _REPO = re.compile(r"^repo:(?P<repo>[^@]+)@(?P<rev>[^:]+):")
 MISSING = "in the catalog"
 
@@ -105,11 +139,15 @@ def check(catalog: Catalog, directory: Path) -> Result:
             used |= {id(e) for e in covers}  # an overlapping exception is in use too
         else:
             left.append(finding)
+    # Under an id the catalog lacks nothing is compared, so only a path the snapshot lacks is stale.
     stale = [
         e
         for e in exceptions
         if id(e) not in used
-        and not any(m.snapshot == e.snapshot and e.at[: len(m.at)] == m.at for m in missing)
+        and not (
+            _resolves(snapshots.get(e.snapshot), e.at)
+            and any(m.snapshot == e.snapshot and e.at[: len(m.at)] == m.at for m in missing)
+        )
     ]
     return Result(tuple(left), tuple(excepted), tuple(stale))
 
@@ -127,7 +165,7 @@ def load_exceptions(path: Path) -> list[Exception_]:
 def render(result: Result) -> str:
     lines = [f"{f.snapshot}: {'.'.join(f.at)}: {f.rule}: {f.message}" for f in result.findings]
     lines += [
-        f"{e.snapshot}: {'.'.join(e.at)}: {e.rule}: stale exception (compares equal)"
+        f"{e.snapshot}: {'.'.join(e.at)}: {e.rule}: stale exception (covers no finding)"
         for e in result.stale
     ]
     lines.append(
@@ -208,18 +246,43 @@ class _Comparison:
                 SDK, (*at, "NSX_SEGGER_PF_ADDR"), "flash load address", ours, int(address, 16)
             )
         yield from self.registers(name, block, soc)
+        yield from self.hal_flash(name, block, soc)
         yield from self.containment(
-            SDK, ("socs", name, "linker"), _linker_regions(block), soc, _apertures(block)
+            SDK, ("socs", name, "linker"), _linker_regions(block), soc, _apertures(block, soc)
         )
 
+    def hal_flash(self, name: str, block: Mapping[str, Any], soc: model.Soc) -> Iterator[Finding]:
+        """Each ``HAL_FLASH`` size against its regions; an absent define or region is a finding."""
+        defines = block.get("flash", {}).get("values", {})
+        sizes = {r.name: r.size for r in soc.memories}
+        for define, regions in HAL_FLASH.get(soc.id, {}).items():
+            at = ("socs", name, "flash", "values", define)
+            lacking = [r for r in regions if r not in sizes]
+            if define not in defines:
+                yield Finding(SDK, at, "flash header", f"the snapshot has no {define}")
+            elif lacking:
+                yield Finding(SDK, at, "flash header", _no_region(soc, lacking))
+            else:
+                ours = sum(sizes[r] for r in regions)
+                yield from _equal(SDK, at, "flash header", ours, defines[define])
+
     def registers(self, name: str, block: Mapping[str, Any], soc: model.Soc) -> Iterator[Finding]:
+        """Each ``REGISTERS`` define against its region; an absent define or region is a finding."""
         defines = block["registers"]["values"]
         at = ("socs", name, "registers", "values")
-        for region in soc.memories:
-            names = REGISTERS.get(soc.id, {}).get(region.name, ())
+        regions = {r.name: r for r in soc.memories}
+        for region_name, names in REGISTERS.get(soc.id, {}).items():
+            region = regions.get(region_name)
+            if region is None:
+                yield Finding(SDK, (*at, names[0]), "register", _no_region(soc, [region_name]))
+                continue
             for define, ours in zip(names, (region.base, region.size), strict=False):
-                if define in defines:
-                    yield from _equal(SDK, (*at, define), "register", ours, defines[define])
+                if not define:
+                    continue  # the header has no such define
+                if define not in defines:
+                    yield Finding(SDK, (*at, define), "register", f"{define} is not defined")
+                    continue
+                yield from _equal(SDK, (*at, define), "register", ours, defines[define])
 
     def containment(
         self,
@@ -231,11 +294,17 @@ class _Comparison:
     ) -> Iterator[Finding]:
         """Each region inside one gap-free run of physical regions, or an external aperture.
 
-        A region with no length (an unsized scatter execution region) is checked by its origin.
+        A region with no length or a zero one (an unsized or ``EMPTY 0`` scatter region) is
+        checked by its origin; a negative length is a finding.
         """
         runs = _runs(soc)
         for path, base, size in regions:
-            end = base + (1 if size is None else size)
+            if size is not None and size < 0:
+                yield Finding(
+                    snapshot, (*at, *path), "region containment", f"{base:#x} has length {size}"
+                )
+                continue
+            end = base + (size or 1)
             if any(lo <= base and end <= hi for lo, hi in apertures):
                 continue  # external memory, which ADR 0006 does not compare
             if not any(lo <= base and end <= hi for lo, hi in runs):
@@ -269,7 +338,7 @@ class _Comparison:
         nodes = block["devicetree"]["memory"]
         regions = [((node,), n["base"], n["size"]) for node, n in nodes.items()]
         sdk_name = self._sdk_name(soc)
-        apertures = _apertures(self.sdk[sdk_name]) if sdk_name is not None else []
+        apertures = _apertures(self.sdk[sdk_name], target.soc) if sdk_name is not None else []
         yield from self.containment(
             ZEPHYR, (*at, "devicetree", "memory"), regions, target.soc, apertures
         )
@@ -352,6 +421,19 @@ def _mhz(facts: Mapping[str, list[str]]) -> float | None:
     return whole if rest == 0 else int(hz) / 1_000_000
 
 
+def _resolves(data: Any, at: tuple[str, ...]) -> bool:
+    """True when every key of ``at`` is in ``data``, one level per key."""
+    for key in at:
+        if not isinstance(data, Mapping) or key not in data:
+            return False
+        data = data[key]
+    return True
+
+
+def _no_region(soc: model.Soc, names: Iterable[str]) -> str:
+    return f"the catalog's {soc.id} has no region {', '.join(map(repr, names))}"
+
+
 def _linker_regions(
     block: Mapping[str, Any],
 ) -> Iterator[tuple[tuple[str, ...], int, int | None]]:
@@ -361,17 +443,20 @@ def _linker_regions(
                 yield (toolchain, "scripts", script, region), r["origin"], r.get("length")
 
 
-def _apertures(block: Mapping[str, Any]) -> list[tuple[int, int]]:
-    """The memory-controller XIP apertures the register header defines, as ``[lo, hi)``.
+def _apertures(block: Mapping[str, Any], soc: model.Soc) -> list[tuple[int, int]]:
+    """The XIP apertures of ``soc``'s memory controllers that the header defines, as ``[lo, hi)``.
 
     ``*_APERTURE_END_ADDR`` is already exclusive: MSPI1's end is MSPI2's start. A secure
-    alias (``*_APERTURE_START_SECURE_ADDR``) is an aperture of its own.
+    alias (``*_APERTURE_START_SECURE_ADDR``) is an aperture of its own. A shared header's
+    aperture for a controller the Soc lacks (apollo510b's MSPI2 and MSPI3) is not external memory.
     """
     defines = block["registers"]["values"]
+    controllers = set(soc.memory_controllers)
     found = []
     for name, start in defines.items():
-        if match := _APERTURE.match(name):
-            end = f"{match[1]}_APERTURE_END{match[2] or ''}_ADDR"
+        match = _APERTURE.match(name)
+        if match and f"{_CONTROLLER[match[2]]}{match[3]}" in controllers:
+            end = f"{match[1]}_APERTURE_END{match[4] or ''}_ADDR"
             if end in defines:
                 found.append((start, defines[end]))
     return found

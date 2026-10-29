@@ -36,6 +36,8 @@ def helia_aot(target: Target) -> dict:
         ):  # out of the budget until its technology and reach are confirmed (#19)
             continue
         kind = region.name.upper() if region.attachment == "tcm" else "SRAM"
+        # heliaAOT's name for Apollo3's and Apollo4's one data TCM.
+        kind = "DTCM" if kind == "TCM" else kind
         memories[kind] = memories.get(kind, 0) + region.size
     psram = [r.size for r in target.external_memories() if r.technology == "psram"]
     if psram:

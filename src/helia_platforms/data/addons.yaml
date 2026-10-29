@@ -1,0 +1,96 @@
+# yaml-language-server: $schema=../schema/helia-platforms-v1.schema.json
+# Add-ons shared across boards (ADR 0002 section 1).
+schema_version: 1
+addons:
+  apollo4p_disp_shield:
+    release_status: public
+    revision:
+      value: "1"
+      provenance:
+        status: datasheet
+        source: ["doc:QS-A4PDK@1.2:p18"]
+        verified_on: 2026-10-08
+        verified_by: evanchen11
+        notes: >-
+          "AMAP4PDISP EVB Rev. 2 / Shield Rev. 1". The _rev2 in the legacy board id
+          apollo4p_evb_disp_shield_rev2 is the EVB revision, not the shield's (decided on #66).
+    fits_boards: [apollo4p_evb]
+    occupies: [mspi0, mspi1, mspi2]
+    population:
+      mspi0: APS256XXN
+      mspi1: IS25WX064
+    modes:
+      mspi0:
+        value: [octal-ddr]
+        provenance:
+          status: datasheet
+          source: ["doc:QS-A4PDK@1.2:p10", "doc:QS-A4PDK@1.2:p11", "doc:DS-A4P@1.6.0:p115"]
+          verified_on: 2026-10-28
+          verified_by: evanchen11
+          notes: >-
+            The shield populates the MSPI1 flash, so MSPI0 runs octal: "when using MSPI0 in
+            hex mode, MSPI1 cannot be used" (DS-A4P p115). QS-A4PDK p10 draws hex to the
+            PSRAM only: "MSPI1 is not used in this configuration"; p11 draws both octal. #139
+            tracks modelling both GPIO34 settings; until then no target with the shield
+            fitted offers hex mode.
+      mspi1:
+        value: [octal-ddr]
+        provenance:
+          status: datasheet
+          source: ["doc:QS-A4PDK@1.2:p12"]
+          verified_on: 2026-10-28
+          verified_by: evanchen11
+          notes: The shield's MSPI1 flash is "Octal-SPI DDR-enabled".
+    provenance:
+      status: datasheet
+      source:
+        - "doc:QS-A4PDK@1.2:p6"
+        - "doc:QS-A4PDK@1.2:p10"
+        - "doc:QS-A4PDK@1.2:p11"
+        - "doc:QS-A4PDK@1.2:p12"
+      verified_on: 2026-10-08
+      verified_by: evanchen11
+      notes: >-
+        The Apollo4 Plus Display Kit's shield; the kit, "part number AMAP4PDISP" (p6), is the
+        EVB with the shield (names.yaml). It is "only compatible with the (non-blue) Apollo4
+        Plus EVB", revision 2 or later (p10), which fits_boards cannot say (#138). GPIO34
+        selects MSPI0 hex to the PSRAM only (p10), or MSPI0 and MSPI1 octal to the PSRAM and
+        the flash (p11); the population is the octal setting, and #139 tracks the hex one.
+        Both figures wire the display to Quad-MSPI2, a figure label only. The 4 GB eMMC
+        THGBMNG5D1LBAIT (p12) is not modelled (#137).
+  cygnus:
+    release_status: public
+    fits_boards: [apollo3p_evb]
+    occupies: [mspi1]
+    population:
+      mspi1:
+        value: APS6404L
+        provenance:
+          status: sdk
+          source:
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/boards/apollo3p_evb_cygnus/bsp/am_bsp_pins.h:966-1011"
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/boards/apollo3p_evb_cygnus/bsp/am_bsp.h:118"
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-psram/CMakeLists.txt:21-29"
+            - "repo:zephyrproject-rtos/zephyr@8f62a4ab82b5c2121c088842d3233f75b603ce35:samples/drivers/memc/boards/apollo3p_evb.overlay:34-35"
+            - "repo:zephyrproject-rtos/zephyr@8f62a4ab82b5c2121c088842d3233f75b603ce35:samples/drivers/memc/boards/apollo3p_evb.overlay:73-105"
+          verified_on: 2026-10-28
+          verified_by: evanchen11
+          notes: >-
+            The cygnus BSP wires a PSRAM to MSPI1 (CE0 pad 69, D0-D3 and SCK pads 51-54 and
+            59) with AM_BSP_MSPI_PSRAM_INST 1, and nsx-psram builds its APS6404L driver for
+            the board. Zephyr's PSRAM sample wires an APS6404L (:34-35) on the same pads,
+            and D4-D7 on pads 55-58 (:73-105). Wired, not confirmed fitted (#19).
+    provenance:
+      status: sdk
+      source:
+        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/boards/apollo3p_evb_cygnus/bsp/am_bsp_pins.h:223"
+        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/boards/apollo3p_evb_cygnus/bsp/am_bsp_pins.h:917-941"
+        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/boards/apollo3p_evb_cygnus/bsp/am_bsp_pins.h:966"
+        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/boards/apollo3p_evb_cygnus/bsp/am_bsp.h:118"
+      verified_on: 2026-10-26
+      verified_by: evanchen11
+      notes: >-
+        The BSP describes "the Cygnus board's FTDI device" apart from "the EVB's FTDI
+        device" (:223, the FT_BRIDGE pins :917-941), and its PSRAM "using MSPI1" (:966,
+        AM_BSP_MSPI_PSRAM_INST 1). No document for it is in the register, and its
+        revision is not known.

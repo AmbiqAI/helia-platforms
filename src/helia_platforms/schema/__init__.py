@@ -53,9 +53,11 @@ class _Generator:
             return {}
         schema = self.plain(bare, markers, facts)
         if facts and _walk.is_scalar_like(tp):
+            # Inside a wrapper nothing is wrapped again, as the loader checks it (#140).
+            inner = self.plain(bare, markers, facts=False)
             wrapper = {
                 "type": "object",
-                "properties": {"value": schema, "provenance": self.ref(fmt.Provenance)},
+                "properties": {"value": inner, "provenance": self.ref(fmt.Provenance)},
                 "required": ["value", "provenance"],
                 "additionalProperties": False,
             }
@@ -91,7 +93,8 @@ class _Generator:
             schema: dict[str, Any] = {"type": "array", "items": self.field_schema(item_tp, facts)}
             if fmt.BY_VALUE in markers:
                 schema["uniqueItems"] = True
-            return schema
+            minimum = _walk.marker(markers, fmt.Minimum)
+            return {**schema, **({"minItems": minimum.value} if minimum else {})}
         if bare is str:
             pattern = _walk.marker(markers, fmt.Pattern)
             return {"type": "string", **({"pattern": pattern.regex} if pattern else {})}

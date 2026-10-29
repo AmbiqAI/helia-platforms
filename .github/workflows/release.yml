@@ -17,33 +17,58 @@ jobs:
       release_created: ${{ steps.release.outputs.release_created }}
       tag_name: ${{ steps.release.outputs.tag_name }}
     steps:
-      - uses: googleapis/release-please-action@v4
+      - uses: googleapis/release-please-action@5c625bfb5d1ff62eadeeb3772007f7f66fdcf071 # v4.4.1
         id: release
         with:
           release-type: python
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
-  # Uploads to PyPI only once the repository variable is set (#5); until then a
-  # release creates the tag and GitHub release only.
-  publish:
+  # Builds and checks the distributions once; publish uploads these same files (ADR 0005, point 4).
+  build:
     needs: release-please
-    if: ${{ needs.release-please.outputs.release_created == 'true' && vars.HELIA_PLATFORMS_PYPI_PUBLISH == 'true' }}
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
     runs-on: ubuntu-latest
-    environment: pypi
-    permissions:
-      contents: read
-      id-token: write
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
           ref: ${{ needs.release-please.outputs.tag_name }}
-      - uses: astral-sh/setup-uv@v6
-        with:
-          enable-cache: true
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
       # --frozen, not --locked: release-please bumps pyproject.toml but not the
       # project's own version in uv.lock, which --locked would reject.
       - run: uv sync --frozen --group dev
+      - name: Check that the tag names the package version
+        env:
+          TAG: ${{ needs.release-please.outputs.tag_name }}
+        run: |
+          version=$(python3 -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')
+          if [ "$TAG" != "v$version" ]; then echo "tag $TAG is not v$version"; exit 1; fi
+      - run: uv build --out-dir dist
       - run: uv run --frozen pytest tests/test_distributions.py
-      - run: uv build
-      - uses: pypa/gh-action-pypi-publish@release/v1
+        env:
+          HELIA_PLATFORMS_TEST_DIST: dist
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: python-distributions
+          path: dist/
+          if-no-files-found: error
+          retention-days: 7
+
+  # Uploads to PyPI only once the repository variable is set (#5); until then a
+  # release creates the tag and GitHub release only.
+  publish:
+    needs: [release-please, build]
+    if: ${{ needs.release-please.outputs.release_created == 'true' && vars.HELIA_PLATFORMS_PYPI_PUBLISH == 'true' }}
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/helia-platforms
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: python-distributions
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
