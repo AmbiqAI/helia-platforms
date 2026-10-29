@@ -323,7 +323,7 @@ def test_an_xspi_aperture_and_its_secure_alias_are_external_memory():
 
 @pytest.mark.parametrize(("soc", "reported"), [("apollo510", False), ("apollo510b", True)])
 def test_only_the_socs_own_controllers_have_external_memory(snapshots, soc, reported):
-    """apollo510b reads apollo510's header, but its MSPI2 window is Reserved (DS-A510B p35)."""
+    """apollo510b reads apollo510's header, but its MSPI2 and MSPI3 windows are Reserved (p35)."""
 
     def change(data):
         scripts = data["socs"][soc]["linker"]["gcc"]["scripts"]
