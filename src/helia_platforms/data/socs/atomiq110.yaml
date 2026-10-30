@@ -73,10 +73,7 @@ socs:
                 - "url:https://github.com/AmbiqAI/helia-platforms/pull/133#discussion_r4415132274"
               verified_on: 2026-10-29
               verified_by: evanchen11
-              notes: >-
-                mbhssain ran MVE-I and MVE-F on the FPGA, on or before 2026-10-29. The CMSIS
-                header's MCUCTRL SKU field fuses no MVE, integer MVE or integer and floating
-                point MVE per SKU (atomiq110.h:117106-117110 at nsx-ambiq-sdk v5.2.26).
+              notes: mbhssain ran MVE-I and MVE-F on the FPGA, on or before 2026-10-29.
           icache_kb:
             value: 64
             provenance: &cm55_caches
