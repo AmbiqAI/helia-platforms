@@ -15,8 +15,10 @@ apollo510, apollo510b, apollo510L, apollo330P and atomiq110, with their parts
 and boards; `helia-platforms list` prints what it holds. The file format, the
 Python API and the CLI may change between 0.x releases.
 
-Linker windows are not catalog content: they belong to an optional dataset of
-link environments that ships separately.
+Linker windows, the regions an SDK's linker scripts declare, are not in this
+package. It gives the hardware facts they sit within: physical memory regions,
+boot reservations, image slots and the NVM left for an application
+(`Target.usable_nvm()`).
 
 ## Install
 
