@@ -2559,18 +2559,24 @@
             }
           ]
         },
-        "burst_bytes": {
+        "max_beats": {
           "anyOf": [
             {
-              "type": "integer",
-              "minimum": 0
+              "enum": [
+                64,
+                128,
+                256
+              ]
             },
             {
               "type": "object",
               "properties": {
                 "value": {
-                  "type": "integer",
-                  "minimum": 0
+                  "enum": [
+                    64,
+                    128,
+                    256
+                  ]
                 },
                 "provenance": {
                   "$ref": "#/$defs/Provenance"

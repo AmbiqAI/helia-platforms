@@ -188,14 +188,15 @@ Definitions, queries and an example are in [0002-multicore.md](0002-multicore.md
 `size`, `base`, optional `alternate_bases` where the silicon aliases the
 region, `executable`, `writeable`, `cacheable`, optional
 `characterization` (read and write latency, ports, max outstanding reads
-and writes per port, burst, bandwidth) each value with provenance: latency, bandwidth and
+and writes per port, `max_beats`, bandwidth) each value with provenance: latency, bandwidth and
 ports only. The package carries no energy data; the estimator's energy
 coefficients stay in helia-estimator. Characterization is hardware: the
 path's limits, as the SoC or IP documentation states them or as measured,
-such as the Ethos-U85's per-port outstanding reads and writes. Outstanding
-and burst limits a driver programs (the Ethos-U `AXI_SRAM` and `AXI_EXT`
-registers) and values fitted to make a model match captures are the
-setting or fit of the tool that owns them, such as helia-npu, not facts here.
+such as the Ethos-U85's per-port outstanding reads and writes. `max_beats`
+is the burst split in bytes (64, 128 or 256) the path calls for, named after
+the Ethos-U `AXI_SRAM` and `AXI_EXT` field, such as atomiq110's 128-byte SRAM
+stripe. Values fitted to make a model match captures are the fit of the tool
+that owns them, such as helia-npu, not facts here.
 
 An overlay region may omit `base` (size only, no `based_on`, as RFC 0001
 appendix E allowed). Such a region is excluded from the bounds and overlap
@@ -264,14 +265,15 @@ neuralspotx and helia-profiler use) carrying Implementation
 
 - Clocks: each FPGA domain point overrides the Soc's point of the same
   name at the silicon clock divided by 10 (the helia-estimator owner,
-  2026-10-27, #68). CPU `lp` is 25 MHz, status `sdk`: the HAL is built for
-  `ATOMIQ11X_FPGA 25` (`mcu/atomiq110/am_mcu_apollo.h:85-87`). CPU `ulp`
-  10 and `hp` 50 MHz and NPU `ulp` 10 and `hp` 50 MHz are `unverified`; a
-  reviewer selected the CPU's three modes on the FPGA and read each back
-  (review of #133). All six system points keep the Soc's names, and the
-  default `lp_ulp` is 25 MHz CPU and 10 MHz NPU. nsx-core says the FPGA's HFRC is fixed at 25 MHz whatever
+  2026-10-27, #68). The HAL is built for CPU `lp` at 25 MHz,
+  `ATOMIQ11X_FPGA 25` (`mcu/atomiq110/am_mcu_apollo.h:85-87`). mbhssain
+  measured every point, CPU `ulp` 10, `lp` 25 and `hp` 50 MHz and NPU `ulp`
+  10 and `hp` 50 MHz, on one FPGA image, and expects them to match across
+  FPGA drops (review of #133), so all five are `measured`. All six system
+  points keep the Soc's names, and the default `lp_ulp` is 25 MHz CPU and
+  10 MHz NPU. nsx-core says the FPGA's HFRC is fixed at 25 MHz whatever
   the CPU mode (`modules/nsx-core/src/atomiq110/nsx_system_platform.c:66-69`),
-  which disagrees with the 50 MHz point (#19). The 12 and 48 MHz in the
+  which disagrees with the measured 50 MHz point. The 12 and 48 MHz in the
   HAL's comment are examples of other images, not points.
 - `peripherals_removed`: IOM2 to IOM11, `unverified`. Only AmbiqSuite's
   `am_bsp.c:1177-1179` says so, and the BSP header nsx-ambiq-sdk ships
@@ -871,7 +873,7 @@ one of them.
 @dataclass(frozen=True) class MemoryRegion: name, technology, attachment, size, base, alternate_bases, executable, writeable, cacheable, characterization, stands_in_for: tuple[str, ...], provenance   # stands_in_for: FVP regions only (ADR 0007)
 @dataclass(frozen=True) class Access:     master, target, access, requires_awake, guidance, reason, address: int | None, port: int | None, characterization, provenance   # target: region or memory_controllers name
 @dataclass(frozen=True) class DefaultAccess: master, access, scope, provenance   # scope: on_die
-@dataclass(frozen=True) class MemoryCharacterization: read_latency_ns, write_latency_ns, max_outstanding_reads, max_outstanding_writes, burst_bytes, ports, axi_clock_hz, bandwidth_fraction  (each value may carry its own Provenance)
+@dataclass(frozen=True) class MemoryCharacterization: read_latency_ns, write_latency_ns, max_outstanding_reads, max_outstanding_writes, max_beats, ports, axi_clock_hz, bandwidth_fraction  (each value may carry its own Provenance)
 @dataclass(frozen=True) class ClockDomain: id, points: tuple[DomainPoint, ...]   # DomainPoint: name, mhz, hal_mode, provenance
 @dataclass(frozen=True) class OperatingPoint: name, domains: Mapping[str, str], hal_mode, provenance   # domain id -> point name
 @dataclass(frozen=True) class SdkFacts:   c_define, cmsis_header, trace_clock_mhz, hal_enums: Mapping[str, str], build: BuildFacts

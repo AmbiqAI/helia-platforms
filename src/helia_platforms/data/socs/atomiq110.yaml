@@ -77,8 +77,16 @@ socs:
                 mbhssain ran MVE-I and MVE-F on the FPGA, on or before 2026-10-29. The CMSIS
                 header's MCUCTRL SKU field fuses no MVE, integer MVE or integer and floating
                 point MVE per SKU (atomiq110.h:117106-117110 at nsx-ambiq-sdk v5.2.26).
-          # icache_kb, dcache_kb: absent. atomiq110.h:228-229 say both caches are present; no
-          # source gives a size.
+          icache_kb:
+            value: 64
+            provenance: &cm55_caches
+              status: unverified
+              source: ["url:https://github.com/AmbiqAI/helia-platforms/pull/133#discussion_r4425829880"]
+              notes: >-
+                mbhssain (review of #133): "64kB Instruction Cache / 64kB Data Cache", from the
+                internal Cortex-M55 subsystem page. atomiq110.h:228-229 at nsx-ambiq-sdk
+                v5.2.26 say only that both caches are present.
+          dcache_kb: {value: 64, provenance: *cm55_caches}
 
     npus:
       - id: npu_0
@@ -281,7 +289,7 @@ socs:
               verified_by: evanchen11
               notes: Table 3-21, 256 MACs/CC, 2 SRAM ports; 12 reads and 16 writes per port.
           max_outstanding_writes: {value: 16, provenance: *u85_sram_outstanding}
-          burst_bytes: 128
+          max_beats: 128
           axi_clock_hz: 250000000
           provenance:
             status: unverified
@@ -306,7 +314,7 @@ socs:
         characterization:
           read_latency_ns: 88
           max_outstanding_reads: 12
-          burst_bytes: 256
+          max_beats: 256
           axi_clock_hz: 250000000
           provenance:
             status: unverified
@@ -525,39 +533,48 @@ implementations:
               verified_by: evanchen11
               notes: The FPGA HAL keeps the silicon mode enumerators; the image sets the clock.
           provenance:
-            status: unverified
+            status: measured
+            source: &fpga_clock_source
+              - "meas:atomiq110_fpga_turbo/perf-mode-clock/2026-10-30"
+              - "url:https://github.com/AmbiqAI/helia-platforms/pull/133#discussion_r4425369404"
+              - "url:https://github.com/AmbiqAI/helia-platforms/pull/133#discussion_r4425378436"
+            verified_on: 2026-10-30
+            verified_by: evanchen11
             notes: >-
-              The helia-estimator owner (2026-10-27, #68): "The silicon is X10 for any clock.
-              FPGA is clocked down", so each FPGA point is a tenth of silicon's. The review of
-              #133 selected ULP, LP and HP on the FPGA and read each mode back; the MHz printed
-              are nominal tenths, not measured.
+              Measured by mbhssain in the review of #133, all on one FPGA image, and expected to
+              match across FPGA drops; the method is not recorded. Each point is a tenth of
+              silicon's (the helia-estimator owner, 2026-10-27, #68).
         lp:
           mhz: 25
           hal_mode:
             value: AM_HAL_PWRCTRL_MCU_MODE_LOW_POWER
             provenance: *fpga_mcu_mode
           provenance:
-            status: sdk
+            status: measured
             source:
+              - "meas:atomiq110_fpga_turbo/perf-mode-clock/2026-10-30"
+              - "url:https://github.com/AmbiqAI/helia-platforms/pull/133#discussion_r4425369404"
               - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/mcu/atomiq110/am_mcu_apollo.h:85-87"
               - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:boards/atomiq110_fpga_turbo/README.md:8-9"
-            verified_on: 2026-10-27
+            verified_on: 2026-10-30
             verified_by: evanchen11
             notes: >-
-              "As of Atomiq110 Drop6 c5/26/26, the default core frequency is 25MHz"
-              (ATOMIQ11X_FPGA 25), the silicon LP point's 250 MHz divided by 10.
+              Measured with cpu.ulp. The SDK agrees: "As of Atomiq110 Drop6 c5/26/26, the
+              default core frequency is 25MHz" (ATOMIQ11X_FPGA 25).
         hp:
           mhz: 50
           hal_mode:
             value: AM_HAL_PWRCTRL_MCU_MODE_HIGH_PERFORMANCE
             provenance: *fpga_mcu_mode
           provenance:
-            status: unverified
+            status: measured
+            source: *fpga_clock_source
+            verified_on: 2026-10-30
+            verified_by: evanchen11
             notes: >-
-              The helia-estimator owner's statement (see cpu.ulp). nsx-ambiq-sdk v5.2.26
-              disagrees for this HAL build: atomiq110/nsx_system_platform.c:66-69 says the
-              FPGA's HFRC "is fixed at the ATOMIQ11X_FPGA emulation frequency (25 MHz ...),
-              independent of CPU perf mode".
+              Measured with cpu.ulp. It disagrees with nsx-ambiq-sdk v5.2.26
+              (atomiq110/nsx_system_platform.c:66-69), which says the FPGA's HFRC "is fixed at
+              the ATOMIQ11X_FPGA emulation frequency (25 MHz ...), independent of CPU perf mode".
       npu:
         ulp:
           mhz: 10
@@ -569,19 +586,21 @@ implementations:
               verified_on: 2026-10-27
               verified_by: evanchen11
               notes: The FPGA HAL keeps the silicon mode enumerators; the image sets the clock.
-          provenance: &owner_npu
-            status: unverified
+          provenance: &fpga_npu_clocks
+            status: measured
+            source: *fpga_clock_source
+            verified_on: 2026-10-30
+            verified_by: evanchen11
             notes: >-
-              The helia-estimator owner's statement (see cpu.ulp); helia-npu's v10 notes
-              record FPGA captures "at NPU 10 and 50 MHz" (socs/atomiq110.yaml:21,
-              helia-estimator 785dfe42). nsx_npu.c:86-87 says an FPGA's clock tree "is fixed
-              by the image", so the two may be different images (#19).
+              Measured with the CPU's points, on the same image (see cpu.ulp). helia-npu's v10
+              notes record FPGA captures "at NPU 10 and 50 MHz" (socs/atomiq110.yaml:21,
+              helia-estimator 785dfe42).
         hp:
           mhz: 50
           hal_mode:
             value: AM_HAL_PWRCTRL_NPU_MODE_HIGH_PERFORMANCE
             provenance: *fpga_npu_mode
-          provenance: *owner_npu
+          provenance: *fpga_npu_clocks
     access:
       # The FPGA's own path facts. It gives cycle counts; silicon's latencies give performance
       # (review of #133), so no latency is stated. Each entry replaces the Soc's whole.
@@ -592,7 +611,7 @@ implementations:
         characterization:
           max_outstanding_reads: 8
           max_outstanding_writes: 4
-          burst_bytes: 128
+          max_beats: 128
           axi_clock_hz: 25000000
           provenance:
             status: unverified

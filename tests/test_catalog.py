@@ -1208,14 +1208,14 @@ def test_the_npu_port_hash_and_an_access_characterization_load(document):
     soc(document)["access"][0]["characterization"] = {
         "max_outstanding_reads": 12,
         "max_outstanding_writes": 16,
-        "burst_bytes": 128,
+        "max_beats": 128,
     }
     a = load_overlay(document)._entry("socs", "soc_a")
     assert a.npus[0].sram_port_hash == 0x80
     assert (
         a.access[0].characterization.max_outstanding_reads,
         a.access[0].characterization.max_outstanding_writes,
-        a.access[0].characterization.burst_bytes,
+        a.access[0].characterization.max_beats,
     ) == (12, 16, 128)
 
 

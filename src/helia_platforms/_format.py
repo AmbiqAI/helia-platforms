@@ -112,16 +112,17 @@ Extensions = Annotated[dict[ToolName, Annotated[Any, OPAQUE]], NOT_FACT]
 class MemoryCharacterization(_Facts, total=False):
     """Timing of a memory path as the SoC documents it or as measured on it.
 
-    The outstanding limits (per port, reads and writes apart) and burst_bytes are the
-    hardware's limits on the path. Limits a driver programs (Ethos-U AXI_SRAM, AXI_EXT)
-    and values fitted to a model belong to that tool.
+    The outstanding limits (per port, reads and writes apart) are the hardware's limits on
+    the path. max_beats is the burst split in bytes the path calls for, named after the
+    Ethos-U AXI_SRAM and AXI_EXT field (B64, B128, B256). Values fitted to a model belong
+    to that tool.
     """
 
     read_latency_ns: Annotated[float | int, Minimum(0)]
     write_latency_ns: Annotated[float | int, Minimum(0)]
     max_outstanding_reads: Count
     max_outstanding_writes: Count
-    burst_bytes: Count
+    max_beats: Literal[64, 128, 256]
     ports: Count
     axi_clock_hz: Count
     bandwidth_fraction: Annotated[float | int, Minimum(0)]
