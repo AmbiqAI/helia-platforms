@@ -2,6 +2,7 @@
 
 import dataclasses
 import json
+import re
 import sys
 from pathlib import Path
 from typing import cast
@@ -165,6 +166,14 @@ def test_every_allow_list_entry_has_a_reason_and_an_issue():
     for entry in ALLOW["allowed"]:
         assert entry["reason"].strip() and entry["issue"].strip(), entry
         assert entry["consumer"] in ALLOW["consumers"], entry
+
+
+def test_allow_list_reasons_are_not_cut_off_by_a_comment():
+    # In a plain scalar, " #" starts a comment, so "lands with #64." parses as "lands with" (#136).
+    text = (PARITY / "allow.yaml").read_text()
+    assert re.findall(r"""^\s*reason: (?!["'>|]).* #.*$""", text, re.MULTILINE) == []
+    for entry in ALLOW["allowed"]:
+        assert entry["reason"].endswith((".", ")", '"')), entry
 
 
 _EXPECTED_KEYS = {

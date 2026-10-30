@@ -672,6 +672,14 @@ def test_exceptions_name_snapshot_values() -> None:
     assert unnamed(SNAPSHOTS) == []
 
 
+def test_exception_reasons_are_not_cut_off_by_a_comment() -> None:
+    # In a plain scalar, " #" starts a comment, so "lands with #64." parses as "lands with" (#136).
+    text = (SNAPSHOTS / "exceptions.yaml").read_text()
+    assert re.findall(r"""^\s*reason: (?!["'>|]).* #.*$""", text, re.MULTILINE) == []
+    for entry in yaml.safe_load(text)["exceptions"]:
+        assert entry["reason"].endswith((".", ")", '"')), entry
+
+
 def test_an_exception_path_the_snapshot_lacks_needs_a_finding_there(tmp_path: Path) -> None:
     directory = tmp_path / "snapshots"
     shutil.copytree(SNAPSHOTS, directory)

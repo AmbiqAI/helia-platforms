@@ -121,12 +121,12 @@ exceptions:
   - snapshot: nsx-ambiq-sdk.json
     at: [socs, apollo2]
     rule: in the catalog
-    reason: The catalog leaves apollo2 out, decided 2026-10-19 on #79.
+    reason: "The catalog leaves apollo2 out, decided 2026-10-19 on #79."
     issue: "#79"
   - snapshot: zephyr.json
     at: [boards, apollo2_evb]
     rule: in the catalog
-    reason: The catalog leaves apollo2 out, decided 2026-10-19 on #79.
+    reason: "The catalog leaves apollo2 out, decided 2026-10-19 on #79."
     issue: "#79"
   - snapshot: nsx-ambiq-sdk.json
     at: [socs, apollo5b]
