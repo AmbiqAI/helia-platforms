@@ -272,7 +272,7 @@ allowed:
     target: apollo2_evb
     field: target
     reason: >-
-      The catalog leaves apollo2 out, decided 2026-10-19 on
+      The catalog leaves apollo2 out, decided 2026-10-19 on #79.
     issue: "#79"
   - consumer: neuralspotx
     target: apollo5b_evb
