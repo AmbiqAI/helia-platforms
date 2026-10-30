@@ -378,9 +378,9 @@ def iter_values(value: Any, tp: Any, path: Path = ()) -> list[tuple[Path, Any]]:
 
 # ---- an Implementation over its Soc ---------------------------------------------------
 
-_SOC_SHAPED = ("clock_domains", "operating_points", "boot_configs", "default_boot")
+_SOC_SHAPED = ("clock_domains", "operating_points", "boot_configs", "default_boot", "access")
 #: Soc-shaped keys only an Implementation of kind ``fvp`` may write (ADR 0007).
-_FVP_ONLY = ("memories", "access")
+_FVP_ONLY = ("memories",)
 _SUBSET_DELTAS = (
     "memories_removed",
     "memories_resized",
@@ -443,7 +443,7 @@ def realize(soc: Tree, implementation: Tree) -> Tree:
 
 
 def fvp_problems(soc: dict, implementation: dict) -> list[str]:
-    """What is wrong with an Implementation's own ``memories`` and ``access`` (ADR 0007).
+    """What is wrong with an Implementation's own ``memories`` (ADR 0007).
 
     Each problem names its key relative to the Implementation.
     """

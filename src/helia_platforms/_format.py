@@ -112,14 +112,17 @@ Extensions = Annotated[dict[ToolName, Annotated[Any, OPAQUE]], NOT_FACT]
 class MemoryCharacterization(_Facts, total=False):
     """Timing of a memory path as the SoC documents it or as measured on it.
 
-    max_outstanding and burst_bytes are what the path accepts. Limits a driver programs
-    (Ethos-U AXI_SRAM, AXI_EXT) and values fitted to a model belong to that tool.
+    The outstanding limits (per port, reads and writes apart) are the hardware's limits on
+    the path. max_beats is the burst split in bytes the path calls for, named after the
+    Ethos-U AXI_SRAM and AXI_EXT field (B64, B128, B256). Values fitted to a model belong
+    to that tool.
     """
 
     read_latency_ns: Annotated[float | int, Minimum(0)]
     write_latency_ns: Annotated[float | int, Minimum(0)]
-    max_outstanding: Count
-    burst_bytes: Count
+    max_outstanding_reads: Count
+    max_outstanding_writes: Count
+    max_beats: Literal[64, 128, 256]
     ports: Count
     axi_clock_hz: Count
     bandwidth_fraction: Annotated[float | int, Minimum(0)]
@@ -367,8 +370,9 @@ class Implementation(_Entity):
     kind: Required[Literal["silicon", "fpga", "fvp", "rtl"]]
     model: NotRequired[str]
     subset: NotRequired[Subset]
-    # Kind fvp only: the complete memory list and added access entries (ADR 0007).
+    # Kind fvp only: the complete memory list (ADR 0007).
     memories: NotRequired[dict[Name, MemoryRegion]]
+    # Any kind: entries that add to or replace the Soc's, by (master, target).
     access: NotRequired[Annotated[list[Access], Keyed(("master", "target"))]]
     clock_domains: NotRequired[ClockDomains]
     operating_points: NotRequired[dict[Name, OperatingPoint]]

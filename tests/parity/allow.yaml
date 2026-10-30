@@ -21,6 +21,13 @@ allowed:
       bytes to the physical 524288 (0002-migration.md, heliaAOT budgets).
     issue: "#28"
   - consumer: helia-aot
+    target: atomiq110
+    field: memories.DTCM
+    reason: >-
+      RAM budgets are physical sizes: DTCM goes from the nsx gcc nbl script's 507904
+      bytes to the physical 524288 (0002-migration.md, heliaAOT budgets).
+    issue: "#28"
+  - consumer: helia-aot
     target: apollo510b_evb
     field: memories.DTCM
     reason: >-
@@ -200,12 +207,6 @@ allowed:
       from 0x00410000 to the end of MRAM, already starts above the 64K SBL reservation and
       runs into NVM-M41: 2031616 - 442368 = 1589248.
     issue: "#65"
-  # Targets the catalog does not resolve yet; each data PR removes its own.
-  - consumer: helia-aot
-    target: atomiq110
-    field: target
-    reason: Not in the built-in data yet.
-    issue: "#68"
   # neuralspotx boards the catalog does not resolve yet; each data PR removes its own.
   - consumer: neuralspotx
     target: apollo510dL_evb
@@ -254,10 +255,19 @@ allowed:
     issue: "#67"
   - consumer: neuralspotx
     target: atomiq110_fpga_turbo
-    field: target
+    field: trace_clock_mhz
     reason: >-
-      atomiq110's data lands with
+      neuralspotx's debug.cmake sets 48 MHz; an ACPR sweep measured 50.5 +/- 0.5 MHz, and
+      48 MHz decodes no SWO lines (the review of #133).
     issue: "#68"
+  - consumer: neuralspotx
+    target: atomiq110_fpga_turbo
+    field: jlink_device
+    reason: >-
+      neuralspotx's debug.cmake sets Atomiq110, which is in neither SEGGER's stock database
+      nor its Ambiq device list; the catalog records no J-Link device until an official
+      name exists (#130).
+    issue: "#130"
   - consumer: neuralspotx
     target: apollo2_evb
     field: target

@@ -171,6 +171,19 @@ def test_register_defines_are_compared_with_region_bases_and_sizes(snapshots):
     assert found.at[-1] == "DTCM_MAX_SIZE"
 
 
+@pytest.mark.parametrize(
+    "define",
+    [d for pair in _check_sources.REGISTERS["atomiq110"].values() for d in pair],
+)
+def test_atomiq110_compares_its_register_defines(snapshots, define):
+    def change(data):
+        data["socs"]["atomiq110"]["registers"]["values"][define] += 0x1000
+
+    edit(snapshots, _check_sources.SDK, change)
+    (found,) = [f for f in findings(snapshots) if f.rule == "register"]
+    assert found.at[1:2] + found.at[-1:] == ("atomiq110", define)
+
+
 @pytest.mark.parametrize("soc", ["apollo510", "apollo510b"])
 @pytest.mark.parametrize(
     "define",

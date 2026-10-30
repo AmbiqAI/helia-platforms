@@ -2603,7 +2603,7 @@
                 }
               ]
             },
-            "max_outstanding": {
+            "max_outstanding_reads": {
               "anyOf": [
                 {
                   "type": "integer",
@@ -2628,7 +2628,7 @@
                 }
               ]
             },
-            "burst_bytes": {
+            "max_outstanding_writes": {
               "anyOf": [
                 {
                   "type": "integer",
@@ -2640,6 +2640,37 @@
                     "value": {
                       "type": "integer",
                       "minimum": 0
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "max_beats": {
+              "anyOf": [
+                {
+                  "enum": [
+                    64,
+                    128,
+                    256
+                  ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "enum": [
+                        64,
+                        128,
+                        256
+                      ]
                     },
                     "provenance": {
                       "$ref": "#/$defs/Provenance"

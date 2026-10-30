@@ -187,14 +187,16 @@ Definitions, queries and an example are in [0002-multicore.md](0002-multicore.md
 (sram, mram, rram, psram, flash, nvm, dram), `attachment` (tcm, system, external),
 `size`, `base`, optional `alternate_bases` where the silicon aliases the
 region, `executable`, `writeable`, `cacheable`, optional
-`characterization` (read and write latency, ports, max outstanding,
-burst, bandwidth) each value with provenance: latency, bandwidth and
+`characterization` (read and write latency, ports, max outstanding reads
+and writes per port, `max_beats`, bandwidth) each value with provenance: latency, bandwidth and
 ports only. The package carries no energy data; the estimator's energy
-coefficients stay in helia-estimator. Characterization is hardware: what the
-memory path accepts, as the SoC documents it or as measured. Outstanding
-and burst limits a driver programs (the Ethos-U `AXI_SRAM` and `AXI_EXT`
-registers) and values fitted to make a model match captures are the
-setting or fit of the tool that owns them, such as helia-npu, not facts here.
+coefficients stay in helia-estimator. Characterization is hardware: the
+path's limits, as the SoC or IP documentation states them or as measured,
+such as the Ethos-U85's per-port outstanding reads and writes. `max_beats`
+is the burst split in bytes (64, 128 or 256) the path calls for, named after
+the Ethos-U `AXI_SRAM` and `AXI_EXT` field, such as atomiq110's 128-byte SRAM
+stripe. Values fitted to make a model match captures are the fit of the tool
+that owns them, such as helia-npu, not facts here.
 
 An overlay region may omit `base` (size only, no `based_on`, as RFC 0001
 appendix E allowed). Such a region is excluded from the bounds and overlap
@@ -261,35 +263,38 @@ neuralspotx and helia-profiler use) carrying Implementation
 `atomiq110_fpga` (facts from
 [research/ambiqsuite.md](../research/ambiqsuite.md)):
 
-- Clock domain points 25 MHz (default) plus 12 and 48 MHz, status `sdk`:
-  the FPGA image is built for one designated frequency and firmware
-  matches it with a build define (`mcu/atomiq110/am_mcu_apollo.h:63-64`,
-  `:86`); 50 MHz has status `unverified` (owner statement). The provenance note records the owner's
-  "about one tenth of the silicon clock"; it is not a scale factor.
-- `peripherals_removed`: IOM2 and above (`am_bsp.c:1177-1179`).
-- J-Link device `Atomiq110`, the spelling of the SDK facts file and
-  neuralspotx `debug.cmake`, with AmbiqSuite's `ATOMIQ110` recorded in the
-  provenance notes (decided on #68). No source says J-Link matches names
-  case-insensitively, and `Atomiq110` is not in SEGGER's stock database
-  (#19).
-- `trace_clock_mhz: 48`, status `measured`. The 48 MHz was measured once,
-  on one FPGA image that the source does not name; whether the trace
-  clock varies by FPGA image is open (#19). The 48 MHz reference with
-  helia-profiler's 1 MHz SWO rate is untested (helia-profiler#465).
-  Source: neuralspotx `b930d59`,
-  `src/neuralspotx/boards/atomiq110_fpga_turbo/debug.cmake:6-18`. The
-  TPIU trace clock stays at its hardware reset default, which firmware
-  cannot change and which measures 48 MHz. The firmware programs the SWO
-  prescaler (ACPR) for 25 MHz, so SWO runs at 1.92 MHz. The file records
-  a hardware check (J-Link Compact PLUS, 2026-08): 25 MHz with 1 MHz SWO
-  decodes as gibberish, and 48 MHz with 1.92 MHz decodes cleanly.
-  `NSX_SEGGER_CPUFREQ` in that file is this trace clock, not the 48 MHz
-  CPU clock point above. The SDK's 25 MHz SoC default (nsx-ambiq-sdk
-  `v5.2.25`, `cmake/socs/facts/atomiq110.cmake:69`) does not apply.
-  RFC 0001 appendix J records the same value.
-- External memory as AmbiqSuite's BSP declares it, on the Implementation.
-  Whether HBLRAM (0x60000000 in the header) is on-die or external on the
-  FPGA is not documented.
+- Clocks: each FPGA domain point overrides the Soc's point of the same
+  name at the silicon clock divided by 10 (the helia-estimator owner,
+  2026-10-27, #68). The HAL is built for CPU `lp` at 25 MHz,
+  `ATOMIQ11X_FPGA 25` (`mcu/atomiq110/am_mcu_apollo.h:85-87`). mbhssain
+  measured every point, CPU `ulp` 10, `lp` 25 and `hp` 50 MHz and NPU `ulp`
+  10 and `hp` 50 MHz, on one FPGA image, and expects them to match across
+  FPGA drops (review of #133), so all five are `measured`. All six system
+  points keep the Soc's names, and the default `lp_ulp` is 25 MHz CPU and
+  10 MHz NPU. nsx-core says the FPGA's HFRC is fixed at 25 MHz whatever
+  the CPU mode (`modules/nsx-core/src/atomiq110/nsx_system_platform.c:66-69`),
+  which disagrees with the measured 50 MHz point. The 12 and 48 MHz in the
+  HAL's comment are examples of other images, not points.
+- `peripherals_removed`: IOM2 to IOM11, `unverified`. Only AmbiqSuite's
+  `am_bsp.c:1177-1179` says so, and the BSP header nsx-ambiq-sdk ships
+  defines pins for IOM0 to IOM6.
+- No J-Link device: no atomiq110 spelling is in SEGGER's stock database
+  (#130).
+- `trace_clock_mhz: 50`, status `measured` by mbhssain in the review of
+  #133 (https://github.com/AmbiqAI/helia-platforms/pull/133#discussion_r4414528238).
+  An AmbiqSuite program prints a numbered line over ITM, and
+  `JLinkSWOViewerCLExe` samples SWO at 1 Mbaud while the SWO prescaler
+  (ACPR) is swept and read back over SWD. Lines decode only for ACPR+1 =
+  49 to 52, which puts the trace clock at 50.5 ± 0.5 MHz, the HFRC's
+  500 MHz divided by 10 (AmbiqSuite `am_hal_itm.c`, `ATOMIQ11X_FPGA`
+  branch). neuralspotx `neuralspotx-v0.9.0`,
+  `src/neuralspotx/boards/atomiq110_fpga_turbo/debug.cmake:6-18`, says
+  48 MHz, but 48 MHz decodes no lines at 1 Mbaud, nor at its own
+  1.92 Mbaud. Whether the trace clock varies by FPGA image is open (#19).
+- No external memory on the Board: nsx-psram has no mapping for it, and
+  neither helia-profiler nor helia-npu says anything is fitted. The
+  Implementation removes HBLRAM, which nsx-ambiq-sdk says the FPGA lacks
+  (`boards/atomiq110_fpga_turbo/board.cmake:25-28`).
 
 An FVP implementation names its `model` (corstone-320) and declares its
 own `memories`, the complete memory list of the realized Soc: no Soc
@@ -298,9 +303,10 @@ region. A model region lists the Soc regions it emulates in
 `stands_in_for`; the Corstone-320's DDR region stands in for `hblram`,
 `psram` and `rram`. Inherited access entries to Soc regions the FVP does
 not list are dropped, and the FVP adds or replaces entries with its own
-`access`. `memories`, `access` and `stands_in_for` are allowed only for
-kind `fvp`, and `memories` replaces the `memories_*` deltas rather than
-combining with them ([ADR 0007](../adr/0007-fvp-memory-maps.md)). The
+`access`. `memories` and `stands_in_for` are allowed only for kind `fvp`;
+`access` is allowed for any kind, so an FPGA can restate a path whose
+limits differ from silicon's. An FVP's `memories` replaces the
+`memories_*` deltas rather than combining with them ([ADR 0007](../adr/0007-fvp-memory-maps.md)). The
 estimator's Corstone-320 model of atomiq110 is therefore first-class
 rather than a private convention. An Implementation's boot configurations
 and operating points merge with the Soc's by key, and it removes any it
@@ -705,7 +711,7 @@ below is the resolved object returned by `resolve()`.
 | Native FP16 | `target.isa().supports_fp16` | package |
 | Is there an NPU, and which | `target.npu` (npu 0: `None` or `NpuInstance` with `.npu.model`, `.npu.macs_per_cycle`, `.npu.accelerator_config`); `target.npus()` for all | package |
 | Which core and NPU to compile for | core 0 and npu 0 implicitly; `platform.core` and `platform.npu` are future additive options | package default; choice is heliaAOT's |
-| Memories and byte sizes to budget | On-chip RAM (DTCM, ITCM, SRAM) from `target.memories()`, except atomiq110's HBLRAM until its FPGA placement is confirmed (#19), NVM from `target.usable_nvm()` and external memories from `target.external_memories()`, for every module type. NVM leaves out the boot reservations and other cores' image slots, because planning into them would overwrite the bootloader or radio firmware. heliaAOT does not budget from a link environment (decided 2026-10-05, see #28) | package |
+| Memories and byte sizes to budget | On-chip RAM (DTCM, ITCM, SRAM) from `target.memories()`, except atomiq110's HBLRAM until its technology and CPU reach are confirmed (#19), NVM from `target.usable_nvm()` and external memories from `target.external_memories()`, for every module type. NVM leaves out the boot reservations and other cores' image slots, because planning into them would overwrite the bootloader or radio firmware. heliaAOT does not budget from a link environment (decided 2026-10-05, see #28) | package |
 | Is ITCM present | `target.has_region("itcm")` | package |
 | Minimum alignment | heliaAOT table keyed by `target.soc.id` (16 with MVE is a placement rule) | heliaAOT |
 | Order to try memories | heliaAOT policy; inputs available as `region.attachment` and `region.characterization` | heliaAOT |
@@ -867,13 +873,13 @@ one of them.
 @dataclass(frozen=True) class MemoryRegion: name, technology, attachment, size, base, alternate_bases, executable, writeable, cacheable, characterization, stands_in_for: tuple[str, ...], provenance   # stands_in_for: FVP regions only (ADR 0007)
 @dataclass(frozen=True) class Access:     master, target, access, requires_awake, guidance, reason, address: int | None, port: int | None, characterization, provenance   # target: region or memory_controllers name
 @dataclass(frozen=True) class DefaultAccess: master, access, scope, provenance   # scope: on_die
-@dataclass(frozen=True) class MemoryCharacterization: read_latency_ns, write_latency_ns, max_outstanding, burst_bytes, ports, axi_clock_hz, bandwidth_fraction  (each value may carry its own Provenance)
+@dataclass(frozen=True) class MemoryCharacterization: read_latency_ns, write_latency_ns, max_outstanding_reads, max_outstanding_writes, max_beats, ports, axi_clock_hz, bandwidth_fraction  (each value may carry its own Provenance)
 @dataclass(frozen=True) class ClockDomain: id, points: tuple[DomainPoint, ...]   # DomainPoint: name, mhz, hal_mode, provenance
 @dataclass(frozen=True) class OperatingPoint: name, domains: Mapping[str, str], hal_mode, provenance   # domain id -> point name
 @dataclass(frozen=True) class SdkFacts:   c_define, cmsis_header, trace_clock_mhz, hal_enums: Mapping[str, str], build: BuildFacts
 @dataclass(frozen=True) class BuildFacts: abi, float_abi
 @dataclass(frozen=True) class Soc:        id, series, aliases, cores, npus, accelerators, memories, access, default_access: DefaultAccess | None, peripherals, memory_controllers, clock_domains, operating_points, default_operating_point: str | None, boot_configs, default_boot, image_slots, sdk, derives_from, default_board: str | None, revision, release_status, extensions, provenance
-@dataclass(frozen=True) class Implementation: id, soc, kind, model: str | None, subset: Subset, memories: tuple | None, access: tuple | None, clock_domains: tuple | None, operating_points: tuple | None, boot_configs: Mapping | None, default_boot: str | None, provisioning: str | None, jlink_device, trace_clock_mhz, interfaces, population, aliases, release_status, extensions, provenance   # None: inherit the Soc's (after clock caps); memories and access: kind fvp only (ADR 0007)
+@dataclass(frozen=True) class Implementation: id, soc, kind, model: str | None, subset: Subset, memories: tuple | None, access: tuple | None, clock_domains: tuple | None, operating_points: tuple | None, boot_configs: Mapping | None, default_boot: str | None, provisioning: str | None, jlink_device, trace_clock_mhz, interfaces, population, aliases, release_status, extensions, provenance   # None: inherit the Soc's (after clock caps); memories: kind fvp only (ADR 0007)
 @dataclass(frozen=True) class Subset:     memories_removed, memories_resized, memories_rebased, peripherals_removed, memory_controllers_removed, cores_removed, npus_removed, accelerators_removed, clock_domains_removed, boot_configs_removed, operating_points_removed, image_slots_removed, access_removed, max_cpu_mhz, max_npu_mhz, max_domain_mhz
 @dataclass(frozen=True) class BootConfig: name, reserved: tuple[Reservation, ...], app_start: Mapping[str, AppStart], requires, provenance   # AppStart: region, offset; reserved in written key order
 @dataclass(frozen=True) class Reservation: region, offset, size, purpose, provenance
@@ -962,7 +968,7 @@ compositions or shorthands; overlays add no shorthands; `based_on`
 resolves; regions inside physical bounds and non-overlapping; a subset
 never adds a memory or exceeds a clock; an implementation whose clock caps
 drop every operating point declares its own; an Implementation's
-`memories` and `access` only on kind `fvp`, `memories` not combined with
+`memories` only on kind `fvp`, `memories` not combined with
 the `memories_*` deltas, and `stands_in_for` only on an FVP's regions,
 naming Soc regions the FVP does not list, each in at most one region
 ([ADR 0007](../adr/0007-fvp-memory-maps.md));
@@ -1019,7 +1025,7 @@ and Zephyr snapshots; [ADR 0006](../adr/0006-drift-test-snapshots.md)),
 - heliaAOT: `SocPlatform.from_target(t)` builds the flattened view (name
   lowercased, `memories` from the physical on-chip RAM regions in
   `t.memories()`, leaving out atomiq110's `hblram` region until its
-  placement on the FPGA is confirmed (#19), NVM from `t.usable_nvm()`
+  technology and CPU reach are confirmed (#19), NVM from `t.usable_nvm()`
   without the boot reservations and other cores' image slots, and
   external memories from
   `t.external_memories()`, the same for every module type; heliaAOT

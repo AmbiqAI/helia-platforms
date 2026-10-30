@@ -58,6 +58,13 @@ REGISTERS: dict[str, dict[str, tuple[str, str]]] = {
     # SRAM_BASEADDR is the start of TCM, not of the catalog's sram region, so it is left out.
     "apollo3": {"tcm": ("TCM_BASEADDR", "TCM_MAX_SIZE"), "flash": ("FLASH_BASEADDR", "")},
     "apollo3p": {"tcm": ("TCM_BASEADDR", "TCM_MAX_SIZE"), "flash": ("FLASH_BASEADDR", "")},
+    # No ITCM define; the itcm region comes from the linker scripts (#68).
+    "atomiq110": {
+        "dtcm": ("DTCM_BASEADDR", "DTCM_MAX_SIZE"),
+        "ssram": ("SSRAM_BASEADDR", "SSRAM_MAX_SIZE"),
+        "rram": ("RRAM_BASEADDR", "RRAM_MAX_SIZE"),
+        "hblram": ("HBLRAM_BASEADDR", "HBLRAM_MAX_SIZE"),
+    },
 }
 #: The ``am_hal_flash.h`` sizes Apollo3 states and the regions whose sizes add up to each;
 #: its SRAM size covers TCM and SRAM together.

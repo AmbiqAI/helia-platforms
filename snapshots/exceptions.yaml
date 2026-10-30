@@ -47,13 +47,6 @@ exceptions:
     reason: Declares apollo510-sized memory regions.
     issue: AmbiqAI/nsx-ambiq-sdk#60
 
-  # Ids the snapshots carry that the catalog does not have yet. Remove each entry with
-  # the data PR that adds the id.
-  - snapshot: nsx-ambiq-sdk.json
-    at: [socs, atomiq110]
-    rule: in the catalog
-    reason: atomiq110's data lands with #68, once #104 decides how its FPGA is modelled.
-    issue: "#68"
   # The catalog puts the Blue Plus parts on apollo4p, as nsx-ambiq-sdk and neuralspotx
   # do (decided on #66); Zephyr names a Soc of their own.
   - snapshot: zephyr.json
@@ -116,6 +109,13 @@ exceptions:
     rule: trace clock
     reason: "The TPIU clock is HFRC/8, 6 MHz, measured on apollo3p_evb (#67); NSX_SEGGER_CPUFREQ's 48 MHz is the HFRC J-Link expects."
     issue: "#67"
+  - snapshot: nsx-ambiq-sdk.json
+    at: [socs, atomiq110, facts, values, NSX_SEGGER_CPUFREQ]
+    rule: trace clock
+    reason: >-
+      atomiq110's NSX_SEGGER_CPUFREQ (25 MHz) is the FPGA image's clock, not a trace clock,
+      so the Soc records none. The FPGA's measured 50 MHz is on atomiq110_fpga (RFC 0002).
+    issue: "#68"
 
   # These stay as long as the catalog leaves apollo2 and apollo5b out.
   - snapshot: nsx-ambiq-sdk.json
