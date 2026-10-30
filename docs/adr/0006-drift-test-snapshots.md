@@ -1,7 +1,7 @@
 # 0006. Check the catalogue against committed source snapshots
 
 Date: 2026-10-05
-Status: Accepted; amended 2026-10-27 (#18) and 2026-10-29 (#64)
+Status: Accepted; amended 2026-10-27 (#18), 2026-10-29 (#64) and 2026-10-29 (#73)
 
 ## Amendment, 2026-10-27: neuralspotx is a consumer (#18)
 
@@ -44,6 +44,21 @@ Two rows of the table in section 3 change as follows:
   XIP aperture of one of the Soc's `memory_controllers`. An aperture of a
   controller the Soc lacks, which a shared header can define (apollo510b
   reads apollo510's header, with its MSPI2 and MSPI3), does not count.
+
+## Amendment, 2026-10-29: the link-environment dataset ships in the wheel (#73)
+
+Section 4 left open whether and how the dataset ships. It ships inside the
+wheel (decided on #73, link environments; ADR 0004's amendment of the same
+date covers its versioning), so it is committed as package data under
+`src/helia_platforms/data/` rather than under `link-environments/`. It
+covers the nsx `default` profile, as a `gnu` and an `armlink` environment
+for every Soc in the catalog, and a `zephyr` environment for each Ambiq
+board in the Zephyr snapshot that the catalog holds. Windows are keyed by
+the linker's region name and placed in catalog regions by address when a
+budget is computed, because a window can span regions (apollo3's `RWMEM`,
+Zephyr's `RAM` on apollo4p); the hand-written mapping,
+`snapshots/link-environments.yaml`, therefore lists only the toolchains'
+link families and the carve-outs that are not `EMPTY` regions.
 
 ## Context
 

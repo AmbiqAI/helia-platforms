@@ -1,0 +1,14 @@
+# What scripts/generate_link_environments.py turns into link environments (ADR 0006
+# section 4, amended for #73). Every public Soc in the catalog that the SDK snapshot
+# holds gets its default script per toolchain; every public board in the catalog that
+# the Zephyr snapshot holds gets one zephyr environment.
+nsx-ambiq-sdk:
+  # The snapshot's toolchain directory, and the link family its scripts belong to.
+  link_families:
+    gcc: gnu
+    armclang: armlink
+  # Script regions that hold no application sections, besides armlink's EMPTY ones,
+  # by Soc and toolchain. apollo3p's gcc script places only .stack in STACKMEM.
+  reserved:
+    apollo3p:
+      gcc: [STACKMEM]

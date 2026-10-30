@@ -1,7 +1,19 @@
 # 0004. Version the schema separately and ship data corrections as patches
 
 Date: 2026-10-05
-Status: Accepted; amended 2026-10-28 (#66)
+Status: Accepted; amended 2026-10-28 (#66) and 2026-10-29 (#73)
+
+## Amendment, 2026-10-29: the link-environment dataset ships in the wheel (#73)
+
+This answers open question 2. The owner decided on 2026-10-29, on #73
+(link environments), that the dataset ships inside the wheel and follows
+the package version. The link-environment row of point 2's table becomes:
+an added environment is `feat(data):`, a corrected window `fix(data):`,
+and a removed environment `feat(data)!:`, since a consumer's lookup of it
+stops resolving. The bumps are those of the matching data rows. The
+dataset stays outside `catalogue_digest`, so the `identity()` record of
+point 4 also lists the repository and commit of each snapshot the
+shipped dataset was generated from.
 
 ## Amendment, 2026-10-28: no `schema_version` bump before 1.0 (#66)
 

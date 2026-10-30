@@ -250,13 +250,68 @@ class Target:
         """
         who = self._master(master)
         for region in (*self.soc.memories, *self.external_memories()):
-            entry = self.reachable(who, region.name)
-            bases = [region.base, *region.alternate_bases]
-            if entry is not None and entry.address is not None:
-                bases = [entry.address]
-            if any(b is not None and b <= address < b + region.size for b in bases):
+            if any(b <= address < b + region.size for b in self._bases(region, who)):
                 return region.name
         return None
+
+    # -- link environments --------------------------------------------------------------
+
+    @property
+    def _reference_chain(self) -> tuple[str, ...]:
+        """Board, part, implementation and Soc ids a link environment can apply through.
+
+        The chain stops at an implementation that rebases, resizes or replaces a region,
+        so an environment for the silicon never covers that build.
+        """
+        ids = [owner.id for owner in (self.board, self.part) if owner is not None]
+        impl = self.implementation
+        if impl is not None:
+            ids.append(impl.id)
+            subset = impl.subset
+            if subset.memories_rebased or subset.memories_resized or impl.memories is not None:
+                return tuple(ids)
+        return (*ids, self.soc.id)
+
+    def covered_by(self, environment: model.LinkEnvironment) -> bool:
+        """Whether an id on the reference chain is in ``environment.applies_to``."""
+        listed = {i.casefold() for i in environment.applies_to}
+        return any(i.casefold() in listed for i in self._reference_chain)
+
+    def budget(self, environment: model.LinkEnvironment, core: int | str = 0) -> Mapping[str, int]:
+        """Bytes per region ``core`` reaches that the environment's windows let it link into.
+
+        A window counts only where it overlaps the physical region; its carve-outs, the
+        boot reservations and other cores' image slots are taken out (decided on #73).
+        A region no window overlaps is left out. Raises if ``environment`` does not cover
+        this target.
+        """
+        if not self.covered_by(environment):
+            raise PlatformError(
+                f"{self.id}: the {environment.owner} {environment.link_family} environment "
+                f"({environment.profile}) does not apply to it"
+            )
+        instance = self._core(core)
+        if instance.programmable_by in (None, "vendor"):
+            return MappingProxyType({})
+        cut: dict[str, list[tuple[int, int]]] = {}
+        for reservation in self.boot.reserved if self.boot else ():
+            span = (reservation.offset, reservation.offset + reservation.size)
+            cut.setdefault(reservation.region, []).append(span)
+        for slot in self.image_slots.values():
+            if slot.core != instance.id:
+                cut.setdefault(slot.region, []).append((slot.offset, slot.offset + slot.size))
+        result = {}
+        for region in self.memories(core):
+            covered, carved = [], cut.get(region.name, [])
+            for window in environment.regions.values():
+                for base in self._bases(region, instance.id):
+                    low = max(window.start, base)
+                    high = min(window.start + window.length, base + region.size)
+                    if low < high:
+                        (carved if window.reserved else covered).append((low - base, high - base))
+            if covered:
+                result[region.name] = _span_bytes(covered) - _overlap_bytes(covered, carved)
+        return MappingProxyType(result)
 
     # -- clocks ---------------------------------------------------------------------------
 
@@ -383,6 +438,13 @@ class Target:
     def _core_ip(self, instance: model.CoreInstance) -> model.Core:
         return self._catalog._entry("cores", instance.core)
 
+    def _bases(self, region: model.MemoryRegion, master: str) -> tuple[int, ...]:
+        """Where ``master`` addresses ``region``: its access entry's address, else every base."""
+        entry = self.reachable(master, region.name)
+        if entry is not None and entry.address is not None:
+            return (entry.address,)
+        return tuple(b for b in (region.base, *region.alternate_bases) if b is not None)
+
     def _controller_of(self, name: str) -> str | None:
         return next((c for r, c in self._external if r.name == name), None)
 
@@ -440,6 +502,30 @@ def _pick(items: tuple[_Unit, ...], key: int | str, missing: str) -> _Unit:
             if item.id == key.casefold():
                 return item
     raise PlatformError(f"{missing} {key!r}")
+
+
+def _merged(spans: list[tuple[int, int]]) -> list[tuple[int, int]]:
+    """Half-open ``[low, high)`` spans sorted and joined where they overlap or touch."""
+    merged: list[tuple[int, int]] = []
+    for low, high in sorted(spans):
+        if merged and low <= merged[-1][1]:
+            merged[-1] = (merged[-1][0], max(merged[-1][1], high))
+        else:
+            merged.append((low, high))
+    return merged
+
+
+def _span_bytes(spans: list[tuple[int, int]]) -> int:
+    return sum(high - low for low, high in _merged(spans))
+
+
+def _overlap_bytes(spans: list[tuple[int, int]], cut: list[tuple[int, int]]) -> int:
+    """Bytes of ``spans`` that ``cut`` also covers."""
+    return sum(
+        max(0, min(high, c_high) - max(low, c_low))
+        for low, high in _merged(spans)
+        for c_low, c_high in _merged(cut)
+    )
 
 
 _REGION_FIELDS = frozenset(f.name for f in fields(model.MemoryRegion))

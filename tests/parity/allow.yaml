@@ -12,6 +12,12 @@ consumers:
     repository: AmbiqAI/neuralspotx
     commit: ffb7339b14b00134b4ed2834a1640d61042c0962
     path: tests/parity/neuralspotx/boards.json
+  # Not a verbatim file: the app_window extents of `_MAPS` in
+  # src/helia_profiler/platform/memory_map.py, by Soc, link family and region (#73).
+  helia-profiler:
+    repository: AmbiqAI/helia-profiler
+    commit: 74822f12bb8a8f7a686258976c39b628ac3b5b0c
+    path: tests/parity/helia-profiler/windows.json
 allowed:
   - consumer: helia-aot
     target: apollo510_evb
@@ -266,6 +272,19 @@ allowed:
     issue: "#79"
   - consumer: neuralspotx
     target: apollo5b_evb
+    field: target
+    reason: >-
+      The catalog leaves apollo5b out, decided 2026-10-07 on #64: no datasheet, guide or
+      ordering number exists. #79 records the decision.
+    issue: "#79"
+  # helia-profiler Socs the catalog does not resolve; their windows cannot be compared.
+  - consumer: helia-profiler
+    target: atomiq110
+    field: target
+    reason: Not in the built-in data yet.
+    issue: "#68"
+  - consumer: helia-profiler
+    target: apollo5b
     field: target
     reason: >-
       The catalog leaves apollo5b out, decided 2026-10-07 on #64: no datasheet, guide or

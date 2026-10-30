@@ -11,6 +11,7 @@ import yaml
 
 from helia_platforms import PlatformError, Target, UnknownPlatform, model
 from helia_platforms.catalog import builtin
+from helia_platforms.link_environments import link_environments
 
 PARITY = Path(__file__).resolve().parent / "parity"
 SNAPSHOTS = Path(__file__).resolve().parents[1] / "snapshots"
@@ -108,6 +109,13 @@ def _records(consumer: str) -> list[tuple[str, dict]]:
     if consumer == "helia-aot":
         targets = json.loads((PARITY / "helia-aot" / "targets.json").read_text())["targets"]
         return [(t["name"], helia_aot_record(t)) for t in targets]
+    if consumer == "helia-profiler":
+        maps = json.loads((PARITY / "helia-profiler" / "windows.json").read_text())
+        return [
+            (soc, {f"{family}.{region}": extent for family, regions in families.items()
+                   for region, extent in regions.items()})
+            for soc, families in maps.items()
+        ]  # fmt: skip
     assert consumer == "neuralspotx"
     return list(json.loads(NSX_FIXTURE.read_text()).items())
 
@@ -119,7 +127,29 @@ def neuralspotx_from_snapshots() -> dict[str, dict]:
     return {name: neuralspotx_record(block, sdk) for name, block in sorted(boards.items())}
 
 
-_PROJECTIONS = {"helia-aot": helia_aot, "neuralspotx": neuralspotx}
+def helia_profiler(target: Target) -> dict:
+    """Each shipped nsx window as helia-profiler's ``_MAPS`` names it: ``<family>.<region>``."""
+    windows = {}
+    for env in link_environments(owner="nsx-ambiq-sdk", profile="default"):
+        if not target.covered_by(env):
+            continue
+        for window in env.regions.values():
+            region = target.classify_address(window.start)
+            if window.reserved or region is None:
+                continue
+            found = target.region(region)
+            kind = "mram" if found.technology != "sram" else "sram"
+            if found.attachment == "tcm":
+                kind = "itcm" if found.name == "itcm" else "dtcm"
+            windows[f"{env.link_family}.{kind}"] = {"start": window.start, "length": window.length}
+    return windows
+
+
+_PROJECTIONS = {
+    "helia-aot": helia_aot,
+    "helia-profiler": helia_profiler,
+    "neuralspotx": neuralspotx,
+}
 
 
 def compare(consumer: str) -> tuple[set[tuple[str, str]], set[tuple[str, str]]]:
@@ -167,6 +197,7 @@ def test_every_allow_list_entry_has_a_reason_and_an_issue():
 
 _EXPECTED_KEYS = {
     "helia-aot": {"cpu", "speeds_mhz", "memories.SRAM", "memories.MRAM"},
+    "helia-profiler": {"gnu.dtcm", "gnu.sram", "gnu.mram", "armlink.dtcm", "armlink.mram"},
     "neuralspotx": {
         "soc",
         "cpu.core",

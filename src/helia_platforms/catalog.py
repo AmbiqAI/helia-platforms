@@ -29,6 +29,7 @@ from helia_platforms._tree import (
     realize,
 )
 from helia_platforms.errors import FormatError, PlatformError, PlatformWarning
+from helia_platforms.link_environments import dataset_sources
 
 if TYPE_CHECKING:
     from helia_platforms.target import Target
@@ -79,6 +80,9 @@ class CatalogIdentity:
     schema_version: int
     catalog_digest: str
     sources: tuple[SourceIdentity, ...] = ()
+    #: The snapshots the shipped link-environment dataset was generated from, which
+    #: ``catalog_digest`` does not cover (ADR 0004's amendment for #73).
+    link_environment_sources: tuple[Mapping[str, str], ...] = ()
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -86,6 +90,7 @@ class CatalogIdentity:
             "schema_version": self.schema_version,
             "catalog_digest": self.catalog_digest,
             "sources": [source.to_dict() for source in self.sources],
+            "link_environment_sources": [dict(s) for s in self.link_environment_sources],
         }
 
 
@@ -179,12 +184,13 @@ class Catalog:
         return find(self, **predicates)
 
     def identity(self) -> CatalogIdentity:
-        """The package and schema versions, the digest and each applied source, in order."""
+        """The versions, the digest, each applied source in order, and the dataset's sources."""
         return CatalogIdentity(
             package_version=__version__,
             schema_version=self.schema_version,
             catalog_digest=self.catalog_digest,
             sources=self._applied,
+            link_environment_sources=dataset_sources(),
         )
 
     def to_dict(self) -> dict[str, Any]:

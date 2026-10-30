@@ -7,10 +7,11 @@ from typing import Annotated, NoReturn
 
 import typer
 
-from helia_platforms import __version__, _check_sources, _pages, _show
+from helia_platforms import __version__, _check_sources, _pages, _show, _windows
 from helia_platforms import export as _export
 from helia_platforms.catalog import Catalog, builtin, load_overlay
 from helia_platforms.errors import FormatError, PlatformError
+from helia_platforms.link_environments import link_environments, load_link_environment
 from helia_platforms.schema import render
 
 app = typer.Typer(
@@ -144,6 +145,50 @@ def show(  # noqa: PLR0917 (typer reads each parameter as an argument or option)
         _show.render_target(target, provenance=provenance, sources=sources, requested_boot=boot),
         nl=False,
     )
+
+
+@app.command()
+def windows(  # noqa: PLR0917 (typer reads each parameter as an argument or option)
+    name: Annotated[str, typer.Argument(help="A board, part, implementation or Soc id, or alias.")],
+    family: Annotated[
+        str | None, typer.Option(help="Only this link family: gnu, armlink or zephyr.")
+    ] = None,
+    profile: Annotated[str | None, typer.Option(help="Only this linker profile.")] = None,
+    environment: Annotated[
+        Path | None,
+        typer.Option(
+            help="Read this environment file instead of the shipped dataset.",
+            exists=True,
+            dir_okay=False,
+        ),
+    ] = None,
+    addon: Annotated[
+        list[str] | None, typer.Option("--addon", help="Add this add-on to a board; repeatable.")
+    ] = None,
+    boot: Annotated[str | None, typer.Option(help="Select this boot configuration.")] = None,
+    builtin_only: BuiltinOnly = False,
+    overlay: Overlays = None,
+) -> None:
+    """Show the linker windows that apply to a target, and its budget in each environment."""
+    catalog = _catalog(builtin_only, overlay)
+    try:
+        target = catalog.resolve(name, addons=addon or (), boot=boot)
+        if environment is not None:
+            found = (load_link_environment(environment),)
+            if not target.covered_by(found[0]):
+                raise PlatformError(f"{environment} does not apply to {target.id}")
+        else:
+            found = link_environments(link_family=family, profile=profile)
+        typer.echo(
+            _windows.render(target, tuple(e for e in found if target.covered_by(e))), nl=False
+        )
+    except FormatError as exc:
+        for problem in exc.problems:
+            typer.echo(problem, err=True)
+        raise typer.Exit(1) from None
+    except PlatformError as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(1) from None
 
 
 @app.command("check-sources")

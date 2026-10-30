@@ -412,6 +412,43 @@ class Composition:
     addons: tuple[str, ...] = ()
 
 
+# ---- link environments (RFC 0002 "Link environments"; outside the catalog) --------------
+
+
+@_frozen
+class WindowRegion:
+    """One linker region: its address range as core 0 sees it.
+
+    ``reserved`` marks a carve-out that holds no application sections (an armlink
+    ``EMPTY`` region, a fixed stack). ``chosen`` lists the Zephyr ``chosen`` properties
+    that name the region's devicetree node.
+    """
+
+    start: int
+    length: int
+    reserved: bool = False
+    chosen: tuple[str, ...] = ()
+
+
+@_frozen
+class LinkEnvironment:
+    """The linker windows one piece of software gives a set of targets.
+
+    ``regions`` is keyed by the linker's own region name (``MCU_TCM``, Zephyr's ``RAM``).
+    ``applies_to`` lists Soc, Implementation, Part or Board ids; ``revision`` is the
+    commit of ``source``.
+    """
+
+    owner: str
+    link_family: Literal["gnu", "armlink", "zephyr"]
+    profile: str
+    applies_to: tuple[str, ...]
+    regions: Mapping[str, WindowRegion]
+    source: str
+    revision: str
+    release_status: ReleaseStatus = "embargoed"
+
+
 #: Model classes by the name of the format declaration they are built from.
 BY_NAME: dict[str, type] = {
     cls.__name__: cls

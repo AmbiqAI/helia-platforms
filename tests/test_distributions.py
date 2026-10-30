@@ -101,6 +101,7 @@ import json
 import helia_platforms
 from helia_platforms import export
 from helia_platforms.catalog import builtin
+from helia_platforms.link_environments import link_environments
 
 catalog = builtin(include_plugins=False)
 statuses = {}
@@ -110,11 +111,15 @@ for kind in ("socs", "implementations", "parts", "boards"):  # effective: along 
 for kind in ("addons", "memory_devices"):
     for entry in getattr(catalog, kind)():
         statuses[f"{kind}.{entry.id}"] = entry.release_status
+environments = link_environments()  # the dataset ships beside the catalog (#73)
+for environment in environments:
+    statuses[f"link_environments.{environment.source}"] = environment.release_status
 filtered = export._document(catalog, filtered=True, provenance=True)
 unfiltered = export._document(catalog, filtered=False, provenance=True)
 print(json.dumps({
     "module": helia_platforms.__file__,
     "entries": len(statuses),
+    "link_environments": len(environments),
     "not_public": sorted(k for k, v in statuses.items() if v != "public"),
     "filter_drops_nothing": filtered == unfiltered,
 }))
@@ -141,5 +146,6 @@ def test_the_wheel_ships_only_public_entries(dist_dir: Path, tmp_path: Path) -> 
     result = json.loads(out)
     assert Path(result["module"]).is_relative_to(venv)  # the wheel, not this checkout
     assert result["entries"] > 0
+    assert result["link_environments"] > 0
     assert result["not_public"] == []
     assert result["filter_drops_nothing"]

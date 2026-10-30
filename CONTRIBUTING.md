@@ -135,6 +135,17 @@ The refresh prints the values that changed, with addresses in hex; put that
 summary in the pull request description. `snapshots/exceptions.yaml` lists the
 disagreements `check-sources` accepts, each with a reason and an issue.
 
+The link-environment dataset, `src/helia_platforms/data/link_environments.json`,
+is generated from the snapshots and the catalog's public Socs and boards, as
+`snapshots/link-environments.yaml` directs (#73). Regenerate it in the same pull
+request as a snapshot refresh or a data change that moves a region; CI fails
+while it is stale.
+
+```sh
+uv run python scripts/generate_link_environments.py          # regenerate
+uv run python scripts/generate_link_environments.py --check  # what CI runs
+```
+
 ## Checks
 
 Before opening a pull request, make sure these pass:

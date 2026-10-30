@@ -1,0 +1,304 @@
+{
+  "apollo330P": {
+    "armlink": {
+      "dtcm": {
+        "length": 241664,
+        "start": 536870912
+      },
+      "mram": {
+        "length": 2031616,
+        "start": 4259840
+      },
+      "sram": {
+        "length": 1835008,
+        "start": 537395200
+      }
+    },
+    "gnu": {
+      "dtcm": {
+        "length": 245760,
+        "start": 536870912
+      },
+      "mram": {
+        "length": 2031616,
+        "start": 4259840
+      },
+      "sram": {
+        "length": 1835008,
+        "start": 537395200
+      }
+    }
+  },
+  "apollo3p": {
+    "armlink": {
+      "dtcm": {
+        "length": 65536,
+        "start": 268435456
+      },
+      "mram": {
+        "length": 2048000,
+        "start": 49152
+      },
+      "sram": {
+        "length": 716800,
+        "start": 268505088
+      }
+    },
+    "gnu": {
+      "dtcm": {
+        "length": 65536,
+        "start": 268435456
+      },
+      "mram": {
+        "length": 2048000,
+        "start": 49152
+      },
+      "sram": {
+        "length": 716800,
+        "start": 268505088
+      }
+    }
+  },
+  "apollo4l": {
+    "armlink": {
+      "dtcm": {
+        "length": 372736,
+        "start": 268435456
+      },
+      "mram": {
+        "length": 1998848,
+        "start": 98304
+      },
+      "sram": {
+        "length": 1048576,
+        "start": 268828672
+      }
+    },
+    "gnu": {
+      "dtcm": {
+        "length": 393216,
+        "start": 268435456
+      },
+      "mram": {
+        "length": 1998848,
+        "start": 98304
+      },
+      "sram": {
+        "length": 1048576,
+        "start": 268828672
+      }
+    }
+  },
+  "apollo4p": {
+    "armlink": {
+      "dtcm": {
+        "length": 372736,
+        "start": 268435456
+      },
+      "mram": {
+        "length": 1998848,
+        "start": 98304
+      },
+      "sram": {
+        "length": 1048576,
+        "start": 268828672
+      }
+    },
+    "gnu": {
+      "dtcm": {
+        "length": 393216,
+        "start": 268435456
+      },
+      "mram": {
+        "length": 1998848,
+        "start": 98304
+      },
+      "sram": {
+        "length": 1048576,
+        "start": 268828672
+      }
+    }
+  },
+  "apollo510": {
+    "armlink": {
+      "dtcm": {
+        "length": 503808,
+        "start": 536870912
+      },
+      "itcm": {
+        "length": 262144,
+        "start": 0
+      },
+      "mram": {
+        "length": 4128768,
+        "start": 4259840
+      },
+      "sram": {
+        "length": 3145728,
+        "start": 537395200
+      }
+    },
+    "gnu": {
+      "dtcm": {
+        "length": 507904,
+        "start": 536870912
+      },
+      "itcm": {
+        "length": 262144,
+        "start": 0
+      },
+      "mram": {
+        "length": 4128768,
+        "start": 4259840
+      },
+      "sram": {
+        "length": 3145728,
+        "start": 537395200
+      }
+    }
+  },
+  "apollo510L": {
+    "armlink": {
+      "dtcm": {
+        "length": 241664,
+        "start": 536870912
+      },
+      "mram": {
+        "length": 2031616,
+        "start": 4259840
+      },
+      "sram": {
+        "length": 1835008,
+        "start": 537395200
+      }
+    },
+    "gnu": {
+      "dtcm": {
+        "length": 245760,
+        "start": 536870912
+      },
+      "mram": {
+        "length": 2031616,
+        "start": 4259840
+      },
+      "sram": {
+        "length": 1835008,
+        "start": 537395200
+      }
+    }
+  },
+  "apollo510b": {
+    "armlink": {
+      "dtcm": {
+        "length": 503808,
+        "start": 536870912
+      },
+      "itcm": {
+        "length": 262144,
+        "start": 0
+      },
+      "mram": {
+        "length": 4128768,
+        "start": 4259840
+      },
+      "sram": {
+        "length": 3145728,
+        "start": 537395200
+      }
+    },
+    "gnu": {
+      "dtcm": {
+        "length": 507904,
+        "start": 536870912
+      },
+      "itcm": {
+        "length": 262144,
+        "start": 0
+      },
+      "mram": {
+        "length": 4128768,
+        "start": 4259840
+      },
+      "sram": {
+        "length": 3145728,
+        "start": 537395200
+      }
+    }
+  },
+  "apollo5b": {
+    "armlink": {
+      "dtcm": {
+        "length": 503808,
+        "start": 536870912
+      },
+      "itcm": {
+        "length": 262144,
+        "start": 0
+      },
+      "mram": {
+        "length": 4128768,
+        "start": 4259840
+      },
+      "sram": {
+        "length": 3145728,
+        "start": 537395200
+      }
+    },
+    "gnu": {
+      "dtcm": {
+        "length": 507904,
+        "start": 536870912
+      },
+      "itcm": {
+        "length": 262144,
+        "start": 0
+      },
+      "mram": {
+        "length": 4128768,
+        "start": 4259840
+      },
+      "sram": {
+        "length": 3145728,
+        "start": 537395200
+      }
+    }
+  },
+  "atomiq110": {
+    "armlink": {
+      "dtcm": {
+        "length": 503808,
+        "start": 536870912
+      },
+      "itcm": {
+        "length": 262144,
+        "start": 0
+      },
+      "mram": {
+        "length": 4194304,
+        "start": 570425344
+      },
+      "sram": {
+        "length": 3145728,
+        "start": 553648128
+      }
+    },
+    "gnu": {
+      "dtcm": {
+        "length": 507904,
+        "start": 536870912
+      },
+      "itcm": {
+        "length": 262144,
+        "start": 0
+      },
+      "mram": {
+        "length": 4194304,
+        "start": 570425344
+      },
+      "sram": {
+        "length": 3145728,
+        "start": 553648128
+      }
+    }
+  }
+}

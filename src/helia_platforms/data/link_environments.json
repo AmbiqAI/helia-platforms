@@ -1,0 +1,724 @@
+{
+  "format": 1,
+  "sources": [
+    {
+      "commit": "ba0621638d57b71a7b0d4f76ddccf0706745ad77",
+      "repository": "AmbiqAI/nsx-ambiq-sdk",
+      "revision": "v5.2.26"
+    },
+    {
+      "commit": "3d7044ea240fc8dcb7b4c843b76f70cae5db736b",
+      "repository": "zephyrproject-rtos/hal_ambiq",
+      "revision": "3d7044ea240fc8dcb7b4c843b76f70cae5db736b"
+    },
+    {
+      "commit": "8f62a4ab82b5c2121c088842d3233f75b603ce35",
+      "repository": "zephyrproject-rtos/zephyr",
+      "revision": "8f62a4ab82b5c2121c088842d3233f75b603ce35"
+    }
+  ],
+  "environments": [
+    {
+      "owner": "nsx-ambiq-sdk",
+      "link_family": "armlink",
+      "profile": "default",
+      "applies_to": [
+        "apollo3"
+      ],
+      "regions": {
+        "ARM_LIB_HEAP": {
+          "start": 268824576,
+          "length": 0,
+          "reserved": true
+        },
+        "ARM_LIB_STACK": {
+          "start": 268824576,
+          "length": 4096,
+          "reserved": true
+        },
+        "FLASH": {
+          "start": 49152,
+          "length": 999424
+        },
+        "SRAM": {
+          "start": 268435456,
+          "length": 389120
+        }
+      },
+      "source": "modules/nsx-core/src/apollo3/armclang/linker_script.sct",
+      "revision": "ba0621638d57b71a7b0d4f76ddccf0706745ad77",
+      "release_status": "public"
+    },
+    {
+      "owner": "nsx-ambiq-sdk",
+      "link_family": "armlink",
+      "profile": "default",
+      "applies_to": [
+        "apollo330P"
+      ],
+      "regions": {
+        "ARM_LIB_HEAP": {
+          "start": 537112576,
+          "length": 4096,
+          "reserved": true
+        },
+        "ARM_LIB_STACK": {
+          "start": 537116672,
+          "length": 16384,
+          "reserved": true
+        },
+        "MCU_MRAM": {
+          "start": 4259840,
+          "length": 2031616
+        },
+        "MCU_TCM": {
+          "start": 536870912,
+          "length": 241664
+        },
+        "SHARED_SRAM": {
+          "start": 537395200,
+          "length": 1835008
+        }
+      },
+      "source": "modules/nsx-core/src/apollo330P/armclang/linker_script_sbl.sct",
+      "revision": "ba0621638d57b71a7b0d4f76ddccf0706745ad77",
+      "release_status": "public"
+    },
+    {
+      "owner": "nsx-ambiq-sdk",
+      "link_family": "armlink",
+      "profile": "default",
+      "applies_to": [
+        "apollo3p"
+      ],
+      "regions": {
+        "ARM_LIB_HEAP": {
+          "start": 268500992,
+          "length": 0,
+          "reserved": true
+        },
+        "ARM_LIB_STACK": {
+          "start": 268500992,
+          "length": 4096,
+          "reserved": true
+        },
+        "ROMEM": {
+          "start": 49152,
+          "length": 2048000
+        },
+        "RWMEM": {
+          "start": 268505088,
+          "length": 716800
+        },
+        "TCM": {
+          "start": 268435456,
+          "length": 65536
+        }
+      },
+      "source": "modules/nsx-core/src/apollo3p/armclang/linker_script.sct",
+      "revision": "ba0621638d57b71a7b0d4f76ddccf0706745ad77",
+      "release_status": "public"
+    },
+    {
+      "owner": "nsx-ambiq-sdk",
+      "link_family": "armlink",
+      "profile": "default",
+      "applies_to": [
+        "apollo4l"
+      ],
+      "regions": {
+        "ARM_LIB_HEAP": {
+          "start": 268808192,
+          "length": 4096,
+          "reserved": true
+        },
+        "ARM_LIB_STACK": {
+          "start": 268812288,
+          "length": 16384,
+          "reserved": true
+        },
+        "MCU_MRAM": {
+          "start": 98304,
+          "length": 1998848
+        },
+        "MCU_TCM": {
+          "start": 268435456,
+          "length": 372736
+        },
+        "SHARED_SRAM": {
+          "start": 268828672,
+          "length": 1048576
+        }
+      },
+      "source": "modules/nsx-core/src/apollo4l/armclang/linker_script.sct",
+      "revision": "ba0621638d57b71a7b0d4f76ddccf0706745ad77",
+      "release_status": "public"
+    },
+    {
+      "owner": "nsx-ambiq-sdk",
+      "link_family": "armlink",
+      "profile": "default",
+      "applies_to": [
+        "apollo4p"
+      ],
+      "regions": {
+        "ARM_LIB_HEAP": {
+          "start": 268808192,
+          "length": 4096,
+          "reserved": true
+        },
+        "ARM_LIB_STACK": {
+          "start": 268812288,
+          "length": 16384,
+          "reserved": true
+        },
+        "MCU_MRAM": {
+          "start": 98304,
+          "length": 1998848
+        },
+        "MCU_TCM": {
+          "start": 268435456,
+          "length": 372736
+        },
+        "SHARED_SRAM": {
+          "start": 268828672,
+          "length": 1048576
+        }
+      },
+      "source": "modules/nsx-core/src/apollo4p/armclang/linker_script.sct",
+      "revision": "ba0621638d57b71a7b0d4f76ddccf0706745ad77",
+      "release_status": "public"
+    },
+    {
+      "owner": "nsx-ambiq-sdk",
+      "link_family": "armlink",
+      "profile": "default",
+      "applies_to": [
+        "apollo510"
+      ],
+      "regions": {
+        "ARM_LIB_HEAP": {
+          "start": 537374720,
+          "length": 4096,
+          "reserved": true
+        },
+        "ARM_LIB_STACK": {
+          "start": 537378816,
+          "length": 16384,
+          "reserved": true
+        },
+        "MCU_ITCM": {
+          "start": 0,
+          "length": 262144
+        },
+        "MCU_MRAM": {
+          "start": 4259840,
+          "length": 4128768
+        },
+        "MCU_TCM": {
+          "start": 536870912,
+          "length": 503808
+        },
+        "SHARED_SRAM": {
+          "start": 537395200,
+          "length": 3145728
+        }
+      },
+      "source": "modules/nsx-core/src/apollo510/armclang/linker_script_sbl.sct",
+      "revision": "ba0621638d57b71a7b0d4f76ddccf0706745ad77",
+      "release_status": "public"
+    },
+    {
+      "owner": "nsx-ambiq-sdk",
+      "link_family": "armlink",
+      "profile": "default",
+      "applies_to": [
+        "apollo510L"
+      ],
+      "regions": {
+        "ARM_LIB_HEAP": {
+          "start": 537112576,
+          "length": 4096,
+          "reserved": true
+        },
+        "ARM_LIB_STACK": {
+          "start": 537116672,
+          "length": 16384,
+          "reserved": true
+        },
+        "MCU_MRAM": {
+          "start": 4259840,
+          "length": 2031616
+        },
+        "MCU_TCM": {
+          "start": 536870912,
+          "length": 241664
+        },
+        "SHARED_SRAM": {
+          "start": 537395200,
+          "length": 1835008
+        }
+      },
+      "source": "modules/nsx-core/src/apollo510L/armclang/linker_script_sbl.sct",
+      "revision": "ba0621638d57b71a7b0d4f76ddccf0706745ad77",
+      "release_status": "public"
+    },
+    {
+      "owner": "nsx-ambiq-sdk",
+      "link_family": "armlink",
+      "profile": "default",
+      "applies_to": [
+        "apollo510b"
+      ],
+      "regions": {
+        "ARM_LIB_HEAP": {
+          "start": 537374720,
+          "length": 4096,
+          "reserved": true
+        },
+        "ARM_LIB_STACK": {
+          "start": 537378816,
+          "length": 16384,
+          "reserved": true
+        },
+        "MCU_ITCM": {
+          "start": 0,
+          "length": 262144
+        },
+        "MCU_MRAM": {
+          "start": 4259840,
+          "length": 4128768
+        },
+        "MCU_TCM": {
+          "start": 536870912,
+          "length": 503808
+        },
+        "SHARED_SRAM": {
+          "start": 537395200,
+          "length": 3145728
+        }
+      },
+      "source": "modules/nsx-core/src/apollo510b/armclang/linker_script_sbl.sct",
+      "revision": "ba0621638d57b71a7b0d4f76ddccf0706745ad77",
+      "release_status": "public"
+    },
+    {
+      "owner": "nsx-ambiq-sdk",
+      "link_family": "gnu",
+      "profile": "default",
+      "applies_to": [
+        "apollo3"
+      ],
+      "regions": {
+        "ROMEM": {
+          "start": 49152,
+          "length": 999424
+        },
+        "RWMEM": {
+          "start": 268435456,
+          "length": 393216
+        }
+      },
+      "source": "modules/nsx-core/src/apollo3/gcc/linker_script.ld",
+      "revision": "ba0621638d57b71a7b0d4f76ddccf0706745ad77",
+      "release_status": "public"
+    },
+    {
+      "owner": "nsx-ambiq-sdk",
+      "link_family": "gnu",
+      "profile": "default",
+      "applies_to": [
+        "apollo330P"
+      ],
+      "regions": {
+        "MCU_MRAM": {
+          "start": 4259840,
+          "length": 2031616
+        },
+        "MCU_TCM": {
+          "start": 536870912,
+          "length": 245760
+        },
+        "SHARED_SRAM": {
+          "start": 537395200,
+          "length": 1835008
+        }
+      },
+      "source": "modules/nsx-core/src/apollo330P/gcc/linker_script_sbl.ld",
+      "revision": "ba0621638d57b71a7b0d4f76ddccf0706745ad77",
+      "release_status": "public"
+    },
+    {
+      "owner": "nsx-ambiq-sdk",
+      "link_family": "gnu",
+      "profile": "default",
+      "applies_to": [
+        "apollo3p"
+      ],
+      "regions": {
+        "ROMEM": {
+          "start": 49152,
+          "length": 2048000
+        },
+        "RWMEM": {
+          "start": 268505088,
+          "length": 716800
+        },
+        "STACKMEM": {
+          "start": 268500992,
+          "length": 4096,
+          "reserved": true
+        },
+        "TCM": {
+          "start": 268435456,
+          "length": 65536
+        }
+      },
+      "source": "modules/nsx-core/src/apollo3p/gcc/linker_script.ld",
+      "revision": "ba0621638d57b71a7b0d4f76ddccf0706745ad77",
+      "release_status": "public"
+    },
+    {
+      "owner": "nsx-ambiq-sdk",
+      "link_family": "gnu",
+      "profile": "default",
+      "applies_to": [
+        "apollo4l"
+      ],
+      "regions": {
+        "MCU_MRAM": {
+          "start": 98304,
+          "length": 1998848
+        },
+        "MCU_TCM": {
+          "start": 268435456,
+          "length": 393216
+        },
+        "SHARED_SRAM": {
+          "start": 268828672,
+          "length": 1048576
+        }
+      },
+      "source": "modules/nsx-core/src/apollo4l/gcc/linker_script.ld",
+      "revision": "ba0621638d57b71a7b0d4f76ddccf0706745ad77",
+      "release_status": "public"
+    },
+    {
+      "owner": "nsx-ambiq-sdk",
+      "link_family": "gnu",
+      "profile": "default",
+      "applies_to": [
+        "apollo4p"
+      ],
+      "regions": {
+        "MCU_MRAM": {
+          "start": 98304,
+          "length": 1998848
+        },
+        "MCU_TCM": {
+          "start": 268435456,
+          "length": 393216
+        },
+        "SHARED_SRAM": {
+          "start": 268828672,
+          "length": 1048576
+        }
+      },
+      "source": "modules/nsx-core/src/apollo4p/gcc/linker_script.ld",
+      "revision": "ba0621638d57b71a7b0d4f76ddccf0706745ad77",
+      "release_status": "public"
+    },
+    {
+      "owner": "nsx-ambiq-sdk",
+      "link_family": "gnu",
+      "profile": "default",
+      "applies_to": [
+        "apollo510"
+      ],
+      "regions": {
+        "MCU_ITCM": {
+          "start": 0,
+          "length": 262144
+        },
+        "MCU_MRAM": {
+          "start": 4259840,
+          "length": 4128768
+        },
+        "MCU_TCM": {
+          "start": 536870912,
+          "length": 507904
+        },
+        "SHARED_SRAM": {
+          "start": 537395200,
+          "length": 3145728
+        }
+      },
+      "source": "modules/nsx-core/src/apollo510/gcc/linker_script_sbl.ld",
+      "revision": "ba0621638d57b71a7b0d4f76ddccf0706745ad77",
+      "release_status": "public"
+    },
+    {
+      "owner": "nsx-ambiq-sdk",
+      "link_family": "gnu",
+      "profile": "default",
+      "applies_to": [
+        "apollo510L"
+      ],
+      "regions": {
+        "MCU_MRAM": {
+          "start": 4259840,
+          "length": 2031616
+        },
+        "MCU_TCM": {
+          "start": 536870912,
+          "length": 245760
+        },
+        "SHARED_SRAM": {
+          "start": 537395200,
+          "length": 1835008
+        }
+      },
+      "source": "modules/nsx-core/src/apollo510L/gcc/linker_script_sbl.ld",
+      "revision": "ba0621638d57b71a7b0d4f76ddccf0706745ad77",
+      "release_status": "public"
+    },
+    {
+      "owner": "nsx-ambiq-sdk",
+      "link_family": "gnu",
+      "profile": "default",
+      "applies_to": [
+        "apollo510b"
+      ],
+      "regions": {
+        "MCU_ITCM": {
+          "start": 0,
+          "length": 262144
+        },
+        "MCU_MRAM": {
+          "start": 4259840,
+          "length": 4128768
+        },
+        "MCU_TCM": {
+          "start": 536870912,
+          "length": 507904
+        },
+        "SHARED_SRAM": {
+          "start": 537395200,
+          "length": 3145728
+        }
+      },
+      "source": "modules/nsx-core/src/apollo510b/gcc/linker_script_sbl.ld",
+      "revision": "ba0621638d57b71a7b0d4f76ddccf0706745ad77",
+      "release_status": "public"
+    },
+    {
+      "owner": "zephyr",
+      "link_family": "zephyr",
+      "profile": "default",
+      "applies_to": [
+        "apollo3_evb"
+      ],
+      "regions": {
+        "FLASH": {
+          "start": 49152,
+          "length": 999424,
+          "chosen": [
+            "zephyr,flash"
+          ]
+        },
+        "ITCM": {
+          "start": 268435456,
+          "length": 65536,
+          "chosen": [
+            "zephyr,itcm"
+          ]
+        },
+        "RAM": {
+          "start": 268500992,
+          "length": 327680,
+          "chosen": [
+            "zephyr,sram"
+          ]
+        }
+      },
+      "source": "boards/ambiq/apollo3_evb/apollo3_evb.dts",
+      "revision": "8f62a4ab82b5c2121c088842d3233f75b603ce35",
+      "release_status": "public"
+    },
+    {
+      "owner": "zephyr",
+      "link_family": "zephyr",
+      "profile": "default",
+      "applies_to": [
+        "apollo3p_evb"
+      ],
+      "regions": {
+        "FLASH": {
+          "start": 49152,
+          "length": 2048000,
+          "chosen": [
+            "zephyr,flash"
+          ]
+        },
+        "ITCM": {
+          "start": 268435456,
+          "length": 65536,
+          "chosen": [
+            "zephyr,itcm"
+          ]
+        },
+        "RAM": {
+          "start": 268500992,
+          "length": 720896,
+          "chosen": [
+            "zephyr,sram"
+          ]
+        },
+        "XIP0": {
+          "start": 1375731712,
+          "length": 33554432
+        },
+        "XIP1": {
+          "start": 1409286144,
+          "length": 33554432
+        },
+        "XIP2": {
+          "start": 1442840576,
+          "length": 33554432
+        }
+      },
+      "source": "boards/ambiq/apollo3p_evb/apollo3p_evb.dts",
+      "revision": "8f62a4ab82b5c2121c088842d3233f75b603ce35",
+      "release_status": "public"
+    },
+    {
+      "owner": "zephyr",
+      "link_family": "zephyr",
+      "profile": "default",
+      "applies_to": [
+        "apollo4p_blue_kxr_evb"
+      ],
+      "regions": {
+        "FLASH": {
+          "start": 98304,
+          "length": 1998848,
+          "chosen": [
+            "zephyr,flash"
+          ]
+        },
+        "ITCM": {
+          "start": 268435456,
+          "length": 65536,
+          "chosen": [
+            "zephyr,itcm"
+          ]
+        },
+        "RAM": {
+          "start": 268500992,
+          "length": 2818048,
+          "chosen": [
+            "zephyr,sram"
+          ]
+        }
+      },
+      "source": "boards/ambiq/apollo4p_blue_kxr_evb/apollo4p_blue_kxr_evb.dts",
+      "revision": "8f62a4ab82b5c2121c088842d3233f75b603ce35",
+      "release_status": "public"
+    },
+    {
+      "owner": "zephyr",
+      "link_family": "zephyr",
+      "profile": "default",
+      "applies_to": [
+        "apollo4p_evb"
+      ],
+      "regions": {
+        "FLASH": {
+          "start": 98304,
+          "length": 1998848,
+          "chosen": [
+            "zephyr,flash"
+          ]
+        },
+        "ITCM": {
+          "start": 268435456,
+          "length": 65536,
+          "chosen": [
+            "zephyr,itcm"
+          ]
+        },
+        "RAM": {
+          "start": 268500992,
+          "length": 2818048,
+          "chosen": [
+            "zephyr,sram"
+          ]
+        }
+      },
+      "source": "boards/ambiq/apollo4p_evb/apollo4p_evb.dts",
+      "revision": "8f62a4ab82b5c2121c088842d3233f75b603ce35",
+      "release_status": "public"
+    },
+    {
+      "owner": "zephyr",
+      "link_family": "zephyr",
+      "profile": "default",
+      "applies_to": [
+        "apollo510_evb"
+      ],
+      "regions": {
+        "DTCM": {
+          "start": 536870912,
+          "length": 507904,
+          "chosen": [
+            "zephyr,dtcm"
+          ]
+        },
+        "FLASH": {
+          "start": 4259840,
+          "length": 4128768,
+          "chosen": [
+            "zephyr,flash"
+          ]
+        },
+        "ITCM": {
+          "start": 0,
+          "length": 262144,
+          "chosen": [
+            "zephyr,itcm"
+          ]
+        },
+        "RAM": {
+          "start": 537395200,
+          "length": 2097152,
+          "chosen": [
+            "zephyr,sram"
+          ]
+        },
+        "SRAM_NO_CACHE": {
+          "start": 539492352,
+          "length": 1048576
+        },
+        "XIP0": {
+          "start": 1610612736,
+          "length": 268435456
+        },
+        "XIP1": {
+          "start": 2147483648,
+          "length": 67108864
+        },
+        "XIP2": {
+          "start": 2214592512,
+          "length": 67108864
+        },
+        "XIP3": {
+          "start": 2281701376,
+          "length": 134217728
+        }
+      },
+      "source": "boards/ambiq/apollo510_evb/apollo510_evb.dts",
+      "revision": "8f62a4ab82b5c2121c088842d3233f75b603ce35",
+      "release_status": "public"
+    }
+  ]
+}

@@ -22,6 +22,11 @@ from helia_platforms.errors import (
     PlatformWarning,
     UnknownPlatform,
 )
+from helia_platforms.link_environments import (
+    find_link_environment,
+    link_environments,
+    load_link_environment,
+)
 from helia_platforms.resolve import resolve, resolve_board, resolve_soc
 from helia_platforms.target import IsaFeatures, Target
 
@@ -38,6 +43,9 @@ __all__ = [
     "UnknownPlatform",
     "__version__",
     "builtin",
+    "find_link_environment",
+    "link_environments",
+    "load_link_environment",
     "load_overlay",
     "resolve",
     "resolve_board",

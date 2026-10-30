@@ -207,8 +207,18 @@ def test_a_file_and_the_same_mapping_record_the_same_hash(tmp_path, document):
 
 def test_identity_to_dict_is_json(document):
     found = json.loads(json.dumps(load_overlay(document).identity().to_dict()))
-    assert set(found) == {"package_version", "schema_version", "catalog_digest", "sources"}
+    assert set(found) == {
+        "package_version",
+        "schema_version",
+        "catalog_digest",
+        "sources",
+        "link_environment_sources",
+    }
     assert set(found["sources"][0]) == {"label", "schema_version", "sha256", "distribution_version"}
+    assert {s["repository"] for s in found["link_environment_sources"]} >= {
+        "AmbiqAI/nsx-ambiq-sdk",
+        "zephyrproject-rtos/zephyr",
+    }
     assert _EMPTY.identity().sources == ()
 
 

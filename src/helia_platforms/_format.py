@@ -482,11 +482,18 @@ class ExportSource(TypedDict):
     distribution_version: Required[str | None]
 
 
+class ExportDatasetSource(TypedDict):
+    repository: Required[str]
+    revision: Required[str]
+    commit: Required[str]
+
+
 class ExportIdentity(TypedDict):
     package_version: Required[str]
     schema_version: Required[Annotated[int, Minimum(1)]]
     catalog_digest: Required[Digest]
     sources: Required[list[ExportSource]]
+    link_environment_sources: Required[list[ExportDatasetSource]]
 
 
 class Export(TypedDict):

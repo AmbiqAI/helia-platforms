@@ -110,8 +110,8 @@ Records of resolved values for such readers are deferred (see "Deferred:
 resolved targets").
 
 The export carries no tool policy and no budgets: no alignment, placement
-order or linker windows. The optional link-environment dataset stays
-outside the export (RFC 0002 open question 2).
+order or linker windows. The link-environment dataset ships in the wheel
+but stays outside the export (RFC 0002 "Link environments").
 
 The document has no timestamp, and is written with sorted keys, two-space
 indentation and a final newline. The same package version and inputs

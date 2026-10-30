@@ -18,8 +18,8 @@ realize them, not a static table. It exposes:
 1. a **catalog** of specifications (SoCs), implementations of them
    (FPGA builds, FVP and RTL models, and non-default silicon), silicon
    parts, boards, add-ons and memory devices, every fact carrying
-   provenance. Linker windows are not catalog content: an optional
-   generated dataset of link environments ships separately;
+   provenance. Linker windows are not catalog content: a generated
+   dataset of link environments ships in the wheel beside the catalog;
 2. a **resolver** that turns any accepted spelling into one target, with
    aliases, compositions, family shorthands and did-you-mean in one place;
 3. **derived queries**: capabilities such as MVE, FP16 or an Ethos-U85 with
@@ -464,10 +464,22 @@ covers. An environment applies to a target if any id on the target's
 reference chain (board, part, implementation, Soc) is listed, except that
 the chain stops at an implementation that rebases or resizes a region, so
 a silicon environment never covers a rebased FPGA build.
-`Target.budget(env)` raises if the target is not covered. An
-optional dataset of environments generated from nsx-ambiq-sdk and Zephyr
-at pinned revisions ships separately for consumers that want a
-conservative default; the profiler's windows table seeds it, and an
+`Target.budget(env)` raises if the target is not covered. A window can
+span several catalog regions (apollo3's nsx `RWMEM` runs from TCM into
+SRAM), so `budget()` counts, per physical region, the bytes the windows
+overlap, less the environment's carve-outs, the boot reservations and
+other cores' image slots (decided 2026-10-30 on #73). On the Apollo510
+Lite EVB that leaves 1552 KB of the 1984 KB nsx MRAM window, since the
+window runs into the radio firmware slot. `link_environments()`,
+`find_link_environment(target, link_family, profile=)` and
+`load_link_environment(file)` in `helia_platforms.link_environments` read
+the dataset and environment files. A
+dataset of environments generated from nsx-ambiq-sdk and Zephyr at pinned
+revisions ships in the wheel, outside the core model, for consumers that
+want a conservative default (decided 2026-10-29 on #73): the nsx
+`default` profile as `gnu` and `armlink` environments for every Soc in
+the catalog, and a `zephyr` environment for each Ambiq board in the
+Zephyr snapshot. The profiler's windows table seeds it, and an
 extractor script regenerates it rather than hand-copying, from the
 committed source snapshots of
 [ADR 0006](../adr/0006-drift-test-snapshots.md).
@@ -864,8 +876,8 @@ one of them.
 @dataclass(frozen=True) class AddOn:      id, fits_boards, occupies, population: Mapping[str, str], modes: Mapping[str, tuple[str, ...]], revision, aliases, release_status, extensions, provenance
 @dataclass(frozen=True) class Board:      id, category, revision, part, interfaces, population: Mapping[str, str], provisioning, jlink_device, trace_clock_mhz, aliases, release_status, extensions, provenance
 @dataclass(frozen=True) class Composition: alias, board, addons; release_status (property, effective from what it references)
-@dataclass(frozen=True) class LinkEnvironment: owner, link_family, profile, applies_to: tuple[str, ...], regions: Mapping[str, WindowRegion], source, revision; release_status (property, effective)
-@dataclass(frozen=True) class WindowRegion: start, length, app_window, section_names
+@dataclass(frozen=True) class LinkEnvironment: owner, link_family, profile, applies_to: tuple[str, ...], regions: Mapping[str, WindowRegion], source, revision, release_status   # regions keyed by the linker's region name
+@dataclass(frozen=True) class WindowRegion: start, length, reserved: bool, chosen: tuple[str, ...]   # reserved: a carve-out; chosen: Zephyr chosen properties
 ```
 
 A class that has `provenance` also has `field_provenance`: the records of
@@ -916,7 +928,8 @@ class Target:
     # external memory
     def external_memories(self) -> tuple[MemoryRegion, ...]   # population plus add-ons, at aperture bases
     # link environments (optional)
-    def budget(self, environment: LinkEnvironment, core: int | str = 0) -> Mapping[str, int]   # reachable regions only (external ones through their interface's entry); raises if no id on the reference chain is in applies_to
+    def covered_by(self, environment: LinkEnvironment) -> bool   # an id on the reference chain is in applies_to
+    def budget(self, environment: LinkEnvironment, core: int | str = 0) -> Mapping[str, int]   # per reachable region (external ones through their interface's entry): bytes the windows overlap, less carve-outs, boot reservations and other cores' slots; regions no window overlaps left out; raises if not covered_by
     def classify_address(self, address: int, master: int | str = 0) -> str | None   # alternate_bases classify to the same region; per-master Access addresses resolved for master
     # debug and SDK
     jlink_device: str | None; trace_clock_mhz: int | float | None; sdk: SdkFacts   # board, else implementation, else part / SDK; trace_clock_mhz is an int when whole, a measured fraction kept
@@ -1033,7 +1046,7 @@ stand.
 | Topic | RFC 0001 | RFC 0002 | Why |
 |---|---|---|---|
 | Tool settings | Per-tool sections on built-ins (`helia_aot:` capabilities, preferred memory order, alignment; `profiler:` in custom entries) ("Facts, and each tool's settings") | No tool sections on built-ins; tool policy keyed by canonical id in each tool; overlays may carry `extensions` (proposal) | P1: the package holds facts, not opinions (owner direction; review 2.5) |
-| Linker windows | A windows table in the package keyed by board, profile and link family ("Memory: physical regions and linker windows") | Not in the core model; an optional generated dataset of `LinkEnvironment`s (nsx-ambiq-sdk, Zephyr) ships separately | Windows are properties of software, not silicon |
+| Linker windows | A windows table in the package keyed by board, profile and link family ("Memory: physical regions and linker windows") | Not in the core model; a generated dataset of `LinkEnvironment`s (nsx-ambiq-sdk, Zephyr) ships in the wheel beside the catalog | Windows are properties of software, not silicon |
 | Capabilities | Declared lists per entry | Derived from `Core`, `CoreOptions` and `NpuInstance` | P3; declared lists drift (review 2.8) |
 | `tier`, `channel` | Board fields | Removed; support level is a per-tool marker keyed by id | Tool policy, not fact |
 | External memory | A PSRAM (and NVM) region per board | Board `interfaces` plus `population` plus add-ons, populated by `MemoryDevice`s | Board revisions and shields change what is fitted (research/datasheets.md section 7) |
@@ -1055,7 +1068,8 @@ parity test (issue #13) that covers each are in
    facts, or is that characterization with provenance like memory timing?
 2. Which environments the optional link-environment dataset covers
    (nsx-ambiq-sdk toolchains and profiles, Zephyr boards), and how it is
-   versioned relative to the catalog.
+   versioned relative to the catalog. Decided 2026-10-29 on #73: see
+   [Link environments](#link-environments) and ADR 0004 (#12) point 2.
 3. Of `helia-npu`'s `targets` (FVP, RTL, silicon), the FVP memory maps
    ([ADR 0007](../adr/0007-fvp-memory-maps.md)) and clock choices are
    implementation description and move here; the

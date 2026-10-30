@@ -32,6 +32,26 @@
     "catalog"
   ],
   "$defs": {
+    "ExportDatasetSource": {
+      "type": "object",
+      "properties": {
+        "repository": {
+          "type": "string"
+        },
+        "revision": {
+          "type": "string"
+        },
+        "commit": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "repository",
+        "revision",
+        "commit"
+      ]
+    },
     "ExportIdentity": {
       "type": "object",
       "properties": {
@@ -50,6 +70,12 @@
           "items": {
             "$ref": "#/$defs/ExportSource"
           }
+        },
+        "link_environment_sources": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ExportDatasetSource"
+          }
         }
       },
       "additionalProperties": false,
@@ -57,7 +83,8 @@
         "package_version",
         "schema_version",
         "catalog_digest",
-        "sources"
+        "sources",
+        "link_environment_sources"
       ]
     },
     "ExportSource": {
