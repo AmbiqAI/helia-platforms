@@ -53,6 +53,17 @@ def test_each_kind_of_id_resolves_case_insensitively(catalog, name, kind, target
     assert (target.kind, target.id) == (kind, target_id)
 
 
+def test_an_fpga_board_takes_its_implementations_facts(document):
+    with_fpga(document, memories_removed=["ssram"])
+    document["implementations"]["soc_a_fpga"]["trace_clock_mhz"] = 48
+    document["boards"]["fpga_a"] = {"category": "fpga", "implementation": "soc_a_fpga"}
+    target = resolve("fpga_a", catalog=quiet(document))
+    assert (target.kind, target.part) == ("board", None)
+    assert target.implementation is not None and target.implementation.id == "soc_a_fpga"
+    assert (target.trace_clock_mhz, target.jlink_device) == (48, None)
+    assert "ssram" not in {r.name for r in target.memories()}
+
+
 def test_an_implementation_id_resolves_to_its_target(document):
     target = resolve("soc_a_fpga", catalog=quiet(with_fpga(document)))
     assert target.kind == "implementation"

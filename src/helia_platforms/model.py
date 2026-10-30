@@ -103,6 +103,7 @@ class NpuInstance:
     axi_width_bits: int | None = None
     base_address: int | None = None
     irq: int | None = None
+    sram_port_hash: int | None = None
 
 
 @_frozen
@@ -366,8 +367,9 @@ class Part(_Carrier):
 @_frozen
 class Board(_Carrier):
     id: str
-    category: Literal["engineering", "evaluation", "custom"]
-    part: str
+    category: Literal["engineering", "evaluation", "custom", "fpga"]
+    part: str | None = None
+    implementation: str | None = None
     revision: str | None = None
     interfaces: Mapping[str, MemoryInterface] = field(default_factory=_empty)
     population: Mapping[str, str] = field(default_factory=_empty)

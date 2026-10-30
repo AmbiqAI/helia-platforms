@@ -370,7 +370,7 @@ def test_an_implementation_of_an_unknown_soc_is_reported(document):
 
 def test_image_slots_are_checked_against_the_realized_soc(document):
     document["implementations"] = {
-        "cut": {"soc": "soc_a", "kind": "fpga", "subset": {"memories_removed": ["ssram"]}}
+        "cut": {"soc": "soc_a", "kind": "silicon", "subset": {"memories_removed": ["ssram"]}}
     }
     document["parts"]["PART-A"]["implementation"] = "cut"
     document["parts"]["PART-A"]["image_slots"] = {
@@ -430,6 +430,32 @@ def test_a_dropped_default_point_becomes_none(document):
     realized = implementation(document, subset={"max_cpu_mhz": 100})
     assert realized.default_operating_point is None
     assert "default_operating_point" not in realized.field_provenance
+
+
+def test_removing_the_default_point_clears_it_as_a_cap_does(document):
+    realized = implementation(document, subset={"operating_points_removed": ["lp"]})
+    assert [p.name for p in realized.operating_points] == ["hp"]
+    assert realized.default_operating_point is None
+    assert "default_operating_point" not in realized.field_provenance
+
+
+def test_removing_every_point_needs_the_implementations_own(document):
+    removed = {"operating_points_removed": ["lp", "hp"]}
+    found = problems_of(with_cut(copy.deepcopy(document), subset=removed))
+    assert "operating_points_removed drops every operating point" in found
+    realized = implementation(
+        document, subset=removed, operating_points={"fpga": {"cpu_mhz": 96, "npu_mhz": 96}}
+    )
+    assert [p.name for p in realized.operating_points] == ["fpga"]
+
+
+def test_an_overlay_that_removes_the_default_point_may_name_its_own(document):
+    document["socs"]["soc_b"] = {
+        "based_on": "soc_a",
+        "operating_points_removed": ["lp"],
+        "default_operating_point": "hp",
+    }
+    assert load_overlay(document)._entry("socs", "soc_b").default_operating_point == "hp"
 
 
 def test_caps_that_drop_every_point_need_the_implementations_own(document):
@@ -1095,6 +1121,83 @@ def test_a_delta_that_keeps_a_removed_peripheral_as_a_memory_controller_is_an_er
     assert "socs.soc_b: memory_controllers: 'iom0' is not in peripherals" in problems_of(document)
 
 
+def test_a_part_names_only_a_silicon_implementation(document):
+    with_cut(document, kind="fpga")
+    document["parts"]["PART-A"]["implementation"] = "cut"
+    assert "parts.PART-A: implementation 'cut' is kind fpga; a Part is silicon" in (
+        problems_of(document)
+    )
+
+
+def with_fpga_board(document) -> dict[str, Any]:
+    """``document`` with an FPGA carrier ``fpga_a`` naming the fpga Implementation ``cut``."""
+    with_cut(document, subset={"memories_removed": ["ssram"]})
+    document["boards"]["fpga_a"] = {"category": "fpga", "implementation": "cut"}
+    return document
+
+
+def test_an_fpga_board_names_its_implementation(document):
+    cat = load_quietly(with_fpga_board(document))
+    assert [b.id for b in cat.boards("soc_a")] == ["board_a", "fpga_a"]
+    target = cat.resolve("fpga_a")
+    assert (target.board.id, target.implementation.id, target.part) == ("fpga_a", "cut", None)
+    assert "ssram" not in {r.name for r in target.memories()}
+
+
+@pytest.mark.parametrize(
+    ("board", "problem"),
+    [
+        pytest.param(
+            {"category": "fpga", "part": "PART-A", "implementation": "cut"},
+            "names neither or both of part and implementation",
+            id="both",
+        ),
+        pytest.param(
+            {"category": "fpga"}, "names neither or both of part and implementation", id="neither"
+        ),
+        pytest.param(
+            {"category": "fpga", "implementation": "nope"}, "no implementation 'nope'", id="unknown"
+        ),
+        pytest.param(
+            {"category": "evaluation", "implementation": "cut"},
+            "only a board of category fpga names an implementation, of kind fpga",
+            id="category",
+        ),
+        pytest.param(
+            {"category": "fpga", "part": "PART-A"},
+            "a board of category fpga names an implementation",
+            id="fpga with a part",
+        ),
+    ],
+)
+def test_a_board_names_exactly_one_carrier(document, board, problem):
+    with_fpga_board(document)["boards"]["fpga_a"] = board
+    assert f"boards.fpga_a: {problem}" in problems_of(document)
+
+
+def test_only_an_fpga_implementation_has_a_board(document):
+    with_fpga_board(document)["implementations"]["cut"]["kind"] = "silicon"
+    message = "only a board of category fpga names an implementation, of kind fpga"
+    assert f"boards.fpga_a: {message}" in problems_of(document)
+
+
+def test_an_fpga_boards_provisioning_is_checked_against_its_implementation(document):
+    with_fpga_board(document)["implementations"]["cut"]["subset"]["boot_configs_removed"] = ["sbl"]
+    document["boards"]["fpga_a"]["provisioning"] = "sbl"
+    assert "boards.fpga_a: provisioning 'sbl' is not a boot config" in problems_of(document)
+
+
+def test_the_npu_port_hash_and_an_access_characterization_load(document):
+    soc(document)["npus"][0]["sram_port_hash"] = 0x80
+    soc(document)["access"][0]["characterization"] = {"max_outstanding": 8, "burst_bytes": 256}
+    a = load_overlay(document)._entry("socs", "soc_a")
+    assert a.npus[0].sram_port_hash == 0x80
+    assert (
+        a.access[0].characterization.max_outstanding,
+        a.access[0].characterization.burst_bytes,
+    ) == (8, 256)
+
+
 def test_an_interface_on_a_controller_the_implementation_removed_is_an_error(document):
     fpga_mspi0 = copy.deepcopy(document["boards"]["board_a"]["interfaces"]["mspi0"])
     fpga_mspi0["aperture_base"] = 0x70000000  # clear of the board's mspi0 window
@@ -1102,7 +1205,7 @@ def test_an_interface_on_a_controller_the_implementation_removed_is_an_error(doc
     document["implementations"] = {
         "cut": {
             "soc": "soc_a",
-            "kind": "fpga",
+            "kind": "silicon",
             "interfaces": interfaces,
             "subset": {"peripherals_removed": ["iom2"]},
         }
@@ -1116,12 +1219,19 @@ def test_an_interface_on_a_controller_the_implementation_removed_is_an_error(doc
     assert f"boards.board_a.interfaces.mspi0: {removed}" in found
 
 
+def carry_on_board_a(document, implementation: str) -> None:
+    """Make board_a an fpga board carrying ``implementation`` in place of its part."""
+    board = document["boards"]["board_a"]
+    del board["part"]
+    board.update(category="fpga", implementation=implementation)
+
+
 def test_a_board_window_may_not_overlap_its_implementations_windows(document):
     fpga_mspi0 = copy.deepcopy(document["boards"]["board_a"]["interfaces"]["mspi0"])
     document["implementations"] = {
         "cut": {"soc": "soc_a", "kind": "fpga", "interfaces": {"fpga_mspi0": fpga_mspi0}}
     }
-    document["parts"]["PART-A"]["implementation"] = "cut"
+    carry_on_board_a(document, "cut")
     found = problems_of(document)
     assert "boards.board_a.interfaces.mspi0: window 0x60000000" in found
     assert (
@@ -1137,7 +1247,7 @@ def test_a_board_and_its_implementation_may_not_name_the_same_interface(document
     document["implementations"] = {
         "cut": {"soc": "soc_a", "kind": "fpga", "interfaces": interfaces, "subset": {}}
     }
-    document["parts"]["PART-A"]["implementation"] = "cut"
+    carry_on_board_a(document, "cut")
     assert (
         "boards.board_a.interfaces.mspi0: implementation 'cut' also has an interface 'mspi0'"
     ) in problems_of(document)
@@ -1750,7 +1860,10 @@ def test_rfc_0002_fpga_example_realizes_over_a_stand_in_soc(tmp_path, document):
     base = {"cores": document["cores"], "socs": {"atomiq110": stand_in}}
     path = tmp_path / "overlay.yaml"
     path.write_text(rfc_0002_overlays()[1])
-    realized = load_overlay(path, base=load_overlay(base))._realized("atomiq110_fpga_rev3")
+    cat = load_overlay(path, base=load_overlay(base))
+    realized = cat._realized("atomiq110_fpga_rev3")
+    carried = cat.resolve("my_fpga_carrier").implementation
+    assert carried is not None and carried.id == "atomiq110_fpga_rev3"
     assert [p.name for p in realized.operating_points] == ["fpga"]  # max_cpu_mhz: 25
     assert realized.default_operating_point is None
     assert [(r.name, r.size) for r in realized.memories] == [
