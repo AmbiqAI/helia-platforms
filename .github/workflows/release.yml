@@ -35,9 +35,7 @@ jobs:
           ref: ${{ needs.release-please.outputs.tag_name }}
           persist-credentials: false
       - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
-      # --frozen, not --locked: release-please bumps pyproject.toml but not the
-      # project's own version in uv.lock, which --locked would reject.
-      - run: uv sync --frozen --group dev
+      - run: uv sync --locked --group dev
       - name: Check that the tag names the package version
         env:
           TAG: ${{ needs.release-please.outputs.tag_name }}

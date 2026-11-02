@@ -22,7 +22,14 @@
       "package-name": "helia-platforms",
       "include-component-in-tag": false,
       "include-v-in-tag": true,
-      "changelog-path": "CHANGELOG.md"
+      "changelog-path": "CHANGELOG.md",
+      "extra-files": [
+        {
+          "type": "toml",
+          "path": "uv.lock",
+          "jsonpath": "$.package[?(@.name.value=='helia-platforms')].version"
+        }
+      ]
     }
   }
 }
