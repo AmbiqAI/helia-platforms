@@ -67,6 +67,15 @@ def test_each_facts_value_is_compared(snapshots, key, value, rule):
     assert [f.rule for f in findings(snapshots)].count(rule) >= 1
 
 
+def test_a_soc_with_a_jlink_cpufreq_compares_it_and_not_the_trace_clock(snapshots):
+    def change(data):
+        data["socs"]["apollo3p"]["facts"]["values"]["NSX_SEGGER_CPUFREQ"] = ["6000000"]
+
+    assert findings(snapshots) == []  # 48 MHz, the -cpufreq, not the 6 MHz trace clock
+    edit(snapshots, _check_sources.SDK, change)
+    assert [(f.rule, f.at[1]) for f in findings(snapshots)] == [("jlink cpufreq", "apollo3p")]
+
+
 @pytest.mark.parametrize(
     ("value", "read"),
     [

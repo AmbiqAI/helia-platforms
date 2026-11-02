@@ -313,6 +313,16 @@ socs:
             clock at 24 MHz. In burst mode the HFRC also gives the core 96 MHz (p549); which
             output the TPIU divides is not stated. NSX_SEGGER_CPUFREQ says 48 MHz
             (apollo3.cmake:52), the HFRC J-Link expects. Measured on Apollo3P (#67), not here.
+      jlink_cpufreq_mhz:
+        value: 48
+        provenance:
+          status: sdk
+          source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo3.cmake:52"]
+          verified_on: 2026-10-30
+          verified_by: evanchen11
+          notes: >-
+            NSX_SEGGER_CPUFREQ, the HFRC. J-Link's Apollo3 support divides it by 8 itself,
+            as measured on Apollo3P (#67); no Apollo3 board is on the farm.
       build:
         abi: thumbv7em-fpv4sp-hard
         float_abi: hard

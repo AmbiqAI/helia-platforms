@@ -217,8 +217,15 @@ class _Comparison:
             ("npu", "NSX_SOC_CAPABILITIES", bool(soc.npus), "npu" in facts["NSX_SOC_CAPABILITIES"]),
             ("abi", "NSX_ABI_FLAGS", build.abi, _one(facts, "NSX_ABI_FLAGS")),
             ("float_abi", "NSX_FLOAT_ABI", build.float_abi, _one(facts, "NSX_FLOAT_ABI")),
-            ("trace clock", "NSX_SEGGER_CPUFREQ", sdk.trace_clock_mhz, _mhz(facts)),
         ]
+        # NSX_SEGGER_CPUFREQ is what nsx passes J-Link: the trace clock, unless the Soc
+        # records a -cpufreq J-Link wants instead.
+        if sdk.jlink_cpufreq_mhz is not None:
+            equal.append(
+                ("jlink cpufreq", "NSX_SEGGER_CPUFREQ", sdk.jlink_cpufreq_mhz, _mhz(facts))
+            )
+        else:
+            equal.append(("trace clock", "NSX_SEGGER_CPUFREQ", sdk.trace_clock_mhz, _mhz(facts)))
         if (fpu := _one(facts, "NSX_FPU")) not in (None, ""):
             equal.append(("fpu", "NSX_FPU", core.options.fpu, fpu))
         yield from _equal(

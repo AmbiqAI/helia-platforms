@@ -614,6 +614,8 @@ def _debug(target: Target, at: _Entries) -> list[_Row]:
         note = "used" if used else "overridden"
         sdk_at = _soc(target, at).inner("sdk")
         rows.append(_row("soc sdk", sdk_at, sdk, ["trace_clock_mhz"], note=note))
+    if sdk is not None and sdk.jlink_cpufreq_mhz is not None:
+        rows.append(_row("soc sdk", _soc(target, at).inner("sdk"), sdk, ["jlink_cpufreq_mhz"]))
     return rows
 
 

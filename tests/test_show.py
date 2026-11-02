@@ -146,7 +146,7 @@ def test_every_stated_fact_is_printed(catalog, name):
 
 def test_the_built_in_targets_print_every_stated_fact():
     catalog = builtin(include_plugins=False)
-    for name in ("apollo510_evb", "AP510NFA-IBR", "apollo510"):
+    for name in ("apollo510_evb", "AP510NFA-IBR", "apollo510", "apollo3_evb", "apollo3p_evb"):
         target = catalog.resolve(name)
         assert _show.stated_facts(target) - printed(target) == set(), name
 

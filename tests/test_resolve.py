@@ -236,6 +236,27 @@ def test_a_discouraged_entry_stays_out_of_memories_and_placement(document):
     assert target.classify_address(0x20000000) == "tcm"
 
 
+def test_include_discouraged_puts_a_discouraged_region_back(document):
+    soc = document["socs"]["soc_a"]
+    soc["access"].append(
+        {"master": "cm55_0", "target": "tcm", "access": "direct", "guidance": "discouraged"}
+    )
+    target = resolve("board_a", catalog=quiet(document))
+    names = [r.name for r in target.memories(include_discouraged=True)]
+    assert names == ["tcm", "ssram", "nvm", "psram0"]
+    assert "tcm" in target.placement_ranges(include_discouraged=True)
+
+
+def test_usable_nvm_leaves_out_a_discouraged_nvm_region_unless_asked(document):
+    soc = document["socs"]["soc_a"]
+    soc["access"].append(
+        {"master": "cm55_0", "target": "nvm", "access": "direct", "guidance": "discouraged"}
+    )
+    target = resolve("board_a", catalog=quiet(document))
+    assert "nvm" not in target.usable_nvm()
+    assert "nvm" in target.usable_nvm(include_discouraged=True)
+
+
 def test_placement_leaves_out_an_external_device_with_no_base(document):
     del document["boards"]["board_a"]["interfaces"]["mspi0"]["aperture_base"]
     target = resolve("board_a", catalog=quiet(document))

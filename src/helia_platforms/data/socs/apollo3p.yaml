@@ -299,6 +299,20 @@ socs:
             J-Link's Apollo3 support takes its CPU-speed argument as the HFRC and divides by
             8 itself, so NSX_SEGGER_CPUFREQ's 48 MHz (apollo3p.cmake:52) is what J-Link needs.
             Measured at the 48 MHz lp clock, not in burst mode.
+      jlink_cpufreq_mhz:
+        value: 48
+        provenance:
+          status: measured
+          source:
+            - "meas:apollo3p_evb/swo-acpr-sweep/2026-10-28"
+            - "url:https://github.com/AmbiqAI/helia-platforms/issues/67#issuecomment-6477434661"
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo3p.cmake:52"
+          verified_on: 2026-10-30
+          verified_by: evanchen11
+          notes: >-
+            J-Link's Apollo3 support takes -cpufreq as the HFRC and divides it by 8 itself:
+            given 48 MHz, J-Link wrote ACPR 5 and the whole SWO stream decoded at 1 Mbaud.
+            NSX_SEGGER_CPUFREQ gives the same 48 MHz.
       build:
         abi: thumbv7em-fpv4sp-hard
         float_abi: hard
