@@ -177,7 +177,7 @@ Definitions, queries and an example are in [0002-multicore.md](0002-multicore.md
 | `operating_points: [OperatingPoint]` | structural | System points: name, one point per clock domain, system HAL mode where the HAL has one; `target.cpu_mhz()` and `target.npu_mhz()` read the core-0 and npu-0 domains. heliaAOT `speeds` and the profiler `ClockDomain` are views. |
 | `default_operating_point` | SDK fact, optional | Set where the SDK names a default; otherwise absent and the choice is tool policy. |
 | `boot_configs: {name: BootConfig}`, `default_boot` | structural or SDK fact | The boot layouts the SDKs support, and the default. See Boot configurations. |
-| `sdk: SdkFacts` | SDK fact | `c_define`, `cmsis_header`, default trace clock, HAL enums the SDK exposes per SoC, `build` (abi, float ABI). Supported toolchains are neuralspotx policy, not a catalog fact (#18). |
+| `sdk: SdkFacts` | SDK fact | `c_define`, `cmsis_header`, default trace clock, J-Link's `-cpufreq` where it differs from the trace clock, HAL enums the SDK exposes per SoC, `build` (abi, float ABI). Supported toolchains are neuralspotx policy, not a catalog fact (#18). |
 | `derives_from: Soc \| None` | structural | See [Inheritance and derivation](#inheritance-and-derivation). |
 | `default_board: Board \| None` | convenience | Used only by an explicit `resolve_board(soc_id)`. Never used by `resolve()`. |
 | `release_status` | governance | public or embargoed. Every entity carries one; see Release status. |
@@ -738,7 +738,7 @@ below is the resolved object returned by `resolve()`.
 | D-cache present | `target.core_options.dcache_kb` | package |
 | Shared SSRAM power domain, HAL enum names, C define, CMSIS header | `target.sdk` | package |
 | Radio present | `target.part.radio` (`target.part` is `None` on Soc and implementation targets) | package |
-| Trace clock | `target.trace_clock_mhz` (board, else implementation, else SDK default; `None` means core-clocked). On Apollo3 it is the 6 MHz TPIU clock, and J-Link's `-cpufreq` takes 48 MHz (the HFRC) instead, which J-Link divides by 8 itself (#67) | package |
+| Trace clock | `target.trace_clock_mhz` (board, else implementation, else SDK default; `None` means core-clocked). On Apollo3 it is the 6 MHz TPIU clock, and J-Link's `-cpufreq` takes 48 MHz (the HFRC) instead, which J-Link divides by 8 itself (#67); that value is `target.sdk.jlink_cpufreq_mhz` | package |
 | Is this an FPGA | `target.implementation.kind == "fpga"` (`target.implementation` is `None` on Soc targets and on parts with no non-default implementation) | package |
 | RTT scan ranges | profiler rule over `target.region("dtcm")` or the M4 aperture | profiler |
 | Reset strategy, clean-window timer, debug-domain gating, probe-attached cycle reads | profiler policy keyed by `target.soc.series` or id | profiler |
@@ -876,7 +876,7 @@ one of them.
 @dataclass(frozen=True) class MemoryCharacterization: read_latency_ns, write_latency_ns, max_outstanding_reads, max_outstanding_writes, max_beats, ports, axi_clock_hz, bandwidth_fraction  (each value may carry its own Provenance)
 @dataclass(frozen=True) class ClockDomain: id, points: tuple[DomainPoint, ...]   # DomainPoint: name, mhz, hal_mode, provenance
 @dataclass(frozen=True) class OperatingPoint: name, domains: Mapping[str, str], hal_mode, provenance   # domain id -> point name
-@dataclass(frozen=True) class SdkFacts:   c_define, cmsis_header, trace_clock_mhz, hal_enums: Mapping[str, str], build: BuildFacts
+@dataclass(frozen=True) class SdkFacts:   c_define, cmsis_header, trace_clock_mhz, jlink_cpufreq_mhz, hal_enums: Mapping[str, str], build: BuildFacts
 @dataclass(frozen=True) class BuildFacts: abi, float_abi
 @dataclass(frozen=True) class Soc:        id, series, aliases, cores, npus, accelerators, memories, access, default_access: DefaultAccess | None, peripherals, memory_controllers, clock_domains, operating_points, default_operating_point: str | None, boot_configs, default_boot, image_slots, sdk, derives_from, default_board: str | None, revision, release_status, extensions, provenance
 @dataclass(frozen=True) class Implementation: id, soc, kind, model: str | None, subset: Subset, memories: tuple | None, access: tuple | None, clock_domains: tuple | None, operating_points: tuple | None, boot_configs: Mapping | None, default_boot: str | None, provisioning: str | None, jlink_device, trace_clock_mhz, interfaces, population, aliases, release_status, extensions, provenance   # None: inherit the Soc's (after clock caps); memories: kind fvp only (ADR 0007)
@@ -920,8 +920,8 @@ class Target:
     def isa(self, core: int | str = 0) -> IsaFeatures
     def reachable(self, master: str, target: str) -> Access | None   # a region's own entry, else its controller's
     def npu_clocks(self, npu: int | str = 0) -> Mapping[str, int]   # derived from system operating points
-    def memories(self, core: int | str = 0) -> tuple[MemoryRegion, ...]   # regions that core reaches, after subset, plus external regions whose interface it has an entry for; a discouraged entry is left out
-    def placement_ranges(self, core: int | str = 0) -> Mapping[str, tuple[int, int]]   # (base, size) of reachable regions; leaves out a populated device with no base; raises for any other region without one
+    def memories(self, core: int | str = 0, *, include_discouraged: bool = False) -> tuple[MemoryRegion, ...]   # regions that core reaches, after subset, plus external regions whose interface it has an entry for; a discouraged entry is left out unless include_discouraged
+    def placement_ranges(self, core: int | str = 0, *, include_discouraged: bool = False) -> Mapping[str, tuple[int, int]]   # (base, size) of the regions memories() gives; leaves out a populated device with no base; raises for any other region without one
     def cpu_mhz(self, point: str | None = None, core: int | str = 0) -> int
     def npu_mhz(self, point: str | None = None, npu: int | str = 0) -> int
     def region(self, name: str) -> MemoryRegion   # on an FVP, also a Soc region name a stands_in_for lists
@@ -938,7 +938,7 @@ class Target:
     def boot_configs(self) -> tuple[BootConfig, ...]
     def flash_load_address(self, core: int | str = 0) -> int   # from boot; raises if there is none
     image_slots: Mapping[str, ImageSlot]                      # the Soc's, each replaced by the part's slot of that name
-    def usable_nvm(self, core: int | str = 0) -> Mapping[str, int]   # after reservations and other cores' slots; empty for a core only the vendor programs or with no loadable image
+    def usable_nvm(self, core: int | str = 0, *, include_discouraged: bool = False) -> Mapping[str, int]   # the customer's view: after reservations and other cores' slots; empty for a core only the vendor programs or with no loadable image
     # external memory
     def external_memories(self) -> tuple[MemoryRegion, ...]   # population plus add-ons, at aperture bases
     # link environments (optional)
@@ -963,52 +963,101 @@ target returns its DDR region
 
 `load_overlay` parses an overlay (syntax per ADR #7), validates it against
 the JSON Schema and the semantic rules, and returns a new `Catalog`. The
-semantic rules: ids unique; no shadowing of built-in ids, aliases,
-compositions or shorthands; overlays add no shorthands; `based_on`
-resolves; regions inside physical bounds and non-overlapping; a subset
-never adds a memory or exceeds a clock; an implementation whose clock caps
-drop every operating point declares its own; an Implementation's
-`memories` only on kind `fvp`, `memories` not combined with
-the `memories_*` deltas, and `stands_in_for` only on an FVP's regions,
-naming Soc regions the FVP does not list, each in at most one region
-([ADR 0007](../adr/0007-fvp-memory-maps.md));
-`derives_from` requires equal physical regions; a Board names exactly
-one of `part` and `implementation`, the latter only for category `fpga`
-and an Implementation of kind `fpga`; a Part names only a `silicon`
-Implementation; no two devices on one
-interface, no add-on on an interface the board or another add-on already
-uses (an occupied interface counts even without a device), no add-on on
-a board it does not fit, no device larger than its aperture, no board
-interface with the same name as one of its Implementation's, an add-on's
-`modes` only on interfaces it occupies, with at least one mode, only
-modes the board's interface lists, and at least one mode of the add-on's
-device on that interface (a device that lists no modes is not checked);
-provenance required on built-ins; built-in entries may not carry
-`extensions`.
-Multicore rules (this is the one list; 0002-multicore.md refers to it):
-core ids unique; index 0 has role `application`; every
-`driven_by` names a core; every `clock_domain` reference names a domain;
-`OperatingPoint.domains` keys name domains and values name points of
-those domains; every `Access` master is a core, NPU or accelerator id and
-every `Access` target is a region or memory controller of the Soc;
-every `memory_controllers` name is in `peripherals`; a Soc delta does not
-both remove a memory controller and write it in its own
-`memory_controllers`; every Board, AddOn
-or Implementation interface's controller is a memory controller of the
-Soc as realized; after `default_access` expansion every region and every memory controller a
-built-in interface names has at least one entry (which may be
-`access: none`); a Board, AddOn or Implementation interface whose controller has no
-Soc-level entries draws a warning that its devices are unreachable,
-and is an error when an Implementation removed that controller (by
-`peripherals_removed` or `memory_controllers_removed`); a
-`default_access` expansion that would grant core 0 a region another core
-has an entry for is excluded, per the multicore document;
-`app_start` keys name programmable cores; every `ImageSlot` owner is a
-programmable core with a `direct` entry for the slot's region; a slot has
-a nonzero size, ends inside its region and overlaps no other slot, no boot
-reservation and no other core's `app_start`; removing a core or region removes the
-inherited slots it owns or holds, and a Part's `image_slots_removed` may
-not name a slot its Soc carries. `helia_platforms.export` writes the JSON catalog,
+JSON Schema already makes core, NPU and accelerator ids unique within their
+lists, makes (master, target) pairs unique within `access`, and requires an
+add-on's `modes` to list at least one mode. The semantic rules below are the
+loader's (`catalog.py`, `_tree.py`), regenerated from the code on 2026-10-30
+(#141); each is an error unless marked as a warning. All errors of a load are
+reported together, and warnings are issued only when a load has no errors.
+They check the entries of the load being made, not those already in its base.
+This is the one list; 0002-multicore.md refers to it.
+
+- **Names.** An id is defined once per load. Ids and aliases are unique,
+  compared without case: Socs, implementations, parts, boards, compositions
+  and shorthands share one namespace, and cores, add-ons and memory devices
+  each have their own. No new id, alias, composition or shorthand may shadow
+  a name in the base catalog. Only built-in files carry `shorthands`,
+  `documents`, `repositories` or `unverified_allowed`.
+- **Built-ins.** A built-in entry does not use `based_on`, writes
+  `release_status: public` (cores excepted), carries no `extensions`, and
+  has a provenance record for every fact. A built-in region has a base.
+- **Deltas.** A delta key needs `based_on`, which names an entry of the
+  same kind and forms no cycle; every required key is present after the
+  merge. A `*_removed`, `*_resized` or `*_rebased` key names something the
+  base has, and a delta does not both remove a memory controller and list
+  it in its own `memory_controllers`. Removing operating points does not
+  leave none unless the entry declares its own.
+- **Shorthands.** `cpu_mhz` and `npu_mhz` in an operating point need a
+  core 0 or NPU 0 whose clock domain exists, and agree with an explicit
+  domain point of the same name. A single-form `app_start` needs a core 0.
+- **Implementations.** `soc` names a Soc. `memories` is allowed only on
+  kind `fvp`, and not with the `memories_*` subset deltas; `stands_in_for`
+  appears only on an FVP's regions and names Soc regions the FVP does not
+  list, each in at most one region
+  ([ADR 0007](../adr/0007-fvp-memory-maps.md)). A subset does not resize a
+  region past the Soc's size, and its own clock points do not exceed the
+  Soc's highest point in that domain. `max_cpu_mhz` and `max_npu_mhz` need
+  a core 0 or NPU 0, and `max_domain_mhz` names a domain; clock caps that
+  drop every operating point need the implementation's own.
+- **Soc references.** A Soc has a core, and core 0 has role
+  `application`. Each core names a known core IP and a clock domain; each
+  NPU and accelerator names a core in `driven_by` and a clock domain. An
+  operating point names at least one domain point, and its `domains` keys
+  and values name domains and their points. `default_operating_point`,
+  `default_boot`, `derives_from` and `default_board` resolve, and the
+  default board carries the Soc. `memory_controllers` names are
+  peripherals. An `Access` master is a core, NPU or accelerator id, and a
+  target is a region or memory controller; `default_access` names core 0.
+- **Regions.** Regions do not overlap, at their bases or any alternate
+  base. `derives_from` requires the same regions with equal technology,
+  attachment, size, base and alternate bases.
+- **Boot.** `app_start` keys name programmable cores (`programmable_by`
+  set) and its regions exist. A reservation's region exists, the
+  reservation ends inside it, and reservations in one boot config do not
+  overlap. An implementation's or board's `provisioning` names a boot
+  config of the Soc as realized.
+- **Image slots.** A slot's owner is a programmable core with a `direct`
+  entry for the slot's region. A slot has a nonzero size, ends inside its
+  region, contains no other core's `app_start`, and overlaps no other slot
+  or boot reservation. A Part's slots are checked against its Soc as
+  realized, and its `image_slots_removed` does not name a slot its Soc
+  carries unless the Part rewrites it.
+- **Access coverage** (built-ins only). After `default_access` expansion,
+  every region of a Soc, and of each implementation's Soc as realized, has
+  at least one entry, which may be `access: none`.
+- **Parts and boards.** A Part names a Soc, and a `silicon`
+  Implementation of that Soc. A Board names exactly one of `part` and
+  `implementation`; an implementation is of kind `fpga` on a board of
+  category `fpga`, which names no part. A board interface does not share a
+  name or a window with its implementation's interfaces.
+- **Interfaces and population.** A `population` key names an interface
+  and its value a memory device. An interface's controller is a memory
+  controller of the Soc as realized, not one the implementation removed.
+  A controller with no access entry draws a warning that its devices are
+  unreachable (an error for built-ins). `alternate_bases` needs an
+  `aperture_base`. An interface window (each base, `aperture_max` long)
+  overlaps no on-chip region and no other window. A device is no larger
+  than its aperture; an interface with no `aperture_max` draws a warning
+  that its device is unchecked.
+- **Add-ons and compositions.** `fits_boards` names boards. `population`
+  and `modes` keys are interfaces the add-on occupies, and each exists on
+  every board it fits. Its devices exist and fit the aperture. Its modes
+  are among the board interface's modes, and leave its own device at least
+  one of that device's modes (a device that lists no modes is not checked).
+  A composition's board and add-ons exist; no add-on sits on a board it
+  does not fit or on an interface the board populates or another add-on
+  occupies (an occupied interface counts even without a device). Shorthand
+  members are exact ids of Socs, implementations, parts or boards.
+
+Merging, not validation: removing a core or region drops the inherited
+image slots it owns or holds; removing a region, peripheral, memory
+controller, core, NPU or accelerator drops the inherited access entries
+naming it; and `peripherals_removed` drops the name from
+`memory_controllers`. `default_access` gives core 0 an entry to every
+on-die region and memory controller that no core already has one for;
+external regions get none.
+
+`helia_platforms.export` writes the JSON catalog,
 filtered and scrubbed by effective release status, and the JSON Schemas
 ([RFC 0003](0003-export-and-pages.md)). The Markdown pages and the release
 assets are built only from `builtin(include_plugins=False)`.

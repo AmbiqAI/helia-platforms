@@ -236,6 +236,7 @@ class SdkFacts:
     c_define: str | None = None
     cmsis_header: str | None = None
     trace_clock_mhz: float | None = None
+    jlink_cpufreq_mhz: float | None = None
     hal_enums: Mapping[str, str] = field(default_factory=_empty)
     build: BuildFacts | None = None
 

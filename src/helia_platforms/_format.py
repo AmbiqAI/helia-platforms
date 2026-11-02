@@ -280,6 +280,8 @@ class SdkFacts(_Facts, total=False):
     c_define: str
     cmsis_header: str
     trace_clock_mhz: Mhz
+    # J-Link's -cpufreq, where J-Link wants a clock other than the trace clock.
+    jlink_cpufreq_mhz: Mhz
     hal_enums: dict[str, str]
     build: BuildFacts
 

@@ -185,30 +185,37 @@ class Target:
     def has_external_memory(self, technology: str | None = None) -> bool:
         return any(technology in (None, r.technology) for r in self.external_memories())
 
-    def memories(self, core: int | str = 0) -> tuple[model.MemoryRegion, ...]:
+    def memories(
+        self, core: int | str = 0, *, include_discouraged: bool = False
+    ) -> tuple[model.MemoryRegion, ...]:
         """Regions ``core`` has a ``direct`` entry for, then external regions it reaches.
 
-        An entry with ``guidance: discouraged`` is left out, so no budget or placement
-        counts that region; ``reachable()`` still returns the entry.
+        An entry with ``guidance: discouraged``, the catalog's advice, is left out unless
+        ``include_discouraged``, so by default no budget or placement counts that region.
+        ``reachable()`` returns the entry either way.
         """
         master = self._core(core).id
         direct = {
             a.target
             for a in self._access
-            if a.master == master and a.access == "direct" and a.guidance != "discouraged"
+            if a.master == master
+            and a.access == "direct"
+            and (include_discouraged or a.guidance != "discouraged")
         }
         own = tuple(r for r in self.soc.memories if r.name in direct)
         return own + tuple(r for r, controller in self._external if controller in direct)
 
-    def placement_ranges(self, core: int | str = 0) -> Mapping[str, tuple[int, int]]:
-        """``(base, size)`` of each region ``core`` reaches that has an address.
+    def placement_ranges(
+        self, core: int | str = 0, *, include_discouraged: bool = False
+    ) -> Mapping[str, tuple[int, int]]:
+        """``(base, size)`` of each region ``memories()`` gives that has an address.
 
         A populated device on an interface with no aperture is not addressable, so it is left
         out; any other region with no base, which only an overlay can write, raises.
         """
         populated = {region.name for region, _ in self._external}
         ranges = {}
-        for region in self.memories(core):
+        for region in self.memories(core, include_discouraged=include_discouraged):
             if region.base is None and region.name in populated:
                 continue
             if region.base is None:
@@ -321,11 +328,13 @@ class Target:
         own = self.part.image_slots if self.part else {}
         return MappingProxyType({**self.soc.image_slots, **own})
 
-    def usable_nvm(self, core: int | str = 0) -> Mapping[str, int]:
-        """Bytes per non-volatile region ``core`` reaches, less reservations and others' slots.
+    def usable_nvm(
+        self, core: int | str = 0, *, include_discouraged: bool = False
+    ) -> Mapping[str, int]:
+        """Bytes per on-chip NVM region of ``memories()``, less reservations and others' slots.
 
-        Empty for a core only the vendor programs or with no loadable image
-        (``programmable_by`` unset), since no customer image goes there.
+        This is the customer's view: it is empty for a core only the vendor programs or with
+        no loadable image (``programmable_by`` unset), since no customer image goes there.
         """
         instance = self._core(core)
         if instance.programmable_by in (None, "vendor"):
@@ -339,7 +348,7 @@ class Target:
         return MappingProxyType(
             {
                 r.name: r.size - taken.get(r.name, 0)
-                for r in self.memories(core)
+                for r in self.memories(core, include_discouraged=include_discouraged)
                 if r.technology in _NVM and r.attachment != "external"
             }
         )

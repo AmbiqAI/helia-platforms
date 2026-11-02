@@ -20,6 +20,20 @@ type drives release notes and version bumps through release-please:
 - `docs:`, `test:`, `refactor:`, `chore:`, `ci:` for everything else
 - `!` after the type, or a `BREAKING CHANGE:` footer, for breaking changes
 
+## Scope
+
+helia-platforms states facts with their sources; what to do with them is
+the consumer's decision ([ADR 0010](docs/adr/0010-facts-not-policy.md)).
+Measure each change and review finding against it:
+
+- The loader rejects data that cannot be parsed, references what does not
+  exist, or contradicts itself. It does not reject a combination of facts
+  because a consumer might misuse it.
+- A query restates or derives facts. A filter or point of view is a named
+  parameter with a documented default, such as `include_discouraged`.
+- A finding that an overlay "can express" something is a defect only if
+  the data would then contradict itself.
+
 ## Fact changes
 
 A pull request that changes anything under `src/helia_platforms/data/` (the
