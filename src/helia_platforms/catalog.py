@@ -1098,7 +1098,6 @@ def _access_problems(soc: model.Soc) -> list[str]:
     problems: list[str] = []
     cores = {c.id for c in soc.cores}
     masters = cores | {n.id for n in soc.npus} | {a.id for a in soc.accelerators}
-    masters |= set(soc.memory_controllers)  # a controller's DMA engine (ADR 0011)
     problems.extend(
         f"memory_controllers: {name!r} is not in peripherals"
         for name in soc.memory_controllers
@@ -1107,9 +1106,7 @@ def _access_problems(soc: model.Soc) -> list[str]:
     targets = {r.name for r in soc.memories} | set(soc.memory_controllers)
     for entry in soc.access:
         key = f"access {entry.master}@{entry.target}"
-        if entry.master in soc.peripherals and entry.master not in masters:
-            problems.append(f"{key}: peripheral {entry.master!r} is not a memory controller")
-        elif entry.master not in masters:
+        if entry.master not in masters:
             problems.append(f"{key}: no master {entry.master!r}")
         if entry.target in soc.peripherals and entry.target not in targets:
             problems.append(f"{key}: peripheral {entry.target!r} is not a memory controller")

@@ -430,7 +430,6 @@ class MemoryDevice(_Entity):
     driver_family: NotRequired[str]
     modes: NotRequired[Annotated[list[str], BY_VALUE]]
     characterization: NotRequired[MemoryCharacterization]
-    dma_boundary: NotRequired[Size]  # counted from the device's address 0 (ADR 0011)
 
 
 class Composition(TypedDict):

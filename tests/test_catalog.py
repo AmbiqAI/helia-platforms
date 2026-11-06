@@ -1104,29 +1104,11 @@ def test_access_to_a_peripheral_that_is_not_a_memory_controller_is_an_error(docu
     ) in problems_of(document)
 
 
-def test_a_memory_controller_may_be_an_access_master(document):
-    """Its entries are the controller's DMA engine and take nothing from core 0 (ADR 0011)."""
-    soc(document)["access"].append({"master": "mspi0", "target": "tcm", "access": "direct"})
-    a = load_quietly(document)._entry("socs", "soc_a")
-    assert ("mspi0", "tcm") in {(e.master, e.target) for e in a.access}
-    granted = {(e.master, e.target) for e in _expanded_access(a) if e not in a.access}
-    assert ("cm55_0", "tcm") in granted
-
-
-def test_a_peripheral_that_is_not_a_memory_controller_cannot_be_a_master(document):
-    soc(document)["access"].append({"master": "iom1", "target": "tcm", "access": "direct"})
-    assert (
-        "socs.soc_a: access iom1@tcm: peripheral 'iom1' is not a memory controller"
-    ) in problems_of(document)
-
-
-def test_a_dma_boundary_is_a_size_on_a_region_and_on_a_device(document):
+def test_a_dma_boundary_is_a_size_on_a_region(document):
     soc(document)["memories"]["tcm"]["dma_boundary"] = "4K"
-    document["memory_devices"]["psram_8m"]["dma_boundary"] = "1K"
     catalog = load_quietly(document)
     region = next(r for r in catalog._entry("socs", "soc_a").memories if r.name == "tcm")
     assert region.dma_boundary == 4096
-    assert catalog._entry("memory_devices", "psram_8m").dma_boundary == 1024
     ssram = next(r for r in catalog._entry("socs", "soc_a").memories if r.name == "ssram")
     assert ssram.dma_boundary is None
 

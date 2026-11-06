@@ -405,7 +405,6 @@ class MemoryDevice(_Carrier):
     driver_family: str | None = None
     modes: tuple[str, ...] = ()
     characterization: MemoryCharacterization | None = None
-    dma_boundary: int | None = None  # counted from the device's address 0
     aliases: tuple[str, ...] = ()
     release_status: ReleaseStatus = "embargoed"
 
