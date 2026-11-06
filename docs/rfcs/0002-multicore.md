@@ -62,7 +62,9 @@ Ambiq parts use a unified address space. A region may list
 
 Reachability is an explicit access matrix, never inferred from the address
 space. `Soc.access` is a tuple of `Access` entries keyed by (master id,
-target), where a master is a core, NPU or accelerator id and the target is
+target), where a master is a core, NPU or accelerator id, or a memory
+controller name standing for its DMA engine
+([ADR 0011](../adr/0011-dma-reach-and-boundaries.md)), and the target is
 a region name or a memory controller name (a `Soc.memory_controllers`
 entry such as `mspi0`; `Soc.peripherals` lists every peripheral, and only
 those also in `memory_controllers` may be targets):
@@ -101,6 +103,13 @@ subsystem TCM, is never granted to core 0 by default).
 It is a fact with provenance, not inference, and explicit entries for core
 0 override it; entries for other masters never remove core 0's default.
 NPU and accelerator entries are always explicit.
+
+An entry whose master is a memory controller states that the controller's
+DMA engine moves data between the devices on that controller and the
+target region. `default_access` grants nothing to such a master, and its
+entries never take a target away from core 0's default grant. A
+`MemoryRegion.dma_boundary` applies to every DMA master that reaches the
+region ([ADR 0011](../adr/0011-dma-reach-and-boundaries.md)).
 
 Worked example of the shape (provenance is recorded per SoC; this is not a
 statement about any part): an NPU may reach the application core's DTCM,

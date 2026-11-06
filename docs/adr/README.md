@@ -23,3 +23,4 @@ NNNN, Rejected.
 | 0008 | Mark a Soc's memory controllers in a list of their own | Accepted |
 | 0009 | Spell catalog in American English in every name and document | Accepted |
 | 0010 | State facts with their sources; leave what to do with them to consumers | Accepted |
+| 0011 | Record DMA reach as access entries from memory controllers, and DMA boundaries on regions and devices | Proposed |

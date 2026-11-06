@@ -138,6 +138,7 @@ class MemoryRegion(_Facts):
     writeable: NotRequired[bool]
     cacheable: NotRequired[bool]
     characterization: NotRequired[MemoryCharacterization]
+    dma_boundary: NotRequired[Size]  # no DMA crosses a multiple of it from base (ADR 0011)
     stands_in_for: NotRequired[Names]  # on an FVP Implementation's regions only (ADR 0007)
 
 
@@ -429,6 +430,7 @@ class MemoryDevice(_Entity):
     driver_family: NotRequired[str]
     modes: NotRequired[Annotated[list[str], BY_VALUE]]
     characterization: NotRequired[MemoryCharacterization]
+    dma_boundary: NotRequired[Size]  # counted from the device's address 0 (ADR 0011)
 
 
 class Composition(TypedDict):

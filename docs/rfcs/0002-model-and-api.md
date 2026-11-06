@@ -189,7 +189,9 @@ Definitions, queries and an example are in [0002-multicore.md](0002-multicore.md
 region, `executable`, `writeable`, `cacheable`, optional
 `characterization` (read and write latency, ports, max outstanding reads
 and writes per port, `max_beats`, bandwidth) each value with provenance: latency, bandwidth and
-ports only. The package carries no energy data; the estimator's energy
+ports only, and optional `dma_boundary`: a single DMA transfer does not
+cross an address that is a whole multiple of it from the region's base
+([ADR 0011](../adr/0011-dma-reach-and-boundaries.md)). The package carries no energy data; the estimator's energy
 coefficients stay in helia-estimator. Characterization is hardware: the
 path's limits, as the SoC or IP documentation states them or as measured,
 such as the Ethos-U85's per-port outstanding reads and writes. `max_beats`
@@ -405,7 +407,8 @@ customers add daughter boards.
   them with a warning. A PSRAM on an IOM, which has no XIP aperture, is
   one: firmware reaches it only through its driver.
 - `MemoryDevice`: an external part with technology, capacity,
-  `driver_family`, supported modes and optional characterization, each
+  `driver_family`, supported modes, optional characterization and optional
+  `dma_boundary` (counted from the device's address 0; ADR 0011), each
   value with provenance. Capacity and driver family are separate facts.
   Capacity is never inferred from a part marking or a BSP macro: the
   Apollo510 EVB PSRAM is 64 MB by hardware measurement although its BSP
@@ -870,8 +873,8 @@ one of them.
 @dataclass(frozen=True) class Npu:        vendor, family, model, macs_per_cycle; accelerator_config (property)
 @dataclass(frozen=True) class NpuInstance: id, npu, axi_width_bits, base_address, irq, sram_port_hash, driven_by, clock_domain
 @dataclass(frozen=True) class AcceleratorInstance: id, kind, ip, driven_by, clock_domain, base_address, irq
-@dataclass(frozen=True) class MemoryRegion: name, technology, attachment, size, base, alternate_bases, executable, writeable, cacheable, characterization, stands_in_for: tuple[str, ...], provenance   # stands_in_for: FVP regions only (ADR 0007)
-@dataclass(frozen=True) class Access:     master, target, access, requires_awake, guidance, reason, address: int | None, port: int | None, characterization, provenance   # target: region or memory_controllers name
+@dataclass(frozen=True) class MemoryRegion: name, technology, attachment, size, base, alternate_bases, executable, writeable, cacheable, characterization, dma_boundary: int | None, stands_in_for: tuple[str, ...], provenance   # stands_in_for: FVP regions only (ADR 0007)
+@dataclass(frozen=True) class Access:     master, target, access, requires_awake, guidance, reason, address: int | None, port: int | None, characterization, provenance   # master: core, NPU, accelerator or memory controller (its DMA engine); target: region or memory_controllers name
 @dataclass(frozen=True) class DefaultAccess: master, access, scope, provenance   # scope: on_die
 @dataclass(frozen=True) class MemoryCharacterization: read_latency_ns, write_latency_ns, max_outstanding_reads, max_outstanding_writes, max_beats, ports, axi_clock_hz, bandwidth_fraction  (each value may carry its own Provenance)
 @dataclass(frozen=True) class ClockDomain: id, points: tuple[DomainPoint, ...]   # DomainPoint: name, mhz, hal_mode, provenance
@@ -886,7 +889,7 @@ one of them.
 @dataclass(frozen=True) class Part:       id, soc, implementation: str | None, silicon_revision, package, radio, jlink_device, image_slots, aliases, release_status, provenance
 @dataclass(frozen=True) class ImageSlot:  name, core, region, offset, size, supplier, provenance
 @dataclass(frozen=True) class MemoryInterface: name, controller, modes, aperture_base, alternate_bases, aperture_max
-@dataclass(frozen=True) class MemoryDevice: id, technology, capacity, driver_family, modes, characterization, aliases, release_status, provenance
+@dataclass(frozen=True) class MemoryDevice: id, technology, capacity, driver_family, modes, characterization, dma_boundary: int | None, aliases, release_status, provenance
 @dataclass(frozen=True) class AddOn:      id, fits_boards, occupies, population: Mapping[str, str], modes: Mapping[str, tuple[str, ...]], revision, aliases, release_status, extensions, provenance
 @dataclass(frozen=True) class Board:      id, category, revision, part: str | None, implementation: str | None, interfaces, population: Mapping[str, str], provisioning, jlink_device, trace_clock_mhz, aliases, release_status, extensions, provenance
 @dataclass(frozen=True) class Composition: alias, board, addons; release_status (property, effective from what it references)
@@ -1006,7 +1009,8 @@ This is the one list; 0002-multicore.md refers to it.
   and values name domains and their points. `default_operating_point`,
   `default_boot`, `derives_from` and `default_board` resolve, and the
   default board carries the Soc. `memory_controllers` names are
-  peripherals. An `Access` master is a core, NPU or accelerator id, and a
+  peripherals. An `Access` master is a core, NPU, accelerator or memory
+  controller id (a peripheral that is not a controller is rejected), and a
   target is a region or memory controller; `default_access` names core 0.
 - **Regions.** Regions do not overlap, at their bases or any alternate
   base. `derives_from` requires the same regions with equal technology,
