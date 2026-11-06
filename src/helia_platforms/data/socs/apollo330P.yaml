@@ -149,6 +149,17 @@ socs:
             p33 Table 4 "Instruction/Data TCM (256 kB)", Executable Y, aliased at 0x30000000
             ("accessible only from Secure SW when TrustZone is enabled"). p243 gives the
             technology ("SRAM (SSRAM and TCM)"). There is no ITCM.
+        dma_boundary:
+          value: 4K
+          provenance:
+            status: datasheet
+            source: ["doc:DS-A330PS@0.9.0:p21"]
+            verified_on: 2026-11-06
+            verified_by: apage224
+            notes: >-
+              p21 "A DMA transfer must not cross a TCM 4 kB boundary". p21 also forbids DMA to or
+              from TCM "when the CPU is in deep sleep or the TCM location is powered down". This
+              revision states no SSRAM or MRAM boundary.
       ssram:
         technology: sram
         attachment: system
@@ -261,6 +272,28 @@ socs:
         target: ssram
         access: direct
         provenance: *m55_explicit
+      - master: mspi0
+        target: dtcm
+        access: direct
+        provenance: &mspi_dma
+          status: datasheet
+          source: ["doc:DS-A330PS@0.9.0:p97", "doc:DS-A330PS@0.9.0:p98", "doc:DS-A330PS@0.9.0:p21"]
+          verified_on: 2026-11-06
+          verified_by: apage224
+          notes: >-
+            p97 "DMA: MSPI module can autonomously transfer data between the external device and
+            internal memory or NVM"; p98 names "SSRAM or TCM" as what the MSPI DMA targets. p21:
+            the APBDMA "does not have the capability to transfer from memory to memory", so no
+            on-die region is a DMA source for another. No source says whether the MSPI DMA
+            reaches rs_tcm.
+      - {master: mspi0, target: ssram, access: direct, provenance: *mspi_dma}
+      - {master: mspi0, target: mram, access: direct, provenance: *mspi_dma}
+      - {master: mspi1, target: dtcm, access: direct, provenance: *mspi_dma}
+      - {master: mspi1, target: ssram, access: direct, provenance: *mspi_dma}
+      - {master: mspi1, target: mram, access: direct, provenance: *mspi_dma}
+      - {master: mspi2, target: dtcm, access: direct, provenance: *mspi_dma}
+      - {master: mspi2, target: ssram, access: direct, provenance: *mspi_dma}
+      - {master: mspi2, target: mram, access: direct, provenance: *mspi_dma}
 
     # Each name carries its record: a list item's own record is the only way to give one
     # name (crm) a different source from the rest.

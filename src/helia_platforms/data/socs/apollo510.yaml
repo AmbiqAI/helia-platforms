@@ -96,6 +96,19 @@ socs:
         executable: true
         alternate_bases: [0x30000000]
         provenance: *ds_tcm
+        dma_boundary:
+          value: 4K
+          provenance:
+            status: datasheet
+            source: ["doc:DS-A510@1.1.0:p22", "doc:DS-A510@1.1.0:p29", "doc:DS-A510@1.1.0:p96"]
+            verified_on: 2026-11-06
+            verified_by: apage224
+            notes: >-
+              p22 "A DMA transfer must not cross a DTCM 4 kB boundary"; p29 "A DMA transfer cannot
+              cross a DTCM 4 kB boundary" (ERR014); p96: an MSPI DMA that "crosses a 4 kB boundary in
+              DTCM" hangs the device (ERR018). p22 also forbids DMA to or from DTCM "when the CPU is
+              in deep sleep or the DTCM location is powered down" (requires_awake, once power
+              domains have names).
       ssram:
         technology: sram
         attachment: system
@@ -110,6 +123,17 @@ socs:
           notes: >-
             p35 "System SRAM (3 MB)"; p96 splits it into SSRAM0-2 of 1 MB each, which the
             catalog keeps as one region.
+        dma_boundary:
+          value: 1M
+          provenance:
+            status: datasheet
+            source: ["doc:DS-A510@1.1.0:p96"]
+            verified_on: 2026-11-06
+            verified_by: apage224
+            notes: >-
+              ERR018 (p96): an MSPI DMA that crosses the DTCM-SSRAM0, SSRAM0-SSRAM1 or SSRAM1-SSRAM2
+              boundary hangs the device. SSRAM0-2 are 1 MB each from 0x20080000, so the boundaries
+              fall at 1M and 2M from the region's base.
       mram:
         technology: mram
         attachment: system
@@ -124,6 +148,43 @@ socs:
           notes: >-
             p35 gives NVM-SBL, NVM0-APPL and NVM1-APPL across 0x00400000-0x007FFFFF. p298
             is cited for the technology ("NVM (MRAM)"); p22, p29 and p36-37 also call it MRAM.
+        dma_boundary:
+          value: 2M
+          provenance:
+            status: datasheet
+            source: ["doc:DS-A510@1.1.0:p22"]
+            verified_on: 2026-11-06
+            verified_by: apage224
+            notes: >-
+              "A DMA transfer must not cross the MRAM0-MRAM1 boundary at address 0x600000 on devices
+              with two MRAM partitions": 0x600000 - 0x400000 (the base) = 2M.
+
+    access:
+      - master: mspi0
+        target: dtcm
+        access: direct
+        provenance: &mspi_dma
+          status: datasheet
+          source: ["doc:DS-A510@1.1.0:p98", "doc:DS-A510@1.1.0:p99", "doc:DS-A510@1.1.0:p22"]
+          verified_on: 2026-11-06
+          verified_by: apage224
+          notes: >-
+            p98 "DMA: MSPI module can autonomously transfer data between the external device and
+            internal memory or NVM"; p99 names "SSRAM or TCM" as what the MSPI DMA targets. p22:
+            the APBDMA "does not have the capability to transfer from memory to memory", so no
+            on-die region is a DMA source for another. The MSPI controllers are the DMA masters
+            that reach memory; the GPU and display controller wait for #88.
+      - {master: mspi0, target: ssram, access: direct, provenance: *mspi_dma}
+      - {master: mspi0, target: mram, access: direct, provenance: *mspi_dma}
+      - {master: mspi1, target: dtcm, access: direct, provenance: *mspi_dma}
+      - {master: mspi1, target: ssram, access: direct, provenance: *mspi_dma}
+      - {master: mspi1, target: mram, access: direct, provenance: *mspi_dma}
+      - {master: mspi2, target: dtcm, access: direct, provenance: *mspi_dma}
+      - {master: mspi2, target: ssram, access: direct, provenance: *mspi_dma}
+      - {master: mspi2, target: mram, access: direct, provenance: *mspi_dma}
+      - {master: mspi3, target: dtcm, access: direct, provenance: *mspi_dma}
+      - {master: mspi3, target: ssram, access: direct, provenance: *mspi_dma}
+      - {master: mspi3, target: mram, access: direct, provenance: *mspi_dma}
 
     default_access:
       master: cm55_0
@@ -135,8 +196,9 @@ socs:
         verified_on: 2026-10-08
         verified_by: evanchen11
         notes: >-
-          "All of the memory is memory mapped and accessible by the CPU." One core; DMA,
-          GPU and display controller are bus masters (p53), omitted with accelerators (#88).
+          "All of the memory is memory mapped and accessible by the CPU." One core; the MSPI
+          DMA engines are bus masters with entries of their own (p53, ADR 0011); the GPU and
+          display controller wait for #88.
 
     # Each name carries its record: a list item's own record is the only way to give one
     # name (fpio) a different source from the rest.

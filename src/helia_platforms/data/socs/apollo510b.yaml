@@ -105,6 +105,18 @@ socs:
         executable: true
         alternate_bases: [0x30000000]
         provenance: *ds_tcm
+        dma_boundary:
+          value: 4K
+          provenance:
+            status: datasheet
+            source: ["doc:DS-A510B@1.1.0:p21", "doc:DS-A510B@1.1.0:p28", "doc:DS-A510B@1.1.0:p101"]
+            verified_on: 2026-11-06
+            verified_by: apage224
+            notes: >-
+              p21 "A DMA transfer must not cross a DTCM 4 kB boundary"; p28 "A DMA transfer cannot
+              cross a DTCM 4 kB boundary" (ERR014); p101: an MSPI DMA that "crosses a 4 kB boundary
+              in DTCM" hangs the device (ERR018). p21 also forbids DMA to or from DTCM "when the CPU
+              is in deep sleep or the DTCM location is powered down".
       ssram:
         technology: sram
         attachment: system
@@ -117,6 +129,17 @@ socs:
           verified_on: 2026-10-08
           verified_by: evanchen11
           notes: p34 "System SRAM (3 MB)"; p263 gives the technology.
+        dma_boundary:
+          value: 1M
+          provenance:
+            status: datasheet
+            source: ["doc:DS-A510B@1.1.0:p101"]
+            verified_on: 2026-11-06
+            verified_by: apage224
+            notes: >-
+              ERR018 (p101): an MSPI DMA that crosses the DTCM-SSRAM0, SSRAM0-SSRAM1 or SSRAM1-SSRAM2
+              boundary hangs the device. SSRAM0-2 are 1 MB each from 0x20080000, so the boundaries
+              fall at 1M and 2M from the region's base.
       mram:
         technology: mram
         attachment: system
@@ -132,6 +155,37 @@ socs:
             p34 gives NVM-SBL, NVM0-APPL and NVM1-APPL across 0x00400000-0x007FFFFF. p263
             Table 79 gives "NVM (MRAM)", 4 MB; p21 calls the NVM0/NVM1 split the
             "MRAM0-MRAM1 boundary at address 0x600000".
+        dma_boundary:
+          value: 2M
+          provenance:
+            status: datasheet
+            source: ["doc:DS-A510B@1.1.0:p21"]
+            verified_on: 2026-11-06
+            verified_by: apage224
+            notes: >-
+              "A DMA transfer must not cross the MRAM0-MRAM1 boundary at address 0x600000 on devices
+              with two MRAM partitions": 0x600000 - 0x400000 (the base) = 2M.
+
+    access:
+      - master: mspi0
+        target: dtcm
+        access: direct
+        provenance: &mspi_dma
+          status: datasheet
+          source: ["doc:DS-A510B@1.1.0:p103", "doc:DS-A510B@1.1.0:p104", "doc:DS-A510B@1.1.0:p21"]
+          verified_on: 2026-11-06
+          verified_by: apage224
+          notes: >-
+            p103 "DMA: MSPI module can autonomously transfer data between the external device and
+            internal memory or NVM"; p104 names "SSRAM or TCM" as what the MSPI DMA targets. p21:
+            the APBDMA "does not have the capability to transfer from memory to memory", so no
+            on-die region is a DMA source for another. The MSPI controllers are the DMA masters
+            that reach memory; the GPU and display controller wait for #88.
+      - {master: mspi0, target: ssram, access: direct, provenance: *mspi_dma}
+      - {master: mspi0, target: mram, access: direct, provenance: *mspi_dma}
+      - {master: mspi1, target: dtcm, access: direct, provenance: *mspi_dma}
+      - {master: mspi1, target: ssram, access: direct, provenance: *mspi_dma}
+      - {master: mspi1, target: mram, access: direct, provenance: *mspi_dma}
 
     default_access:
       master: cm55_0
@@ -143,8 +197,9 @@ socs:
         verified_on: 2026-10-08
         verified_by: evanchen11
         notes: >-
-          "All of the memory is memory mapped and accessible by the CPU." One core; DMA,
-          GPU and display controller are bus masters (p51), omitted with accelerators (#88).
+          "All of the memory is memory mapped and accessible by the CPU." One core; the MSPI
+          DMA engines are bus masters with entries of their own (p51, ADR 0011); the GPU and
+          display controller wait for #88.
 
     # The datasheet's list, not the SDK header's: MSPI2 and MSPI3 are not pinned out
     # (p94), and the half-duplex IOS is absent (p19, p91). iom6 and fpio carry their own

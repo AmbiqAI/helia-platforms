@@ -169,7 +169,8 @@ def test_a_bad_overlay_prints_its_problems(tmp_path):
 def test_show_on_the_built_in_data():
     result = run("show", "apollo510_evb")
     assert result.exit_code == 0, result.output
-    assert "psram0" in result.output and "capacity: measured" in result.output
+    flat = " ".join(result.output.split())  # rows wrap at the terminal width
+    assert "psram0" in flat and "capacity: measured" in flat
 
 
 def test_show_gives_the_vendor_programmed_radio_core_no_usable_nvm():
