@@ -1109,8 +1109,24 @@ def test_a_dma_boundary_is_a_size_on_a_region(document):
     catalog = load_quietly(document)
     region = next(r for r in catalog._entry("socs", "soc_a").memories if r.name == "tcm")
     assert region.dma_boundary == 4096
-    ssram = next(r for r in catalog._entry("socs", "soc_a").memories if r.name == "ssram")
-    assert ssram.dma_boundary is None
+
+
+def test_a_dma_boundary_of_zero_is_rejected(document):
+    soc(document)["memories"]["tcm"]["dma_boundary"] = 0
+    assert "socs.soc_a: memories.tcm.dma_boundary: is 0" in problems_of(document)
+
+
+def test_a_dma_boundary_is_an_offset_from_the_base_not_an_alignment(document):
+    """The edges are base + k * dma_boundary; ssram's base here is not a multiple of 1M."""
+    soc(document)["memories"]["ssram"]["dma_boundary"] = "1M"
+    region = next(
+        r for r in load_quietly(document)._entry("socs", "soc_a").memories if r.name == "ssram"
+    )
+    edges = [
+        region.base + k * region.dma_boundary for k in range(1, region.size // region.dma_boundary)
+    ]
+    assert edges == [0x20180000, 0x20280000]
+    assert all(edge % region.dma_boundary != 0 for edge in edges)
 
 
 def test_removing_a_peripheral_removes_the_memory_controller_and_its_access(document):

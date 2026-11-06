@@ -1147,7 +1147,14 @@ def _relation_problems(soc: model.Soc, catalog: Catalog) -> list[str]:
 
 
 def _layout_problems(soc: model.Soc) -> list[str]:
-    """Regions that overlap at their bases or alternate bases (only the latter if base is None)."""
+    """Regions that overlap at their bases or alternate bases, and a DMA boundary of 0.
+
+    Overlap is checked at every base (only the alternate bases if base is None). A
+    boundary of 0 names no address, so it is rejected like a slot of size 0 (ADR 0011).
+    """
+    problems = [
+        f"memories.{r.name}.dma_boundary: is 0" for r in soc.memories if r.dma_boundary == 0
+    ]
     spans: list[tuple[str, int, int]] = []
     for region in soc.memories:
         if region.base is not None:
@@ -1156,7 +1163,7 @@ def _layout_problems(soc: model.Soc) -> list[str]:
             (f"memories.{region.name} at alternate base {alt:#x}", alt, region.size)
             for alt in region.alternate_bases
         ]
-    return [
+    return problems + [
         f"{a} ({a_base:#x}, {a_size} bytes) overlaps {b} ({b_base:#x}, {b_size} bytes)"
         for i, (a, a_base, a_size) in enumerate(spans)
         for b, b_base, b_size in spans[i + 1 :]

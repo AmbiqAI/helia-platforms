@@ -14,7 +14,7 @@ plans DMA transfers into these regions, such as heliaAOT's weight-prefetch
 schedule (helia-aot RFC 0005), produces code that hangs if it does not
 know them. RFC 0002's `MemoryRegion` has no transfer constraint, and
 `MemoryCharacterization.max_beats` is the Ethos-U burst split, not a DMA
-rule.
+rule. The Apollo3, Apollo4 and atomiq110 sources state no such rule.
 
 Two neighbouring questions stay outside the catalog under ADR 0010. Which
 engine moves bytes between two memories is a consumer's rule over facts
@@ -26,23 +26,43 @@ split an SDK driver applies to the device side of a transfer
 
 ## Decision
 
-`MemoryRegion` gains an optional `dma_boundary`, a size. A single DMA
-transfer does not cross an address that is a whole multiple of it,
-counted from the region's base, whichever DMA master performs it. A
-boundary the datasheet gives as an absolute address is written as its
-offset from the base: the MRAM0-MRAM1 boundary at 0x600000 is `mram`
-`dma_boundary: 2M`. The value carries its own provenance record. A region
-without the field has no stated boundary; the catalog infers none.
+`MemoryRegion` gains an optional `dma_boundary`, a size, with its own
+provenance record.
+
+- **Meaning.** A single DMA transfer does not cross an address that is a
+  whole multiple of `dma_boundary` counted from the region's `base`: the
+  edges are `base + k * dma_boundary`, not addresses aligned to it. The
+  two differ where the base is not itself a multiple. Apollo510's SSRAM
+  starts at 0x20080000, and ERR018's edges are at 0x20180000 and
+  0x20280000, so `ssram` carries `dma_boundary: 1M` and a consumer that
+  aligned addresses to 1M instead would plan transfers across those
+  edges. A boundary the datasheet gives as an absolute address is written
+  as its offset: the MRAM0-MRAM1 boundary at 0x600000 is `mram`
+  `dma_boundary: 2M`. A region's own ends are always edges, so a transfer
+  never spans two regions; the field does not say so.
+- **Masters.** The value is stated for the DMA masters the source names;
+  the record's `notes` say which, and a consumer with another master reads
+  them. A rule the source states for one master is not inferred for
+  others.
+- **Absent and zero.** A region without the field has no stated boundary;
+  the catalog infers none, and a consumer does not read "none" as "no
+  constraint" without its own reason. A value of 0 names no address and
+  is rejected at load, as a slot of size 0 is.
+- **Rebasing.** A region an overlay or an FPGA implementation rebases keeps
+  its offset, so its edges move with the base. A record written for the
+  silicon's absolute edge is then only as true as the new base makes it;
+  the overlay owner checks it.
 
 ## Consequences
 
 - apollo510, apollo510b, apollo510L and apollo330P record `dtcm`
   `dma_boundary: 4K`, and apollo510 and apollo510b also `ssram` 1M and
-  `mram` 2M. Apollo4 and Apollo3 datasheets state no boundary rule, so
-  their regions carry none.
+  `mram` 2M. The 510L and 330P 0.9.0 datasheets state the TCM rule in the
+  SoC overview without naming the radio core's `rs_tcm`, which carries
+  none. Apollo3, Apollo4 and atomiq110 regions carry none.
 - heliaAOT reads `target.region("dtcm").dma_boundary` instead of a table
-  of its own; its engine rule and helia-profiler's transfer-cost
-  calibration stay where they are.
+  of its own and computes edges from the base; its engine rule and
+  helia-profiler's transfer-cost calibration stay where they are.
 - The deep-sleep rule ("a DMA operation cannot be performed to or from
   DTCM when the CPU is in deep sleep", p22) is not modelled; it is quoted
   in the records' notes.
