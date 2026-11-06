@@ -57,20 +57,6 @@ memory_devices:
         verified_on: 2026-10-13
         verified_by: evanchen11
         notes: "\"Hex (x16) DDR PSRAM on MSPI0\". QS-A510 p8 states x16 (Hex); DS-A510 p95 states DDR on MSPI0."
-    dma_boundary:
-      value: 1K
-      provenance:
-        status: sdk
-        source:
-          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/devices/am_devices_mspi_psram_aps25616ba_1p2v.c:389"
-          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-psram/src/apollo5/devices/am_devices_mspi_psram_aps25616ba_1p2v.c:382"
-        verified_on: 2026-11-06
-        verified_by: apage224
-        notes: >-
-          The driver's MSPI configuration sets eDMABoundary = AM_HAL_MSPI_BOUNDARY_BREAK1K, "Break
-          at 1KB boundary (0x400 increments)" (mcu/apollo510/hal/mcu/am_hal_mspi.h:570), so that
-          a DMA does not cross a PSRAM page or exceed tCEM (the driver's comment at :1394). A
-          driver setting, not a figure from the device's datasheet.
   APS256XXN:
     release_status: public
     technology: psram
@@ -105,20 +91,6 @@ memory_devices:
         notes: >-
           AM_BSP_MSPI_PSRAM_MODULE_OCTAL_DDR_CE and _HEX_DDR_CE. nsx-psram uses hex DDR
           (CMakeLists.txt:42-44). QS-A4PDK p12 states hex DDR; p11 octal, without the rate.
-    dma_boundary:
-      value: 1K
-      provenance:
-        status: sdk
-        source:
-          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/devices/am_devices_mspi_psram_aps25616n.c:312"
-          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-psram/src/apollo4/devices/am_devices_mspi_psram_aps25616n.c:282"
-        verified_on: 2026-11-06
-        verified_by: apage224
-        notes: >-
-          Every MSPI configuration in the driver sets eDMABoundary = AM_HAL_MSPI_BOUNDARY_BREAK1K
-          (:312, :352, :392, :432), "Break at 1KB boundary (0x400 increments)", so that a DMA
-          does not cross a PSRAM page or exceed tCEM (the driver's comment at :867). A driver
-          setting, not a figure from the device's datasheet.
   IS25WX064:
     release_status: public
     technology: flash
@@ -188,16 +160,3 @@ memory_devices:
         verified_on: 2026-10-26
         verified_by: evanchen11
         notes: AM_HAL_MSPI_FLASH_QUAD_CE0; Zephyr's MSPI_IO_MODE_QUAD and MSPI_DATA_RATE_SINGLE.
-    dma_boundary:
-      value: 1K
-      provenance:
-        status: sdk
-        source:
-          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/devices/am_devices_mspi_psram_aps6404l.c:198"
-          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-psram/src/apollo3/devices/am_devices_mspi_psram_aps6404l.c:208"
-        verified_on: 2026-11-06
-        verified_by: apage224
-        notes: >-
-          Every MSPI configuration in the driver sets eDMABoundary = AM_HAL_MSPI_BOUNDARY_BREAK1K
-          (:198 to :414), "Break at 1KB boundary (0x400 increments)". A driver setting, not a
-          figure from the device's datasheet.

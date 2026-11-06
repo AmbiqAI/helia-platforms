@@ -166,27 +166,6 @@ socs:
               "A DMA transfer must not cross the MRAM0-MRAM1 boundary at address 0x600000 on devices
               with two MRAM partitions": 0x600000 - 0x400000 (the base) = 2M.
 
-    access:
-      - master: mspi0
-        target: dtcm
-        access: direct
-        provenance: &mspi_dma
-          status: datasheet
-          source: ["doc:DS-A510B@1.1.0:p103", "doc:DS-A510B@1.1.0:p104", "doc:DS-A510B@1.1.0:p21"]
-          verified_on: 2026-11-06
-          verified_by: apage224
-          notes: >-
-            p103 "DMA: MSPI module can autonomously transfer data between the external device and
-            internal memory or NVM"; p104 names "SSRAM or TCM" as what the MSPI DMA targets. p21:
-            the APBDMA "does not have the capability to transfer from memory to memory", so no
-            on-die region is a DMA source for another. The MSPI controllers are the DMA masters
-            that reach memory; the GPU and display controller wait for #88.
-      - {master: mspi0, target: ssram, access: direct, provenance: *mspi_dma}
-      - {master: mspi0, target: mram, access: direct, provenance: *mspi_dma}
-      - {master: mspi1, target: dtcm, access: direct, provenance: *mspi_dma}
-      - {master: mspi1, target: ssram, access: direct, provenance: *mspi_dma}
-      - {master: mspi1, target: mram, access: direct, provenance: *mspi_dma}
-
     default_access:
       master: cm55_0
       access: direct
@@ -197,9 +176,8 @@ socs:
         verified_on: 2026-10-08
         verified_by: evanchen11
         notes: >-
-          "All of the memory is memory mapped and accessible by the CPU." One core; the MSPI
-          DMA engines are bus masters with entries of their own (p51, ADR 0011); the GPU and
-          display controller wait for #88.
+          "All of the memory is memory mapped and accessible by the CPU." One core; DMA,
+          GPU and display controller are bus masters (p51), omitted with accelerators (#88).
 
     # The datasheet's list, not the SDK header's: MSPI2 and MSPI3 are not pinned out
     # (p94), and the half-duplex IOS is absent (p19, p91). iom6 and fpio carry their own

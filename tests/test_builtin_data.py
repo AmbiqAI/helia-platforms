@@ -534,32 +534,17 @@ def test_apollo330p_has_no_display_or_gpu(catalog):
 
 
 @pytest.mark.parametrize(
-    ("soc", "controllers", "boundaries"),
+    ("soc", "boundaries"),
     [
-        (
-            "apollo510",
-            ["mspi0", "mspi1", "mspi2", "mspi3"],
-            {"dtcm": 4096, "ssram": 1 << 20, "mram": 2 << 20},
-        ),
-        ("apollo510b", ["mspi0", "mspi1"], {"dtcm": 4096, "ssram": 1 << 20, "mram": 2 << 20}),
-        ("apollo510L", ["mspi0", "mspi1", "mspi2"], {"dtcm": 4096}),
-        ("apollo330P", ["mspi0", "mspi1", "mspi2"], {"dtcm": 4096}),
+        ("apollo510", {"dtcm": 4096, "ssram": 1 << 20, "mram": 2 << 20}),
+        ("apollo510b", {"dtcm": 4096, "ssram": 1 << 20, "mram": 2 << 20}),
+        ("apollo510L", {"dtcm": 4096}),
+        ("apollo330P", {"dtcm": 4096}),
     ],
 )
-def test_apollo5_records_its_dma_reach_and_boundaries(catalog, soc, controllers, boundaries):
-    """ADR 0011: every MSPI DMA engine reaches dtcm, ssram and mram; the datasheet's boundaries."""
+def test_apollo5_records_its_dma_boundaries(catalog, soc, boundaries):
+    """ADR 0011: the datasheet's DMA boundaries, as offsets from each region's base."""
     target = catalog.resolve(soc)
-    assert {r.name: r.dma_boundary for r in target.memories() if r.dma_boundary} == boundaries
-    for controller in controllers:
-        for region in ("dtcm", "ssram", "mram"):
-            entry = target.reachable(controller, region)
-            assert entry is not None and entry.access == "direct", (controller, region)
-            assert entry.provenance is not None and entry.provenance.status == "datasheet"
-    assert target.reachable("mspi0", "itcm") is None  # no source states it
-    assert {r.name for r in target.memories()} >= set(boundaries)  # core 0's view is unchanged
-
-
-def test_the_psram_devices_record_the_driver_s_dma_break(catalog):
-    """ADR 0011: the SDK's PSRAM drivers split a DMA at 1 kB of device address; flash does not."""
-    breaks = {d.id: d.dma_boundary for d in catalog.memory_devices()}
-    assert breaks == {"APS512XX": 1024, "APS256XXN": 1024, "APS6404L": 1024, "IS25WX064": None}
+    stated = {r.name: r.dma_boundary for r in target.memories() if r.dma_boundary}
+    assert stated == boundaries
+    assert target.region("dtcm").provenance is not None

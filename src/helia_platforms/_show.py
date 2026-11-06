@@ -411,7 +411,7 @@ _REGION = (
     "stands_in_for",
 )
 _INTERFACE = ("controller", "modes", "aperture_base", "alternate_bases", "aperture_max")
-_DEVICE = ("technology", "capacity", "driver_family", "modes", "characterization", "dma_boundary")
+_DEVICE = ("technology", "capacity", "driver_family", "modes", "characterization")
 
 
 def _memories(target: Target, at: _Entries) -> list[_Row]:
