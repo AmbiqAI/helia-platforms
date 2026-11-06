@@ -545,6 +545,16 @@ def test_apollo330p_has_no_display_or_gpu(catalog):
 def test_apollo5_records_its_dma_boundaries(catalog, soc, boundaries):
     """ADR 0011: the datasheet's DMA boundaries, as offsets from each region's base."""
     target = catalog.resolve(soc)
-    stated = {r.name: r.dma_boundary for r in target.memories() if r.dma_boundary}
+    stated = {r.name: r.dma_boundary for r in target.memories() if r.dma_boundary is not None}
     assert stated == boundaries
-    assert target.region("dtcm").provenance is not None
+    for name in boundaries:
+        record = target.region(name).field_provenance["dma_boundary"]
+        assert record.status == "datasheet" and record.source, name
+
+
+def test_apollo510_ssram_edges_are_offsets_from_its_base(catalog):
+    """ERR018's edges, 0x20180000 and 0x20280000, are not multiples of 1M (ADR 0011)."""
+    ssram = catalog.resolve("apollo510").region("ssram")
+    edges = [ssram.base + k * ssram.dma_boundary for k in (1, 2)]
+    assert edges == [0x20180000, 0x20280000]
+    assert all(edge % ssram.dma_boundary != 0 for edge in edges)

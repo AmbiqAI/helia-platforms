@@ -107,8 +107,7 @@ socs:
               p22 "A DMA transfer must not cross a DTCM 4 kB boundary"; p29 "A DMA transfer cannot
               cross a DTCM 4 kB boundary" (ERR014); p96: an MSPI DMA that "crosses a 4 kB boundary in
               DTCM" hangs the device (ERR018). p22 also forbids DMA to or from DTCM "when the CPU is
-              in deep sleep or the DTCM location is powered down" (requires_awake, once power
-              domains have names).
+              in deep sleep or the DTCM location is powered down".
       ssram:
         technology: sram
         attachment: system
@@ -133,7 +132,8 @@ socs:
             notes: >-
               ERR018 (p96): an MSPI DMA that crosses the DTCM-SSRAM0, SSRAM0-SSRAM1 or SSRAM1-SSRAM2
               boundary hangs the device. SSRAM0-2 are 1 MB each from 0x20080000, so the boundaries
-              fall at 1M and 2M from the region's base.
+              fall at 1M and 2M from the region's base. ERR018 is stated for MSPI DMA; no
+              source states the rule for another master.
       mram:
         technology: mram
         attachment: system

@@ -139,7 +139,8 @@ socs:
             notes: >-
               ERR018 (p101): an MSPI DMA that crosses the DTCM-SSRAM0, SSRAM0-SSRAM1 or SSRAM1-SSRAM2
               boundary hangs the device. SSRAM0-2 are 1 MB each from 0x20080000, so the boundaries
-              fall at 1M and 2M from the region's base.
+              fall at 1M and 2M from the region's base. ERR018 is stated for MSPI DMA; no
+              source states the rule for another master.
       mram:
         technology: mram
         attachment: system

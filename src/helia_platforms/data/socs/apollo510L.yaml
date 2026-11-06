@@ -158,8 +158,9 @@ socs:
             verified_by: apage224
             notes: >-
               p21 "A DMA transfer must not cross a TCM 4 kB boundary". p21 also forbids DMA to or
-              from TCM "when the CPU is in deep sleep or the TCM location is powered down". This
-              revision states no SSRAM or MRAM boundary.
+              from TCM "when the CPU is in deep sleep or the TCM location is powered down". The
+              note is in the SoC overview and does not name the radio core's rs_tcm, which
+              carries no boundary. This revision states no SSRAM or MRAM boundary.
       ssram:
         technology: sram
         attachment: system
