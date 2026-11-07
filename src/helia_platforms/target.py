@@ -365,29 +365,27 @@ class Target:
         No linker knowledge: a consumer intersects these with its own linker windows
         (#73). A region every byte of which is taken, or of size 0, maps to ``()``; a
         region with no base (a populated device on an interface with no aperture, or an
-        overlay region that omits it) is left out, so unknown and empty are told apart.
-        Whether a customer may program the core is ``programmable_by``, which this does
-        not apply. Each range's ``derived`` record names the facts it came from.
+        overlay region that omits it) is left out, and a target with no boot configuration
+        gives an empty mapping, since its reservations are unknown: unknown and empty are
+        told apart. Whether a customer may program the core is ``programmable_by``, which
+        this does not apply. Each range's ``derived`` record names the facts it came from.
         """
         instance = self._core(core)
         boot = self.boot
+        if boot is None:
+            return MappingProxyType({})
         taken: dict[str, list[tuple[int, int, str]]] = {}
-        if boot is not None:
-            impl = self.implementation
-            owned = (
-                impl is not None
-                and impl.boot_configs is not None
-                and boot.name in impl.boot_configs
-            )
-            owner = (
-                f"fact:implementation:{impl.id}" if owned and impl else f"fact:soc:{self.soc.id}"
-            )
-            for reservation in boot.reserved:
-                if reservation.size == 0:
-                    continue
-                where = f"{owner}:boot_configs.{boot.name}.reserved.{reservation.purpose}"
-                end = reservation.offset + reservation.size
-                taken.setdefault(reservation.region, []).append((reservation.offset, end, where))
+        impl = self.implementation
+        owned = (
+            impl is not None and impl.boot_configs is not None and boot.name in impl.boot_configs
+        )
+        owner = f"fact:implementation:{impl.id}" if owned and impl else f"fact:soc:{self.soc.id}"
+        for reservation in boot.reserved:
+            if reservation.size == 0:
+                continue
+            where = f"{owner}:boot_configs.{boot.name}.reserved.{reservation.purpose}"
+            end = reservation.offset + reservation.size
+            taken.setdefault(reservation.region, []).append((reservation.offset, end, where))
         own_slots = self.part.image_slots if self.part else {}
         for name, slot in self.image_slots.items():
             if slot.core != instance.id and slot.size > 0:
@@ -421,8 +419,9 @@ class Target:
                     start=base + low,
                     end=base + high,
                     region=region.name,
+                    target=self.id,
                     core=instance.id,
-                    boot=boot.name if boot else None,
+                    boot=boot.name,
                     access=access,
                     provenance=provenance,
                 )
@@ -458,7 +457,11 @@ class Target:
             at = f"fact:implementation:{impl.id}:memories.{region.name}"
             return (f"{at}.base", f"{at}.size")
         at = f"fact:soc:{self.soc.id}:memories.{region.name}"
-        sources = [f"{at}.base", f"{at}.size"]
+        declared = self._catalog._entry("socs", self.soc.id)
+        stated = next((m for m in declared.memories if m.name == region.name), None)
+        # The Soc states the base unless an implementation's rebase supplies it.
+        sources = [f"{at}.base"] if stated is None or stated.base is not None else []
+        sources.append(f"{at}.size")
         if impl is not None:
             if region.name in impl.subset.memories_rebased:
                 sources.append(

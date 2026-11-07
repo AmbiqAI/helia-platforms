@@ -375,8 +375,10 @@ BootConfig: name, reserved: {purpose: (region, offset, size)},
   selected boot configuration, in the region's own address space (its
   `base`, as `flash_load_address()` uses it), each with the region, core,
   boot, the core's access entry and a `derived` record naming the facts
-  it came from. A region every byte of which is taken maps to an empty tuple; a
-  region with no base is left out, so unknown and empty are told apart.
+  it came from. A region every byte of which is taken maps to an empty
+  tuple; a region with no base is left out, and a target with no boot
+  configuration gives an empty mapping, so unknown and empty are told
+  apart.
   It applies no `programmable_by` view. A consumer that links intersects
   these with its own linker windows; on the Apollo330 Plus and Apollo510
   Lite EVB parts the MRAM range is `[0x00410000, 0x00594000)`.
@@ -896,7 +898,7 @@ one of them.
 @dataclass(frozen=True) class AddOn:      id, fits_boards, occupies, population: Mapping[str, str], modes: Mapping[str, tuple[str, ...]], revision, aliases, release_status, extensions, provenance
 @dataclass(frozen=True) class Board:      id, category, revision, part: str | None, implementation: str | None, interfaces, population: Mapping[str, str], provisioning, jlink_device, trace_clock_mhz, aliases, release_status, extensions, provenance
 @dataclass(frozen=True) class Composition: alias, board, addons; release_status (property, effective from what it references)
-@dataclass(frozen=True) class AddressRange: start, end, region, core, boot: str | None, access: Access | None, provenance, field_provenance; size (property)   # [start, end) in the region's base address space, from Target.application_ranges() (#73)
+@dataclass(frozen=True) class AddressRange: start, end, region, target, core, boot, access: Access | None, provenance, field_provenance; size (property)   # [start, end) in the region's base address space, from Target.application_ranges() (#73)
 ```
 
 A class that has `provenance` also has `field_provenance`: the records of
@@ -944,7 +946,7 @@ class Target:
     def flash_load_address(self, core: int | str = 0) -> int   # from boot; raises if there is none
     image_slots: Mapping[str, ImageSlot]                      # the Soc's, each replaced by the part's slot of that name
     def usable_nvm(self, core: int | str = 0, *, include_discouraged: bool = False) -> Mapping[str, int]   # the customer's view: after reservations and other cores' slots; empty for a core only the vendor programs or with no loadable image
-    def application_ranges(self, core: int | str = 0, *, include_discouraged: bool = False) -> Mapping[str, tuple[AddressRange, ...]]   # per region with a base: disjoint [start, end) in the region's base address space, less reservations and other cores' slots; () when all taken; a region with no base is left out (#73)
+    def application_ranges(self, core: int | str = 0, *, include_discouraged: bool = False) -> Mapping[str, tuple[AddressRange, ...]]   # per region with a base: disjoint [start, end) in the region's base address space, less reservations and other cores' slots; () when all taken; a region with no base is left out; {} with no boot configuration (#73)
     # external memory
     def external_memories(self) -> tuple[MemoryRegion, ...]   # population plus add-ons, at aperture bases
     def classify_address(self, address: int, master: int | str = 0) -> str | None   # alternate_bases classify to the same region; per-master Access addresses resolved for master

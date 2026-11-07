@@ -357,6 +357,7 @@ class ImageSlot(_Carrier):
 class AddressRange(_Carrier):
     """A half-open byte interval ``[start, end)`` of ``region`` an application for ``core``
     may occupy under ``boot``: the region less reservations and other cores' slots (#73).
+    ``target`` is the resolved id the range was computed for.
 
     The addresses are in the region's own space (its ``base``); a core that sees the
     region at its own ``Access.address`` offsets them. ``provenance`` is a ``derived``
@@ -366,8 +367,9 @@ class AddressRange(_Carrier):
     start: int
     end: int
     region: str
+    target: str
     core: str
-    boot: str | None
+    boot: str
     access: Access | None
 
     @property

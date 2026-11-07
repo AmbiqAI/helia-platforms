@@ -16,7 +16,7 @@ from helia_platforms import (
     resolve_board,
     resolve_soc,
 )
-from helia_platforms.catalog import _load_documents
+from helia_platforms.catalog import _load_documents, builtin
 
 KB = 1024
 
@@ -598,3 +598,83 @@ def test_application_ranges_name_facts_that_exist(document):
                 for source in r.provenance.source:
                     key = facts.parse(source)
                     assert key is not None and facts.exists(key), (name, source)
+
+
+def test_application_ranges_are_unknown_without_a_boot_configuration(document):
+    soc = document["socs"]["soc_a"]
+    del soc["boot_configs"], soc["default_boot"]
+    document["boards"]["board_a"].pop("provisioning", None)
+    target = quiet(document).resolve("board_a")
+    assert target.boot is None and target.application_ranges() == {}
+
+
+def test_application_ranges_credit_each_input_to_the_entry_that_states_it(document):
+    """A wrong owner in a record passes a mere existence check; these pin the exact owners."""
+    soc = document["socs"]["soc_a"]
+    soc["cores"].append(
+        {**soc["cores"][0], "id": "radio_0", "role": "radio", "programmable_by": "vendor"}
+    )
+    soc["access"].append({"master": "radio_0", "target": "nvm", "access": "direct"})
+    soc["access"].append({"master": "cm55_0", "target": "nvm", "access": "direct"})
+    soc["image_slots"] = {
+        "radio": {
+            "core": "radio_0",
+            "region": "nvm",
+            "offset": "1M",
+            "size": "256K",
+            "supplier": "vendor",
+        }
+    }
+    document["parts"]["PART-A"]["image_slots"] = {
+        "radio": {
+            "core": "radio_0",
+            "region": "nvm",
+            "offset": "1M",
+            "size": "512K",
+            "supplier": "vendor",
+        }
+    }
+    document["implementations"] = {
+        "soc_a_fpga": {
+            "soc": "soc_a",
+            "kind": "fpga",
+            "subset": {"memories_rebased": {"nvm": 0x10000000}, "memories_resized": {"nvm": "2M"}},
+            "boot_configs": {
+                "fpga": {
+                    "reserved": {"rom": {"region": "nvm", "offset": 0, "size": "32K"}},
+                    "app_start": {"region": "nvm", "offset": "32K"},
+                    "requires": "none",
+                }
+            },
+            "default_boot": "fpga",
+        }
+    }
+    catalog = quiet(document)
+    board = catalog.resolve("board_a").application_ranges()["nvm"][0]
+    assert board.target == "board_a" and board.boot == "sbl"
+    assert (
+        "fact:part:PART-A:image_slots.radio.size" in board.provenance.source
+    )  # the part's slot, not the Soc's
+    assert "fact:soc:soc_a:image_slots.radio.size" not in board.provenance.source
+    assert board.end == 0x00400000 + KB * KB  # up to the part's slot at 1M
+    fpga = catalog.resolve("soc_a_fpga").application_ranges()["nvm"][0]
+    assert fpga.target == "soc_a_fpga" and fpga.boot == "fpga"
+    assert {
+        "fact:implementation:soc_a_fpga:subset.memories_rebased.nvm",
+        "fact:implementation:soc_a_fpga:subset.memories_resized.nvm",
+        "fact:implementation:soc_a_fpga:boot_configs.fpga.reserved.rom.size",
+    } <= set(fpga.provenance.source)
+    assert not any(s.startswith("fact:soc:soc_a:boot_configs") for s in fpga.provenance.source)
+    # programmable_by is not applied: the vendor-only radio core still gets its ranges.
+    radio = catalog.resolve("board_a").application_ranges("radio_0")["nvm"]
+    assert radio and catalog.resolve("board_a").usable_nvm("radio_0") == {}
+
+
+def test_application_ranges_total_what_usable_nvm_gives():
+    catalog = builtin(include_plugins=False)
+    for board in catalog.boards():
+        target = catalog.resolve(board.id)
+        for core in target.soc.cores:
+            ranges = target.application_ranges(core.id)
+            for region, size in target.usable_nvm(core.id).items():
+                assert sum(r.size for r in ranges[region]) == size, (board.id, core.id, region)
