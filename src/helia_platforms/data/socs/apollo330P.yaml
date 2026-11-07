@@ -406,13 +406,16 @@ socs:
         status: sdk
         source:
           - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-core/includes-api/nsx_system.h:190-191"
-          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-core/src/nsx_system_platform_apollo5.inc:178-185"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-core/src/nsx_system_platform_apollo5.inc:194-198"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-core/src/nsx_performance.c:52-54"
         verified_on: 2026-10-26
         verified_by: evanchen11
         notes: >-
-          A zero-initialised config selects "LOW performance"; mode 0 selects
-          AM_HAL_PWRCTRL_MCU_MODE_LOW_POWER on AM_PART_APOLLO330P. DS-A330PS p62: POR
-          "sets the CPU clock to 96 MHz".
+          A zero-initialised config selects "LOW performance". At v5.2.27 the shared
+          Apollo5 file hands the mode to nsx_performance_select() on every part but
+          atomiq110 (nsx_system_platform_apollo5.inc:194-198), whose LOW branch selects
+          AM_HAL_PWRCTRL_MCU_MODE_LOW_POWER on AM_PART_APOLLO330P (nsx_performance.c:52-54).
+          DS-A330PS p62: POR "sets the CPU clock to 96 MHz".
 
     boot_configs:
       sbl:

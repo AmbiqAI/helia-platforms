@@ -363,7 +363,7 @@ socs:
         verified_on: 2026-10-26
         verified_by: evanchen11
         notes: >-
-          The default armclang (:24) and gcc (:28) linker scripts are the sbl scripts;
+          The default armclang (:24) and gcc (:29) linker scripts are the sbl scripts;
           NSX_SEGGER_PF_ADDR 0x00410000 (facts/apollo510b.cmake:54) agrees.
 
     sdk:
