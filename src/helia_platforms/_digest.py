@@ -141,6 +141,11 @@ def _strip(value: Any, tp: Any, facts: bool) -> Any:  # noqa: PLR0911
             key: _strip(item, declared[key].type, inner) if key in declared else item
             for key, item in value.items()
             if not (key == "provenance" and key in declared)
+            # A deprecated key is ignored by the loader, so it does not reach the hash.
+            and not (
+                key in declared
+                and _walk.marker(_walk.unwrap(declared[key].type)[1], fmt.Deprecated)
+            )
         }
     if _walk.is_union(bare):
         return _strip(value, _branch(value, bare, facts), facts)

@@ -99,6 +99,7 @@ class _Checker:
             note = _deprecated(declared[key].type)
             assert note is not None
             self.warnings.append(f"{self.origin}: {_join(path, key)}: {note}; ignored")
+            self.check_json(value[key], _join(path, key), ())  # ignored, but still JSON data
         inherits = _walk.is_inheritable(obj) and "based_on" in value
         if not inherits:
             for name, field in declared.items():

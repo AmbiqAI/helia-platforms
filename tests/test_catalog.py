@@ -2072,3 +2072,24 @@ def test_an_npu_instance_states_its_port_classes(document):
     ]
     document["socs"]["soc_a"]["npus"][0]["axi_ports"] = {"dsp": {"count": 1}}
     assert "'dsp' is not an NPU port class, sram or ext" in problems_of(document)
+
+
+@pytest.mark.parametrize("value", [float("nan"), {1: "a"}, {"self": None}, b"bytes"])
+def test_a_deprecated_keys_value_must_still_be_json_data(document, value):
+    """Ignored, but not unchecked: a value the source hash cannot encode is a problem."""
+    if isinstance(value, dict) and "self" in value:
+        value["self"] = value  # a cycle
+    document["socs"]["soc_a"]["access"][0]["port"] = value
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        with pytest.raises(FormatError, match=r"access\[0\]\.port"):
+            load_overlay(document)
+
+
+def test_a_deprecated_key_does_not_reach_the_source_hash(document):
+    plain = copy.deepcopy(document)
+    plain["socs"]["soc_a"]["access"][0]["port"] = 1
+    wrapped = copy.deepcopy(document)
+    wrapped["socs"]["soc_a"]["access"][0]["port"] = {"value": 1, "provenance": {"status": "sdk"}}
+    hashes = {_digest.source_sha256(d) for d in (document, plain, wrapped)}
+    assert len(hashes) == 1
