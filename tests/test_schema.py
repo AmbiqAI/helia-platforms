@@ -122,6 +122,8 @@ CORPUS = {
     "bool for int": (_edit(f"{SOC}.npus.0.npu.macs_per_cycle", True), False),
     "port 1": (_edit(f"{SOC}.access.0.port", 1), True),
     "port true": (_edit(f"{SOC}.access.0.port", True), False),
+    "dma_boundary suffix": (_edit(f"{SOC}.memories.tcm.dma_boundary", "4K"), True),
+    "dma_boundary bool": (_edit(f"{SOC}.memories.tcm.dma_boundary", True), False),
     "missing required": (_edit(f"{SOC}.series", _DELETE), False),
     "based_on lifts required": (_edit("socs.soc_b", {"based_on": "soc_a"}), True),
     "wrapper": (

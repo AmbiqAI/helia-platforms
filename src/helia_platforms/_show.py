@@ -29,7 +29,7 @@ KINDS = ("socs", "implementations", "parts", "boards")
 _WIDTH = 100
 _LABEL = 26
 _ADDRESSES = frozenset({"base", "address", "aperture_base", "base_address", "alternate_bases"})
-_SIZES = frozenset({"size", "capacity", "aperture_max", "memories_resized"})
+_SIZES = frozenset({"size", "capacity", "aperture_max", "memories_resized", "dma_boundary"})
 _OFFSETS = frozenset({"offset", "memories_rebased"})
 
 #: A fact's place: its entry's table and id, and its path in that entry.
@@ -407,6 +407,7 @@ _REGION = (
     "writeable",
     "cacheable",
     "characterization",
+    "dma_boundary",
     "stands_in_for",
 )
 _INTERFACE = ("controller", "modes", "aperture_base", "alternate_bases", "aperture_max")

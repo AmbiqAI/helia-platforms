@@ -1104,6 +1104,18 @@ def test_access_to_a_peripheral_that_is_not_a_memory_controller_is_an_error(docu
     ) in problems_of(document)
 
 
+def test_a_dma_boundary_is_a_size_on_a_region(document):
+    soc(document)["memories"]["tcm"]["dma_boundary"] = "4K"
+    catalog = load_quietly(document)
+    region = next(r for r in catalog._entry("socs", "soc_a").memories if r.name == "tcm")
+    assert region.dma_boundary == 4096
+
+
+def test_a_dma_boundary_of_zero_is_rejected(document):
+    soc(document)["memories"]["tcm"]["dma_boundary"] = 0
+    assert "socs.soc_a: memories.tcm.dma_boundary: is 0" in problems_of(document)
+
+
 def test_removing_a_peripheral_removes_the_memory_controller_and_its_access(document):
     soc(document)["access"].append({"master": "npu_0", "target": "mspi0", "access": "direct"})
     soc(document)["memory_controllers"] = [

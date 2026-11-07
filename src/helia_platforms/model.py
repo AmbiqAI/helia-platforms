@@ -145,6 +145,7 @@ class MemoryRegion(_Carrier):
     writeable: bool | None = None
     cacheable: bool | None = None
     characterization: MemoryCharacterization | None = None
+    dma_boundary: int | None = None  # a DMA transfer does not cross a multiple of it from base
     stands_in_for: tuple[str, ...] = ()  # Soc regions an FVP region emulates (ADR 0007)
 
 

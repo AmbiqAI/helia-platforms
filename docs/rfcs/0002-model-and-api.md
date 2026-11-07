@@ -189,7 +189,10 @@ Definitions, queries and an example are in [0002-multicore.md](0002-multicore.md
 region, `executable`, `writeable`, `cacheable`, optional
 `characterization` (read and write latency, ports, max outstanding reads
 and writes per port, `max_beats`, bandwidth) each value with provenance: latency, bandwidth and
-ports only. The package carries no energy data; the estimator's energy
+ports only. Optional `dma_boundary`, its own fact with its own record: a
+single DMA transfer does not cross an address that is a whole multiple of
+it from the region's base, so the edges are `base + k * dma_boundary`, not
+aligned addresses ([ADR 0011](../adr/0011-dma-boundary.md)). The package carries no energy data; the estimator's energy
 coefficients stay in helia-estimator. Characterization is hardware: the
 path's limits, as the SoC or IP documentation states them or as measured,
 such as the Ethos-U85's per-port outstanding reads and writes. `max_beats`
@@ -870,7 +873,7 @@ one of them.
 @dataclass(frozen=True) class Npu:        vendor, family, model, macs_per_cycle; accelerator_config (property)
 @dataclass(frozen=True) class NpuInstance: id, npu, axi_width_bits, base_address, irq, sram_port_hash, driven_by, clock_domain
 @dataclass(frozen=True) class AcceleratorInstance: id, kind, ip, driven_by, clock_domain, base_address, irq
-@dataclass(frozen=True) class MemoryRegion: name, technology, attachment, size, base, alternate_bases, executable, writeable, cacheable, characterization, stands_in_for: tuple[str, ...], provenance   # stands_in_for: FVP regions only (ADR 0007)
+@dataclass(frozen=True) class MemoryRegion: name, technology, attachment, size, base, alternate_bases, executable, writeable, cacheable, characterization, dma_boundary: int | None, stands_in_for: tuple[str, ...], provenance   # stands_in_for: FVP regions only (ADR 0007)
 @dataclass(frozen=True) class Access:     master, target, access, requires_awake, guidance, reason, address: int | None, port: int | None, characterization, provenance   # target: region or memory_controllers name
 @dataclass(frozen=True) class DefaultAccess: master, access, scope, provenance   # scope: on_die
 @dataclass(frozen=True) class MemoryCharacterization: read_latency_ns, write_latency_ns, max_outstanding_reads, max_outstanding_writes, max_beats, ports, axi_clock_hz, bandwidth_fraction  (each value may carry its own Provenance)
