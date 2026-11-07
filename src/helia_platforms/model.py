@@ -59,6 +59,7 @@ class Core(_Carrier):
     arch: str
     pmu: str
     has_dsp_extension: bool
+    based_on: str | None = None  # the overlay entry it was based on; not a fact (#134)
 
 
 @_frozen
@@ -280,6 +281,7 @@ class Soc(_Carrier):
     sdk: SdkFacts | None = None
     derives_from: str | None = None
     default_board: str | None = None
+    based_on: str | None = None  # the overlay entry it was based on; not a fact (#134)
     aliases: tuple[str, ...] = ()
     release_status: ReleaseStatus = "embargoed"
     extensions: Mapping[str, Any] = field(default_factory=_empty)
@@ -348,6 +350,7 @@ class Implementation(_Carrier):
     trace_clock_mhz: float | None = None
     interfaces: Mapping[str, MemoryInterface] = field(default_factory=_empty)
     population: Mapping[str, str] = field(default_factory=_empty)
+    based_on: str | None = None  # the overlay entry it was based on; not a fact (#134)
     aliases: tuple[str, ...] = ()
     release_status: ReleaseStatus = "embargoed"
     extensions: Mapping[str, Any] = field(default_factory=_empty)
@@ -374,6 +377,7 @@ class Part(_Carrier):
     radio: str | None = None
     jlink_device: str | None = None
     image_slots: Mapping[str, ImageSlot] = field(default_factory=_empty)
+    based_on: str | None = None  # the overlay entry it was based on; not a fact (#134)
     aliases: tuple[str, ...] = ()
     release_status: ReleaseStatus = "embargoed"
 
@@ -390,6 +394,7 @@ class Board(_Carrier):
     provisioning: str | None = None
     jlink_device: str | None = None
     trace_clock_mhz: float | None = None
+    based_on: str | None = None  # the overlay entry it was based on; not a fact (#134)
     aliases: tuple[str, ...] = ()
     release_status: ReleaseStatus = "embargoed"
     extensions: Mapping[str, Any] = field(default_factory=_empty)
@@ -403,6 +408,7 @@ class AddOn(_Carrier):
     population: Mapping[str, str]
     modes: Mapping[str, tuple[str, ...]] = field(default_factory=_empty)
     revision: str | None = None
+    based_on: str | None = None  # the overlay entry it was based on; not a fact (#134)
     aliases: tuple[str, ...] = ()
     release_status: ReleaseStatus = "embargoed"
     extensions: Mapping[str, Any] = field(default_factory=_empty)
@@ -416,6 +422,7 @@ class MemoryDevice(_Carrier):
     driver_family: str | None = None
     modes: tuple[str, ...] = ()
     characterization: MemoryCharacterization | None = None
+    based_on: str | None = None  # the overlay entry it was based on; not a fact (#134)
     aliases: tuple[str, ...] = ()
     release_status: ReleaseStatus = "embargoed"
 

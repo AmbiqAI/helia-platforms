@@ -31,7 +31,8 @@ def test_schema_is_a_valid_draft_2020_12_schema():
     jsonschema.Draft202012Validator.check_schema(schema.generate())
 
 
-# Keys that exist only in files: deltas, shorthands and based_on (ADR 0002 section 3).
+# Keys that exist only in files: deltas and shorthands (ADR 0002 section 3; based_on has a
+# runtime field since #134).
 def _file_keys(decl: type) -> set[str]:
     return {
         name

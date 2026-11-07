@@ -3,50 +3,6 @@
 # path of the value or group in it, the comparison rule it fails, a reason and
 # the issue that tracks the fix. Remove an entry when its issue is fixed.
 exceptions:
-  # The nbl and itcm_sbl scripts carry apollo510's sizes: MCU_TCM is 507904
-  # bytes (gcc) and 503808 (armclang) against a 256 KB DTCM, and MCU_MRAM and
-  # SHARED_SRAM exceed the 2 MB MRAM and 1.75 MB SSRAM the register headers give.
-  - snapshot: nsx-ambiq-sdk.json
-    at: [socs, apollo330P, linker, gcc, scripts, linker_script_itcm_sbl.ld]
-    rule: region containment
-    reason: Declares apollo510-sized memory regions.
-    issue: AmbiqAI/nsx-ambiq-sdk#60
-  - snapshot: nsx-ambiq-sdk.json
-    at: [socs, apollo330P, linker, gcc, scripts, linker_script_nbl.ld]
-    rule: region containment
-    reason: Declares apollo510-sized memory regions.
-    issue: AmbiqAI/nsx-ambiq-sdk#60
-  - snapshot: nsx-ambiq-sdk.json
-    at: [socs, apollo330P, linker, armclang, scripts, linker_script_itcm_sbl.sct]
-    rule: region containment
-    reason: Declares apollo510-sized memory regions.
-    issue: AmbiqAI/nsx-ambiq-sdk#60
-  - snapshot: nsx-ambiq-sdk.json
-    at: [socs, apollo330P, linker, armclang, scripts, linker_script_nbl.sct]
-    rule: region containment
-    reason: Declares apollo510-sized memory regions.
-    issue: AmbiqAI/nsx-ambiq-sdk#60
-  - snapshot: nsx-ambiq-sdk.json
-    at: [socs, apollo510L, linker, gcc, scripts, linker_script_itcm_sbl.ld]
-    rule: region containment
-    reason: Declares apollo510-sized memory regions.
-    issue: AmbiqAI/nsx-ambiq-sdk#60
-  - snapshot: nsx-ambiq-sdk.json
-    at: [socs, apollo510L, linker, gcc, scripts, linker_script_nbl.ld]
-    rule: region containment
-    reason: Declares apollo510-sized memory regions.
-    issue: AmbiqAI/nsx-ambiq-sdk#60
-  - snapshot: nsx-ambiq-sdk.json
-    at: [socs, apollo510L, linker, armclang, scripts, linker_script_itcm_sbl.sct]
-    rule: region containment
-    reason: Declares apollo510-sized memory regions.
-    issue: AmbiqAI/nsx-ambiq-sdk#60
-  - snapshot: nsx-ambiq-sdk.json
-    at: [socs, apollo510L, linker, armclang, scripts, linker_script_nbl.sct]
-    rule: region containment
-    reason: Declares apollo510-sized memory regions.
-    issue: AmbiqAI/nsx-ambiq-sdk#60
-
   # The catalog puts the Blue Plus parts on apollo4p, as nsx-ambiq-sdk and neuralspotx
   # do (decided on #66); Zephyr names a Soc of their own.
   - snapshot: zephyr.json

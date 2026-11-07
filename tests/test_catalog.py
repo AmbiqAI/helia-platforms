@@ -10,7 +10,7 @@ import threading
 import warnings
 from pathlib import Path
 from types import MappingProxyType, SimpleNamespace
-from typing import Any, get_args
+from typing import Any, cast, get_args
 
 import pytest
 from typer.testing import CliRunner
@@ -2126,3 +2126,47 @@ def test_an_npu_port_class_owns_its_records(document):
     assert not any(k.startswith("npus.npu_0.axi_ports") for k in soc.field_provenance)
     port = soc.npus[0].axi_ports["sram"]
     assert port.field_provenance["max_outstanding_reads"].status == "sdk"
+
+
+def test_based_on_is_kept_on_the_entry_and_not_inherited(document):
+    """The loaded entry names its own base; a chain does not pass the base's on (#134)."""
+    document["socs"]["soc_b"] = {"based_on": "soc_a"}
+    document["socs"]["soc_c"] = {"based_on": "soc_b"}
+    catalog = load_overlay(document)
+    assert catalog._entry("socs", "soc_a").based_on is None
+    assert catalog._entry("socs", "soc_b").based_on == "soc_a"
+    assert catalog._entry("socs", "soc_c").based_on == "soc_b"
+
+
+def test_lineage_walks_based_on_to_the_first_entry_without_one(document):
+    document["socs"]["soc_b"] = {"based_on": "soc_a"}
+    document["socs"]["soc_c"] = {"based_on": "soc_b"}
+    document["boards"]["board_b"] = {"based_on": "board_a"}
+    catalog = load_overlay(document)
+    assert catalog.lineage("socs", "soc_c") == ("soc_c", "soc_b", "soc_a")
+    assert catalog.lineage("socs", "soc_a") == ("soc_a",)
+    assert catalog.lineage("boards", "board_b") == ("board_b", "board_a")
+    with pytest.raises(KeyError):
+        catalog.lineage("socs", "nowhere")
+    for bad in ("nothing", [], {}, None):
+        with pytest.raises(ValueError, match="lineage kind"):
+            catalog.lineage(cast(Any, bad), "soc_a")
+
+
+def test_a_built_in_entry_has_no_based_on():
+    assert all(soc.based_on is None for soc in builtin(include_plugins=False).socs())
+
+
+def test_every_kind_an_overlay_can_derive_keeps_its_base(document):
+    """based_on survives loading on every entity kind, not only Socs (#134)."""
+    base = load_overlay(document)
+    overlay: dict = {}
+    for kind in fmt.ENTITY_TABLES:
+        if ids := [e.id for e in getattr(base, kind)()]:
+            overlay[kind] = {f"{kind}_derived": {"based_on": ids[0]}}
+    derived = load_overlay(overlay, base=base)
+    assert set(overlay) >= {"cores", "socs", "parts", "boards"}  # the kinds the fixture has
+    for kind, entries in overlay.items():
+        for entry_id, entry in entries.items():
+            assert derived._entry(kind, entry_id).based_on == entry["based_on"]
+            assert derived.lineage(kind, entry_id) == (entry_id, entry["based_on"])

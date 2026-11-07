@@ -20,7 +20,9 @@ Path = tuple[str, ...]
 Record = dict[str, Any] | None
 
 #: Keys ``based_on`` does not copy (RFC 0002 "Inheritance and derivation").
-NOT_INHERITED = frozenset({"aliases", "default_board", "derives_from", "release_status"})
+NOT_INHERITED = frozenset(
+    {"aliases", "based_on", "default_board", "derives_from", "release_status"}
+)
 
 _SIZE_UNITS = {"K": 1024, "M": 1024**2, "G": 1024**3}
 

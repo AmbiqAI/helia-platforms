@@ -224,3 +224,11 @@ def test_the_recorded_version_and_hash_ignore_how_the_version_is_written(documen
     assert type(found.schema_version) is int
     assert found.to_dict()["schema_version"] == 1
     assert found.sha256 == reference.sha256
+
+
+def test_based_on_does_not_reach_the_projection(document):
+    """An overlay entry's base is where it came from, not a fact of it (#134)."""
+    document["socs"]["soc_b"] = {"based_on": "soc_a"}
+    entry = load_overlay(document)._entry("socs", "soc_b")
+    assert entry.based_on == "soc_a"
+    assert "based_on" not in _digest.project(entry)

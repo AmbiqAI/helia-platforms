@@ -462,3 +462,23 @@ def test_external_region_names_skip_the_socs_own_names(document):
     assert [r.name for r in target.external_memories()] == ["psram1"]
     assert target.region("psram1").base == 0x60000000
     assert target.region("psram0").base == 0x70000000
+
+
+def test_a_target_lineage_follows_each_entry_to_its_base(document):
+    """A derived Soc or board finds a consumer's policy along its bases (#134)."""
+    overlay = {
+        "socs": {"soc_b": {"based_on": "soc_a"}},
+        "boards": {"board_b": {"based_on": "board_a"}},
+    }
+    catalog = load_overlay(overlay, base=load_overlay(document))
+    board = catalog.resolve("board_b")
+    assert board.lineage("board") == ("board_b", "board_a")
+    assert board.lineage() == ("soc_a",)
+    assert board.lineage("implementation") == ()
+    assert catalog.resolve("soc_b").lineage() == ("soc_b", "soc_a")
+
+
+@pytest.mark.parametrize("kind", ["sdk", "core", "npu", "origin", "socs"])
+def test_a_target_lineage_rejects_an_unknown_kind(catalog, kind):
+    with pytest.raises(ValueError, match="lineage kind"):
+        catalog.resolve("board_a").lineage(kind)

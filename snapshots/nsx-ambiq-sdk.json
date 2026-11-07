@@ -3,9 +3,9 @@
     "extractor_version": 1,
     "sources": [
       {
-        "commit": "ba0621638d57b71a7b0d4f76ddccf0706745ad77",
+        "commit": "993b7901a82008ac4cd523ffe0b125a016a8f6a8",
         "repository": "AmbiqAI/nsx-ambiq-sdk",
-        "revision": "v5.2.26"
+        "revision": "v5.2.27"
       }
     ]
   },
@@ -169,7 +169,7 @@
           "SRAM_BASEADDR": 268435456
         }
       },
-      "revision": "v5.2.26"
+      "revision": "v5.2.27"
     },
     "apollo3": {
       "cmsis": {
@@ -345,7 +345,7 @@
           "TCM_MAX_SIZE": 65536
         }
       },
-      "revision": "v5.2.26"
+      "revision": "v5.2.27"
     },
     "apollo330P": {
       "cmsis": {
@@ -463,59 +463,27 @@
           "default": "linker_script_sbl.sct",
           "path": "modules/nsx-core/src/apollo330P/armclang",
           "scripts": {
-            "linker_script_itcm_sbl.sct": {
-              "ARM_LIB_HEAP": {
-                "empty": true,
-                "length": 4096,
-                "origin": 537374720
-              },
-              "ARM_LIB_STACK": {
-                "empty": true,
-                "length": 16384,
-                "origin": 537378816
-              },
-              "MCU_ITCM": {
-                "length": 262144,
-                "origin": 0
-              },
-              "MCU_MRAM": {
-                "length": 4128768,
-                "origin": 4259840
-              },
-              "MCU_TCM": {
-                "length": 503808,
-                "origin": 536870912
-              },
-              "SHARED_SRAM": {
-                "length": 3145728,
-                "origin": 537395200
-              }
-            },
             "linker_script_nbl.sct": {
               "ARM_LIB_HEAP": {
                 "empty": true,
                 "length": 4096,
-                "origin": 537374720
+                "origin": 537112576
               },
               "ARM_LIB_STACK": {
                 "empty": true,
                 "length": 16384,
-                "origin": 537378816
-              },
-              "MCU_ITCM": {
-                "length": 262144,
-                "origin": 0
+                "origin": 537116672
               },
               "MCU_MRAM": {
-                "length": 4194304,
+                "length": 1654784,
                 "origin": 4194304
               },
               "MCU_TCM": {
-                "length": 503808,
+                "length": 241664,
                 "origin": 536870912
               },
               "SHARED_SRAM": {
-                "length": 3145728,
+                "length": 1835008,
                 "origin": 537395200
               }
             },
@@ -531,7 +499,7 @@
                 "origin": 537116672
               },
               "MCU_MRAM": {
-                "length": 2031616,
+                "length": 1589248,
                 "origin": 4259840
               },
               "MCU_TCM": {
@@ -549,54 +517,27 @@
           "default": "linker_script_sbl.ld",
           "path": "modules/nsx-core/src/apollo330P/gcc",
           "scripts": {
-            "linker_script_itcm_sbl.ld": {
-              "MCU_ITCM": {
-                "attributes": "rwx",
-                "length": 262144,
-                "origin": 0
-              },
-              "MCU_MRAM": {
-                "attributes": "rx",
-                "length": 4128768,
-                "origin": 4259840
-              },
-              "MCU_TCM": {
-                "attributes": "rwx",
-                "length": 507904,
-                "origin": 536870912
-              },
-              "SHARED_SRAM": {
-                "attributes": "rwx",
-                "length": 3145728,
-                "origin": 537395200
-              }
-            },
             "linker_script_nbl.ld": {
-              "MCU_ITCM": {
-                "attributes": "rwx",
-                "length": 262144,
-                "origin": 0
-              },
               "MCU_MRAM": {
                 "attributes": "rx",
-                "length": 4128768,
+                "length": 1654784,
                 "origin": 4194304
               },
               "MCU_TCM": {
                 "attributes": "rwx",
-                "length": 507904,
+                "length": 245760,
                 "origin": 536870912
               },
               "SHARED_SRAM": {
                 "attributes": "rwx",
-                "length": 3145728,
+                "length": 1835008,
                 "origin": 537395200
               }
             },
             "linker_script_sbl.ld": {
               "MCU_MRAM": {
                 "attributes": "rx",
-                "length": 2031616,
+                "length": 1589248,
                 "origin": 4259840
               },
               "MCU_TCM": {
@@ -644,7 +585,7 @@
           "SSRAM_MAX_SIZE": 1835008
         }
       },
-      "revision": "v5.2.26"
+      "revision": "v5.2.27"
     },
     "apollo3p": {
       "cmsis": {
@@ -840,7 +781,7 @@
           "TCM_MAX_SIZE": 65536
         }
       },
-      "revision": "v5.2.26"
+      "revision": "v5.2.27"
     },
     "apollo4l": {
       "cmsis": {
@@ -1028,7 +969,7 @@
           "TCM_MAX_SIZE": 393216
         }
       },
-      "revision": "v5.2.26"
+      "revision": "v5.2.27"
     },
     "apollo4p": {
       "cmsis": {
@@ -1222,7 +1163,7 @@
           "TCM_MAX_SIZE": 393216
         }
       },
-      "revision": "v5.2.26"
+      "revision": "v5.2.27"
     },
     "apollo510": {
       "cmsis": {
@@ -1543,7 +1484,7 @@
           "SSRAM_MAX_SIZE": 3145728
         }
       },
-      "revision": "v5.2.26"
+      "revision": "v5.2.27"
     },
     "apollo510L": {
       "cmsis": {
@@ -1661,59 +1602,27 @@
           "default": "linker_script_sbl.sct",
           "path": "modules/nsx-core/src/apollo510L/armclang",
           "scripts": {
-            "linker_script_itcm_sbl.sct": {
-              "ARM_LIB_HEAP": {
-                "empty": true,
-                "length": 4096,
-                "origin": 537374720
-              },
-              "ARM_LIB_STACK": {
-                "empty": true,
-                "length": 16384,
-                "origin": 537378816
-              },
-              "MCU_ITCM": {
-                "length": 262144,
-                "origin": 0
-              },
-              "MCU_MRAM": {
-                "length": 4128768,
-                "origin": 4259840
-              },
-              "MCU_TCM": {
-                "length": 503808,
-                "origin": 536870912
-              },
-              "SHARED_SRAM": {
-                "length": 3145728,
-                "origin": 537395200
-              }
-            },
             "linker_script_nbl.sct": {
               "ARM_LIB_HEAP": {
                 "empty": true,
                 "length": 4096,
-                "origin": 537374720
+                "origin": 537112576
               },
               "ARM_LIB_STACK": {
                 "empty": true,
                 "length": 16384,
-                "origin": 537378816
-              },
-              "MCU_ITCM": {
-                "length": 262144,
-                "origin": 0
+                "origin": 537116672
               },
               "MCU_MRAM": {
-                "length": 4194304,
+                "length": 1654784,
                 "origin": 4194304
               },
               "MCU_TCM": {
-                "length": 503808,
+                "length": 241664,
                 "origin": 536870912
               },
               "SHARED_SRAM": {
-                "length": 3145728,
+                "length": 1835008,
                 "origin": 537395200
               }
             },
@@ -1729,7 +1638,7 @@
                 "origin": 537116672
               },
               "MCU_MRAM": {
-                "length": 2031616,
+                "length": 1589248,
                 "origin": 4259840
               },
               "MCU_TCM": {
@@ -1747,54 +1656,27 @@
           "default": "linker_script_sbl.ld",
           "path": "modules/nsx-core/src/apollo510L/gcc",
           "scripts": {
-            "linker_script_itcm_sbl.ld": {
-              "MCU_ITCM": {
-                "attributes": "rwx",
-                "length": 262144,
-                "origin": 0
-              },
-              "MCU_MRAM": {
-                "attributes": "rx",
-                "length": 4128768,
-                "origin": 4259840
-              },
-              "MCU_TCM": {
-                "attributes": "rwx",
-                "length": 507904,
-                "origin": 536870912
-              },
-              "SHARED_SRAM": {
-                "attributes": "rwx",
-                "length": 3145728,
-                "origin": 537395200
-              }
-            },
             "linker_script_nbl.ld": {
-              "MCU_ITCM": {
-                "attributes": "rwx",
-                "length": 262144,
-                "origin": 0
-              },
               "MCU_MRAM": {
                 "attributes": "rx",
-                "length": 4128768,
+                "length": 1654784,
                 "origin": 4194304
               },
               "MCU_TCM": {
                 "attributes": "rwx",
-                "length": 507904,
+                "length": 245760,
                 "origin": 536870912
               },
               "SHARED_SRAM": {
                 "attributes": "rwx",
-                "length": 3145728,
+                "length": 1835008,
                 "origin": 537395200
               }
             },
             "linker_script_sbl.ld": {
               "MCU_MRAM": {
                 "attributes": "rx",
-                "length": 2031616,
+                "length": 1589248,
                 "origin": 4259840
               },
               "MCU_TCM": {
@@ -1842,7 +1724,7 @@
           "SSRAM_MAX_SIZE": 1835008
         }
       },
-      "revision": "v5.2.26"
+      "revision": "v5.2.27"
     },
     "apollo510b": {
       "cmsis": {
@@ -1887,7 +1769,7 @@
             "96000000"
           ],
           "NSX_SEGGER_DEVICE": [
-            "AP510NFA-CBR"
+            "AP510BFA-CBR"
           ],
           "NSX_SEGGER_IF_SPEED": [
             "4000"
@@ -2164,7 +2046,7 @@
           "SSRAM_MAX_SIZE": 3145728
         }
       },
-      "revision": "v5.2.26"
+      "revision": "v5.2.27"
     },
     "apollo5b": {
       "cmsis": {
@@ -2435,7 +2317,7 @@
           "SSRAM_MAX_SIZE": 3145728
         }
       },
-      "revision": "v5.2.26"
+      "revision": "v5.2.27"
     },
     "atomiq110": {
       "cmsis": {
@@ -2810,7 +2692,7 @@
           "XSPI2_XIP_BASEADDR_SECURE": 3489660928
         }
       },
-      "revision": "v5.2.26"
+      "revision": "v5.2.27"
     }
   }
 }

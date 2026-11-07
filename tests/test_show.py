@@ -297,3 +297,45 @@ def test_an_add_on_that_reorders_an_interface_s_modes_does_not_narrow_them():
     (psram,) = row_texts(target, "psram1")
     assert "modes hex octal, aperture_base" in psram and "(add-on shield)" not in psram
     assert _show.stated_facts(target) <= printed(target)
+
+
+def test_an_overlay_entry_shows_its_base():
+    document = full_document()
+    document["socs"]["soc_b"] = {"based_on": "soc_a"}
+    target = load_overlay(document, base=builtin(include_plugins=False)).resolve("soc_b")
+    rows = [r for _, rs in _show.sections(target) for r in rs]
+    assert any(r.label == "based_on" and r.text == "soc_a" for r in rows)
+
+
+def test_a_derived_board_and_part_show_their_bases():
+    document = full_document()
+    document["parts"]["PART-B"] = {"based_on": "PART-A"}
+    document["boards"]["board_b"] = {"based_on": "board_a", "part": "PART-B"}
+    target = load_overlay(document, base=builtin(include_plugins=False)).resolve("board_b")
+    rows = [r.text for _, rs in _show.sections(target) for r in rs if r.label == "based_on"]
+    assert rows == ["PART-A (part)", "board_a (board)"]
+
+
+def test_a_derived_implementation_shows_its_base():
+    document = full_document()
+    document["implementations"]["soc_a_fpga2"] = {"based_on": "soc_a_fpga"}
+    target = load_overlay(document, base=builtin(include_plugins=False)).resolve("soc_a_fpga2")
+    rows = [r.text for _, rs in _show.sections(target) for r in rs if r.label == "based_on"]
+    assert rows == ["soc_a_fpga (implementation)"]
+
+
+def test_a_derived_add_on_core_and_memory_device_show_their_bases():
+    """Every kind a target holds can be derived; each prints its base with its own id."""
+    document = full_document()
+    document["memory_devices"]["psram_b"] = {"based_on": "psram_8m"}
+    document["addons"]["shield_b"] = {"based_on": "shield", "population": {"mspi1": "psram_b"}}
+    document["cores"] = {"m55_b": {"based_on": "cortex-m55"}}
+    document["socs"]["soc_a"]["cores"][0]["core"] = "m55_b"
+    catalog = load_overlay(document, base=builtin(include_plugins=False))
+    target = catalog.resolve("board_a", addons=["shield_b"])
+    rows = [r.text for _, rs in _show.sections(target) for r in rs if r.label == "based_on"]
+    assert set(rows) == {
+        "shield (add-on shield_b)",
+        "cortex-m55 (core m55_b)",
+        "psram_8m (memory device psram_b)",
+    }

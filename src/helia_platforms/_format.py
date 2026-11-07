@@ -99,9 +99,13 @@ class _Facts(TypedDict, total=False):
 
 
 class _Inheritable(_Facts, total=False):
-    """Base of every entity table: an overlay entry may name a ``based_on`` entry."""
+    """Base of every entity table: an overlay entry may name a ``based_on`` entry.
 
-    based_on: Annotated[Id, NOT_FACT, FILE_ONLY]
+    The loaded entry keeps ``based_on`` as a non-fact field (#134), so a consumer can
+    find its own policy for a derived entry along ``Catalog.lineage()``.
+    """
+
+    based_on: Annotated[Id, NOT_FACT]
 
 
 class _Entity(_Inheritable, total=False):

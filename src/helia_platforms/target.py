@@ -6,7 +6,7 @@ import functools
 from collections.abc import Mapping
 from dataclasses import dataclass, field, fields
 from types import MappingProxyType
-from typing import Literal, TypeVar
+from typing import Literal, TypeVar, get_args
 
 from helia_platforms import model
 from helia_platforms._tree import segment
@@ -32,6 +32,11 @@ class IsaFeatures:
     supports_fp64: bool
     has_pmu: bool
     pmu_kind: str
+
+
+#: The entries a target has a lineage for (``Target.lineage``).
+LineageKind = Literal["soc", "implementation", "part", "board"]
+_LINEAGE_KINDS: tuple[str, ...] = get_args(LineageKind)
 
 
 @dataclass(frozen=True)
@@ -377,6 +382,23 @@ class Target:
     @property
     def sdk(self) -> model.SdkFacts | None:
         return self.soc.sdk
+
+    # -- lineage ----------------------------------------------------------------------------
+
+    def lineage(self, kind: LineageKind = "soc") -> tuple[str, ...]:
+        """The ids to look a consumer's own policy up by, most specific first.
+
+        The named entry's id, then each ``based_on`` base in turn, ending at the first
+        entry with none (``Catalog.lineage``). Empty when the target has no entry of that
+        kind. A derived Soc from an overlay thus finds the policy of its built-in base.
+        Raises ``ValueError`` for a kind outside soc, implementation, part and board.
+        """
+        if kind not in _LINEAGE_KINDS:
+            raise ValueError(f"lineage kind must be one of {_LINEAGE_KINDS}, not {kind!r}")
+        entry = getattr(self, kind)
+        if entry is None:
+            return ()
+        return self._catalog.lineage(f"{kind}s", entry.id)
 
     # -- helpers --------------------------------------------------------------------------
 
