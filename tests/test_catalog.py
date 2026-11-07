@@ -10,7 +10,7 @@ import threading
 import warnings
 from pathlib import Path
 from types import MappingProxyType, SimpleNamespace
-from typing import Any, get_args
+from typing import Any, cast, get_args
 
 import pytest
 from typer.testing import CliRunner
@@ -2057,8 +2057,9 @@ def test_lineage_walks_based_on_to_the_first_entry_without_one(document):
     assert catalog.lineage("boards", "board_b") == ("board_b", "board_a")
     with pytest.raises(KeyError):
         catalog.lineage("socs", "nowhere")
-    with pytest.raises(ValueError, match="lineage kind"):
-        catalog.lineage("nothing", "soc_a")
+    for bad in ("nothing", [], {}, None):
+        with pytest.raises(ValueError, match="lineage kind"):
+            catalog.lineage(cast(Any, bad), "soc_a")
 
 
 def test_a_built_in_entry_has_no_based_on():
@@ -2070,15 +2071,10 @@ def test_every_kind_an_overlay_can_derive_keeps_its_base(document):
     base = load_overlay(document)
     overlay: dict = {}
     for kind in fmt.ENTITY_TABLES:
-        ids = (
-            [e.id for e in getattr(base, kind)()]
-            if kind != "cores"
-            else [c.id for c in base.cores()]
-        )
-        if ids:
+        if ids := [e.id for e in getattr(base, kind)()]:
             overlay[kind] = {f"{kind}_derived": {"based_on": ids[0]}}
     derived = load_overlay(overlay, base=base)
-    assert len(overlay) >= 4
+    assert set(overlay) >= {"cores", "socs", "parts", "boards"}  # the kinds the fixture has
     for kind, entries in overlay.items():
         for entry_id, entry in entries.items():
             assert derived._entry(kind, entry_id).based_on == entry["based_on"]

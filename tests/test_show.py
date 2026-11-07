@@ -310,3 +310,11 @@ def test_a_derived_board_and_part_show_their_bases():
     target = load_overlay(document, base=builtin(include_plugins=False)).resolve("board_b")
     rows = [r.text for _, rs in _show.sections(target) for r in rs if r.label == "based_on"]
     assert rows == ["PART-A (part)", "board_a (board)"]
+
+
+def test_a_derived_implementation_shows_its_base():
+    document = full_document()
+    document["implementations"]["soc_a_fpga2"] = {"based_on": "soc_a_fpga"}
+    target = load_overlay(document, base=builtin(include_plugins=False)).resolve("soc_a_fpga2")
+    rows = [r.text for _, rs in _show.sections(target) for r in rs if r.label == "based_on"]
+    assert rows == ["soc_a_fpga (implementation)"]
