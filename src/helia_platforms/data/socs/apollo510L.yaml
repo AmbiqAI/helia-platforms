@@ -17,7 +17,7 @@ socs:
       value: apollo5
       provenance:
         status: sdk
-        source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo510L.cmake:8"]
+        source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:cmake/socs/facts/apollo510L.cmake:8"]
         verified_on: 2026-10-26
         verified_by: evanchen11
 
@@ -30,7 +30,7 @@ socs:
           value: customer
           provenance:
             status: sdk
-            source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-core/src/apollo510L/gcc/linker_script_sbl.ld:10"]
+            source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-core/src/apollo510L/gcc/linker_script_sbl.ld:11"]
             verified_on: 2026-10-26
             verified_by: evanchen11
             notes: >-
@@ -50,13 +50,13 @@ socs:
             provenance:
               status: sdk
               source:
-                - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/nsx_toolchain_flags.cmake:208"
-                - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/nsx_toolchain_flags.cmake:221"
+                - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:cmake/nsx_toolchain_flags.cmake:241"
+                - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:cmake/nsx_toolchain_flags.cmake:254"
               verified_on: 2026-10-26
               verified_by: evanchen11
               notes: >-
                 The gcc -mfpu the SDK passes for every Cortex-M55 build. The facts file
-                comment (apollo510L.cmake:23-26) says no -mfpu is passed, which :221
+                comment (apollo510L.cmake:23-26) says no -mfpu is passed, which :254
                 contradicts. Double precision is fpu_dp.
           fpu_dp: true
           mve: fp
@@ -113,8 +113,8 @@ socs:
               status: derived
               source:
                 - "doc:DS-A510LS@0.9.0:p55"
-                - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/nsx_toolchain_flags.cmake:213-214"
-                - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo510L_cm4.h:168-169"
+                - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:cmake/nsx_toolchain_flags.cmake:246-247"
+                - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo510L_cm4.h:168-169"
               verified_on: 2026-10-26
               verified_by: evanchen11
               notes: >-
@@ -283,7 +283,7 @@ socs:
           source:
             - "doc:DS-A510LS@0.9.0:p34-36"
             - "doc:DS-A510LS@0.9.0:p2"
-            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo510L.h:27502-27548"
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo510L.h:27502-27548"
           verified_on: 2026-10-26
           verified_by: evanchen11
           notes: >-
@@ -338,7 +338,7 @@ socs:
       - value: crm
         provenance:
           status: sdk
-          source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo510L.h:27505"]
+          source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo510L.h:27505"]
           verified_on: 2026-10-26
           verified_by: evanchen11
           notes: CRM_BASE 0x40006000, which DS-A510LS Table 5 shows as Reserved (p34).
@@ -362,7 +362,7 @@ socs:
             value: AM_HAL_PWRCTRL_MCU_MODE_LOW_POWER
             provenance: &hal_mcu_mode
               status: sdk
-              source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/mcu/apollo510L/hal/am_hal_pwrctrl.h:218-220"]
+              source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/mcu/apollo510L/hal/am_hal_pwrctrl.h:218-220"]
               verified_on: 2026-10-26
               verified_by: evanchen11
           provenance: &ds_clk
@@ -408,14 +408,17 @@ socs:
       provenance:
         status: sdk
         source:
-          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-core/includes-api/nsx_system.h:188"
-          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-core/src/nsx_system_platform_apollo5.inc:178-185"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-core/includes-api/nsx_system.h:190-191"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-core/src/nsx_system_platform_apollo5.inc:194-198"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-core/src/nsx_performance.c:52-54"
         verified_on: 2026-10-26
         verified_by: evanchen11
         notes: >-
-          A zero-initialised config is "minimal, low-power"; mode 0 selects
-          AM_HAL_PWRCTRL_MCU_MODE_LOW_POWER on AM_PART_APOLLO510L. DS-A510LS p62: POR
-          "sets the CPU clock to 96 MHz".
+          A zero-initialised config selects "LOW performance". At v5.2.27 the shared
+          Apollo5 file hands the mode to nsx_performance_select() on every part but
+          atomiq110 (nsx_system_platform_apollo5.inc:194-198), whose LOW branch selects
+          AM_HAL_PWRCTRL_MCU_MODE_LOW_POWER on AM_PART_APOLLO510L (nsx_performance.c:52-54).
+          DS-A510LS p62: POR "sets the CPU clock to 96 MHz".
 
     boot_configs:
       sbl:
@@ -427,8 +430,8 @@ socs:
             provenance: &sbl_derived
               status: derived
               source:
-                - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-core/src/apollo510L/gcc/linker_script_sbl.ld:10"
-                - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/mcu/apollo510L/regs/am_reg_base_addresses.h:54"
+                - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-core/src/apollo510L/gcc/linker_script_sbl.ld:11"
+                - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/mcu/apollo510L/regs/am_reg_base_addresses.h:54"
                 - "fact:soc:apollo510L:memories.mram.base"
               verified_on: 2026-10-26
               verified_by: evanchen11
@@ -452,12 +455,12 @@ socs:
       provenance:
         status: sdk
         source:
-          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/apollo510L.cmake:24"
-          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/apollo510L.cmake:29"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:cmake/socs/apollo510L.cmake:24"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:cmake/socs/apollo510L.cmake:28"
         verified_on: 2026-10-26
         verified_by: evanchen11
         notes: >-
-          The default armclang (:24) and gcc (:29) linker scripts are the sbl scripts;
+          The default armclang (:24) and gcc (:28) linker scripts are the sbl scripts;
           NSX_SEGGER_PF_ADDR 0x00410000 (facts/apollo510L.cmake:52) agrees.
 
     image_slots:
@@ -491,14 +494,14 @@ socs:
       c_define: AM_PART_APOLLO510L
       provenance:
         status: sdk
-        source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo510L.cmake:33"]
+        source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:cmake/socs/facts/apollo510L.cmake:33"]
         verified_on: 2026-10-26
         verified_by: evanchen11
       cmsis_header:
         value: apollo510L.h
         provenance:
           status: sdk
-          source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/mcu/apollo510L/am_mcu_apollo.h:126"]
+          source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/mcu/apollo510L/am_mcu_apollo.h:126"]
           verified_on: 2026-10-26
           verified_by: evanchen11
       trace_clock_mhz:
@@ -506,17 +509,19 @@ socs:
         provenance:
           status: sdk
           source:
-            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo510L.cmake:53"
-            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-core/src/apollo510/nsx_system_platform.c:66-70"
-            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/lib/gcc/apollo510L/libam_hal.a"
-            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo510L.h:63088"
-          verified_on: 2026-10-28
-          verified_by: evanchen11
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:cmake/socs/facts/apollo510L.cmake:53"
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-core/src/apollo510/nsx_system_platform.c:77-79"
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-core/src/apollo510/nsx_system_platform.c:99-106"
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/lib/gcc/apollo510L/libam_hal.a"
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo510L.h:63088"
+          verified_on: 2026-11-06
+          verified_by: apage224
           notes: >-
-            NSX_SEGGER_CPUFREQ is the TPIU trace clock (:47-48). am_bsp_itm_printf_enable()
-            calls am_hal_itm_enable(), which in the prebuilt libam_hal.a passes
-            DBGTPIUCLKSEL_HFRC_48MHz (1) to am_hal_tpiu_config; the SDK comment's XTAL_HS is
-            wrong. DS-A510LS p72 lists only 192 and 96 MHz TPIU sources (#19). On
+            NSX_SEGGER_CPUFREQ is the TPIU trace clock (:47-48). nsx enables the TPIU and
+            calls am_hal_itm_enable() (:104-106), which in the prebuilt libam_hal.a passes
+            DBGTPIUCLKSEL_HFRC_48MHz (1) to am_hal_tpiu_config; the v5.2.27 comment (:79) says
+            HFRC 48 MHz, where v5.2.26's said XTAL_HS. DS-A510LS p72 lists only 192 and 96 MHz
+            TPIU sources (#19). On
             apollo510dL_evb the firmware sets DBGCTRL (0x4000AA50) to HFRC_48MHz (#19,
             2026-10-28); SWO decodes whatever clock J-Link is given, so decoding cannot confirm
             the frequency.
@@ -525,7 +530,7 @@ socs:
           value: AM_HAL_PWRCTRL_SRAM_1P75M
           provenance:
             status: sdk
-            source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/mcu/apollo510L/hal/am_hal_pwrctrl.h:399"]
+            source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/mcu/apollo510L/hal/am_hal_pwrctrl.h:399"]
             verified_on: 2026-10-26
             verified_by: evanchen11
       build:
@@ -534,8 +539,8 @@ socs:
         provenance:
           status: sdk
           source:
-            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo510L.cmake:22"
-            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo510L.cmake:27"
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:cmake/socs/facts/apollo510L.cmake:22"
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:cmake/socs/facts/apollo510L.cmake:27"
           verified_on: 2026-10-26
           verified_by: evanchen11
 

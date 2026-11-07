@@ -83,9 +83,10 @@ def test_provenance_only_change_keeps_digest(builtin_document):
     [
         lambda d: d["socs"]["soc_a"]["memories"]["tcm"].update(size="256K"),
         lambda d: d["socs"]["soc_a"]["peripherals"].append("iom3"),
+        lambda d: d["socs"]["soc_a"]["npus"][0].update(axi_ports={"sram": {"count": 2}}),
         lambda d: d["parts"]["PART-A"].update(aliases=["part_a_alias"]),
     ],
-    ids=["value", "value-list-member", "alias"],
+    ids=["value", "value-list-member", "keyed-mapping", "alias"],
 )
 def test_data_change_changes_digest(builtin_document, change):
     before = digest_of(copy.deepcopy(builtin_document))
@@ -223,3 +224,11 @@ def test_the_recorded_version_and_hash_ignore_how_the_version_is_written(documen
     assert type(found.schema_version) is int
     assert found.to_dict()["schema_version"] == 1
     assert found.sha256 == reference.sha256
+
+
+def test_based_on_does_not_reach_the_projection(document):
+    """An overlay entry's base is where it came from, not a fact of it (#134)."""
+    document["socs"]["soc_b"] = {"based_on": "soc_a"}
+    entry = load_overlay(document)._entry("socs", "soc_b")
+    assert entry.based_on == "soc_a"
+    assert "based_on" not in _digest.project(entry)

@@ -1,7 +1,7 @@
 # 0006. Check the catalogue against committed source snapshots
 
 Date: 2026-10-05
-Status: Accepted; amended 2026-10-27 (#18), 2026-10-29 (#64) and 2026-11-05 (#73)
+Status: Accepted; amended 2026-10-27 (#18), 2026-10-29 (#64), 2026-11-05 (#73) and 2026-11-06 (#83)
 
 ## Amendment, 2026-10-27: neuralspotx is a consumer (#18)
 
@@ -55,6 +55,15 @@ from the nsx-ambiq-sdk it builds against and intersects them with
 `Target.application_ranges()`. Section 4's dataset paragraph, the
 CI table row and the check-table row that name the dataset, and the
 "Consequences" that mention it are superseded.
+
+## Amendment, 2026-11-06: the Lite parts' scripts fit (#83)
+
+The refresh to nsx-ambiq-sdk `v5.2.27` (#83) found the apollo330P and
+apollo510L `itcm_sbl` scripts removed and their `nbl` and `sbl` scripts
+sized for the parts (AmbiqAI/nsx-ambiq-sdk#60): `MCU_MRAM` now ends at
+0x594000, where the catalog's NVM-M41 radio slot starts. The eight
+region-containment exceptions section 3 describes for those scripts are
+dropped, and section 4's exclusion of them no longer applies.
 
 ## Context
 
@@ -354,8 +363,9 @@ carve-outs, and Zephyr boards `zephyr` environments with the Kconfig load offset
 `LinkEnvironment.revision` is the commit in the snapshot's metadata. A
 hand-written mapping lists which (SoC, toolchain, profile) and Zephyr
 boards become environments and maps linker region names to catalogue
-region names; it leaves out the apollo330P and apollo510L `nbl` and
-`itcm_sbl` scripts until upstream fixes them. Window parity (#13) then runs
+region names; it left out the apollo330P and apollo510L `nbl` and
+`itcm_sbl` scripts until upstream fixed them, which `v5.2.27` did (the
+amendment of 2026-11-06). Window parity (#13) then runs
 against the generated dataset.
 
 ## Consequences

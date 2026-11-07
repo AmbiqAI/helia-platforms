@@ -92,7 +92,7 @@ Core ───────┐                      Npu ────────�
             ▼                                     ▼
 Soc ── cores: [CoreInstance(id, role, core, options: CoreOptions, clock_domain, programmable_by)]
  │            (index 0: primary application core; CoreOptions: fpu, fpu_dp, mve, icache_kb, dcache_kb)
- │     npus: [NpuInstance(id, npu, axi_width_bits, base, irq, sram_port_hash, driven_by, clock_domain)]  accelerators: [...]
+ │     npus: [NpuInstance(id, npu, axi_width_bits, base, irq, sram_port_hash, axi_ports, driven_by, clock_domain)]  accelerators: [...]
  │     memories: [MemoryRegion]   access: [Access(master, target, ...)], default_access
  │     peripherals: [name]   memory_controllers: [name] (those peripherals that are memory controllers)
  │     clock_domains: [ClockDomain]   operating_points: [OperatingPoint] (system points)
@@ -141,13 +141,17 @@ vendor leaves to the implementer live on each core instance's `options`
 [research/queries-helia-estimator.md](../research/queries-helia-estimator.md)
 and RFC 0001 appendix J). `accelerator_config` ("ethos-u85-256") is
 derived. The Soc's `NpuInstance` adds the instance facts: id, base
-address, IRQ, AXI width, `driven_by` (the core that programs it) and its
-clock domain. Which memories it reaches, and over which port, are its
-access entries. It stores no clocks: the NPU clock comes from the system
-operating point (`target.npu_mhz(point)` for npu 0), and
-`Target.npu_clocks(npu=)` is a derived view keyed by operating point. Driver
-behaviour (command-stream chunking, Vela system configs, port arbitration
-rules) stays in `helia-npu`, which reads the instance facts from here.
+address, IRQ, AXI width, `driven_by` (the core that programs it), its
+clock domain, and `axi_ports`: the IP's AXI manager port classes (`sram`,
+`ext`) with how many ports each has and the per-port outstanding limits
+the IP documents. Which memories it reaches are its access entries; which
+memory a compiler serves over which port is the consumer's choice, so an
+access entry names no port (#93, 2026-11-06). It stores no clocks: the NPU
+clock comes from the system operating point (`target.npu_mhz(point)` for
+npu 0), and `Target.npu_clocks(npu=)` is a derived view keyed by operating
+point. Driver behaviour (command-stream chunking, Vela system configs and
+memory-to-port classes, port arbitration rules) stays in `helia-npu`,
+which reads the instance facts from here.
 
 ### Cores, accelerators and reachability
 
@@ -191,12 +195,13 @@ single DMA transfer does not cross an address that is a whole multiple of
 it from the region's base, so the edges are `base + k * dma_boundary`, not
 aligned addresses ([ADR 0011](../adr/0011-dma-boundary.md)). The package carries no energy data; the estimator's energy
 coefficients stay in helia-estimator. Characterization is hardware: the
-path's limits, as the SoC or IP documentation states them or as measured,
-such as the Ethos-U85's per-port outstanding reads and writes. `max_beats`
-is the burst split in bytes (64, 128 or 256) the path calls for, named after
-the Ethos-U `AXI_SRAM` and `AXI_EXT` field, such as atomiq110's 128-byte SRAM
-stripe. Values fitted to make a model match captures are the fit of the tool
-that owns them, such as helia-npu, not facts here.
+path's limits, as the SoC or IP documentation states them or as measured.
+An NPU's own per-port limits (the Ethos-U85's outstanding reads and writes
+per SRAM or EXT port) are not a path's: they live on `NpuInstance.axi_ports`
+(#93). `max_beats` is the burst split in bytes (64, 128 or 256) the path
+calls for, named after the Ethos-U `AXI_SRAM` and `AXI_EXT` field. Values
+fitted to make a model match captures, and a driver's programmed burst
+split, are the tool's, such as helia-npu's, not facts here.
 
 An overlay region may omit `base` (size only, no `based_on`, as RFC 0001
 appendix E allowed). Such a region is excluded from the bounds and overlap
@@ -693,10 +698,16 @@ This is the one definition of both relations.
 - `based_on` is overlay inheritance and applies to any entity kind. The
   new entry copies the facts of the named entry, then applies its own
   deltas and removals. The result is an independent entry with its own id.
-  Not inherited: `aliases`, `default_board`, `derives_from`, and
-  `release_status` (the entry's own, default `embargoed`). Unchanged values
+  Not inherited: `aliases`, `based_on` (each entry keeps its own),
+  `default_board`, `derives_from`, and `release_status` (the entry's own,
+  default `embargoed`). Unchanged values
   keep the base entry's provenance; changed values take the overlay's
   provenance as declared, or status `unverified` where none is declared.
+  The loaded entry keeps `based_on`, the name of its own base, as a
+  non-fact field (not in `catalog_digest`, not in the export), and
+  `Catalog.lineage()` or `Target.lineage()` walks it to the first entry
+  that names none, so a consumer that keys its own policy by id looks the
+  entry up first and then its bases (#134, 2026-11-06).
 - `derives_from` is a relation between built-in Socs: a variant that
   shares another Soc's SDK headers (apollo510b derives from apollo510;
   apollo5b, which also reads apollo510's headers, is not in the catalog,
@@ -764,10 +775,10 @@ below is the resolved object returned by `resolve()`.
 |---|---|---|
 | NPU clock in a named mode | `target.npu_mhz(name)` (npu 0), from the system operating point; `target.npu_clocks(npu=)` is a derived view | package |
 | NPU family, model, MACs, AXI width | `target.npu.npu.family`, `.model`, `.macs_per_cycle`; `target.npu.axi_width_bits` | package |
-| Which memories the NPU reaches and over which port class | `target.reachable(target.npu.id, region)`: the NPU's access entries, with `port` | package |
+| Which memories the NPU reaches | `target.reachable(target.npu.id, region)`: the NPU's access entries; the port classes and their per-port limits are `target.npu.axi_ports` (#93) | package |
 | Memory read and write latency, outstanding transactions, burst, AXI clock | `target.reachable(target.npu.id, name).characterization` where present, which overrides the region's for that master; else `target.region(name).characterization`; with provenance | package |
 | Revision, origin, provenance roll-up | `target.soc.revision`, `target.origin`; the roll-up is deferred (`provenance()` below) | package |
-| Vela memory mode for a placement; system-config file | helia-npu, from the port classes above | helia-npu |
+| Vela memory mode for a placement; system-config file; which memory is served over which NPU port | helia-npu, from the reach and port facts above | helia-npu |
 | Burst-split codes, timing-adapter programming | helia-npu | helia-npu |
 | Which memory holds const, arena, cache in a run | estimator run configuration | estimator |
 | Energy per cycle and per bit | estimator model keyed by `target.soc.id` and mode | estimator |
@@ -820,6 +831,7 @@ class Catalog:
     def resolve(self, name: str, *, addons: Sequence[str] = (), boot: str | None = None) -> Target
     def suggest(self, name: str) -> tuple[str, ...]
     def identity(self) -> CatalogIdentity       # package and schema versions, digest, sources (ADR 0004)
+    def lineage(self, kind: str, entry_id: str) -> tuple[str, ...]   # the id, then each based_on base, to the first entry without one (#134); ValueError for a kind that is not a table, KeyError for an unknown id
     def to_dict(self) -> dict                   # the JSON export (RFC 0003)
 
 class CatalogIdentity:                          # frozen; to_dict() has these keys
@@ -874,31 +886,31 @@ one of them.
 
 ```python
 @dataclass(frozen=True) class Provenance: status, source, verified_on, verified_by, notes
-@dataclass(frozen=True) class Core:       id, arch, pmu, has_dsp_extension, provenance   # arch may be a non-Arm ISA
+@dataclass(frozen=True) class Core:       id, arch, pmu, has_dsp_extension, based_on: str | None, provenance   # arch may be a non-Arm ISA
 @dataclass(frozen=True) class CoreOptions: fpu, fpu_dp, mve, icache_kb, dcache_kb
 @dataclass(frozen=True) class CoreInstance: id, role, core, options: CoreOptions, clock_domain, programmable_by: str | None
 @dataclass(frozen=True) class Npu:        vendor, family, model, macs_per_cycle; accelerator_config (property)
-@dataclass(frozen=True) class NpuInstance: id, npu, axi_width_bits, base_address, irq, sram_port_hash, driven_by, clock_domain
+@dataclass(frozen=True) class NpuInstance: id, npu, axi_width_bits, base_address, irq, sram_port_hash, axi_ports: Mapping[str, NpuPortClass], driven_by, clock_domain   # NpuPortClass: name (sram, ext), count, max_outstanding_reads, max_outstanding_writes, provenance
 @dataclass(frozen=True) class AcceleratorInstance: id, kind, ip, driven_by, clock_domain, base_address, irq
 @dataclass(frozen=True) class MemoryRegion: name, technology, attachment, size, base, alternate_bases, executable, writeable, cacheable, characterization, dma_boundary: int | None, stands_in_for: tuple[str, ...], provenance   # stands_in_for: FVP regions only (ADR 0007)
-@dataclass(frozen=True) class Access:     master, target, access, requires_awake, guidance, reason, address: int | None, port: int | None, characterization, provenance   # target: region or memory_controllers name
+@dataclass(frozen=True) class Access:     master, target, access, requires_awake, guidance, reason, address: int | None, characterization, provenance   # target: region or memory_controllers name; a file's port key (removed on #93) is read, warned about and ignored until #159 removes it
 @dataclass(frozen=True) class DefaultAccess: master, access, scope, provenance   # scope: on_die
 @dataclass(frozen=True) class MemoryCharacterization: read_latency_ns, write_latency_ns, max_outstanding_reads, max_outstanding_writes, max_beats, ports, axi_clock_hz, bandwidth_fraction  (each value may carry its own Provenance)
 @dataclass(frozen=True) class ClockDomain: id, points: tuple[DomainPoint, ...]   # DomainPoint: name, mhz, hal_mode, provenance
 @dataclass(frozen=True) class OperatingPoint: name, domains: Mapping[str, str], hal_mode, provenance   # domain id -> point name
 @dataclass(frozen=True) class SdkFacts:   c_define, cmsis_header, trace_clock_mhz, jlink_cpufreq_mhz, hal_enums: Mapping[str, str], build: BuildFacts
 @dataclass(frozen=True) class BuildFacts: abi, float_abi
-@dataclass(frozen=True) class Soc:        id, series, aliases, cores, npus, accelerators, memories, access, default_access: DefaultAccess | None, peripherals, memory_controllers, clock_domains, operating_points, default_operating_point: str | None, boot_configs, default_boot, image_slots, sdk, derives_from, default_board: str | None, revision, release_status, extensions, provenance
-@dataclass(frozen=True) class Implementation: id, soc, kind, model: str | None, subset: Subset, memories: tuple | None, access: tuple | None, clock_domains: tuple | None, operating_points: tuple | None, boot_configs: Mapping | None, default_boot: str | None, provisioning: str | None, jlink_device, trace_clock_mhz, interfaces, population, aliases, release_status, extensions, provenance   # None: inherit the Soc's (after clock caps); memories: kind fvp only (ADR 0007)
+@dataclass(frozen=True) class Soc:        id, series, based_on: str | None, aliases, cores, npus, accelerators, memories, access, default_access: DefaultAccess | None, peripherals, memory_controllers, clock_domains, operating_points, default_operating_point: str | None, boot_configs, default_boot, image_slots, sdk, derives_from, default_board: str | None, revision, release_status, extensions, provenance
+@dataclass(frozen=True) class Implementation: id, soc, kind, model: str | None, subset: Subset, memories: tuple | None, access: tuple | None, clock_domains: tuple | None, operating_points: tuple | None, boot_configs: Mapping | None, default_boot: str | None, provisioning: str | None, jlink_device, trace_clock_mhz, interfaces, population, based_on: str | None, aliases, release_status, extensions, provenance   # None: inherit the Soc's (after clock caps); memories: kind fvp only (ADR 0007)
 @dataclass(frozen=True) class Subset:     memories_removed, memories_resized, memories_rebased, peripherals_removed, memory_controllers_removed, cores_removed, npus_removed, accelerators_removed, clock_domains_removed, boot_configs_removed, operating_points_removed, image_slots_removed, access_removed, max_cpu_mhz, max_npu_mhz, max_domain_mhz
 @dataclass(frozen=True) class BootConfig: name, reserved: tuple[Reservation, ...], app_start: Mapping[str, AppStart], requires, provenance   # AppStart: region, offset; reserved in written key order
 @dataclass(frozen=True) class Reservation: region, offset, size, purpose, provenance
-@dataclass(frozen=True) class Part:       id, soc, implementation: str | None, silicon_revision, package, radio, jlink_device, image_slots, aliases, release_status, provenance
+@dataclass(frozen=True) class Part:       id, soc, implementation: str | None, silicon_revision, package, radio, jlink_device, image_slots, based_on: str | None, aliases, release_status, provenance
 @dataclass(frozen=True) class ImageSlot:  name, core, region, offset, size, supplier, provenance
 @dataclass(frozen=True) class MemoryInterface: name, controller, modes, aperture_base, alternate_bases, aperture_max
-@dataclass(frozen=True) class MemoryDevice: id, technology, capacity, driver_family, modes, characterization, aliases, release_status, provenance
-@dataclass(frozen=True) class AddOn:      id, fits_boards, occupies, population: Mapping[str, str], modes: Mapping[str, tuple[str, ...]], revision, aliases, release_status, extensions, provenance
-@dataclass(frozen=True) class Board:      id, category, revision, part: str | None, implementation: str | None, interfaces, population: Mapping[str, str], provisioning, jlink_device, trace_clock_mhz, aliases, release_status, extensions, provenance
+@dataclass(frozen=True) class MemoryDevice: id, technology, capacity, driver_family, modes, characterization, based_on: str | None, aliases, release_status, provenance
+@dataclass(frozen=True) class AddOn:      id, fits_boards, occupies, population: Mapping[str, str], modes: Mapping[str, tuple[str, ...]], revision, based_on: str | None, aliases, release_status, extensions, provenance
+@dataclass(frozen=True) class Board:      id, category, revision, part: str | None, implementation: str | None, interfaces, population: Mapping[str, str], provisioning, jlink_device, trace_clock_mhz, based_on: str | None, aliases, release_status, extensions, provenance
 @dataclass(frozen=True) class Composition: alias, board, addons; release_status (property, effective from what it references)
 @dataclass(frozen=True) class AddressRange: start, end, region, target, core, boot, access: Access | None, provenance, field_provenance; size (property)   # [start, end) in the region's base address space, from Target.application_ranges() (#73)
 ```
@@ -921,6 +933,7 @@ class Target:
     soc: Soc; implementation: Implementation | None; part: Part | None; board: Board | None
     origin: Literal["builtin", "overlay"]
     release_status: Literal["public", "embargoed"]            # effective: most restrictive along the reference chain
+    def lineage(self, kind: Literal["soc", "implementation", "part", "board"] = "soc") -> tuple[str, ...]   # ids to look a tool's own policy up by, most specific first (#134); ValueError for another kind
     # structure
     core: Core; core_options: CoreOptions; npu: NpuInstance | None   # core-0 and npu-0 conveniences
     def cores(self, role: str | None = None) -> tuple[CoreInstance, ...]
@@ -1099,7 +1112,8 @@ and Zephyr snapshots; [ADR 0006](../adr/0006-drift-test-snapshots.md)),
   where it has no window); `target.custom_socs/custom_boards` is translated to
   the overlay format by a shim for one release.
 - helia-npu: `SocDefinition` becomes a projection of `Target.npu`, its
-  access entries (port classes) and the regions they name, taking an
+  access entries and the regions they name (the memory-to-port classes are
+  its own, #93), taking an
   entry's characterization where present (it overrides the region's for
   that master) and the region's otherwise; its Vela and
   timing-adapter code is unchanged.

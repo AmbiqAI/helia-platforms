@@ -38,9 +38,10 @@ allowed:
     target: apollo510b_evb
     field: jlink_device
     reason: >-
-      neuralspotx sets no board override, so it uses the SDK's Soc-level AP510NFA-CBR
-      (facts/apollo510b.cmake:52). The catalog records the part, AP510BFA-CBR, which
-      J-Link has listed since V8.94; #19 tracks the J-Link name checks.
+      neuralspotx sets no board override, so it uses the SDK's Soc-level name, which at
+      its pinned v5.2.26 was AP510NFA-CBR (facts/apollo510b.cmake:52; v5.2.27 changed it
+      to AP510BFA-CBR). The catalog records the part, AP510BFA-CBR, which J-Link has
+      listed since V8.94; #19 tracks the J-Link name checks.
     issue: "#19"
   - consumer: helia-aot
     target: apollo4p_evb
@@ -188,9 +189,9 @@ allowed:
     target: apollo330mp_evb
     field: memories.MRAM
     reason: >-
-      usable_nvm() leaves out the 432K NVM-M41 radio slot. The nsx window, 2031616 bytes
-      from 0x00410000 to the end of MRAM, already starts above the 64K SBL reservation and
-      runs into NVM-M41: 2031616 - 442368 = 1589248.
+      usable_nvm() leaves out the 432K NVM-M41 radio slot. heliaAOT's 2031616 bytes is the
+      nsx v5.2.26 window, from 0x00410000 to the end of MRAM, which ran into NVM-M41;
+      v5.2.27's window stops at the slot: 2031616 - 442368 = 1589248.
     issue: "#65"
   - consumer: helia-aot
     target: apollo510l_evb
@@ -203,9 +204,9 @@ allowed:
     target: apollo510l_evb
     field: memories.MRAM
     reason: >-
-      usable_nvm() leaves out the 432K NVM-M41 radio slot. The nsx window, 2031616 bytes
-      from 0x00410000 to the end of MRAM, already starts above the 64K SBL reservation and
-      runs into NVM-M41: 2031616 - 442368 = 1589248.
+      usable_nvm() leaves out the 432K NVM-M41 radio slot. heliaAOT's 2031616 bytes is the
+      nsx v5.2.26 window, from 0x00410000 to the end of MRAM, which ran into NVM-M41;
+      v5.2.27's window stops at the slot: 2031616 - 442368 = 1589248.
     issue: "#65"
   # neuralspotx boards the catalog does not resolve yet; each data PR removes its own.
   - consumer: neuralspotx

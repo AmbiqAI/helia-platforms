@@ -31,7 +31,8 @@ def test_schema_is_a_valid_draft_2020_12_schema():
     jsonschema.Draft202012Validator.check_schema(schema.generate())
 
 
-# Keys that exist only in files: deltas, shorthands and based_on (ADR 0002 section 3).
+# Keys that exist only in files: deltas and shorthands (ADR 0002 section 3; based_on has a
+# runtime field since #134).
 def _file_keys(decl: type) -> set[str]:
     return {
         name
@@ -120,8 +121,11 @@ CORPUS = {
     "number for string": (_edit("parts.PART-A.silicon_revision", 1.0), False),
     "string for number": (_edit(f"{SOC}.clock_domains.cpu.lp.mhz", "96"), False),
     "bool for int": (_edit(f"{SOC}.npus.0.npu.macs_per_cycle", True), False),
-    "port 1": (_edit(f"{SOC}.access.0.port", 1), True),
-    "port true": (_edit(f"{SOC}.access.0.port", True), False),
+    "axi_ports": (_edit(f"{SOC}.npus.0.axi_ports", {"sram": {"count": 2}}), True),
+    "axi_ports class": (_edit(f"{SOC}.npus.0.axi_ports", {"dsp": {"count": 2}}), False),
+    "axi_ports count": (_edit(f"{SOC}.npus.0.axi_ports", {"sram": {"count": True}}), False),
+    "axi_ports no ports": (_edit(f"{SOC}.npus.0.axi_ports", {"sram": {"count": 0}}), False),
+    "deprecated port, any value": (_edit(f"{SOC}.access.0.port", "whatever"), True),
     "dma_boundary suffix": (_edit(f"{SOC}.memories.tcm.dma_boundary", "4K"), True),
     "dma_boundary bool": (_edit(f"{SOC}.memories.tcm.dma_boundary", True), False),
     "missing required": (_edit(f"{SOC}.series", _DELETE), False),
@@ -206,3 +210,15 @@ def test_loader_and_jsonschema_agree(document, valid):
     loader_ok = check_document(document, "corpus") == []
     schema_ok = VALIDATOR.is_valid(document)
     assert (loader_ok, schema_ok) == (valid, valid)
+
+
+def test_every_declared_object_with_a_model_class_is_registered():
+    """The parity test above only sees classes in model.BY_NAME, so a missing entry hid a
+    class from it, and from the field_provenance walk that stops at nested carriers."""
+    declared = {obj.__name__ for obj in vars(fmt).values() if _walk.is_object(obj)}
+    modelled = {
+        name
+        for name, obj in vars(model).items()
+        if isinstance(obj, type) and dataclasses.is_dataclass(obj) and not name.startswith("_")
+    }
+    assert declared & modelled <= set(model.BY_NAME)

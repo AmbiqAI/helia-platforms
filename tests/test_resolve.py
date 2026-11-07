@@ -187,7 +187,7 @@ def test_memories_are_what_the_core_reaches_plus_populated_devices(catalog):
         target.reachable("npu_0", "ssram"),
         target.reachable("cm55_0", "psram0"),
     )
-    assert npu_entry is not None and npu_entry.port == 0
+    assert npu_entry is not None and npu_entry.access == "direct"
     assert psram_entry is not None and psram_entry.target == "mspi0"
     assert target.has_external_memory("psram") and not target.has_external_memory("flash")
     assert target.has_region(technology="mram") and not target.has_region("itcm")
@@ -725,3 +725,23 @@ def test_a_resize_alone_keeps_the_socs_base_citation(document):
     assert "fact:soc:soc_a:memories.nvm.base" in rng.provenance.source
     assert "fact:soc:soc_a:memories.nvm.size" not in rng.provenance.source
     assert "fact:implementation:soc_a_fpga:subset.memories_resized.nvm" in rng.provenance.source
+
+
+def test_a_target_lineage_follows_each_entry_to_its_base(document):
+    """A derived Soc or board finds a consumer's policy along its bases (#134)."""
+    overlay = {
+        "socs": {"soc_b": {"based_on": "soc_a"}},
+        "boards": {"board_b": {"based_on": "board_a"}},
+    }
+    catalog = load_overlay(overlay, base=load_overlay(document))
+    board = catalog.resolve("board_b")
+    assert board.lineage("board") == ("board_b", "board_a")
+    assert board.lineage() == ("soc_a",)
+    assert board.lineage("implementation") == ()
+    assert catalog.resolve("soc_b").lineage() == ("soc_b", "soc_a")
+
+
+@pytest.mark.parametrize("kind", ["sdk", "core", "npu", "origin", "socs"])
+def test_a_target_lineage_rejects_an_unknown_kind(catalog, kind):
+    with pytest.raises(ValueError, match="lineage kind"):
+        catalog.resolve("board_a").lineage(kind)

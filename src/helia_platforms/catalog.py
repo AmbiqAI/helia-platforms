@@ -190,6 +190,25 @@ class Catalog:
 
         return export.document(self)
 
+    def lineage(self, kind: str, entry_id: str) -> tuple[str, ...]:
+        """The entry's id, then each ``based_on`` base in turn, ending at the first entry
+        that names none: a built-in, or a self-contained overlay entry.
+
+        ``kind`` is a table name (``cores``, ``socs``, ``implementations``, ``parts``,
+        ``boards``, ``addons``, ``memory_devices``). A consumer that keys its own policy by id looks
+        it up along this chain, so a derived entry finds the policy of its base (#134).
+        Raises ``ValueError`` for a name that is not a table and ``KeyError`` for an id the
+        table lacks.
+        """
+        if not isinstance(kind, str) or kind not in _KINDS:
+            raise ValueError(f"lineage kind must be one of {tuple(_KINDS)}, not {kind!r}")
+        chain = [entry_id]
+        entry = self._entry(kind, entry_id)
+        while (base := entry.based_on) is not None:
+            chain.append(base)
+            entry = self._entry(kind, base)
+        return tuple(chain)
+
     def _entry(self, kind: str, entry_id: str) -> Any:
         """One entry by table name and exact id; raises KeyError when absent."""
         return self._tables[kind][entry_id]
@@ -347,12 +366,15 @@ def _load_documents(
     base = base or _EMPTY
     documents = list(documents)  # read twice: checked, then recorded
     problems: list[str] = []
+    noted: list[str] = []  # structural warnings, emitted by the loader after any problems
     merged: dict[str, dict[str, tuple[Any, str]]] = {}
     compositions: dict[str, tuple[Any, str]] = {}
     shorthands: dict[str, tuple[Any, str]] = {}
     register: dict[str, Any] = {"documents": {}, "repositories": {}, "unverified_allowed": []}
     for data, origin in documents:
-        found = _structural.check_document(data, origin, require_version=require_version)
+        found = _structural.check_document(
+            data, origin, require_version=require_version, warnings=noted
+        )
         if found:
             problems += found
             continue
@@ -392,10 +414,17 @@ def _load_documents(
             for data, origin in documents
         )
     loader = _Loader(base, builtin, source, applied)
+    loader.warnings.extend(noted)
     loader.register = _provenance.Register(
         register["documents"], register["repositories"], tuple(register["unverified_allowed"])
     )
     return loader.load(merged, compositions, shorthands)
+
+
+def _with_base(tree: Tree, based_on: str) -> Tree:
+    """``tree`` with the entry's own ``based_on``, which the merge leaves out (#134)."""
+    tree.values["based_on"] = based_on
+    return tree
 
 
 def _add_to_register(register: dict[str, Any], key: str, table: Any, origin: str) -> list[str]:
@@ -597,7 +626,7 @@ class _Loader:
             else:
                 try:
                     expanded = self.expand(kind, own, merge(base_tree, own, decl), origin, where)
-                    result = merge(base_tree, own, decl) if expanded else None
+                    result = _with_base(merge(base_tree, own, decl), based_on) if expanded else None
                 except MergeError as exc:
                     for problem in exc.problems:
                         self.fail(origin, where, problem)

@@ -10,7 +10,7 @@ import threading
 import warnings
 from pathlib import Path
 from types import MappingProxyType, SimpleNamespace
-from typing import Any, get_args
+from typing import Any, cast, get_args
 
 import pytest
 from typer.testing import CliRunner
@@ -527,13 +527,13 @@ def test_fvp_access_keeps_drops_adds_and_overrides_soc_entries(document):
     assert [(a.target, a.guidance) for a in realized.access] == [("tcm", "discouraged")]
     assert realized.default_access is not None
     access = [
-        {"master": "npu_0", "target": "ram", "access": "direct", "port": 1},
+        {"master": "npu_0", "target": "ram", "access": "direct", "address": 0x60000000},
         {"master": "npu_0", "target": "tcm", "access": "direct", "guidance": "preferred"},
     ]
     realized = implementation(document, "fvp", memories=fvp_memories(), access=access)
-    assert [(a.target, a.guidance, a.port) for a in realized.access] == [
+    assert [(a.target, a.guidance, a.address) for a in realized.access] == [
         ("tcm", "preferred", None),  # the Soc's entry, overridden in place
-        ("ram", None, 1),
+        ("ram", None, 0x60000000),
     ]
     assert realized.access[1].provenance == model.UNVERIFIED
 
@@ -577,7 +577,6 @@ def test_an_fpga_access_entry_replaces_the_socs_for_its_pair(document):
         "master": "npu_0",
         "target": "ssram",
         "access": "direct",
-        "port": 0,
         "characterization": {"max_outstanding_reads": 8, "max_outstanding_writes": 4},
     }
     realized = implementation(document, access=[entry])
@@ -2035,3 +2034,139 @@ def test_default_board_must_carry_the_soc(document):
     )
     soc(document)["default_board"] = "board_a"
     load_quietly(document)
+
+
+@pytest.mark.parametrize("written", [0, {"value": 1, "provenance": {"status": "sdk"}}])
+def test_a_removed_access_port_key_still_loads_with_a_warning(document, written):
+    """port left the format on #93; data written before then, plain or wrapped, loads with
+    a warning, and the key is dropped: no field, no record, nothing in the export."""
+    document["socs"]["soc_a"]["access"][0]["port"] = written
+    with pytest.warns(PlatformWarning, match=r"<mapping>: socs\.soc_a\.access\[0\]\.port: removed"):
+        catalog = load_overlay(document)
+    entry = catalog.resolve("soc_a").reachable("npu_0", "ssram")
+    assert entry is not None and not hasattr(entry, "port")
+    assert "port" not in catalog._trees[("socs", "soc_a")].values["access"][0]
+    assert all("port" not in p for p in catalog._trees[("socs", "soc_a")].records)
+
+
+def test_a_deprecated_key_does_not_hide_problems_when_warnings_are_errors(document):
+    """The warning goes through the loader, after the problems (catalog.py's rule)."""
+    document["socs"]["soc_a"]["access"][0]["port"] = 0
+    document["socs"]["soc_a"]["memories"]["tcm"]["size"] = "nonsense"
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        with pytest.raises(FormatError, match="nonsense") as caught:
+            load_overlay(document)
+    assert not any("port" in p for p in caught.value.problems)
+
+
+def test_an_npu_instance_states_its_port_classes(document):
+    document["socs"]["soc_a"]["npus"][0]["axi_ports"] = {
+        "sram": {"count": 2, "max_outstanding_reads": 12, "max_outstanding_writes": 16},
+        "ext": {"count": 1},
+    }
+    npu = load_overlay(document)._entry("socs", "soc_a").npus[0]
+    assert [(p.name, p.count, p.max_outstanding_reads) for p in npu.axi_ports.values()] == [
+        ("sram", 2, 12),
+        ("ext", 1, None),
+    ]
+    document["socs"]["soc_a"]["npus"][0]["axi_ports"] = {"dsp": {"count": 1}}
+    assert "'dsp' is not an NPU port class, sram or ext" in problems_of(document)
+    document["socs"]["soc_a"]["npus"][0]["axi_ports"] = {"sram": {"count": 0}}
+    assert "axi_ports.sram.count" in problems_of(document)
+
+
+@pytest.mark.parametrize("value", [float("nan"), {1: "a"}, {"self": None}, b"bytes"])
+def test_a_deprecated_keys_value_must_still_be_json_data(document, value):
+    """Ignored, but not unchecked: a value the source hash cannot encode is a problem."""
+    if isinstance(value, dict) and "self" in value:
+        value = {"self": None}
+        value["self"] = value  # a cycle, built fresh so the shared parameter stays as is
+    document["socs"]["soc_a"]["access"][0]["port"] = value
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        with pytest.raises(FormatError, match=r"access\[0\]\.port"):
+            load_overlay(document)
+
+
+def test_a_deprecated_key_does_not_reach_the_source_hash(document):
+    plain = copy.deepcopy(document)
+    plain["socs"]["soc_a"]["access"][0]["port"] = 1
+    wrapped = copy.deepcopy(document)
+    wrapped["socs"]["soc_a"]["access"][0]["port"] = {"value": 1, "provenance": {"status": "sdk"}}
+    hashes = {_digest.source_sha256(d) for d in (document, plain, wrapped)}
+    assert len(hashes) == 1
+
+
+def test_every_deprecated_key_warns_once_with_its_own_path(document):
+    access = document["socs"]["soc_a"]["access"]
+    access[0]["port"] = 0
+    access[1]["port"] = {"value": 1, "provenance": {"status": "sdk"}}
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        load_overlay(document)
+    messages = sorted(str(w.message) for w in caught if "port" in str(w.message))
+    assert [m.split(": ")[1] for m in messages] == [
+        "socs.soc_a.access[0].port",
+        "socs.soc_a.access[1].port",
+    ]
+
+
+def test_an_npu_port_class_owns_its_records(document):
+    """A port class is a carrier: its records sit on it, not on the Soc (#163 review)."""
+    sdk = {"status": "sdk", "source": [SDK_SOURCE], "verified_on": "2026-10-01", "verified_by": "x"}
+    document["socs"]["soc_a"]["npus"][0]["axi_ports"] = {
+        "sram": {
+            "count": 2,
+            "max_outstanding_reads": {"value": 12, "provenance": sdk},
+            "provenance": RECORD,
+        }
+    }
+    soc = load_overlay(document)._entry("socs", "soc_a")
+    assert not any(k.startswith("npus.npu_0.axi_ports") for k in soc.field_provenance)
+    port = soc.npus[0].axi_ports["sram"]
+    assert port.field_provenance["max_outstanding_reads"].status == "sdk"
+
+
+def test_based_on_is_kept_on_the_entry_and_not_inherited(document):
+    """The loaded entry names its own base; a chain does not pass the base's on (#134)."""
+    document["socs"]["soc_b"] = {"based_on": "soc_a"}
+    document["socs"]["soc_c"] = {"based_on": "soc_b"}
+    catalog = load_overlay(document)
+    assert catalog._entry("socs", "soc_a").based_on is None
+    assert catalog._entry("socs", "soc_b").based_on == "soc_a"
+    assert catalog._entry("socs", "soc_c").based_on == "soc_b"
+
+
+def test_lineage_walks_based_on_to_the_first_entry_without_one(document):
+    document["socs"]["soc_b"] = {"based_on": "soc_a"}
+    document["socs"]["soc_c"] = {"based_on": "soc_b"}
+    document["boards"]["board_b"] = {"based_on": "board_a"}
+    catalog = load_overlay(document)
+    assert catalog.lineage("socs", "soc_c") == ("soc_c", "soc_b", "soc_a")
+    assert catalog.lineage("socs", "soc_a") == ("soc_a",)
+    assert catalog.lineage("boards", "board_b") == ("board_b", "board_a")
+    with pytest.raises(KeyError):
+        catalog.lineage("socs", "nowhere")
+    for bad in ("nothing", [], {}, None):
+        with pytest.raises(ValueError, match="lineage kind"):
+            catalog.lineage(cast(Any, bad), "soc_a")
+
+
+def test_a_built_in_entry_has_no_based_on():
+    assert all(soc.based_on is None for soc in builtin(include_plugins=False).socs())
+
+
+def test_every_kind_an_overlay_can_derive_keeps_its_base(document):
+    """based_on survives loading on every entity kind, not only Socs (#134)."""
+    base = load_overlay(document)
+    overlay: dict = {}
+    for kind in fmt.ENTITY_TABLES:
+        if ids := [e.id for e in getattr(base, kind)()]:
+            overlay[kind] = {f"{kind}_derived": {"based_on": ids[0]}}
+    derived = load_overlay(overlay, base=base)
+    assert set(overlay) >= {"cores", "socs", "parts", "boards"}  # the kinds the fixture has
+    for kind, entries in overlay.items():
+        for entry_id, entry in entries.items():
+            assert derived._entry(kind, entry_id).based_on == entry["based_on"]
+            assert derived.lineage(kind, entry_id) == (entry_id, entry["based_on"])

@@ -332,26 +332,40 @@ def _soc(target: Target, at: _Entries) -> _At:
     return at.at("socs", target.soc.id, target.soc)
 
 
+def _based_on(kind: str, entry: Any, *, named: bool = False) -> list[_Row]:
+    """The row naming a derived entry's base (#134); ``named`` adds the entry's id, for the
+    kinds a target can hold several of (add-ons, core IPs, memory devices)."""
+    if not entry.based_on:
+        return []
+    owner = f"{kind} {entry.id}" if named else kind
+    return [_Row("based_on", f"{entry.based_on} ({owner})")]
+
+
 def _identity(target: Target, at: _Entries, sources: bool) -> list[_Row]:
     soc, impl, part, board = target.soc, target.implementation, target.part, target.board
     rows = [
         _Row("id", f"{target.id} ({target.kind}, {target.origin}, {target.release_status})"),
         _row("soc", _soc(target, at), soc, ["series", "revision"], lead=soc.id),
     ]
-    rows += [_Row(n, getattr(soc, n)) for n in ("derives_from", "default_board") if getattr(soc, n)]
+    names = ("based_on", "derives_from", "default_board")
+    rows += [_Row(n, getattr(soc, n)) for n in names if getattr(soc, n)]
     if impl is not None:
         impl_at = at.at("implementations", impl.id, impl)
         rows.append(_row("implementation", impl_at, impl, ["soc", "kind", "model"], lead=impl.id))
         rows.append(_row("subset", impl_at, impl, ["subset"]))
+        rows += _based_on("implementation", impl)
     if part is not None:
         names = ["soc", "implementation", "silicon_revision", "package", "radio"]
         rows.append(_row("part", at.at("parts", part.id, part), part, names, lead=part.id))
+        rows += _based_on("part", part)
     if board is not None:
         names = ["part", "implementation", "category", "revision"]
         rows.append(_row("board", at.at("boards", board.id, board), board, names, lead=board.id))
+        rows += _based_on("board", board)
     for addon in target.addons:
         names = ["fits_boards", "occupies", "modes", "revision"]
         rows.append(_row("add-on", at.at("addons", addon.id, addon), addon, names, lead=addon.id))
+        rows += _based_on("add-on", addon, named=True)
     for alias in target.aliases:
         composition = target._catalog.compositions.get(alias)
         if composition is not None:
@@ -380,6 +394,7 @@ def _cores(target: Target, at: _Entries) -> list[_Row]:
         ip = target._catalog._entry("cores", ip_id)
         names = ["arch", "pmu", "has_dsp_extension"]
         rows.append(_row(ip_id, at.at("cores", ip_id, ip), ip, names))
+        rows += _based_on("core", ip, named=True)
     return rows
 
 
@@ -388,7 +403,7 @@ def _units(target: Target, at: _Entries) -> list[_Row]:
     rows = []
     for npu in target.soc.npus:
         names = ["npu", "driven_by", "clock_domain", "axi_width_bits", "base_address", "irq"]
-        names.append("sram_port_hash")
+        names += ["sram_port_hash", "axi_ports"]
         note = f"Vela config {npu.npu.accelerator_config}, computed"
         rows.append(_row(npu.id, soc.inner("npus", npu.id), npu, names, note=note))
     for unit in target.soc.accelerators:
@@ -442,6 +457,7 @@ def _memories(target: Target, at: _Entries) -> list[_Row]:
         device = target._catalog._entry("memory_devices", device_id)
         device_at = at.at("memory_devices", device_id, device)
         rows.append(_row(f"device {device_id}", device_at, device, _DEVICE))
+        rows += _based_on("memory device", device, named=True)
     for index in range(len(target.soc.cores)):
         for name, free in target.usable_nvm(index).items():
             text = f"{size(free)} ({free} bytes; core {index}, computed)"
@@ -522,7 +538,6 @@ def _access(target: Target, at: _Entries) -> list[_Row]:
         "guidance",
         "reason",
         "address",
-        "port",
         "characterization",
     ]
     for entry in target.soc.access:

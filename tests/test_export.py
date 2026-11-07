@@ -138,6 +138,41 @@ def test_an_entry_is_written_after_its_based_on_merge(document):
     assert set(written["memories"]) == {"tcm", "nvm"} and written["series"] == "other"
 
 
+def test_a_derived_entry_round_trips_without_a_second_merge(document):
+    """The loaded entry keeps based_on (#134); the export must not, or a reader of the
+    export merges the already-merged entry over its base again and the removals return."""
+    public(document)
+    document["socs"]["soc_b"] = {
+        "based_on": "soc_a",
+        "release_status": "public",
+        "memories_removed": ["ssram"],
+        "peripherals_removed": ["iom2"],
+    }
+    document["socs"]["soc_c"] = {
+        "based_on": "soc_b",
+        "release_status": "public",
+        "peripherals_removed": ["iom1"],
+    }
+    document["boards"]["board_b"] = {"based_on": "board_a", "release_status": "public"}
+    catalog = overlay(document)
+    assert catalog._entry("socs", "soc_c").based_on == "soc_b"
+    exports = [
+        catalog.to_dict()["catalog"],
+        export._document(catalog, filtered=False, provenance=False)["catalog"],
+        export._document(catalog, filtered=False, provenance=True)["catalog"],
+    ]
+    for written in exports:
+        back = overlay(written)
+        for kind, entry_id in (("socs", "soc_b"), ("socs", "soc_c"), ("boards", "board_b")):
+            assert "based_on" not in written[kind][entry_id]
+            assert _digest.project(back._entry(kind, entry_id)) == _digest.project(
+                catalog._entry(kind, entry_id)
+            )
+            assert back._entry(kind, entry_id).based_on is None
+        assert [m.name for m in back._entry("socs", "soc_c").memories] == ["tcm", "nvm"]
+        assert back._entry("socs", "soc_c").peripherals == ("mspi0", "iom0")
+
+
 def test_an_implementation_keeps_its_subset(document):
     public(document)
     document["implementations"] = {

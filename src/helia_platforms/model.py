@@ -59,6 +59,7 @@ class Core(_Carrier):
     arch: str
     pmu: str
     has_dsp_extension: bool
+    based_on: str | None = None  # the overlay entry it was based on; not a fact (#134)
 
 
 @_frozen
@@ -95,6 +96,17 @@ class Npu:
 
 
 @_frozen
+class NpuPortClass(_Carrier):
+    """One class of the NPU's AXI manager ports: ``sram`` or ``ext`` (#93)."""
+
+    KEY: ClassVar[str] = "name"
+    name: str
+    count: int
+    max_outstanding_reads: int | None = None
+    max_outstanding_writes: int | None = None
+
+
+@_frozen
 class NpuInstance:
     id: str
     npu: Npu
@@ -104,6 +116,7 @@ class NpuInstance:
     base_address: int | None = None
     irq: int | None = None
     sram_port_hash: int | None = None
+    axi_ports: Mapping[str, NpuPortClass] = field(default_factory=_empty)
 
 
 @_frozen
@@ -158,7 +171,6 @@ class Access(_Carrier):
     guidance: Literal["preferred", "allowed", "discouraged"] | None = None
     reason: str | None = None
     address: int | None = None
-    port: Literal[0, 1] | None = None
     characterization: MemoryCharacterization | None = None
 
 
@@ -269,6 +281,7 @@ class Soc(_Carrier):
     sdk: SdkFacts | None = None
     derives_from: str | None = None
     default_board: str | None = None
+    based_on: str | None = None  # the overlay entry it was based on; not a fact (#134)
     aliases: tuple[str, ...] = ()
     release_status: ReleaseStatus = "embargoed"
     extensions: Mapping[str, Any] = field(default_factory=_empty)
@@ -337,6 +350,7 @@ class Implementation(_Carrier):
     trace_clock_mhz: float | None = None
     interfaces: Mapping[str, MemoryInterface] = field(default_factory=_empty)
     population: Mapping[str, str] = field(default_factory=_empty)
+    based_on: str | None = None  # the overlay entry it was based on; not a fact (#134)
     aliases: tuple[str, ...] = ()
     release_status: ReleaseStatus = "embargoed"
     extensions: Mapping[str, Any] = field(default_factory=_empty)
@@ -389,6 +403,7 @@ class Part(_Carrier):
     radio: str | None = None
     jlink_device: str | None = None
     image_slots: Mapping[str, ImageSlot] = field(default_factory=_empty)
+    based_on: str | None = None  # the overlay entry it was based on; not a fact (#134)
     aliases: tuple[str, ...] = ()
     release_status: ReleaseStatus = "embargoed"
 
@@ -405,6 +420,7 @@ class Board(_Carrier):
     provisioning: str | None = None
     jlink_device: str | None = None
     trace_clock_mhz: float | None = None
+    based_on: str | None = None  # the overlay entry it was based on; not a fact (#134)
     aliases: tuple[str, ...] = ()
     release_status: ReleaseStatus = "embargoed"
     extensions: Mapping[str, Any] = field(default_factory=_empty)
@@ -418,6 +434,7 @@ class AddOn(_Carrier):
     population: Mapping[str, str]
     modes: Mapping[str, tuple[str, ...]] = field(default_factory=_empty)
     revision: str | None = None
+    based_on: str | None = None  # the overlay entry it was based on; not a fact (#134)
     aliases: tuple[str, ...] = ()
     release_status: ReleaseStatus = "embargoed"
     extensions: Mapping[str, Any] = field(default_factory=_empty)
@@ -431,6 +448,7 @@ class MemoryDevice(_Carrier):
     driver_family: str | None = None
     modes: tuple[str, ...] = ()
     characterization: MemoryCharacterization | None = None
+    based_on: str | None = None  # the overlay entry it was based on; not a fact (#134)
     aliases: tuple[str, ...] = ()
     release_status: ReleaseStatus = "embargoed"
 
@@ -447,7 +465,8 @@ class Composition:
 BY_NAME: dict[str, type] = {
     cls.__name__: cls
     for cls in (
-        Provenance, Core, CoreOptions, CoreInstance, Npu, NpuInstance, AcceleratorInstance,
+        Provenance, Core, CoreOptions, CoreInstance, Npu, NpuPortClass, NpuInstance,
+        AcceleratorInstance,
         MemoryCharacterization, MemoryRegion, Access, DefaultAccess, DomainPoint, ClockDomain,
         OperatingPoint, AppStart, Reservation, BootConfig, BuildFacts, SdkFacts, Soc,
         AccessKey, Subset, MemoryInterface, Implementation, ImageSlot, Part, Board, AddOn,

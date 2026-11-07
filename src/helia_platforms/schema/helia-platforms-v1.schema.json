@@ -529,33 +529,7 @@
           ]
         },
         "port": {
-          "anyOf": [
-            {
-              "enum": [
-                0,
-                1
-              ]
-            },
-            {
-              "type": "object",
-              "properties": {
-                "value": {
-                  "enum": [
-                    0,
-                    1
-                  ]
-                },
-                "provenance": {
-                  "$ref": "#/$defs/Provenance"
-                }
-              },
-              "required": [
-                "value",
-                "provenance"
-              ],
-              "additionalProperties": false
-            }
-          ]
+          "deprecated": true
         },
         "characterization": {
           "$ref": "#/$defs/MemoryCharacterization"
@@ -3713,6 +3687,16 @@
               "additionalProperties": false
             }
           ]
+        },
+        "axi_ports": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "pattern": "^(?:sram|ext)$"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/NpuPortClass"
+          }
         }
       },
       "additionalProperties": false,
@@ -3721,6 +3705,93 @@
         "npu",
         "driven_by",
         "clock_domain"
+      ]
+    },
+    "NpuPortClass": {
+      "type": "object",
+      "properties": {
+        "provenance": {
+          "$ref": "#/$defs/Provenance"
+        },
+        "count": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "type": "object",
+              "properties": {
+                "value": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "provenance": {
+                  "$ref": "#/$defs/Provenance"
+                }
+              },
+              "required": [
+                "value",
+                "provenance"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        },
+        "max_outstanding_reads": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "object",
+              "properties": {
+                "value": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "provenance": {
+                  "$ref": "#/$defs/Provenance"
+                }
+              },
+              "required": [
+                "value",
+                "provenance"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        },
+        "max_outstanding_writes": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "object",
+              "properties": {
+                "value": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "provenance": {
+                  "$ref": "#/$defs/Provenance"
+                }
+              },
+              "required": [
+                "value",
+                "provenance"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "count"
       ]
     },
     "OperatingPoint": {

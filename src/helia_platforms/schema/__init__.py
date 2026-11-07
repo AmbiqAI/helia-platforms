@@ -47,6 +47,8 @@ class _Generator:
 
     def field_schema(self, tp: Any, facts: bool) -> dict[str, Any]:
         bare, markers = _walk.unwrap(tp)
+        if _walk.marker(markers, fmt.Deprecated) is not None:
+            return {"deprecated": True}  # read and ignored, whatever the value (#159)
         if fmt.NOT_FACT in markers:
             facts = False
         if fmt.OPAQUE in markers:

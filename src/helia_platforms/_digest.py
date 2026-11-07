@@ -49,7 +49,9 @@ def project(value: Any) -> Any:
         return {
             f.name: _field(cls, f.name, getattr(value, f.name))
             for f in dataclasses.fields(value)
-            if f.name not in model.RECORD_FIELDS  # records are not data (ADR 0004 point 1)
+            # Records are not data (ADR 0004 point 1); based_on names where an overlay
+            # entry came from, not a fact of it (#134), and built-ins never carry it.
+            if f.name not in model.RECORD_FIELDS and f.name != "based_on"
         }
     if isinstance(value, Mapping):
         return _keyed(value)
@@ -112,7 +114,8 @@ def source_sha256(document: Mapping[str, Any]) -> str:
     """Hash a parsed overlay document as ADR 0004 point 4 specifies.
 
     Records are removed and ``{value, provenance}`` forms unwrapped only on keys the
-    format declares; ``extensions`` values are hashed unchanged. ``schema_version`` is
+    format declares; a deprecated key, which the loader ignores, is left out in either
+    form; ``extensions`` values are hashed unchanged. ``schema_version`` is
     hashed as the integer the document is read at, so omitting it or writing ``1.0``
     hashes as declaring ``1`` (a file and the same mapping then hash alike).
     """
@@ -141,6 +144,11 @@ def _strip(value: Any, tp: Any, facts: bool) -> Any:  # noqa: PLR0911
             key: _strip(item, declared[key].type, inner) if key in declared else item
             for key, item in value.items()
             if not (key == "provenance" and key in declared)
+            # A deprecated key is ignored by the loader, so it does not reach the hash.
+            and not (
+                key in declared
+                and _walk.marker(_walk.unwrap(declared[key].type)[1], fmt.Deprecated)
+            )
         }
     if _walk.is_union(bare):
         return _strip(value, _branch(value, bare, facts), facts)

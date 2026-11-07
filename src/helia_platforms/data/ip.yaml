@@ -8,7 +8,7 @@ cores:
       value: armv8m
       provenance:
         status: sdk
-        source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo510.cmake:18"]
+        source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:cmake/socs/facts/apollo510.cmake:18"]
         verified_on: 2026-10-13
         verified_by: evanchen11
         notes: >-
@@ -28,7 +28,7 @@ cores:
       value: armv7e-m
       provenance:
         status: derived
-        source: ["doc:DS-A510LS@0.9.0:p55", "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo4p.cmake:11", "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo3.cmake:11"]
+        source: ["doc:DS-A510LS@0.9.0:p55", "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:cmake/socs/facts/apollo4p.cmake:11", "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:cmake/socs/facts/apollo3.cmake:11"]
         verified_on: 2026-10-28
         verified_by: evanchen11
         notes: >-
@@ -40,10 +40,10 @@ cores:
       provenance:
         status: sdk
         source:
-          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo510L_cm4.h:175"
-          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-cmsis-core/Include/core_cm4.h:1552"
-          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo4p.cmake:16"
-          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo3.cmake:16"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo510L_cm4.h:175"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-cmsis-core/Include/core_cm4.h:1552"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:cmake/socs/facts/apollo4p.cmake:16"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:cmake/socs/facts/apollo3.cmake:16"
         verified_on: 2026-10-28
         verified_by: evanchen11
         notes: >-
@@ -55,9 +55,9 @@ cores:
       status: datasheet
       source:
         - "doc:DS-A510LS@0.9.0:p55"
-        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo510L_cm4.h:170"
-        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo4p.cmake:13"
-        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo3.cmake:13"
+        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo510L_cm4.h:170"
+        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:cmake/socs/facts/apollo4p.cmake:13"
+        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:cmake/socs/facts/apollo3.cmake:13"
       verified_on: 2026-10-28
       verified_by: evanchen11
       notes: >-
@@ -73,8 +73,8 @@ cores:
         source:
           - "doc:DS-A4BP@1.8.0:p96"
           - "doc:DS-A4BL@0.9.0:p84"
-          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-cmsis-core/Include/core_cm0.h:67"
-          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-cmsis-core/Include/core_cm0.h:624"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-cmsis-core/Include/core_cm0.h:67"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-cmsis-core/Include/core_cm0.h:624"
         verified_on: 2026-10-29
         verified_by: evanchen11
         notes: >-
@@ -86,7 +86,7 @@ cores:
     has_dsp_extension: false
     provenance:
       status: sdk
-      source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-cmsis-core/Include/core_cm0.h:535-542"]
+      source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-cmsis-core/Include/core_cm0.h:535-542"]
       verified_on: 2026-10-28
       verified_by: evanchen11
       notes: >-

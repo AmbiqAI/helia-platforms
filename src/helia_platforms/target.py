@@ -6,7 +6,7 @@ import functools
 from collections.abc import Mapping
 from dataclasses import dataclass, field, fields
 from types import MappingProxyType
-from typing import Literal, TypeVar
+from typing import Literal, TypeVar, get_args
 
 from helia_platforms import model
 from helia_platforms._tree import segment
@@ -32,6 +32,11 @@ class IsaFeatures:
     supports_fp64: bool
     has_pmu: bool
     pmu_kind: str
+
+
+#: The entries a target has a lineage for (``Target.lineage``).
+LineageKind = Literal["soc", "implementation", "part", "board"]
+_LINEAGE_KINDS: tuple[str, ...] = get_args(LineageKind)
 
 
 @dataclass(frozen=True)
@@ -372,11 +377,11 @@ class Target:
         names the catalog facts it came from: the region's base and size, and each
         subtracted reservation's or slot's offset, size, region and (for a slot) core. The
         selected boot is the range's ``boot`` and is not cited: ``resolve(boot=)`` chooses
-        it from an argument, or else the board's ``provisioning`` or the Soc's
-        ``default_boot`` does. This query's own choice: the record is computed when asked
-        for and nobody verified it, so it carries no ``verified_on`` or ``verified_by``,
-        which ADR 0003 requires of every record but an unverified one; its inputs carry
-        their own records.
+        it from an argument, or else the board's or the implementation's
+        ``provisioning`` or the Soc's ``default_boot`` does. This query's own choice: the
+        record is computed when asked for and nobody verified it, so it carries no
+        ``verified_on`` or ``verified_by``, which ADR 0003 requires of every record but an
+        unverified one; its inputs carry their own records.
         """
         instance = self._core(core)
         boot = self.boot
@@ -512,6 +517,23 @@ class Target:
     @property
     def sdk(self) -> model.SdkFacts | None:
         return self.soc.sdk
+
+    # -- lineage ----------------------------------------------------------------------------
+
+    def lineage(self, kind: LineageKind = "soc") -> tuple[str, ...]:
+        """The ids to look a consumer's own policy up by, most specific first.
+
+        The named entry's id, then each ``based_on`` base in turn, ending at the first
+        entry with none (``Catalog.lineage``). Empty when the target has no entry of that
+        kind. A derived Soc from an overlay thus finds the policy of its built-in base.
+        Raises ``ValueError`` for a kind outside soc, implementation, part and board.
+        """
+        if kind not in _LINEAGE_KINDS:
+            raise ValueError(f"lineage kind must be one of {_LINEAGE_KINDS}, not {kind!r}")
+        entry = getattr(self, kind)
+        if entry is None:
+            return ()
+        return self._catalog.lineage(f"{kind}s", entry.id)
 
     # -- helpers --------------------------------------------------------------------------
 
