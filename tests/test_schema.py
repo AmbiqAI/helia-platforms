@@ -209,3 +209,15 @@ def test_loader_and_jsonschema_agree(document, valid):
     loader_ok = check_document(document, "corpus") == []
     schema_ok = VALIDATOR.is_valid(document)
     assert (loader_ok, schema_ok) == (valid, valid)
+
+
+def test_every_declared_object_with_a_model_class_is_registered():
+    """The parity test above only sees classes in model.BY_NAME, so a missing entry hid a
+    class from it, and from the field_provenance walk that stops at nested carriers."""
+    declared = {obj.__name__ for obj in vars(fmt).values() if _walk.is_object(obj)}
+    modelled = {
+        name
+        for name, obj in vars(model).items()
+        if isinstance(obj, type) and dataclasses.is_dataclass(obj) and not name.startswith("_")
+    }
+    assert declared & modelled <= set(model.BY_NAME)

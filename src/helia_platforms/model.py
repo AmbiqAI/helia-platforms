@@ -432,7 +432,8 @@ class Composition:
 BY_NAME: dict[str, type] = {
     cls.__name__: cls
     for cls in (
-        Provenance, Core, CoreOptions, CoreInstance, Npu, NpuInstance, AcceleratorInstance,
+        Provenance, Core, CoreOptions, CoreInstance, Npu, NpuPortClass, NpuInstance,
+        AcceleratorInstance,
         MemoryCharacterization, MemoryRegion, Access, DefaultAccess, DomainPoint, ClockDomain,
         OperatingPoint, AppStart, Reservation, BootConfig, BuildFacts, SdkFacts, Soc,
         AccessKey, Subset, MemoryInterface, Implementation, ImageSlot, Part, Board, AddOn,

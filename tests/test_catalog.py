@@ -2110,3 +2110,19 @@ def test_every_deprecated_key_warns_once_with_its_own_path(document):
         "socs.soc_a.access[0].port",
         "socs.soc_a.access[1].port",
     ]
+
+
+def test_an_npu_port_class_owns_its_records(document):
+    """A port class is a carrier: its records sit on it, not on the Soc (#163 review)."""
+    sdk = {"status": "sdk", "source": [SDK_SOURCE], "verified_on": "2026-10-01", "verified_by": "x"}
+    document["socs"]["soc_a"]["npus"][0]["axi_ports"] = {
+        "sram": {
+            "count": 2,
+            "max_outstanding_reads": {"value": 12, "provenance": sdk},
+            "provenance": RECORD,
+        }
+    }
+    soc = load_overlay(document)._entry("socs", "soc_a")
+    assert not any(k.startswith("npus.npu_0.axi_ports") for k in soc.field_provenance)
+    port = soc.npus[0].axi_ports["sram"]
+    assert port.field_provenance["max_outstanding_reads"].status == "sdk"
