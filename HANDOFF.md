@@ -38,12 +38,11 @@ neuralspotx as a possible later consumer. The model and API are RFC 0002
   apage224 reviews and merges. No tool attribution in commits or PRs.
 - Before starting an issue, check that the issues it depends on are merged
   (`gh pr list`, #79).
-- Accepted ADRs are not rewritten. A small change to an accepted decision
-  is a dated `## Amendment, <date>: <what> (#issue)` section under the
-  status line, which the status line lists (ADR 0004, 0005, 0006 and 0007
-  do this); a larger one is a new ADR that supersedes the affected part
-  (ADR 0007 and ADR 0008).
-- Hosted Copilot reviews a PR only when it is requested as a reviewer;
+- Accepted ADRs are not rewritten: a small change is a dated amendment
+  section under the status line, a larger one a new ADR that supersedes
+  the affected part (`docs/adr/README.md`).
+- Hosted Copilot has reviewed only the PRs that requested it as a
+  reviewer (Evan's do at creation; #160 to #164 did not until asked);
   request it when the PR opens.
 - Every built-in value carries an ADR 0003 provenance record; a value with
   no source of record is `unverified` with an allow-list entry and an
@@ -55,9 +54,11 @@ neuralspotx as a possible later consumer. The model and API are RFC 0002
   side-loaded (entry points, `HELIA_PLATFORMS_PATH`). The export filter is
   defence in depth.
 - The package states facts with their sources; what to do with them is
-  the consumer's (ADR 0010). The loader rejects only data that cannot be
-  parsed, references what does not exist or contradicts itself; a query
-  that applies a filter takes it as a named parameter. No tool policy, no
+  the consumer's (ADR 0010). The loader rejects data that cannot be
+  parsed, references what does not exist or contradicts itself, and keeps
+  built-in data complete and unshadowable; it rejects nothing because a
+  consumer might misuse it. A query that applies a filter takes it as a
+  named parameter. No tool policy, no
   energy data. Tools key their policy by canonical id, and
   `Catalog.lineage()` walks an overlay entry's `based_on` chain so a
   derived Soc finds its base's policy (#134).
@@ -77,7 +78,10 @@ neuralspotx as a possible later consumer. The model and API are RFC 0002
 - heliaAOT keeps the alias the user passed and records the canonical id.
 - RFC 0003 defers the resolved `targets` export; publishable outputs come
   only from `builtin(include_plugins=False)` with no overlays. The export
-  writes entries already merged, so it carries no `based_on` (#162).
+  writes entries already merged, so it carries no `based_on` (#134,
+  owner decision 2026-11-07).
+- A region's optional `dma_boundary` says a single DMA transfer does not
+  cross a whole multiple of it from the region's base (ADR 0011, #153).
 - Releases go to PyPI from this private repository; the owner's data audit
   is the only review before upload (ADR 0005, amended 2026-10-29).
 
@@ -88,8 +92,9 @@ neuralspotx as a possible later consumer. The model and API are RFC 0002
 - Line references in RFC 0001's appendix are to moving branches; re-verify
   before citing. `docs/research/` notes mark what was and was not read.
 - Merging the release-please PR tags the release and publishes to PyPI at
-  once; the `pypi` environment has no manual gate. A PyPI version cannot
-  be replaced.
+  once: the `pypi` environment has no manual gate, and the repository
+  variable `HELIA_PLATFORMS_PYPI_PUBLISH` (`true`) is the only switch. A
+  PyPI version cannot be replaced.
 - A key the format reads but ignores is marked `Deprecated` in
   `_format.py` (`Access.port` until #159): the loader warns, drops it and
   keeps it out of the source hash, so the fact-change gate can load the

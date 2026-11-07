@@ -2,7 +2,11 @@
 
 One file per decision, numbered in order of acceptance, never renumbered.
 A record states the context, the decision, and the consequences, in that
-order, and is immutable once accepted; a later record supersedes it.
+order, and its body is not rewritten once accepted. A small change to an
+accepted decision is a dated `## Amendment, <date>: <what> (#issue)`
+section under the status line, which the status line lists (ADR 0002 and
+0004 to 0008 have them); a larger change is a later record that
+supersedes it.
 
 Design proposals that are still being argued live in `docs/rfcs/`. When an
 RFC section is decided, the decision gets a record here and the RFC links
