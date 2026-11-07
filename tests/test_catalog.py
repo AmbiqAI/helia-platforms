@@ -2072,6 +2072,8 @@ def test_an_npu_instance_states_its_port_classes(document):
     ]
     document["socs"]["soc_a"]["npus"][0]["axi_ports"] = {"dsp": {"count": 1}}
     assert "'dsp' is not an NPU port class, sram or ext" in problems_of(document)
+    document["socs"]["soc_a"]["npus"][0]["axi_ports"] = {"sram": {"count": 0}}
+    assert "axi_ports.sram.count" in problems_of(document)
 
 
 @pytest.mark.parametrize("value", [float("nan"), {1: "a"}, {"self": None}, b"bytes"])

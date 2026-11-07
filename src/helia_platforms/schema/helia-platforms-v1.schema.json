@@ -3717,14 +3717,14 @@
           "anyOf": [
             {
               "type": "integer",
-              "minimum": 0
+              "minimum": 1
             },
             {
               "type": "object",
               "properties": {
                 "value": {
                   "type": "integer",
-                  "minimum": 0
+                  "minimum": 1
                 },
                 "provenance": {
                   "$ref": "#/$defs/Provenance"

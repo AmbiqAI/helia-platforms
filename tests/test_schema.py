@@ -123,6 +123,7 @@ CORPUS = {
     "axi_ports": (_edit(f"{SOC}.npus.0.axi_ports", {"sram": {"count": 2}}), True),
     "axi_ports class": (_edit(f"{SOC}.npus.0.axi_ports", {"dsp": {"count": 2}}), False),
     "axi_ports count": (_edit(f"{SOC}.npus.0.axi_ports", {"sram": {"count": True}}), False),
+    "axi_ports no ports": (_edit(f"{SOC}.npus.0.axi_ports", {"sram": {"count": 0}}), False),
     "dma_boundary suffix": (_edit(f"{SOC}.memories.tcm.dma_boundary", "4K"), True),
     "dma_boundary bool": (_edit(f"{SOC}.memories.tcm.dma_boundary", True), False),
     "missing required": (_edit(f"{SOC}.series", _DELETE), False),

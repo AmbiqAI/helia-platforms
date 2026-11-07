@@ -225,7 +225,7 @@ class NpuPortClass(_Facts):
     consumer's choice (#93).
     """
 
-    count: Required[Count]
+    count: Required[Annotated[int, Minimum(1)]]  # a class with no ports states nothing
     max_outstanding_reads: NotRequired[Count]
     max_outstanding_writes: NotRequired[Count]
 
