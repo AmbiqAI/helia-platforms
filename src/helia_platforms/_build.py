@@ -246,6 +246,4 @@ def _object_decl(bare: Any, value: Any) -> type:
 
 def build_entity(cls: type, decl: type, tree: Tree, entry_id: str) -> Any:
     """Build one entity (Soc, Board, ...) from its tree."""
-    values = dict(tree.values)
-    values.pop("based_on", None)
-    return _Builder(tree).build(cls, decl, {**values, "id": entry_id}, (), None)
+    return _Builder(tree).build(cls, decl, {**tree.values, "id": entry_id}, (), None)

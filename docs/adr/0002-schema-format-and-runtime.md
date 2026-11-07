@@ -218,6 +218,12 @@ over its `based_on` entry and to an Implementation over its Soc:
 4. `memories_resized: {<name>: <size>}` and
    `memories_rebased: {<name>: <address>}` change one field of a region.
 
+Amendment (2026-11-06, #134): the merged entry keeps `based_on` as a
+non-fact runtime field naming its own base (a chain does not pass the
+base's on), so `Catalog.lineage()` can walk an overlay entry to the first
+entry that names none; `based_on` is not inherited, not in the digest, and
+not written by the export, whose entries are already merged.
+
 A delta that names a key the base lacks is an error. References, such
 as an operating point that names a removed point, are checked after the
 merge. An Implementation writes its removals, resizes, rebases and clock
@@ -331,7 +337,7 @@ every tool while the package holds only facts.
   schema expresses the `based_on` difference in required keys with
   `if`/`then`. A field-parity test checks that every entity key maps to a
   field of the runtime dataclass and back, except listed file-only keys
-  (`based_on`, the delta keys and the shorthands) and the model-only
+  (the delta keys and the shorthands; `based_on` was one until #134) and the model-only
   field `field_provenance`, which files write as `{value, provenance}`.
 - **File name and `$id`.** The schema for version N is
   `src/helia_platforms/schema/helia-platforms-v<N>.schema.json`, with
