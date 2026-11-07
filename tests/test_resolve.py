@@ -709,3 +709,19 @@ def test_a_rebase_that_gives_a_baseless_region_its_base_is_the_cited_source(docu
     assert "fact:soc:soc_a:memories.ssram.base" not in rng.provenance.source
     facts = _provenance.Facts(catalog._trees, lambda _: True)
     assert all(facts.exists(k) for s in rng.provenance.source if (k := facts.parse(s)))
+
+
+def test_a_resize_alone_keeps_the_socs_base_citation(document):
+    """A resize supplies the size, not the base: the Soc's base is still the source."""
+    document["implementations"] = {
+        "soc_a_fpga": {
+            "soc": "soc_a",
+            "kind": "fpga",
+            "subset": {"memories_resized": {"nvm": "2M"}},
+        }
+    }
+    rng = quiet(document).resolve("soc_a_fpga").application_ranges()["nvm"][0]
+    assert rng.end == 0x00400000 + 2 * KB * KB
+    assert "fact:soc:soc_a:memories.nvm.base" in rng.provenance.source
+    assert "fact:soc:soc_a:memories.nvm.size" not in rng.provenance.source
+    assert "fact:implementation:soc_a_fpga:subset.memories_resized.nvm" in rng.provenance.source

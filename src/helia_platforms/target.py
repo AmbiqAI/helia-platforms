@@ -371,9 +371,12 @@ class Target:
         is ``programmable_by``, which this does not apply. Each range's ``derived`` record
         names the catalog facts it came from: the region's base and size, and each
         subtracted reservation's or slot's offset, size, region and (for a slot) core. The
-        selected boot is the range's ``boot``, since an explicit ``boot=`` is an argument,
-        not a fact. The record is computed at query time, so it carries no
-        ``verified_on`` or ``verified_by``: ADR 0003's verifier rule is for stored records.
+        selected boot is the range's ``boot`` and is not cited: ``resolve(boot=)`` chooses
+        it from an argument, or else the board's ``provisioning`` or the Soc's
+        ``default_boot`` does. This query's own choice: the record is computed when asked
+        for and nobody verified it, so it carries no ``verified_on`` or ``verified_by``,
+        which ADR 0003 requires of every record but an unverified one; its inputs carry
+        their own records.
         """
         instance = self._core(core)
         boot = self.boot
@@ -479,7 +482,7 @@ class Target:
                 sources.append(
                     f"fact:implementation:{impl.id}:subset.memories_rebased.{region.name}"
                 )
-            if region.name in impl.subset.memories_resized:
+            if resized:
                 sources.append(
                     f"fact:implementation:{impl.id}:subset.memories_resized.{region.name}"
                 )

@@ -375,8 +375,9 @@ BootConfig: name, reserved: {purpose: (region, offset, size)},
   selected boot configuration, in the region's own address space (its
   `base`, as `flash_load_address()` uses it), each with the region, the
   target id, core, boot, the core's access entry and a `derived` record
-  naming the catalog facts it came from (computed at query time, so it
-  has no verifier, which ADR 0003 asks of stored records). A region every
+  naming the catalog facts it came from. By this query's own choice the
+  record has no verifier, since it is computed when asked for; ADR 0003
+  asks one of every record but an unverified one. A region every
   byte of which is taken maps to an empty tuple; a region with no base is
   left out, and a target with no boot configuration selected gives an
   empty mapping, so unknown and empty are told apart. It applies no
