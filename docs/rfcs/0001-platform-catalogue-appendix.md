@@ -146,9 +146,15 @@ still describe the dataset; #73 amends them.
 - *RTT scan ranges.* Profiler policy over the catalog's apertures and the
   profiler's own windows, not "the package's windows".
 - *Address tables and `soc_placement_ranges`.* The catalog supplies sourced
-  physical regions (`placement_ranges()`); the profiler keeps its
-  logical-placement mapping. No family, FPGA or script-derived address is
-  copied wholesale, and no window enters the catalog.
+  physical regions (`placement_ranges()`) and, for the pre-build fit check,
+  the ranges an application may occupy in each region after the boot
+  reservations and other cores' image slots (`application_ranges()`, #73),
+  which keep the gaps and tell an unknown region from an empty one. On the
+  Apollo330 Plus and Apollo510 Lite EVB parts MRAM is
+  `[0x00410000, 0x00594000)`: the physical range intersected with the nsx
+  window would wrongly include the 432 KB radio firmware slot. The profiler
+  keeps its logical-placement mapping. No family, FPGA or script-derived
+  address is copied wholesale, and no window enters the catalog.
 - *`memory_map.py`.* Stays in the profiler in full: `LinkFamily`,
   `LinkedRegionWindow`, `_MAPS`, `_window`, `linked_memory_map`,
   `classify_address`, the family window constants and `mram_app_origin`.
@@ -159,8 +165,9 @@ still describe the dataset; #73 amends them.
   `Placement`, `ArenaRole`, `Placement.region` and `_PLACEMENT_REGION` stay
   in the profiler as tool choices ("TCM means DTCM; ITCM never holds
   weights", scratch and constant overrides).
-- *`MemoryLayout`.* Still present; it is replaced by catalog facts
-  intersected with the profiler's windows, not by catalog windows.
+- *`MemoryLayout`.* Still present; it is replaced by the catalog's
+  `application_ranges()` intersected with the profiler's windows, not by
+  catalog windows.
 - *SoC facts and clocks.* As the table says. `ClockDomain.default` is the
   profiler's choice for an omitted option. The profiler's `SocDef` has
   `has_mve` and no explicit FPU field; the catalog answers both through
@@ -178,9 +185,11 @@ still describe the dataset; #73 amends them.
   capability wrappers stay in the profiler. Arm PMU event ids are sourced
   facts of the core IP and move to the catalog once sourced (#158). The
   profiler will read PMU and cache presence from the catalog
-  (`isa().has_pmu`, `pmu_kind`, `icache_kb` and `dcache_kb`; the cache
-  sizes are sourced today on apollo510, apollo510b, apollo510L and
-  apollo330P, absent by decision on the Cortex-M4 parts (#66), and
+  (`Target.isa().has_pmu` and `pmu_kind`; the cache sizes are per core
+  instance, `CoreInstance.options.icache_kb` and `dcache_kb`, which
+  `Target.core_options` gives for core 0 and `Target.cores()` for each
+  core. The sizes are sourced today on apollo510, apollo510b, apollo510L
+  and apollo330P, absent by decision on the Cortex-M4 parts (#66), and
   outstanding on atomiq110 under #158) rather than inferring them from
   the Soc family.
 - *Symbols the table omits.* `CoreArch`, `PmuTier`, `ClockDomain.speed`
