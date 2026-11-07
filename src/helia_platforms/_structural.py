@@ -88,7 +88,8 @@ class _Checker:
                 self.fail(path, f"key {key!r} is not a string")
             elif key not in declared:
                 self.fail(_join(path, key), _unknown_key(key, declared))
-        # A deprecated key is reported and otherwise ignored: its value is not checked, and
+        # A deprecated key is reported and otherwise ignored: its value must be JSON data
+        # (the source hash encodes the document) but is not checked against the format, and
         # the normalizer drops it, so the entry loads as if the key were absent.
         ignored = {
             key

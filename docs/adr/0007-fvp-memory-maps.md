@@ -12,7 +12,8 @@ example in point 5 reads `access.<master>@<target>.guidance`, and the
 example in point 3 of an FPGA stating its own path limits
 (`atomiq110_fpga`'s scaled-down NPU-to-SSRAM FIFO) no longer exists in
 the data: the outstanding limits were a fit and the burst and clock had
-no cited capture, so the entry came out with #93. Point 3's rule itself, that any kind may write `access`, stands.
+no cited capture, so the entry came out with #93. Point 3's rule itself,
+that any kind may write `access`, stands.
 
 ## Context
 

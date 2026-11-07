@@ -2078,7 +2078,8 @@ def test_an_npu_instance_states_its_port_classes(document):
 def test_a_deprecated_keys_value_must_still_be_json_data(document, value):
     """Ignored, but not unchecked: a value the source hash cannot encode is a problem."""
     if isinstance(value, dict) and "self" in value:
-        value["self"] = value  # a cycle
+        value = {"self": None}
+        value["self"] = value  # a cycle, built fresh so the shared parameter stays as is
     document["socs"]["soc_a"]["access"][0]["port"] = value
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")

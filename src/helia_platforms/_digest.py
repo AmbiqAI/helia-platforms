@@ -112,7 +112,8 @@ def source_sha256(document: Mapping[str, Any]) -> str:
     """Hash a parsed overlay document as ADR 0004 point 4 specifies.
 
     Records are removed and ``{value, provenance}`` forms unwrapped only on keys the
-    format declares; ``extensions`` values are hashed unchanged. ``schema_version`` is
+    format declares; a deprecated key, which the loader ignores, is left out in either
+    form; ``extensions`` values are hashed unchanged. ``schema_version`` is
     hashed as the integer the document is read at, so omitting it or writing ``1.0``
     hashes as declaring ``1`` (a file and the same mapping then hash alike).
     """
