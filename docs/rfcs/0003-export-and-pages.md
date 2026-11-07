@@ -123,8 +123,8 @@ check it byte for byte, as heliaAOT does.
 The export is always filtered by RFC 0002's rule ("Release status",
 `:374-392`), which already includes ADR 0005's additions: no embargoed
 entry and no target whose effective status is embargoed; embargoed ids
-scrubbed from shorthands, compositions, `fits_boards`, `default_board`,
-`applies_to` and aliases; a Core or Npu dropped when no exported Soc
+scrubbed from shorthands, compositions, `fits_boards`, `default_board`
+and aliases; a Core or Npu dropped when no exported Soc
 references it.
 
 The export also drops a composition when its board or any of its add-ons

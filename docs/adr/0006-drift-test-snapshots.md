@@ -52,8 +52,9 @@ the package neither generates nor ships the dataset section 4 describes.
 The snapshots stay as evidence for `check-sources`, which reads linker
 regions to check catalog facts. helia-profiler regenerates its own windows
 from the nsx-ambiq-sdk it builds against and intersects them with
-`Target.application_ranges()`. Section 4's dataset paragraph and the
-"Consequences" that mention the dataset are superseded.
+`Target.application_ranges()`. Section 4's dataset paragraph, the
+CI table row and the check-table row that name the dataset, and the
+"Consequences" that mention it are superseded.
 
 ## Context
 

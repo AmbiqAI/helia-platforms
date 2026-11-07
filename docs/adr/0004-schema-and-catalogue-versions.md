@@ -1,7 +1,14 @@
 # 0004. Version the schema separately and ship data corrections as patches
 
 Date: 2026-10-05
-Status: Accepted; amended 2026-10-28 (#66)
+Status: Accepted; amended 2026-10-28 (#66) and 2026-11-05 (#73)
+
+## Amendment, 2026-11-05: no link-environment dataset (#73)
+
+The owner decided on #73 that linker windows stay with the consumers, so
+no link-environment dataset exists. The change-table row for a dataset
+change and open question 2, which asked how the dataset is versioned, are
+void.
 
 ## Amendment, 2026-10-28: no `schema_version` bump before 1.0 (#66)
 
@@ -147,6 +154,7 @@ spans several rows takes the row with the largest bump.
 | Provenance-only change (citation, source revision, verification status; no value changes) | `chore(data):` | unchanged | no release | no release |
 | Source register or allow-list change (ADR 0003 (#6)) | `chore(data):` | unchanged | no release | no release |
 | Snapshot refresh with no fact change (ADR 0006 (#11)), including the provenance revisions that cite the snapshots | `chore(data):` | unchanged | no release | no release |
+| Link-environment dataset change | as the addition or correction rows if the dataset ships in the wheel, otherwise `chore(data):`; it is outside the digest (open question 2) | unchanged | patch or none | minor, patch or none |
 | Documentation only | `docs:` | unchanged | no release | no release |
 
 Reason: a correction that changes a value changes no contract, so semver
@@ -268,5 +276,5 @@ dependency metadata and is meaningless for a loose file).
 
 1. Whether private catalogue packages are signed (RFC 0002 open question
    6); this record settles only their versioning and recording.
-2. Closed 2026-11-05 (#73): there is no link-environment dataset, so
-   nothing to version.
+2. How the optional link-environment dataset is versioned relative to the
+   catalogue (RFC 0002 open question 2).

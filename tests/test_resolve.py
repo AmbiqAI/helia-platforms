@@ -10,6 +10,7 @@ from helia_platforms import (
     PlatformError,
     PlatformWarning,
     UnknownPlatform,
+    _provenance,
     load_overlay,
     resolve,
     resolve_board,
@@ -523,7 +524,8 @@ def test_application_ranges_follow_the_selected_boot_and_the_discouraged_filter(
     )
     catalog = quiet(document)
     sbl = catalog.resolve("board_a").application_ranges()
-    nbl = catalog.resolve("board_a", boot="nbl").application_ranges()
+    with pytest.warns(PlatformWarning):  # an explicit boot that is not the provisioning
+        nbl = catalog.resolve("board_a", boot="nbl").application_ranges()
     assert sbl["nvm"][0].start == 0x00410000 and nbl["nvm"][0].start == 0x00400000
     assert nbl["nvm"][0].boot == "nbl"
     assert "tcm" not in sbl and "tcm" in catalog.resolve("board_a").application_ranges(
@@ -539,3 +541,52 @@ def test_application_ranges_tell_an_unknown_region_from_an_empty_one(document):
     ranges = quiet(document).resolve("board_a").application_ranges()
     assert ranges["nvm"] == ()  # every byte reserved: empty
     assert "extra" not in ranges  # no base: unknown, not empty
+
+
+def test_application_ranges_use_the_cores_own_address_and_skip_zero_sizes(document):
+    soc = document["socs"]["soc_a"]
+    soc["access"].append(
+        {"master": "cm55_0", "target": "nvm", "access": "direct", "address": 0x08000000}
+    )
+    soc["boot_configs"]["sbl"]["reserved"]["nothing"] = {"region": "nvm", "offset": "1M", "size": 0}
+    soc["memories"]["empty"] = {
+        "technology": "sram",
+        "attachment": "system",
+        "size": 0,
+        "base": 0x30000000,
+    }
+    soc["access"].append({"master": "cm55_0", "target": "empty", "access": "direct"})
+    ranges = quiet(document).resolve("board_a").application_ranges()
+    assert [(r.start, r.end) for r in ranges["nvm"]] == [(0x08010000, 0x08400000)]
+    assert "fact:soc:soc_a:access.cm55_0@nvm.address" in ranges["nvm"][0].provenance.source
+    assert ranges["empty"] == ()
+
+
+def test_application_ranges_name_facts_that_exist(document):
+    """Every source a derived record names is a fact path the catalog holds, on an FPGA with
+    a rebased region and its own boot configuration, and on a board with external memory."""
+    document["implementations"] = {
+        "soc_a_fpga": {
+            "soc": "soc_a",
+            "kind": "fpga",
+            "subset": {"memories_rebased": {"nvm": 0x10000000}, "memories_resized": {"nvm": "2M"}},
+            "boot_configs": {
+                "fpga": {
+                    "reserved": {"rom": {"region": "nvm", "offset": 0, "size": "32K"}},
+                    "app_start": {"region": "nvm", "offset": "32K"},
+                    "requires": "none",
+                }
+            },
+            "default_boot": "fpga",
+        }
+    }
+    catalog = quiet(document)
+    facts = _provenance.Facts(catalog._trees, lambda _: True)
+    for target in (catalog.resolve("soc_a_fpga"), catalog.resolve("board_a")):
+        for name, ranges in target.application_ranges().items():
+            assert ranges, name
+            for r in ranges:
+                assert r.provenance.status == "derived" and r.provenance.source
+                for source in r.provenance.source:
+                    key = facts.parse(source)
+                    assert key is not None and facts.exists(key), (name, source)

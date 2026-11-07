@@ -358,27 +358,43 @@ class Target:
     ) -> Mapping[str, tuple[model.AddressRange, ...]]:
         """Per region of ``memories()`` with a base, the disjoint half-open byte ranges an
         application for ``core`` may occupy: the region less the selected boot's
-        reservations and other cores' image slots, in address order.
+        reservations and other cores' image slots, in address order, as ``core``
+        addresses them (its own ``Access.address`` for the region where it has one).
 
         No linker knowledge: a consumer intersects these with its own linker windows
-        (#73). A region every byte of which is taken maps to ``()``; a region with no base
-        (a populated device on an interface with no aperture, or an overlay region that
-        omits it) is left out, so unknown and empty are told apart. Whether a customer may
-        program the core is ``programmable_by``, which this does not apply.
+        (#73). A region every byte of which is taken, or of size 0, maps to ``()``; a
+        region with no base (a populated device on an interface with no aperture, or an
+        overlay region that omits it) is left out, so unknown and empty are told apart.
+        Whether a customer may program the core is ``programmable_by``, which this does
+        not apply. Each range's ``derived`` record names the facts it came from.
         """
         instance = self._core(core)
         boot = self.boot
         taken: dict[str, list[tuple[int, int, str]]] = {}
-        soc = f"fact:soc:{self.soc.id}"
-        for reservation in boot.reserved if boot else ():
-            assert boot is not None
-            where = f"{soc}:boot_configs.{boot.name}.reserved.{reservation.purpose}"
-            end = reservation.offset + reservation.size
-            taken.setdefault(reservation.region, []).append((reservation.offset, end, where))
+        if boot is not None:
+            impl = self.implementation
+            owned = (
+                impl is not None
+                and impl.boot_configs is not None
+                and boot.name in impl.boot_configs
+            )
+            owner = (
+                f"fact:implementation:{impl.id}" if owned and impl else f"fact:soc:{self.soc.id}"
+            )
+            for reservation in boot.reserved:
+                if reservation.size == 0:
+                    continue
+                where = f"{owner}:boot_configs.{boot.name}.reserved.{reservation.purpose}"
+                end = reservation.offset + reservation.size
+                taken.setdefault(reservation.region, []).append((reservation.offset, end, where))
         own_slots = self.part.image_slots if self.part else {}
         for name, slot in self.image_slots.items():
-            if slot.core != instance.id:
-                owner = f"fact:part:{self.part.id}" if self.part and name in own_slots else soc
+            if slot.core != instance.id and slot.size > 0:
+                owner = (
+                    f"fact:part:{self.part.id}"
+                    if self.part and name in own_slots
+                    else f"fact:soc:{self.soc.id}"
+                )
                 end = slot.offset + slot.size
                 taken.setdefault(slot.region, []).append(
                     (slot.offset, end, f"{owner}:image_slots.{name}")
@@ -387,21 +403,28 @@ class Target:
         for region in self.memories(core, include_discouraged=include_discouraged):
             if region.base is None:
                 continue
-            free = [(0, region.size)]
-            sources = [f"{soc}:memories.{region.name}.base", f"{soc}:memories.{region.name}.size"]
+            access = self.reachable(instance.id, region.name)
+            base = (
+                access.address if access is not None and access.address is not None else region.base
+            )
+            free = [(0, region.size)] if region.size > 0 else []
+            sources = list(self._region_sources(region))
             for low, high, where in taken.get(region.name, ()):
                 free = _subtract(free, low, high)
                 sources += [f"{where}.offset", f"{where}.size"]
+            if access is not None and access.address is not None:
+                sources.append(
+                    f"fact:soc:{self.soc.id}:access.{access.master}@{access.target}.address"
+                )
             provenance = model.Provenance(
                 status="derived",
                 source=tuple(sources),
                 notes=f"{region.name} less the boot reservations and other cores' image slots",
             )
-            access = self.reachable(instance.id, region.name)
             result[region.name] = tuple(
                 model.AddressRange(
-                    start=region.base + low,
-                    end=region.base + high,
+                    start=base + low,
+                    end=base + high,
                     region=region.name,
                     core=instance.id,
                     boot=boot.name if boot else None,
@@ -411,6 +434,46 @@ class Target:
                 for low, high in free
             )
         return MappingProxyType(result)
+
+    def _region_sources(self, region: model.MemoryRegion) -> tuple[str, ...]:
+        """The ``fact:`` paths of the entries that state ``region``'s base and size."""
+        for (external, _), (interface, device) in zip(self._external, self._devices, strict=True):
+            if external is region or external.name == region.name:
+                impl = self.implementation
+                owner = (
+                    impl
+                    if impl and impl.interfaces.get(interface.name) is interface
+                    else self.board
+                )
+                kind, owner_id = (
+                    ("implementation", impl.id)
+                    if owner is impl and impl
+                    else ("board", self.board.id if self.board else "")
+                )
+                return (
+                    f"fact:{kind}:{owner_id}:interfaces.{interface.name}.aperture_base",
+                    f"fact:memory_device:{device.id}:capacity",
+                )
+        impl = self.implementation
+        if (
+            impl is not None
+            and impl.memories is not None
+            and any(m.name == region.name for m in impl.memories)
+        ):
+            at = f"fact:implementation:{impl.id}:memories.{region.name}"
+            return (f"{at}.base", f"{at}.size")
+        at = f"fact:soc:{self.soc.id}:memories.{region.name}"
+        sources = [f"{at}.base", f"{at}.size"]
+        if impl is not None:
+            if region.name in impl.subset.memories_rebased:
+                sources.append(
+                    f"fact:implementation:{impl.id}:subset.memories_rebased.{region.name}"
+                )
+            if region.name in impl.subset.memories_resized:
+                sources.append(
+                    f"fact:implementation:{impl.id}:subset.memories_resized.{region.name}"
+                )
+        return tuple(sources)
 
     # -- debug and SDK ----------------------------------------------------------------------
 

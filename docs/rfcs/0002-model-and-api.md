@@ -62,7 +62,6 @@ Each term has one meaning in this RFC, except `revision`, whose meaning depends 
 | boot configuration | A `BootConfig`: a named boot layout (sbl, nbl, or a custom layout) with its reservations, one application start per programmable core (`app_start`, core 0 by default) and what it `requires`. |
 | reservation | A documented range of memory no core's image may use: boot ROM, an SBL partition. Radio firmware is an image slot, not a reservation. |
 | linker window | The range a piece of software's linker script (an SDK's, Zephyr's, a customer's) lets a build use in a region. Not catalog content: a consumer keeps its own and intersects them with `Target.application_ranges()` (#73). |
-| profile | A named linker variant within an owner and link family (for example `default`). Not the profiler's clock profile (an operating point) and not a neuralspotx starter profile. |
 | series | The SDK product line (`apollo5`, `atomiq`). Not the profiler's AP3/AP4/AP5 tier, which is profiler policy. |
 | origin | Catalog origin only: `builtin` or `overlay`, where an entry came from. The address an application links at is `BootConfig.app_start`; a linker window is the consumer's (#73). |
 | provenance status | One of `datasheet`, `sdk`, `measured`, `fitted`, `derived`, `unverified` ([ADR 0003](../adr/0003-provenance-record.md)). The status `derived` marks a value computed from other sourced values, such as a size computed from two addresses. |
@@ -895,7 +894,7 @@ one of them.
 @dataclass(frozen=True) class AddOn:      id, fits_boards, occupies, population: Mapping[str, str], modes: Mapping[str, tuple[str, ...]], revision, aliases, release_status, extensions, provenance
 @dataclass(frozen=True) class Board:      id, category, revision, part: str | None, implementation: str | None, interfaces, population: Mapping[str, str], provisioning, jlink_device, trace_clock_mhz, aliases, release_status, extensions, provenance
 @dataclass(frozen=True) class Composition: alias, board, addons; release_status (property, effective from what it references)
-@dataclass(frozen=True) class AddressRange: start, end, region, core, boot: str | None, access: Access | None, provenance; size (property)   # [start, end), from Target.application_ranges() (#73)
+@dataclass(frozen=True) class AddressRange: start, end, region, core, boot: str | None, access: Access | None, provenance, field_provenance; size (property)   # [start, end) as the core addresses it, from Target.application_ranges() (#73)
 ```
 
 A class that has `provenance` also has `field_provenance`: the records of
@@ -942,8 +941,8 @@ class Target:
     def boot_configs(self) -> tuple[BootConfig, ...]
     def flash_load_address(self, core: int | str = 0) -> int   # from boot; raises if there is none
     image_slots: Mapping[str, ImageSlot]                      # the Soc's, each replaced by the part's slot of that name
-    def usable_nvm(self, core: int | str = 0, *, include_discouraged: bool = False) -> Mapping[str, int]   # the customer's view: after reservations and other cores' slots; empty for a core only the vendor programs or with no load
-    def application_ranges(self, core: int | str = 0, *, include_discouraged: bool = False) -> Mapping[str, tuple[AddressRange, ...]]   # per region with a base: disjoint [start, end) less reservations and other cores' slots; () when all taken; a region with no base is left out (#73)able image
+    def usable_nvm(self, core: int | str = 0, *, include_discouraged: bool = False) -> Mapping[str, int]   # the customer's view: after reservations and other cores' slots; empty for a core only the vendor programs or with no loadable image
+    def application_ranges(self, core: int | str = 0, *, include_discouraged: bool = False) -> Mapping[str, tuple[AddressRange, ...]]   # per region with a base: disjoint [start, end) less reservations and other cores' slots, as the core addresses them; () when all taken; a region with no base is left out (#73)
     # external memory
     def external_memories(self) -> tuple[MemoryRegion, ...]   # population plus add-ons, at aperture bases
     def classify_address(self, address: int, master: int | str = 0) -> str | None   # alternate_bases classify to the same region; per-master Access addresses resolved for master
