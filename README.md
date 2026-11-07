@@ -59,8 +59,8 @@ with `--overlay` on the CLI or `load_overlay` in Python.
 
 - apollo510b_evb's `jlink_device` is `AP510BFA-CBR`, the Apollo510B ordering
   number, which SEGGER lists as its own J-Link device. SEGGER added it in J-Link
-  V8.94 (2025-12-10), so update an older J-Link, or pass the SDK's default
-  `AP510NFA-CBR` yourself.
+  V8.94 (2025-12-10), so update an older J-Link, or pass `AP510NFA-CBR`, the name
+  nsx-ambiq-sdk used before v5.2.27, yourself.
 
 ## Development
 

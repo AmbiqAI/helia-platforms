@@ -19,7 +19,7 @@ socs:
       value: apollo4
       provenance:
         status: sdk
-        source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo4l.cmake:8"]
+        source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:cmake/socs/facts/apollo4l.cmake:8"]
         verified_on: 2026-10-26
         verified_by: evanchen11
 
@@ -33,9 +33,9 @@ socs:
           provenance:
             status: sdk
             source:
-              - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-core/src/apollo4l/gcc/linker_script.ld:10"
-              - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-core/src/apollo4l/gcc/linker_script.ld:20"
-              - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-core/src/apollo4l/armclang/linker_script.sct:6-10"
+              - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-core/src/apollo4l/gcc/linker_script.ld:10"
+              - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-core/src/apollo4l/gcc/linker_script.ld:20"
+              - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-core/src/apollo4l/armclang/linker_script.sct:6-10"
             verified_on: 2026-10-26
             verified_by: evanchen11
             notes: >-
@@ -56,7 +56,7 @@ socs:
             value: fpv4-sp-d16
             provenance:
               status: sdk
-              source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo4l.cmake:25"]
+              source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:cmake/socs/facts/apollo4l.cmake:25"]
               verified_on: 2026-10-26
               verified_by: evanchen11
               notes: NSX_FPU, the -mfpu the SDK passes. DS-A4L p2 names a "Floating Point Unit" only.
@@ -64,14 +64,14 @@ socs:
             value: false
             provenance:
               status: sdk
-              source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo4l.h:169"]
+              source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo4l.h:169"]
               verified_on: 2026-10-26
               verified_by: evanchen11
           mve:
             value: none
             provenance:
               status: sdk
-              source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo4l.cmake:14"]
+              source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:cmake/socs/facts/apollo4l.cmake:14"]
               verified_on: 2026-10-26
               verified_by: evanchen11
           # icache_kb and dcache_kb are absent, as on apollo4p (decided on #66).
@@ -105,7 +105,7 @@ socs:
           mve: none
           provenance:
             status: sdk
-            source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-cmsis-core/Include/core_cm0.h:69-72"]
+            source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-cmsis-core/Include/core_cm0.h:69-72"]
             verified_on: 2026-10-28
             verified_by: evanchen11
             notes: '"This core does not support an FPU at all". Armv6-M has no MVE.'
@@ -129,7 +129,7 @@ socs:
               no extended RAM. p42: "Up to 1.375 MB", which is 1024 + 384 kB.
         provenance:
           status: sdk
-          source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/mcu/apollo4l/regs/am_reg_base_addresses.h:34-36"]
+          source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/mcu/apollo4l/regs/am_reg_base_addresses.h:34-36"]
           verified_on: 2026-10-26
           verified_by: evanchen11
           notes: The header's map (:28) gives TCM 384KB at 0x10000000 - 0x1005FFFF.
@@ -140,7 +140,7 @@ socs:
         size: {value: 1M, provenance: *ds_mem}
         provenance:
           status: sdk
-          source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/mcu/apollo4l/regs/am_reg_base_addresses.h:41-42"]
+          source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/mcu/apollo4l/regs/am_reg_base_addresses.h:41-42"]
           verified_on: 2026-10-26
           verified_by: evanchen11
           notes: >-
@@ -153,7 +153,7 @@ socs:
         size: {value: 2M, provenance: *ds_mem}
         provenance:
           status: sdk
-          source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/mcu/apollo4l/regs/am_reg_base_addresses.h:83-84"]
+          source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/mcu/apollo4l/regs/am_reg_base_addresses.h:83-84"]
           verified_on: 2026-10-26
           verified_by: evanchen11
           notes: DS-A4L p50 gives only the Arm-level map, 0x00000000 - 0x1FFFFFFF "Internal NVM".
@@ -177,7 +177,7 @@ socs:
       provenance:
         status: sdk
         source:
-          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo4l.h:22968-23004"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo4l.h:22968-23004"
           - "doc:DS-A4BL@0.9.0:p2"
           - "doc:DS-A4BL@0.9.0:p39"
           - "doc:DS-A4BL@0.9.0:p109"
@@ -209,7 +209,7 @@ socs:
             value: AM_HAL_PWRCTRL_MCU_MODE_LOW_POWER
             provenance: &hal_mcu_mode
               status: sdk
-              source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/mcu/apollo4l/hal/am_hal_pwrctrl.h:191-192"]
+              source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/mcu/apollo4l/hal/am_hal_pwrctrl.h:191-192"]
               verified_on: 2026-10-26
               verified_by: evanchen11
               notes: The enumerator comments say 96 MHz and 192 MHz.
@@ -248,14 +248,15 @@ socs:
       provenance:
         status: sdk
         source:
-          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-core/includes-api/nsx_system.h:188"
-          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-core/CMakeLists.txt:13"
-          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-core/src/apollo4p/nsx_system_platform.c:51-56"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-core/includes-api/nsx_system.h:190-191"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-core/CMakeLists.txt:13"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-core/src/apollo4p/nsx_system_platform.c:54-56"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-core/src/nsx_performance.c:4-10"
         verified_on: 2026-10-26
         verified_by: evanchen11
         notes: >-
-          A zero-initialised config is "minimal, low-power", and NSX_PERF_LOW selects
-          AM_HAL_PWRCTRL_MCU_MODE_LOW_POWER. nsx-core builds the apollo4p platform file for
+          A zero-initialised config selects "LOW performance", and NSX_PERF_LOW selects
+          AM_HAL_PWRCTRL_MCU_MODE_LOW_POWER (nsx_performance.c:8-10). nsx-core builds the apollo4p platform file for
           every APOLLO4 Soc (CMakeLists.txt:13; the file's header says "Covers: Apollo4P, Apollo4L").
 
     boot_configs:
@@ -268,8 +269,8 @@ socs:
             provenance: &app_start
               status: derived
               source:
-                - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-core/src/apollo4l/gcc/linker_script.ld:10"
-                - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo4l.cmake:51"
+                - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-core/src/apollo4l/gcc/linker_script.ld:10"
+                - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:cmake/socs/facts/apollo4l.cmake:51"
                 - "fact:soc:apollo4l:memories.mram.base"
               verified_on: 2026-10-26
               verified_by: evanchen11
@@ -298,10 +299,10 @@ socs:
       provenance:
         status: sdk
         source:
-          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/apollo4l.cmake:22"
-          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/apollo4l.cmake:25"
-          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-core/src/apollo4l/gcc/linker_script.ld:10"
-          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-core/src/apollo4l/armclang/linker_script.sct:6-8"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:cmake/socs/apollo4l.cmake:22"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:cmake/socs/apollo4l.cmake:25"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-core/src/apollo4l/gcc/linker_script.ld:10"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-core/src/apollo4l/armclang/linker_script.sct:6-8"
         verified_on: 2026-10-26
         verified_by: evanchen11
         notes: The armclang (:22) and gcc (:25) scripts the SDK selects start at 0x18000.
@@ -310,14 +311,14 @@ socs:
       c_define: AM_PART_APOLLO4L
       provenance:
         status: sdk
-        source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo4l.cmake:32"]
+        source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:cmake/socs/facts/apollo4l.cmake:32"]
         verified_on: 2026-10-26
         verified_by: evanchen11
       cmsis_header:
         value: apollo4l.h
         provenance:
           status: sdk
-          source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/mcu/apollo4l/am_mcu_apollo.h:106"]
+          source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/mcu/apollo4l/am_mcu_apollo.h:106"]
           verified_on: 2026-10-26
           verified_by: evanchen11
       trace_clock_mhz:
@@ -325,8 +326,8 @@ socs:
         provenance:
           status: sdk
           source:
-            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/lib/gcc/apollo4l/libam_hal.a"
-            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo4l.h:57114"
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/lib/gcc/apollo4l/libam_hal.a"
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo4l.h:57114"
           verified_on: 2026-10-28
           verified_by: evanchen11
           notes: >-
@@ -345,8 +346,8 @@ socs:
         provenance:
           status: sdk
           source:
-            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo4l.cmake:22"
-            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo4l.cmake:26"
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:cmake/socs/facts/apollo4l.cmake:22"
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:cmake/socs/facts/apollo4l.cmake:26"
           verified_on: 2026-10-26
           verified_by: evanchen11
 
@@ -389,7 +390,7 @@ parts:
       value: AMAP42KL-KBR
       provenance:
         status: sdk
-        source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo4l.cmake:49"]
+        source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:cmake/socs/facts/apollo4l.cmake:49"]
         verified_on: 2026-10-27
         verified_by: evanchen11
         notes: SEGGER's Ambiq device list and J-Link V9.60's stock database both name it.
@@ -442,7 +443,7 @@ boards:
       value: evaluation
       provenance:
         status: sdk
-        source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:boards/apollo4l_evb/README.md:3"]
+        source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:boards/apollo4l_evb/README.md:3"]
         verified_on: 2026-10-27
         verified_by: evanchen11
         notes: '"Board descriptor for the Ambiq Apollo4L EVB".'
@@ -451,7 +452,7 @@ boards:
       provenance:
         status: derived
         source:
-          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:boards/apollo4l_evb/README.md:3"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:boards/apollo4l_evb/README.md:3"
           - "doc:DS-A4L@0.9.1:p182"
         verified_on: 2026-10-27
         verified_by: evanchen11
@@ -461,8 +462,8 @@ boards:
     provenance:
       status: sdk
       source:
-        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:boards/apollo4l_evb/README.md:3"
-        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:boards/apollo4l_evb/board.cmake:1"
+        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:boards/apollo4l_evb/README.md:3"
+        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:boards/apollo4l_evb/board.cmake:1"
       verified_on: 2026-10-27
       verified_by: evanchen11
       notes: >-
@@ -474,7 +475,7 @@ boards:
       value: evaluation
       provenance:
         status: sdk
-        source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:boards/apollo4l_blue_evb/README.md:3"]
+        source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:boards/apollo4l_blue_evb/README.md:3"]
         verified_on: 2026-10-27
         verified_by: evanchen11
         notes: '"Board descriptor for the Ambiq Apollo4L Blue EVB".'
@@ -483,7 +484,7 @@ boards:
       provenance:
         status: derived
         source:
-          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:boards/apollo4l_blue_evb/README.md:3"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:boards/apollo4l_blue_evb/README.md:3"
           - "doc:DS-A4BL@0.9.0:p186"
         verified_on: 2026-10-27
         verified_by: evanchen11
@@ -493,8 +494,8 @@ boards:
     provenance:
       status: sdk
       source:
-        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:boards/apollo4l_blue_evb/README.md:3"
-        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:boards/apollo4l_blue_evb/board.cmake:1"
+        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:boards/apollo4l_blue_evb/README.md:3"
+        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:boards/apollo4l_blue_evb/board.cmake:1"
       verified_on: 2026-10-27
       verified_by: evanchen11
       notes: >-

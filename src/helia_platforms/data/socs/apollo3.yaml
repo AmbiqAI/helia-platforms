@@ -18,7 +18,7 @@ socs:
       value: apollo3
       provenance:
         status: sdk
-        source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo3.cmake:8"]
+        source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:cmake/socs/facts/apollo3.cmake:8"]
         verified_on: 2026-10-26
         verified_by: evanchen11
 
@@ -32,8 +32,8 @@ socs:
           provenance:
             status: sdk
             source:
-              - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-core/src/apollo3/gcc/linker_script.ld:10"
-              - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/mcu/apollo3/hal/am_hal_flash.h:89"
+              - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-core/src/apollo3/gcc/linker_script.ld:10"
+              - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/mcu/apollo3/hal/am_hal_flash.h:89"
             verified_on: 2026-10-26
             verified_by: evanchen11
             notes: The default linker script places the application in flash at 0xC000.
@@ -50,7 +50,7 @@ socs:
             value: fpv4-sp-d16
             provenance:
               status: sdk
-              source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo3.cmake:25"]
+              source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:cmake/socs/facts/apollo3.cmake:25"]
               verified_on: 2026-10-26
               verified_by: evanchen11
               notes: DS-A3 p2 says "Floating point unit" and names no architecture or precision.
@@ -59,8 +59,8 @@ socs:
           provenance:
             status: sdk
             source:
-              - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo3.cmake:14"
-              - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo3.h:134"
+              - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:cmake/socs/facts/apollo3.cmake:14"
+              - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo3.h:134"
             verified_on: 2026-10-26
             verified_by: evanchen11
             notes: >-
@@ -116,7 +116,7 @@ socs:
           status: datasheet
           source:
             - "doc:DS-A3@1.3.0:p79-80"
-            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo3.h:8960-8985"
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo3.h:8960-8985"
           verified_on: 2026-10-26
           verified_by: evanchen11
           notes: >-
@@ -126,7 +126,7 @@ socs:
       - value: apbdma
         provenance:
           status: sdk
-          source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo3.h:8961"]
+          source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo3.h:8961"]
           verified_on: 2026-10-26
           verified_by: evanchen11
           notes: APBDMA_BASE 0x40011000, which DS-A3 Table 6 names "Fast GPIO Control" (p79).
@@ -146,7 +146,7 @@ socs:
       - value: mspi0
         provenance:
           status: sdk
-          source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo3.h:8975"]
+          source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo3.h:8975"]
           verified_on: 2026-10-26
           verified_by: evanchen11
           notes: >-
@@ -162,7 +162,7 @@ socs:
           source:
             - "doc:DS-A3@1.3.0:p79"
             - "doc:DS-A3@1.3.0:p2"
-            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo3.h:8980"
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo3.h:8980"
           verified_on: 2026-10-26
           verified_by: evanchen11
           notes: >-
@@ -171,7 +171,7 @@ socs:
       - value: security
         provenance:
           status: sdk
-          source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo3.h:8981"]
+          source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo3.h:8981"]
           verified_on: 2026-10-26
           verified_by: evanchen11
           notes: SECURITY_BASE 0x40030000, which DS-A3 Table 6 shows as Reserved (p79).
@@ -198,7 +198,7 @@ socs:
             value: AM_HAL_NORMAL_MODE
             provenance: &hal_burst
               status: sdk
-              source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/mcu/apollo3/hal/am_hal_burst.h:49-50"]
+              source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/mcu/apollo3/hal/am_hal_burst.h:49-50"]
               verified_on: 2026-10-26
               verified_by: evanchen11
               notes: am_hal_burst_mode_e, AM_HAL_BURST_MODE (:49) and AM_HAL_NORMAL_MODE (:50).
@@ -222,13 +222,18 @@ socs:
       provenance:
         status: sdk
         source:
-          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-core/includes-api/nsx_system.h:188"
-          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-core/src/apollo3/nsx_system_platform.c:46-51"
-        verified_on: 2026-10-26
-        verified_by: evanchen11
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-core/includes-api/nsx_system.h:190-191"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-core/CMakeLists.txt:14"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-core/src/apollo3p/nsx_system_platform.c:52-54"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-core/src/apollo3p/nsx_performance.c:11-48"
+        verified_on: 2026-11-06
+        verified_by: apage224
         notes: >-
-          A zero-initialised config is "minimal, low-power"; on Apollo3
-          nsx_platform_set_perf_mode is a no-op, so nsx never leaves 48 MHz.
+          A zero-initialised config selects "LOW performance". nsx-core builds the apollo3p
+          platform files for every APOLLO3 Soc (CMakeLists.txt:14). Since v5.2.27
+          nsx_platform_set_perf_mode selects normal or burst mode: NSX_PERF_LOW keeps normal
+          mode, 48 MHz, and MEDIUM or HIGH enables burst, 96 MHz (nsx_performance.c:11, :36-38,
+          :48). v5.2.26's apollo3 file made it a no-op.
 
     boot_configs:
       sbl:
@@ -254,10 +259,10 @@ socs:
           provenance:
             status: sdk
             source:
-              - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/mcu/apollo3/hal/am_hal_flash.h:89"
-              - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-core/src/apollo3/gcc/linker_script.ld:10"
-              - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-core/src/apollo3/armclang/linker_script.sct:46-48"
-              - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo3.cmake:51"
+              - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/mcu/apollo3/hal/am_hal_flash.h:89"
+              - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-core/src/apollo3/gcc/linker_script.ld:10"
+              - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-core/src/apollo3/armclang/linker_script.sct:46-48"
+              - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:cmake/socs/facts/apollo3.cmake:51"
             verified_on: 2026-10-26
             verified_by: evanchen11
             notes: >-
@@ -276,8 +281,8 @@ socs:
       provenance:
         status: sdk
         source:
-          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/apollo3.cmake:21"
-          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/apollo3.cmake:24"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:cmake/socs/apollo3.cmake:21"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:cmake/socs/apollo3.cmake:24"
         verified_on: 2026-10-26
         verified_by: evanchen11
         notes: The only scripts the SDK selects, armclang (:21) and gcc (:24), start at 0xC000.
@@ -286,14 +291,14 @@ socs:
       c_define: AM_PART_APOLLO3
       provenance:
         status: sdk
-        source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo3.cmake:32"]
+        source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:cmake/socs/facts/apollo3.cmake:32"]
         verified_on: 2026-10-26
         verified_by: evanchen11
       cmsis_header:
         value: apollo3.h
         provenance:
           status: sdk
-          source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/mcu/apollo3/am_mcu_apollo.h:73"]
+          source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/mcu/apollo3/am_mcu_apollo.h:73"]
           verified_on: 2026-10-26
           verified_by: evanchen11
       trace_clock_mhz:
@@ -301,8 +306,8 @@ socs:
         provenance:
           status: unverified
           source:
-            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/lib/gcc/apollo3/libam_hal.a"
-            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo3.h:23078"
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/lib/gcc/apollo3/libam_hal.a"
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo3.h:23078"
             - "doc:DS-A3@1.3.0:p154-155"
             - "doc:DS-A3@1.3.0:p548-549"
           notes: >-
@@ -317,7 +322,7 @@ socs:
         value: 48
         provenance:
           status: sdk
-          source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo3.cmake:52"]
+          source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:cmake/socs/facts/apollo3.cmake:52"]
           verified_on: 2026-10-30
           verified_by: evanchen11
           notes: >-
@@ -329,8 +334,8 @@ socs:
         provenance:
           status: sdk
           source:
-            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo3.cmake:22"
-            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo3.cmake:26"
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:cmake/socs/facts/apollo3.cmake:22"
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:cmake/socs/facts/apollo3.cmake:26"
           verified_on: 2026-10-26
           verified_by: evanchen11
 
@@ -344,7 +349,7 @@ parts:
       value: AMA3B1KK-KBR
       provenance:
         status: sdk
-        source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:cmake/socs/facts/apollo3.cmake:49"]
+        source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:cmake/socs/facts/apollo3.cmake:49"]
         verified_on: 2026-10-26
         verified_by: evanchen11
         notes: >-
@@ -420,7 +425,7 @@ boards:
       source:
         - "repo:zephyrproject-rtos/zephyr@8f62a4ab82b5c2121c088842d3233f75b603ce35:boards/ambiq/apollo3_evb/apollo3_evb.yaml:1-2"
         - "repo:zephyrproject-rtos/zephyr@8f62a4ab82b5c2121c088842d3233f75b603ce35:boards/ambiq/apollo3_evb/board.cmake:4"
-        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:boards/apollo3_evb/board.cmake:26"
+        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:boards/apollo3_evb/board.cmake:26"
       verified_on: 2026-10-26
       verified_by: evanchen11
       notes: >-

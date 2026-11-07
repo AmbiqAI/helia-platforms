@@ -290,6 +290,10 @@ apollo330P and apollo510L `nbl` and `itcm_sbl` scripts, which carry
 apollo510's sizes (RFC 0001 appendix D): their `MCU_TCM` is 507904 bytes in
 gcc and 503808 in armclang, against a 256 KB DTCM
 (`modules/nsx-ambiqsuite/sdk/mcu/apollo510L/regs/am_reg_base_addresses.h:43`).
+Amendment (2026-11-06): nsx-ambiq-sdk `v5.2.27` removed those `itcm_sbl`
+scripts and sized the `nbl` and `sbl` scripts for the parts
+(AmbiqAI/nsx-ambiq-sdk#60), so the exceptions were dropped with the refresh
+to that tag.
 A disagreement passes only when an exceptions list beside the snapshots
 names it, with a reason and an issue, in the manner of the parity
 allow-lists of #13.

@@ -20,10 +20,10 @@ memory_devices:
         source:
           - "meas:apollo510_evb/xip-alias/2026-07-05"
           - "meas:apollo510b_evb/xip-alias/2026-07-05"
-          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-psram/CMakeLists.txt:66-67"
-          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-psram/CMakeLists.txt:87-93"
-          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-psram/CMakeLists.txt:106-110"
-          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-psram/CMakeLists.txt:126"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-psram/CMakeLists.txt:66-67"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-psram/CMakeLists.txt:87-93"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-psram/CMakeLists.txt:106-110"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-psram/CMakeLists.txt:126"
           - "doc:DS-A510@1.1.0:p36"
         verified_on: 2026-10-28
         verified_by: evanchen11
@@ -39,9 +39,9 @@ memory_devices:
       provenance:
         status: sdk
         source:
-          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/boards/apollo510_evb/bsp/am_bsp.h:188"
-          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/boards/apollo510b_evb/bsp/am_bsp.h:203"
-          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-psram/CMakeLists.txt:123-131"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/boards/apollo510_evb/bsp/am_bsp.h:188"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/boards/apollo510b_evb/bsp/am_bsp.h:203"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-psram/CMakeLists.txt:123-131"
         verified_on: 2026-10-26
         verified_by: evanchen11
         notes: >-
@@ -53,7 +53,7 @@ memory_devices:
       provenance:
         status: sdk
         source:
-          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-psram/CMakeLists.txt:60-64"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-psram/CMakeLists.txt:60-64"
         verified_on: 2026-10-13
         verified_by: evanchen11
         notes: "\"Hex (x16) DDR PSRAM on MSPI0\". QS-A510 p8 states x16 (Hex); DS-A510 p95 states DDR on MSPI0."
@@ -74,8 +74,8 @@ memory_devices:
       provenance:
         status: sdk
         source:
-          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/boards/apollo4p_evb_disp_shield_rev2/bsp/am_bsp.h:102"
-          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-psram/CMakeLists.txt:45"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/boards/apollo4p_evb_disp_shield_rev2/bsp/am_bsp.h:102"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-psram/CMakeLists.txt:45"
         verified_on: 2026-10-26
         verified_by: evanchen11
         notes: >-
@@ -85,7 +85,7 @@ memory_devices:
       value: [hex-ddr, octal-ddr]
       provenance:
         status: sdk
-        source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/boards/apollo4p_evb_disp_shield_rev2/bsp/am_bsp.h:103-104"]
+        source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/boards/apollo4p_evb_disp_shield_rev2/bsp/am_bsp.h:103-104"]
         verified_on: 2026-10-26
         verified_by: evanchen11
         notes: >-
@@ -107,7 +107,7 @@ memory_devices:
       value: is25wx064
       provenance:
         status: sdk
-        source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/boards/apollo4p_evb_disp_shield_rev2/bsp/am_bsp.h:94"]
+        source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/boards/apollo4p_evb_disp_shield_rev2/bsp/am_bsp.h:94"]
         verified_on: 2026-10-26
         verified_by: evanchen11
         notes: AM_BSP_MSPI_FLASH_DEVICE_IS25WX064, on MSPI1 (AM_BSP_MSPI_FLASH_MODULE 1, :95).
@@ -124,7 +124,7 @@ memory_devices:
     technology: psram
     provenance:
       status: sdk
-      source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-psram/CMakeLists.txt:26"]
+      source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-psram/CMakeLists.txt:26"]
       verified_on: 2026-10-26
       verified_by: evanchen11
       notes: >-
@@ -135,7 +135,7 @@ memory_devices:
       provenance:
         status: sdk
         source:
-          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-psram/CMakeLists.txt:27-29"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-psram/CMakeLists.txt:27-29"
           - "repo:zephyrproject-rtos/zephyr@8f62a4ab82b5c2121c088842d3233f75b603ce35:samples/drivers/memc/boards/apollo3p_evb.overlay:36"
           - "repo:zephyrproject-rtos/zephyr@8f62a4ab82b5c2121c088842d3233f75b603ce35:drivers/memc/memc_mspi_aps6404l.c:438"
         verified_on: 2026-10-26
@@ -147,7 +147,7 @@ memory_devices:
       value: aps6404l
       provenance:
         status: sdk
-        source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-psram/CMakeLists.txt:26"]
+        source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-psram/CMakeLists.txt:26"]
         verified_on: 2026-10-26
         verified_by: evanchen11
     modes:
@@ -155,7 +155,7 @@ memory_devices:
       provenance:
         status: sdk
         source:
-          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-psram/src/apollo3/nsx_psram.c:105"
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-psram/src/apollo3/nsx_psram.c:105"
           - "repo:zephyrproject-rtos/zephyr@8f62a4ab82b5c2121c088842d3233f75b603ce35:samples/drivers/memc/boards/apollo3p_evb.overlay:40-41"
         verified_on: 2026-10-26
         verified_by: evanchen11
