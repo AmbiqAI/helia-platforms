@@ -10,12 +10,13 @@ from helia_platforms import (
     PlatformError,
     PlatformWarning,
     UnknownPlatform,
+    _provenance,
     load_overlay,
     resolve,
     resolve_board,
     resolve_soc,
 )
-from helia_platforms.catalog import _load_documents
+from helia_platforms.catalog import _load_documents, builtin
 
 KB = 1024
 
@@ -462,6 +463,268 @@ def test_external_region_names_skip_the_socs_own_names(document):
     assert [r.name for r in target.external_memories()] == ["psram1"]
     assert target.region("psram1").base == 0x60000000
     assert target.region("psram0").base == 0x70000000
+
+
+# ---- application_ranges (#73) -----------------------------------------------------------
+
+
+def test_application_ranges_subtract_reservations_and_other_cores_slots(document):
+    """The region less the selected boot's reservations and other cores' slots, in order."""
+    soc = document["socs"]["soc_a"]
+    soc["cores"].append({**soc["cores"][0], "id": "radio_0", "role": "radio"})
+    soc["access"] += [
+        {"master": "radio_0", "target": "nvm", "access": "direct"},
+        {"master": "cm55_0", "target": "nvm", "access": "direct"},
+    ]
+    soc["image_slots"] = {
+        "radio": {
+            "core": "radio_0",
+            "region": "nvm",
+            "offset": "3M",
+            "size": "512K",
+            "supplier": "vendor",
+        },
+        "app": {
+            "core": "cm55_0",
+            "region": "nvm",
+            "offset": "64K",
+            "size": "1M",
+            "supplier": "customer",
+        },
+    }
+    target = quiet(document).resolve("board_a")
+    ranges = target.application_ranges()
+    nvm = [(r.start, r.end) for r in ranges["nvm"]]
+    base = 0x00400000
+    assert nvm == [
+        (base + 64 * KB, base + 3 * KB * KB),
+        (base + 3 * KB * KB + 512 * KB, base + 4 * KB * KB),
+    ]
+    first = ranges["nvm"][0]
+    assert (first.region, first.core, first.boot, first.size) == (
+        "nvm",
+        "cm55_0",
+        "sbl",
+        3 * KB * KB - 64 * KB,
+    )
+    assert first.access is not None and first.access.master == "cm55_0"
+    assert first.provenance.status == "derived"
+    assert "fact:soc:soc_a:boot_configs.sbl.reserved.sbl.size" in first.provenance.source
+    assert "fact:soc:soc_a:image_slots.radio.offset" in first.provenance.source
+    assert [(r.start, r.end) for r in ranges["ssram"]] == [(0x20080000, 0x20080000 + 3 * KB * KB)]
+    # The radio core keeps its own slot and loses the application's.
+    radio = target.application_ranges("radio_0")["nvm"]
+    assert [(r.start, r.end) for r in radio] == [(base + 64 * KB + KB * KB, base + 4 * KB * KB)]
+
+
+def test_application_ranges_follow_the_selected_boot_and_the_discouraged_filter(document):
+    soc = document["socs"]["soc_a"]
+    soc["access"].append(
+        {"master": "cm55_0", "target": "tcm", "access": "direct", "guidance": "discouraged"}
+    )
+    catalog = quiet(document)
+    sbl = catalog.resolve("board_a").application_ranges()
+    with pytest.warns(PlatformWarning):  # an explicit boot that is not the provisioning
+        nbl = catalog.resolve("board_a", boot="nbl").application_ranges()
+    assert sbl["nvm"][0].start == 0x00410000 and nbl["nvm"][0].start == 0x00400000
+    assert nbl["nvm"][0].boot == "nbl"
+    assert "tcm" not in sbl and "tcm" in catalog.resolve("board_a").application_ranges(
+        include_discouraged=True
+    )
+
+
+def test_application_ranges_tell_an_unknown_region_from_an_empty_one(document):
+    soc = document["socs"]["soc_a"]
+    soc["boot_configs"]["sbl"]["reserved"] = {"all": {"region": "nvm", "offset": 0, "size": "4M"}}
+    soc["memories"]["extra"] = {"technology": "sram", "attachment": "system", "size": "1M"}
+    soc["access"].append({"master": "cm55_0", "target": "extra", "access": "direct"})
+    ranges = quiet(document).resolve("board_a").application_ranges()
+    assert ranges["nvm"] == ()  # every byte reserved: empty
+    assert "extra" not in ranges  # no base: unknown, not empty
+
+
+def test_application_ranges_stay_in_the_regions_address_space_and_skip_zero_sizes(document):
+    soc = document["socs"]["soc_a"]
+    soc["access"].append(
+        {"master": "cm55_0", "target": "nvm", "access": "direct", "address": 0x08000000}
+    )
+    soc["boot_configs"]["sbl"]["reserved"]["nothing"] = {"region": "nvm", "offset": "1M", "size": 0}
+    soc["memories"]["empty"] = {
+        "technology": "sram",
+        "attachment": "system",
+        "size": 0,
+        "base": 0x30000000,
+    }
+    soc["access"].append({"master": "cm55_0", "target": "empty", "access": "direct"})
+    target = quiet(document).resolve("board_a")
+    ranges = target.application_ranges()
+    # The region's base, as flash_load_address() uses it, not the core's own address.
+    assert [(r.start, r.end) for r in ranges["nvm"]] == [(0x00410000, 0x00800000)]
+    assert ranges["nvm"][0].start == target.flash_load_address()
+    assert ranges["nvm"][0].provenance.source == (
+        "fact:soc:soc_a:memories.nvm.base",
+        "fact:soc:soc_a:memories.nvm.size",
+        "fact:soc:soc_a:boot_configs.sbl.reserved.sbl.offset",
+        "fact:soc:soc_a:boot_configs.sbl.reserved.sbl.size",
+        "fact:soc:soc_a:boot_configs.sbl.reserved.sbl.region",
+    )
+    assert ranges["empty"] == ()
+
+
+def test_application_ranges_name_facts_that_exist(document):
+    """Every source a derived record names is a fact path the catalog holds, on an FPGA with
+    a rebased region and its own boot configuration, and on a board with external memory."""
+    document["implementations"] = {
+        "soc_a_fpga": {
+            "soc": "soc_a",
+            "kind": "fpga",
+            "subset": {"memories_rebased": {"nvm": 0x10000000}, "memories_resized": {"nvm": "2M"}},
+            "boot_configs": {
+                "fpga": {
+                    "reserved": {"rom": {"region": "nvm", "offset": 0, "size": "32K"}},
+                    "app_start": {"region": "nvm", "offset": "32K"},
+                    "requires": "none",
+                }
+            },
+            "default_boot": "fpga",
+        }
+    }
+    catalog = quiet(document)
+    facts = _provenance.Facts(catalog._trees, lambda _: True)
+    for target in (catalog.resolve("soc_a_fpga"), catalog.resolve("board_a")):
+        for name, ranges in target.application_ranges().items():
+            assert ranges, name
+            for r in ranges:
+                assert r.provenance.status == "derived" and r.provenance.source
+                for source in r.provenance.source:
+                    key = facts.parse(source)
+                    assert key is not None and facts.exists(key), (name, source)
+
+
+def test_application_ranges_are_unknown_without_a_boot_configuration(document):
+    soc = document["socs"]["soc_a"]
+    del soc["boot_configs"], soc["default_boot"]
+    document["boards"]["board_a"].pop("provisioning", None)
+    target = quiet(document).resolve("board_a")
+    assert target.boot is None and target.application_ranges() == {}
+
+
+def test_application_ranges_credit_each_input_to_the_entry_that_states_it(document):
+    """A wrong owner in a record passes a mere existence check; these pin the exact owners."""
+    soc = document["socs"]["soc_a"]
+    soc["cores"].append(
+        {**soc["cores"][0], "id": "radio_0", "role": "radio", "programmable_by": "vendor"}
+    )
+    soc["access"].append({"master": "radio_0", "target": "nvm", "access": "direct"})
+    soc["access"].append({"master": "cm55_0", "target": "nvm", "access": "direct"})
+    soc["image_slots"] = {
+        "radio": {
+            "core": "radio_0",
+            "region": "nvm",
+            "offset": "1M",
+            "size": "256K",
+            "supplier": "vendor",
+        }
+    }
+    document["parts"]["PART-A"]["image_slots"] = {
+        "radio": {
+            "core": "radio_0",
+            "region": "nvm",
+            "offset": "1M",
+            "size": "512K",
+            "supplier": "vendor",
+        }
+    }
+    document["implementations"] = {
+        "soc_a_fpga": {
+            "soc": "soc_a",
+            "kind": "fpga",
+            "subset": {"memories_rebased": {"nvm": 0x10000000}, "memories_resized": {"nvm": "2M"}},
+            "boot_configs": {
+                "fpga": {
+                    "reserved": {"rom": {"region": "nvm", "offset": 0, "size": "32K"}},
+                    "app_start": {"region": "nvm", "offset": "32K"},
+                    "requires": "none",
+                }
+            },
+            "default_boot": "fpga",
+        }
+    }
+    catalog = quiet(document)
+    board = catalog.resolve("board_a").application_ranges()["nvm"][0]
+    assert board.target == "board_a" and board.boot == "sbl"
+    assert (
+        "fact:part:PART-A:image_slots.radio.size" in board.provenance.source
+    )  # the part's slot, not the Soc's
+    assert "fact:soc:soc_a:image_slots.radio.size" not in board.provenance.source
+    assert board.end == 0x00400000 + KB * KB  # up to the part's slot at 1M
+    second = catalog.resolve("board_a").application_ranges()["nvm"][1]
+    assert second.start == 0x00400000 + KB * KB + 512 * KB  # the part's 512K, not the Soc's 256K
+    fpga = catalog.resolve("soc_a_fpga").application_ranges()["nvm"][0]
+    assert fpga.target == "soc_a_fpga" and fpga.boot == "fpga"
+    assert {
+        "fact:implementation:soc_a_fpga:subset.memories_rebased.nvm",
+        "fact:implementation:soc_a_fpga:subset.memories_resized.nvm",
+        "fact:implementation:soc_a_fpga:boot_configs.fpga.reserved.rom.size",
+    } <= set(fpga.provenance.source)
+    assert (
+        "fact:soc:soc_a:memories.nvm.base" not in fpga.provenance.source
+    )  # the rebase supplies it
+    assert not any(s.startswith("fact:soc:soc_a:boot_configs") for s in fpga.provenance.source)
+    assert (
+        "fact:soc:soc_a:memories.nvm.size" not in fpga.provenance.source
+    )  # the resize supplies it
+    assert "fact:part:PART-A:image_slots.radio.core" in board.provenance.source
+    assert "fact:part:PART-A:image_slots.radio.region" in board.provenance.source
+    # programmable_by is not applied: the vendor-only radio core still gets its ranges.
+    radio = catalog.resolve("board_a").application_ranges("radio_0")["nvm"]
+    assert radio and catalog.resolve("board_a").usable_nvm("radio_0") == {}
+
+
+def test_application_ranges_total_what_usable_nvm_gives():
+    catalog = builtin(include_plugins=False)
+    for board in catalog.boards():
+        target = catalog.resolve(board.id)
+        for core in target.soc.cores:
+            ranges = target.application_ranges(core.id)
+            for region, size in target.usable_nvm(core.id).items():
+                assert sum(r.size for r in ranges[region]) == size, (board.id, core.id, region)
+
+
+def test_a_rebase_that_gives_a_baseless_region_its_base_is_the_cited_source(document):
+    soc = document["socs"]["soc_a"]
+    del soc["memories"]["ssram"]["base"]
+    document["implementations"] = {
+        "soc_a_fpga": {
+            "soc": "soc_a",
+            "kind": "fpga",
+            "subset": {"memories_rebased": {"ssram": 0x30000000}},
+        }
+    }
+    catalog = quiet(document)
+    assert "ssram" not in catalog.resolve("soc_a").application_ranges()  # no base: unknown
+    rng = catalog.resolve("soc_a_fpga").application_ranges()["ssram"][0]
+    assert rng.start == 0x30000000
+    assert "fact:implementation:soc_a_fpga:subset.memories_rebased.ssram" in rng.provenance.source
+    assert "fact:soc:soc_a:memories.ssram.base" not in rng.provenance.source
+    facts = _provenance.Facts(catalog._trees, lambda _: True)
+    assert all(facts.exists(k) for s in rng.provenance.source if (k := facts.parse(s)))
+
+
+def test_a_resize_alone_keeps_the_socs_base_citation(document):
+    """A resize supplies the size, not the base: the Soc's base is still the source."""
+    document["implementations"] = {
+        "soc_a_fpga": {
+            "soc": "soc_a",
+            "kind": "fpga",
+            "subset": {"memories_resized": {"nvm": "2M"}},
+        }
+    }
+    rng = quiet(document).resolve("soc_a_fpga").application_ranges()["nvm"][0]
+    assert rng.end == 0x00400000 + 2 * KB * KB
+    assert "fact:soc:soc_a:memories.nvm.base" in rng.provenance.source
+    assert "fact:soc:soc_a:memories.nvm.size" not in rng.provenance.source
+    assert "fact:implementation:soc_a_fpga:subset.memories_resized.nvm" in rng.provenance.source
 
 
 def test_a_target_lineage_follows_each_entry_to_its_base(document):

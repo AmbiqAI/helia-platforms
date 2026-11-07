@@ -18,8 +18,8 @@ realize them, not a static table. It exposes:
 1. a **catalog** of specifications (SoCs), implementations of them
    (FPGA builds, FVP and RTL models, and non-default silicon), silicon
    parts, boards, add-ons and memory devices, every fact carrying
-   provenance. Linker windows are not catalog content: an optional
-   generated dataset of link environments ships separately;
+   provenance. Linker windows are not catalog content and the package
+   ships none: they belong to the tools that link (#73, 2026-11-05);
 2. a **resolver** that turns any accepted spelling into one target, with
    aliases, compositions, family shorthands and did-you-mean in one place;
 3. **derived queries**: capabilities such as MVE, FP16 or an Ethos-U85 with
@@ -53,7 +53,6 @@ Each term has one meaning in this RFC, except `revision`, whose meaning depends 
 | revision (Soc) | `Soc.revision`: the design revision of the specification (for example a pre-silicon RTL revision). |
 | revision (Part) | `Part.silicon_revision`: the silicon revision of the fitted die. |
 | revision (Board, AddOn) | `Board.revision`, `AddOn.revision`: the board revision of the PCB. |
-| revision (LinkEnvironment) | `LinkEnvironment.revision`: the revision of the source the windows were generated from (an SDK or Zephyr commit). |
 | add-on | An `AddOn`: a shield or daughter board that fits named boards, occupies board interfaces and brings its own population. |
 | memory device | A `MemoryDevice`: an external memory part with technology, capacity, driver family and modes. |
 | interface | A `MemoryInterface` on a board: controller, modes, XIP aperture and any alias windows. |
@@ -62,11 +61,10 @@ Each term has one meaning in this RFC, except `revision`, whose meaning depends 
 | source label | Where a catalog entry came from: `builtin`, `entry_point:<distribution>`, `env:<path>` or `overlay:<path>`; see `Catalog.sources`. |
 | boot configuration | A `BootConfig`: a named boot layout (sbl, nbl, or a custom layout) with its reservations, one application start per programmable core (`app_start`, core 0 by default) and what it `requires`. |
 | reservation | A documented range of memory no core's image may use: boot ROM, an SBL partition. Radio firmware is an image slot, not a reservation. |
-| link environment | A `LinkEnvironment`: the linker windows one piece of software (an SDK, Zephyr, a customer script) gives a set of targets. Not part of the core model. |
-| link family | The toolchain flavour a link environment describes: `gnu`, `armlink`, `zephyr`. |
-| profile | A named linker variant within an owner and link family (for example `default`). Not the profiler's clock profile (an operating point) and not a neuralspotx starter profile. |
+| linker profile | A named variant of a consumer's linker scripts (`default`, `nbl`). Not the profiler's clock profile (an operating point) and not a neuralspotx starter profile. |
+| linker window | The range a piece of software's linker script (an SDK's, Zephyr's, a customer's) lets a build use in a region. Not catalog content: a consumer keeps its own and intersects them with `Target.application_ranges()` (#73). |
 | series | The SDK product line (`apollo5`, `atomiq`). Not the profiler's AP3/AP4/AP5 tier, which is profiler policy. |
-| origin | Catalog origin only: `builtin` or `overlay`, where an entry came from. The address an application links at is `BootConfig.app_start`; the start of a linker window is `WindowRegion.start`. |
+| origin | Catalog origin only: `builtin` or `overlay`, where an entry came from. The address an application links at is `BootConfig.app_start`; a linker window is the consumer's (#73). |
 | provenance status | One of `datasheet`, `sdk`, `measured`, `fitted`, `derived`, `unverified` ([ADR 0003](../adr/0003-provenance-record.md)). The status `derived` marks a value computed from other sourced values, such as a size computed from two addresses. |
 | derived capability | A query computed from structural facts (`isa().supports_fp16`). Not the same as `derives_from` or `based_on`; see [Inheritance and derivation](#inheritance-and-derivation). |
 | target | The resolved, flattened view `resolve()` returns. Its `kind` is `board`, `part`, `implementation` or `soc`. |
@@ -124,7 +122,6 @@ Soc ── cores: [CoreInstance(id, role, core, options: CoreOptions, clock_doma
 MemoryDevice: an external part (APS25616N, IS25WX064): technology, capacity, driver family, modes
 Composition: a legacy alias -> board + add-ons (apollo4p_evb_disp_shield_rev2)
 Resolved target: Board + AddOns | Part | Implementation | Soc -> one flattened, queryable view
-LinkEnvironment (optional generated dataset, outside the core model): toolchain windows and carve-outs
 ```
 
 ### Core and Npu (IP blocks)
@@ -375,7 +372,23 @@ BootConfig: name, reserved: {purpose: (region, offset, size)},
   warns when an explicit selection differs from the board's provisioning.
 - Documented reservations (boot ROM, SBL partition) and other cores'
   image slots are always subtracted. Stack, heap and toolchain carve-outs are not: they
-  belong to link environments.
+  belong to the consumer's linker windows.
+- `Target.application_ranges(core=0, *, include_discouraged=False)` is the
+  address-level form of the same facts (#73, decided 2026-11-05): per
+  region of `memories()` with a base, the disjoint half-open byte ranges
+  `[start, end)` an application for that core may occupy under the
+  selected boot configuration, in the region's own address space (its
+  `base`, as `flash_load_address()` uses it), each with the region, the
+  target id, core, boot, the core's access entry and a `derived` record
+  naming the catalog facts it came from. By this query's own choice the
+  record has no verifier, since it is computed when asked for; ADR 0003
+  asks one of every record but an unverified one. A region every
+  byte of which is taken maps to an empty tuple; a region with no base is
+  left out, and a target with no boot configuration selected gives an
+  empty mapping, so unknown and empty are told apart. It applies no
+  `programmable_by` view. A consumer that links intersects
+  these with its own linker windows; on the Apollo330 Plus and Apollo510
+  Lite EVB parts the MRAM range is `[0x00410000, 0x00594000)`.
 
 ### Board, external memory and add-ons
 
@@ -459,15 +472,14 @@ loader rejects a built-in entry that is not `public`
 blocks carry no status. A target's effective
 status is the most restrictive status along its reference chain (board,
 its part or implementation, the Soc, selected add-ons and the memory
-devices they populate). A `Composition` and a `LinkEnvironment` are not
-given a most-restrictive status: they are scrubbed and shipped, as below.
+devices they populate). A `Composition` is not given a most-restrictive
+status: it is scrubbed and shipped, as below.
 
 The export filter uses the effective status and never ships an embargoed
 entry or a target whose effective status is embargoed, and it scrubs
 embargoed ids from every table and reference: shorthands, compositions,
-`fits_boards`, `default_board`, `applies_to` and aliases. A Composition is
-dropped when its board or any of its add-ons is scrubbed, a LinkEnvironment
-that references only embargoed entities is dropped, and so is a Core or Npu
+`fits_boards`, `default_board` and aliases. A Composition is
+dropped when its board or any of its add-ons is scrubbed, and so is a Core or Npu
 that no exported Soc references (ADR 0005,
 [RFC 0003](0003-export-and-pages.md)).
 
@@ -482,33 +494,29 @@ origin `overlay` and a source label, never shadow built-ins, and carry
 provenance and `release_status`. Rules, load order and conflict errors are
 in [0002-private-silicon.md](0002-private-silicon.md).
 
-### Link environments
+### Linker windows stay with the consumers
 
 Linker windows are properties of software (an SDK's scripts, Zephyr's
-devicetree, a customer's own script), not of the silicon. The core model
-does not carry them. The package defines a `LinkEnvironment` schema
-(owner, link family, profile, `applies_to`, per-region usable window,
-source, revision) and accepts one wherever a budget is asked for.
-`applies_to` lists the Soc, Implementation or Board ids the environment
-covers. An environment applies to a target if any id on the target's
-reference chain (board, part, implementation, Soc) is listed, except that
-the chain stops at an implementation that rebases or resizes a region, so
-a silicon environment never covers a rebased FPGA build.
-`Target.budget(env)` raises if the target is not covered. An
-optional dataset of environments generated from nsx-ambiq-sdk and Zephyr
-at pinned revisions ships separately for consumers that want a
-conservative default; the profiler's windows table seeds it, and an
-extractor script regenerates it rather than hand-copying, from the
-committed source snapshots of
-[ADR 0006](../adr/0006-drift-test-snapshots.md).
+devicetree, a customer's own script), not of the silicon, and the package
+neither models nor ships them. Amended 2026-11-05 (#73, owner decision):
+the first form of this section defined a `LinkEnvironment` schema, a
+`Target.budget(env)` query, a `windows` command and an optional dataset
+generated from the committed source snapshots. That was dropped before it
+shipped. Windows describe an SDK's scripts, not the hardware; one consumer
+budgets from them; a shipped dataset would pin one SDK snapshot while the
+profiler builds against the SDK it qualifies; and a public wheel would
+carry an internal tool's memory layout.
 
-The two consumers that size memory use different sources on purpose.
-heliaAOT plans against physical sizes (#28): it serves several build
-systems, and no single link environment describes them all.
-helia-profiler builds through neuralspotx with a known toolchain and
-linker profile, so it checks a plan against the windows that build links
-with, through `Target.budget(env)`. A plan that fits the physical size
-but not the window fails before the firmware is built.
+What the package gives instead is `Target.application_ranges()`, above:
+the address ranges an application may occupy in each region after the
+boot reservations and other cores' image slots, with no linker knowledge.
+helia-profiler keeps its windows per link family and linker profile,
+regenerated from the nsx-ambiq-sdk it builds against, and intersects them
+with those ranges for its pre-build fit check; it keeps using the windows
+for post-build accounting and placement verification. heliaAOT plans
+against physical sizes (#28) and keeps its own Zephyr section-name table.
+The committed snapshots stay as evidence for `check-sources` (ADR 0006),
+which reads linker regions to check catalog facts but ships none.
 
 ## Derived capabilities
 
@@ -725,13 +733,13 @@ below is the resolved object returned by `resolve()`.
 | Native FP16 | `target.isa().supports_fp16` | package |
 | Is there an NPU, and which | `target.npu` (npu 0: `None` or `NpuInstance` with `.npu.model`, `.npu.macs_per_cycle`, `.npu.accelerator_config`); `target.npus()` for all | package |
 | Which core and NPU to compile for | core 0 and npu 0 implicitly; `platform.core` and `platform.npu` are future additive options | package default; choice is heliaAOT's |
-| Memories and byte sizes to budget | On-chip RAM (DTCM, ITCM, SRAM) from `target.memories()`, except atomiq110's HBLRAM until its technology and CPU reach are confirmed (#19), NVM from `target.usable_nvm()` and external memories from `target.external_memories()`, for every module type. NVM leaves out the boot reservations and other cores' image slots, because planning into them would overwrite the bootloader or radio firmware. heliaAOT does not budget from a link environment (decided 2026-10-05, see #28) | package |
+| Memories and byte sizes to budget | On-chip RAM (DTCM, ITCM, SRAM) from `target.memories()`, except atomiq110's HBLRAM until its technology and CPU reach are confirmed (#19), NVM from `target.usable_nvm()` and external memories from `target.external_memories()`, for every module type. NVM leaves out the boot reservations and other cores' image slots, because planning into them would overwrite the bootloader or radio firmware. heliaAOT does not budget from a linker window (decided 2026-10-05, see #28) | package |
 | Is ITCM present | `target.has_region("itcm")` | package |
 | Minimum alignment | heliaAOT table keyed by `target.soc.id` (16 with MVE is a placement rule) | heliaAOT |
 | Order to try memories | heliaAOT policy; inputs available as `region.attachment` and `region.characterization` | heliaAOT |
 | CPU string for compiler flags | `target.core.id`, `target.core_options.fpu`, `.mve` | package |
 | Name to print and to key artefacts | `target.id` (canonical) and `target.aliases`; heliaAOT lowercases, and for an alias keeps the name passed and records the canonical id (decided) | package |
-| Zephyr section names for TCM | Zephyr `LinkEnvironment` from the optional dataset, for the zephyr module type only; heliaAOT template reads its section names. No module type uses a link environment or link family for budgets | dataset, heliaAOT |
+| Zephyr section names for TCM | heliaAOT's own Zephyr section-name table (#73); no module type budgets from a linker window | heliaAOT |
 | SoC list for the nsx manifest | `catalog.socs()` ids in neuralspotx spelling | package |
 
 ### helia-profiler
@@ -742,8 +750,8 @@ below is the resolved object returned by `resolve()`.
 | Core, PMU kind, MVE | `target.core`, `target.core.pmu`, `target.isa()` (core 0; `target.cores()` for all) | package |
 | Clock speeds, names, default | `target.operating_points()`, `target.default_operating_point` (`None` where the SDK names no default), `target.cpu_mhz(point)`; HAL mode names from `DomainPoint.hal_mode` per domain (`OperatingPoint.hal_mode` is the system mode where the HAL has one) | package where the SDK names a default; otherwise profiler policy |
 | Region sizes to report | `target.memories()`, `target.usable_nvm()`, `target.external_memories()` (physical) | package |
-| Capacities for the pre-build fit check | `target.budget(env)`, where `env` is the nsx environment for the build's link family and linker profile; where no environment covers the target (an overlay target, or a profile the dataset does not hold), `target.memories()` and `target.usable_nvm()` | package; the environment and the fallback are profiler policy |
-| Linker windows for placement verification and measured used and free bytes | The same `LinkEnvironment` | dataset |
+| Capacities for the pre-build fit check | `target.application_ranges()` intersected with the profiler's own windows for the build's link family and linker profile (#73); `target.memories()` and `target.usable_nvm()` where it has no window | package gives the ranges; the windows and the fallback are profiler policy |
+| Linker windows for placement verification and measured used and free bytes | The profiler's own windows, regenerated from the nsx-ambiq-sdk it builds against (#73) | helia-profiler |
 | Which region holds address X | `target.classify_address(addr)` over physical regions, as seen by core 0 (`master=` for another) | package |
 | J-Link device name | `target.jlink_device` (board, else implementation, else part) | package |
 | App flash load address | `target.flash_load_address()` from the selected boot configuration (explicit `boot=`, else board provisioning, else default) | package |
@@ -788,9 +796,8 @@ neuralspotx is a consumer (#18): it reads `target.soc`,
 own supported-toolchain list.
 Zephyr enters through
 heliaAOT's zephyr module type: the Zephyr board id equals the neuralspotx
-board id. Zephyr link windows and section names come from the optional
-link-environment dataset, for the boards Zephyr ships, pinned to a Zephyr
-revision; the core package does not carry them.
+board id. Zephyr link windows and section names are heliaAOT's own
+(#73); the package does not carry them.
 
 ## API
 
@@ -905,8 +912,7 @@ one of them.
 @dataclass(frozen=True) class AddOn:      id, fits_boards, occupies, population: Mapping[str, str], modes: Mapping[str, tuple[str, ...]], revision, based_on: str | None, aliases, release_status, extensions, provenance
 @dataclass(frozen=True) class Board:      id, category, revision, part: str | None, implementation: str | None, interfaces, population: Mapping[str, str], provisioning, jlink_device, trace_clock_mhz, based_on: str | None, aliases, release_status, extensions, provenance
 @dataclass(frozen=True) class Composition: alias, board, addons; release_status (property, effective from what it references)
-@dataclass(frozen=True) class LinkEnvironment: owner, link_family, profile, applies_to: tuple[str, ...], regions: Mapping[str, WindowRegion], source, revision; release_status (property, effective)
-@dataclass(frozen=True) class WindowRegion: start, length, app_window, section_names
+@dataclass(frozen=True) class AddressRange: start, end, region, target, core, boot, access: Access | None, provenance, field_provenance; size (property)   # [start, end) in the region's base address space, from Target.application_ranges() (#73)
 ```
 
 A class that has `provenance` also has `field_provenance`: the records of
@@ -955,10 +961,9 @@ class Target:
     def flash_load_address(self, core: int | str = 0) -> int   # from boot; raises if there is none
     image_slots: Mapping[str, ImageSlot]                      # the Soc's, each replaced by the part's slot of that name
     def usable_nvm(self, core: int | str = 0, *, include_discouraged: bool = False) -> Mapping[str, int]   # the customer's view: after reservations and other cores' slots; empty for a core only the vendor programs or with no loadable image
+    def application_ranges(self, core: int | str = 0, *, include_discouraged: bool = False) -> Mapping[str, tuple[AddressRange, ...]]   # per region with a base: disjoint [start, end) in the region's base address space, less reservations and other cores' slots; () when all taken; a region with no base is left out; {} with no boot configuration selected (#73)
     # external memory
     def external_memories(self) -> tuple[MemoryRegion, ...]   # population plus add-ons, at aperture bases
-    # link environments (optional)
-    def budget(self, environment: LinkEnvironment, core: int | str = 0) -> Mapping[str, int]   # reachable regions only (external ones through their interface's entry); raises if no id on the reference chain is in applies_to
     def classify_address(self, address: int, master: int | str = 0) -> str | None   # alternate_bases classify to the same region; per-master Access addresses resolved for master
     # debug and SDK
     jlink_device: str | None; trace_clock_mhz: int | float | None; sdk: SdkFacts   # board, else implementation, else part / SDK; trace_clock_mhz is an int when whole, a measured fraction kept
@@ -1078,8 +1083,7 @@ filtered and scrubbed by effective release status, and the JSON Schemas
 ([RFC 0003](0003-export-and-pages.md)). The Markdown pages and the release
 assets are built only from `builtin(include_plugins=False)`.
 `helia-platforms` CLI: `list [socs|boards|parts|implementations]`,
-`show <id> [--sources] [--provenance] [--addon <id>] [--boot <name>]`, `windows <id> [--family --profile --environment <file>]`
-(reads the optional link-environment dataset or a supplied environment),
+`show <id> [--sources] [--provenance] [--addon <id>] [--boot <name>]`,
 `validate <overlay>`, `check-sources` (compare against the committed SDK
 and Zephyr snapshots; [ADR 0006](../adr/0006-drift-test-snapshots.md)),
 `export --schema | --export-schema | --json <file> [--provenance] [--check] | --pages <dir> [--check] | --release <dir> [--check]`
@@ -1102,10 +1106,10 @@ and Zephyr snapshots; [ADR 0006](../adr/0006-drift-test-snapshots.md)),
   `platform.soc:` feed `load_overlay`.
 - helia-profiler: `SocDef`/`BoardDef` become views over `Target`; its
   policy layer (`SocCapabilities`, GPIO records, reset strategies) stays
-  and reads facts from `Target`; its windows table is deleted in favour of
-  the generated SDK environment dataset, which also supplies its capacity
-  checks through `t.budget(env)` (physical sizes only where no environment
-  covers the target); `target.custom_socs/custom_boards` is translated to
+  and reads facts from `Target`; it keeps its windows table, regenerated
+  from the nsx-ambiq-sdk it builds against, and intersects it with
+  `t.application_ranges()` for its capacity checks (#73; physical sizes
+  where it has no window); `target.custom_socs/custom_boards` is translated to
   the overlay format by a shim for one release.
 - helia-npu: `SocDefinition` becomes a projection of `Target.npu`, its
   access entries and the regions they name (the memory-to-port classes are
@@ -1128,7 +1132,7 @@ stand.
 | Topic | RFC 0001 | RFC 0002 | Why |
 |---|---|---|---|
 | Tool settings | Per-tool sections on built-ins (`helia_aot:` capabilities, preferred memory order, alignment; `profiler:` in custom entries) ("Facts, and each tool's settings") | No tool sections on built-ins; tool policy keyed by canonical id in each tool; overlays may carry `extensions` (proposal) | P1: the package holds facts, not opinions (owner direction; review 2.5) |
-| Linker windows | A windows table in the package keyed by board, profile and link family ("Memory: physical regions and linker windows") | Not in the core model; an optional generated dataset of `LinkEnvironment`s (nsx-ambiq-sdk, Zephyr) ships separately | Windows are properties of software, not silicon |
+| Linker windows | A windows table in the package keyed by board, profile and link family ("Memory: physical regions and linker windows") | Not in the package at all (#73, 2026-11-05): consumers keep their own windows and intersect them with `Target.application_ranges()` | Windows are properties of software, not silicon |
 | Capabilities | Declared lists per entry | Derived from `Core`, `CoreOptions` and `NpuInstance` | P3; declared lists drift (review 2.8) |
 | `tier`, `channel` | Board fields | Removed; support level is a per-tool marker keyed by id | Tool policy, not fact |
 | External memory | A PSRAM (and NVM) region per board | Board `interfaces` plus `population` plus add-ons, populated by `MemoryDevice`s | Board revisions and shields change what is fitted (research/datasheets.md section 7) |
@@ -1148,9 +1152,9 @@ parity test (issue #13) that covers each are in
 
 1. Does the estimator want `OperatingPoint` to carry voltage or rail
    facts, or is that characterization with provenance like memory timing?
-2. Which environments the optional link-environment dataset covers
-   (nsx-ambiq-sdk toolchains and profiles, Zephyr boards), and how it is
-   versioned relative to the catalog.
+2. Closed 2026-11-05 (#73): no link-environment dataset. Linker windows
+   stay with the consumers; the package gives
+   `Target.application_ranges()`.
 3. Of `helia-npu`'s `targets` (FVP, RTL, silicon), the FVP memory maps
    ([ADR 0007](../adr/0007-fvp-memory-maps.md)) and clock choices are
    implementation description and move here; the

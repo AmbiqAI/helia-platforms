@@ -368,6 +368,32 @@ class ImageSlot(_Carrier):
 
 
 @_frozen
+class AddressRange(_Carrier):
+    """A half-open byte interval ``[start, end)`` of ``region`` an application for ``core``
+    may occupy under ``boot``: the region less reservations and other cores' slots (#73).
+    ``target`` is the resolved id the range was computed for.
+
+    The addresses are in the region's own space (its ``base``); a core that sees the
+    region at its own ``Access.address`` offsets them. ``provenance`` is a ``derived``
+    record whose sources name the facts the range came from. By this query's own choice it
+    has no ``verified_on`` or ``verified_by``, since it is computed when asked for and
+    nobody verified it; ADR 0003 asks both of every record but an unverified one.
+    """
+
+    start: int
+    end: int
+    region: str
+    target: str
+    core: str
+    boot: str
+    access: Access | None
+
+    @property
+    def size(self) -> int:
+        return self.end - self.start
+
+
+@_frozen
 class Part(_Carrier):
     id: str
     soc: str

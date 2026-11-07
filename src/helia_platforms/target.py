@@ -358,6 +358,141 @@ class Target:
             }
         )
 
+    def application_ranges(
+        self, core: int | str = 0, *, include_discouraged: bool = False
+    ) -> Mapping[str, tuple[model.AddressRange, ...]]:
+        """Per region of ``memories()`` with a base, the disjoint half-open byte ranges an
+        application for ``core`` may occupy: the region less the selected boot's
+        reservations and other cores' image slots, in address order, in the region's own
+        address space (its ``base``, as ``flash_load_address()`` and ``placement_ranges()``
+        use; a core that sees the region at its own ``Access.address`` offsets them).
+
+        No linker knowledge: a consumer intersects these with its own linker windows
+        (#73). A region every byte of which is taken, or of size 0, maps to ``()``; a
+        region with no base (a populated device on an interface with no aperture, or an
+        overlay region that omits it) is left out, and a target with no boot configuration
+        selected (``boot`` is None) gives an empty mapping, since its reservations are
+        unknown: unknown and empty are told apart. Whether a customer may program the core
+        is ``programmable_by``, which this does not apply. Each range's ``derived`` record
+        names the catalog facts it came from: the region's base and size, and each
+        subtracted reservation's or slot's offset, size, region and (for a slot) core. The
+        selected boot is the range's ``boot`` and is not cited: ``resolve(boot=)`` chooses
+        it from an argument, or else the board's or the implementation's
+        ``provisioning`` or the Soc's ``default_boot`` does. This query's own choice: the
+        record is computed when asked for and nobody verified it, so it carries no
+        ``verified_on`` or ``verified_by``, which ADR 0003 requires of every record but an
+        unverified one; its inputs carry their own records.
+        """
+        instance = self._core(core)
+        boot = self.boot
+        if boot is None:
+            return MappingProxyType({})
+        taken: dict[str, list[tuple[int, int, str, tuple[str, ...]]]] = {}
+        impl = self.implementation
+        owned = (
+            impl is not None and impl.boot_configs is not None and boot.name in impl.boot_configs
+        )
+        owner = f"fact:implementation:{impl.id}" if owned and impl else f"fact:soc:{self.soc.id}"
+        for reservation in boot.reserved:
+            if reservation.size == 0:
+                continue
+            where = f"{owner}:boot_configs.{boot.name}.reserved.{reservation.purpose}"
+            end = reservation.offset + reservation.size
+            taken.setdefault(reservation.region, []).append(
+                (reservation.offset, end, where, (f"{where}.region",))
+            )
+        own_slots = self.part.image_slots if self.part else {}
+        for name, slot in self.image_slots.items():
+            if slot.core != instance.id and slot.size > 0:
+                owner = (
+                    f"fact:part:{self.part.id}"
+                    if self.part and name in own_slots
+                    else f"fact:soc:{self.soc.id}"
+                )
+                end = slot.offset + slot.size
+                taken.setdefault(slot.region, []).append(
+                    (
+                        slot.offset,
+                        end,
+                        f"{owner}:image_slots.{name}",
+                        (f"{owner}:image_slots.{name}.region", f"{owner}:image_slots.{name}.core"),
+                    )
+                )
+        result: dict[str, tuple[model.AddressRange, ...]] = {}
+        for region in self.memories(core, include_discouraged=include_discouraged):
+            if region.base is None:
+                continue
+            access = self.reachable(instance.id, region.name)
+            base = region.base
+            free = [(0, region.size)] if region.size > 0 else []
+            sources = list(self._region_sources(region))
+            for low, high, where, placement in taken.get(region.name, ()):
+                free = _subtract(free, low, high)
+                sources += [f"{where}.offset", f"{where}.size", *placement]
+            provenance = model.Provenance(
+                status="derived",
+                source=tuple(sources),
+                notes=f"{region.name} less the boot reservations and other cores' image slots",
+            )
+            result[region.name] = tuple(
+                model.AddressRange(
+                    start=base + low,
+                    end=base + high,
+                    region=region.name,
+                    target=self.id,
+                    core=instance.id,
+                    boot=boot.name,
+                    access=access,
+                    provenance=provenance,
+                )
+                for low, high in free
+            )
+        return MappingProxyType(result)
+
+    def _region_sources(self, region: model.MemoryRegion) -> tuple[str, ...]:
+        """The ``fact:`` paths of the entries that state ``region``'s base and size."""
+        for (external, _), (interface, device) in zip(self._external, self._devices, strict=True):
+            if external is region or external.name == region.name:
+                impl = self.implementation
+                owner = (
+                    impl
+                    if impl and impl.interfaces.get(interface.name) is interface
+                    else self.board
+                )
+                kind, owner_id = (
+                    ("implementation", impl.id)
+                    if owner is impl and impl
+                    else ("board", self.board.id if self.board else "")
+                )
+                return (
+                    f"fact:{kind}:{owner_id}:interfaces.{interface.name}.aperture_base",
+                    f"fact:memory_device:{device.id}:capacity",
+                )
+        impl = self.implementation
+        if (
+            impl is not None
+            and impl.memories is not None
+            and any(m.name == region.name for m in impl.memories)
+        ):
+            at = f"fact:implementation:{impl.id}:memories.{region.name}"
+            return (f"{at}.base", f"{at}.size")
+        at = f"fact:soc:{self.soc.id}:memories.{region.name}"
+        rebased = impl is not None and region.name in impl.subset.memories_rebased
+        resized = impl is not None and region.name in impl.subset.memories_resized
+        # The Soc states the base and size unless the implementation rebases or resizes it.
+        sources = [] if rebased else [f"{at}.base"]
+        sources += [] if resized else [f"{at}.size"]
+        if impl is not None:
+            if rebased:
+                sources.append(
+                    f"fact:implementation:{impl.id}:subset.memories_rebased.{region.name}"
+                )
+            if resized:
+                sources.append(
+                    f"fact:implementation:{impl.id}:subset.memories_resized.{region.name}"
+                )
+        return tuple(sources)
+
     # -- debug and SDK ----------------------------------------------------------------------
 
     @property
@@ -457,6 +592,20 @@ class Target:
                 f"{self.id}: boot {self.boot.name!r} has no app_start for {instance.id!r}"
             )
         return start
+
+
+def _subtract(free: list[tuple[int, int]], low: int, high: int) -> list[tuple[int, int]]:
+    """``free`` (sorted, disjoint half-open intervals) less ``[low, high)``."""
+    out: list[tuple[int, int]] = []
+    for start, end in free:
+        if high <= start or low >= end:
+            out.append((start, end))
+            continue
+        if low > start:
+            out.append((start, low))
+        if high < end:
+            out.append((high, end))
+    return out
 
 
 _Unit = TypeVar("_Unit", model.CoreInstance, model.NpuInstance)

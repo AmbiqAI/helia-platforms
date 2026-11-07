@@ -1,7 +1,14 @@
 # 0004. Version the schema separately and ship data corrections as patches
 
 Date: 2026-10-05
-Status: Accepted; amended 2026-10-28 (#66)
+Status: Accepted; amended 2026-10-28 (#66) and 2026-11-05 (#73)
+
+## Amendment, 2026-11-05: no link-environment dataset (#73)
+
+The owner decided on #73 that linker windows stay with the consumers, so
+no link-environment dataset exists. The change-table row for a dataset
+change and open question 2, which asked how the dataset is versioned, are
+void.
 
 ## Amendment, 2026-10-28: no `schema_version` bump before 1.0 (#66)
 

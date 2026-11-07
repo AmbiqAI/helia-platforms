@@ -560,6 +560,14 @@ def test_apollo510_ssram_edges_are_offsets_from_its_base(catalog):
     assert all(edge % ssram.dma_boundary != 0 for edge in edges)
 
 
+@pytest.mark.parametrize("board", ["apollo330mP_evb", "apollo510dL_evb"])
+def test_the_lite_evbs_application_mram_ends_at_the_radio_slot(catalog, board):
+    """helia-profiler's check case for #73: 0x00410000 to 0x00594000, 1552 KiB."""
+    ranges = catalog.resolve(board).application_ranges()["mram"]
+    assert [(r.start, r.end, r.size) for r in ranges] == [(0x00410000, 0x00594000, 1552 * 1024)]
+    assert ranges[0].boot == "sbl"
+
+
 def test_the_atomiq110_fpga_inherits_the_npus_port_classes(catalog):
     """The FPGA states no port facts of its own (its scaled FIFOs had no cited capture, #93)."""
     npu = catalog.resolve("atomiq110_fpga_turbo").npu

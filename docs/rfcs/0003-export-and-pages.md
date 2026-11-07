@@ -110,8 +110,8 @@ Records of resolved values for such readers are deferred (see "Deferred:
 resolved targets").
 
 The export carries no tool policy and no budgets: no alignment, placement
-order or linker windows. The optional link-environment dataset stays
-outside the export (RFC 0002 open question 2).
+order or linker windows, which stay with the consumers (#73; RFC 0002
+open question 2, closed 2026-11-05).
 
 The document has no timestamp, and is written with sorted keys, two-space
 indentation and a final newline. The same package version and inputs
@@ -123,8 +123,8 @@ check it byte for byte, as heliaAOT does.
 The export is always filtered by RFC 0002's rule ("Release status",
 `:374-392`), which already includes ADR 0005's additions: no embargoed
 entry and no target whose effective status is embargoed; embargoed ids
-scrubbed from shorthands, compositions, `fits_boards`, `default_board`,
-`applies_to` and aliases; a Core or Npu dropped when no exported Soc
+scrubbed from shorthands, compositions, `fits_boards`, `default_board`
+and aliases; a Core or Npu dropped when no exported Soc
 references it.
 
 The export also drops a composition when its board or any of its add-ons

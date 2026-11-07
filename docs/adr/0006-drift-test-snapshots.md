@@ -1,7 +1,7 @@
 # 0006. Check the catalogue against committed source snapshots
 
 Date: 2026-10-05
-Status: Accepted; amended 2026-10-27 (#18), 2026-10-29 (#64) and 2026-11-06 (#83)
+Status: Accepted; amended 2026-10-27 (#18), 2026-10-29 (#64), 2026-11-05 (#73) and 2026-11-06 (#83)
 
 ## Amendment, 2026-10-27: neuralspotx is a consumer (#18)
 
@@ -45,6 +45,17 @@ Two rows of the table in section 3 change as follows:
   controller the Soc lacks, which a shared header can define (apollo510b
   reads apollo510's header, with its MSPI2 and MSPI3), does not count.
 
+## Amendment, 2026-11-05: no link-environment dataset (#73)
+
+The owner decided on #73 that linker windows stay with the consumers:
+the package neither generates nor ships the dataset section 4 describes.
+The snapshots stay as evidence for `check-sources`, which reads linker
+regions to check catalog facts. helia-profiler regenerates its own windows
+from the nsx-ambiq-sdk it builds against and intersects them with
+`Target.application_ranges()`. Section 4's dataset paragraph, the
+CI table row and the check-table row that name the dataset, and the
+"Consequences" that mention it are superseded.
+
 ## Amendment, 2026-11-06: the Lite parts' scripts fit (#83)
 
 The refresh to nsx-ambiq-sdk `v5.2.27` (#83) found the apollo330P and
@@ -69,7 +80,7 @@ the comparison as the CLI's `check-sources`, "against the committed SDK and
 Zephyr snapshots" ([Overlays, validation, export,
 CLI](../rfcs/0002-model-and-api.md#overlays-validation-export-cli)); moves
 linker windows into an optional link-environment dataset that an extractor
-regenerates ([Link environments](../rfcs/0002-model-and-api.md#link-environments));
+regenerates ([Linker windows stay with the consumers](../rfcs/0002-model-and-api.md#linker-windows-stay-with-the-consumers));
 and derives the flash load address from named [boot
 configurations](../rfcs/0002-model-and-api.md#boot-configurations). Its
 migration plan holds that dataset to window parity with the profiler's
@@ -318,7 +329,7 @@ Recorded but deliberately not compared:
 - Probe settings with no catalogue field (`NSX_SEGGER_SWOFREQ`,
   `NSX_SEGGER_IF_SPEED`).
 
-### 4. Refresh, and the link-environment dataset
+### 4. Refresh, and the link-environment dataset (dataset superseded, see the amendment of 2026-11-05)
 
 A refresh is a PR made by running the extractor with new pins: an
 nsx-ambiq-sdk tag (`--sdk`) and a Zephyr `main` commit by full SHA, from
