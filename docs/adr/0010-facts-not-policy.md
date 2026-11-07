@@ -65,9 +65,10 @@ to do".
 - RFC 0002's rule list is regenerated from the loader (#141).
 - Still to follow: `AddOn.modes` is redefined as the modes the add-on's
   wiring uses, with `Target.interfaces` reporting the board's and the
-  add-on's modes side by side (#139). Whether linker windows,
-  `Target.budget()` and the `windows` command belong in this package is
-  proposed on #73.
+  add-on's modes side by side (#139). Linker windows,
+  `Target.budget()` and the `windows` command do not belong in this
+  package (decided on #73, 2026-11-05); `Target.application_ranges()`
+  gives the hardware side.
 - Harder: a consumer that wants a "usable" set must intersect or filter
   for itself. The queries give it the inputs.
 - CONTRIBUTING gains a "Scope" section with points 1, 2 and 5, which

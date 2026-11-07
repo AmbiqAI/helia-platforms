@@ -163,7 +163,7 @@ domains. An Implementation may add or replace domain points through
 | `memories(core=0, *, include_discouraged=False)` | Regions with a `direct` access entry for that core, plus external regions whose interface controller it has an entry for; an entry with `guidance: discouraged` is left out unless `include_discouraged=True`, so by default no budget or placement counts it, though `reachable()` returns it |
 | `placement_ranges(core=0, *, include_discouraged=False)` | (base, size) of the regions `memories()` gives |
 | `flash_load_address(core=0)`, `usable_nvm(core=0, *, include_discouraged=False)` | From the selected boot configuration and that core's slots; `usable_nvm()` is the customer's view and filters as `memories()` does |
-| `application_ranges(core=0, *, include_discouraged=False)` | Per region that core reaches: the ranges an application may occupy, less reservations and other cores' slots (#73) |
+| `application_ranges(core=0, *, include_discouraged=False)` | Per region with a base that core reaches: the ranges an application may occupy, less reservations and other cores' slots (#73) |
 | `operating_points(domain=None)`, `operating_point(name=None, *, domain=None)` | System points, or one domain's points |
 | `cpu_mhz(point=None, core=0)`, `npu_mhz(point=None, npu=0)` | That core's or NPU's clock in a system operating point |
 | `npu_clocks(npu=0)` | That NPU's clock per system operating point |

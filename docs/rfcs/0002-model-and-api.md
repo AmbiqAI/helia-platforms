@@ -61,6 +61,7 @@ Each term has one meaning in this RFC, except `revision`, whose meaning depends 
 | source label | Where a catalog entry came from: `builtin`, `entry_point:<distribution>`, `env:<path>` or `overlay:<path>`; see `Catalog.sources`. |
 | boot configuration | A `BootConfig`: a named boot layout (sbl, nbl, or a custom layout) with its reservations, one application start per programmable core (`app_start`, core 0 by default) and what it `requires`. |
 | reservation | A documented range of memory no core's image may use: boot ROM, an SBL partition. Radio firmware is an image slot, not a reservation. |
+| linker profile | A named variant of a consumer's linker scripts (`default`, `nbl`). Not the profiler's clock profile (an operating point) and not a neuralspotx starter profile. |
 | linker window | The range a piece of software's linker script (an SDK's, Zephyr's, a customer's) lets a build use in a region. Not catalog content: a consumer keeps its own and intersects them with `Target.application_ranges()` (#73). |
 | series | The SDK product line (`apollo5`, `atomiq`). Not the profiler's AP3/AP4/AP5 tier, which is profiler policy. |
 | origin | Catalog origin only: `builtin` or `overlay`, where an entry came from. The address an application links at is `BootConfig.app_start`; a linker window is the consumer's (#73). |
@@ -371,9 +372,10 @@ BootConfig: name, reserved: {purpose: (region, offset, size)},
   address-level form of the same facts (#73, decided 2026-11-05): per
   region of `memories()` with a base, the disjoint half-open byte ranges
   `[start, end)` an application for that core may occupy under the
-  selected boot configuration, each with the region, core, boot, the
-  core's access entry and a `derived` record naming the facts it came
-  from. A region every byte of which is taken maps to an empty tuple; a
+  selected boot configuration, in the region's own address space (its
+  `base`, as `flash_load_address()` uses it), each with the region, core,
+  boot, the core's access entry and a `derived` record naming the facts
+  it came from. A region every byte of which is taken maps to an empty tuple; a
   region with no base is left out, so unknown and empty are told apart.
   It applies no `programmable_by` view. A consumer that links intersects
   these with its own linker windows; on the Apollo330 Plus and Apollo510
@@ -942,7 +944,7 @@ class Target:
     def flash_load_address(self, core: int | str = 0) -> int   # from boot; raises if there is none
     image_slots: Mapping[str, ImageSlot]                      # the Soc's, each replaced by the part's slot of that name
     def usable_nvm(self, core: int | str = 0, *, include_discouraged: bool = False) -> Mapping[str, int]   # the customer's view: after reservations and other cores' slots; empty for a core only the vendor programs or with no loadable image
-    def application_ranges(self, core: int | str = 0, *, include_discouraged: bool = False) -> Mapping[str, tuple[AddressRange, ...]]   # per region with a base: disjoint [start, end) less reservations and other cores' slots, as the core addresses them; () when all taken; a region with no base is left out (#73)
+    def application_ranges(self, core: int | str = 0, *, include_discouraged: bool = False) -> Mapping[str, tuple[AddressRange, ...]]   # per region with a base: disjoint [start, end) in the region's base address space, less reservations and other cores' slots; () when all taken; a region with no base is left out (#73)
     # external memory
     def external_memories(self) -> tuple[MemoryRegion, ...]   # population plus add-ons, at aperture bases
     def classify_address(self, address: int, master: int | str = 0) -> str | None   # alternate_bases classify to the same region; per-master Access addresses resolved for master

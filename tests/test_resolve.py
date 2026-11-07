@@ -543,7 +543,7 @@ def test_application_ranges_tell_an_unknown_region_from_an_empty_one(document):
     assert "extra" not in ranges  # no base: unknown, not empty
 
 
-def test_application_ranges_use_the_cores_own_address_and_skip_zero_sizes(document):
+def test_application_ranges_stay_in_the_regions_address_space_and_skip_zero_sizes(document):
     soc = document["socs"]["soc_a"]
     soc["access"].append(
         {"master": "cm55_0", "target": "nvm", "access": "direct", "address": 0x08000000}
@@ -556,9 +556,12 @@ def test_application_ranges_use_the_cores_own_address_and_skip_zero_sizes(docume
         "base": 0x30000000,
     }
     soc["access"].append({"master": "cm55_0", "target": "empty", "access": "direct"})
-    ranges = quiet(document).resolve("board_a").application_ranges()
-    assert [(r.start, r.end) for r in ranges["nvm"]] == [(0x08010000, 0x08400000)]
-    assert "fact:soc:soc_a:access.cm55_0@nvm.address" in ranges["nvm"][0].provenance.source
+    target = quiet(document).resolve("board_a")
+    ranges = target.application_ranges()
+    # The region's base, as flash_load_address() uses it, not the core's own address.
+    assert [(r.start, r.end) for r in ranges["nvm"]] == [(0x00410000, 0x00800000)]
+    assert ranges["nvm"][0].start == target.flash_load_address()
+    assert not any("address" in s for s in ranges["nvm"][0].provenance.source)
     assert ranges["empty"] == ()
 
 

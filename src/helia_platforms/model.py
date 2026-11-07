@@ -358,8 +358,8 @@ class AddressRange(_Carrier):
     """A half-open byte interval ``[start, end)`` of ``region`` an application for ``core``
     may occupy under ``boot``: the region less reservations and other cores' slots (#73).
 
-    The addresses are as ``core`` sees them: the core's own ``Access.address`` for the
-    region where it has one, else the region's ``base``. ``provenance`` is a ``derived``
+    The addresses are in the region's own space (its ``base``); a core that sees the
+    region at its own ``Access.address`` offsets them. ``provenance`` is a ``derived``
     record whose sources name the facts the range came from.
     """
 

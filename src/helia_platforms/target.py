@@ -358,8 +358,9 @@ class Target:
     ) -> Mapping[str, tuple[model.AddressRange, ...]]:
         """Per region of ``memories()`` with a base, the disjoint half-open byte ranges an
         application for ``core`` may occupy: the region less the selected boot's
-        reservations and other cores' image slots, in address order, as ``core``
-        addresses them (its own ``Access.address`` for the region where it has one).
+        reservations and other cores' image slots, in address order, in the region's own
+        address space (its ``base``, as ``flash_load_address()`` and ``placement_ranges()``
+        use; a core that sees the region at its own ``Access.address`` offsets them).
 
         No linker knowledge: a consumer intersects these with its own linker windows
         (#73). A region every byte of which is taken, or of size 0, maps to ``()``; a
@@ -404,18 +405,12 @@ class Target:
             if region.base is None:
                 continue
             access = self.reachable(instance.id, region.name)
-            base = (
-                access.address if access is not None and access.address is not None else region.base
-            )
+            base = region.base
             free = [(0, region.size)] if region.size > 0 else []
             sources = list(self._region_sources(region))
             for low, high, where in taken.get(region.name, ()):
                 free = _subtract(free, low, high)
                 sources += [f"{where}.offset", f"{where}.size"]
-            if access is not None and access.address is not None:
-                sources.append(
-                    f"fact:soc:{self.soc.id}:access.{access.master}@{access.target}.address"
-                )
             provenance = model.Provenance(
                 status="derived",
                 source=tuple(sources),
