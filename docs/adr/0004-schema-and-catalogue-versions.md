@@ -211,8 +211,10 @@ overlay mapping in `catalogue_digest`'s canonical JSON, so a file and the
 same mapping passed in memory hash alike. Before hashing, each
 `provenance` key is removed and each `{value, provenance}` form is
 unwrapped to its value, but only on keys the format declaration defines
-(ADR 0002 (#7) section 2.7). `extensions` values are opaque tool data and
-are hashed unchanged, including any key in them named `provenance`.
+(ADR 0002 (#7) section 2.7); a key the format reads and ignores as
+deprecated (`Access.port` since #93, 2026-11-06) is left out, in either
+form. `extensions` values are opaque tool data and are hashed unchanged,
+including any key in them named `provenance`.
 heliaAOT writes the record next to the tool version it already
 stamps; the profiler writes it into run metadata. Reason: the version names
 the release, the digest shows whether two runs used the same data, and the

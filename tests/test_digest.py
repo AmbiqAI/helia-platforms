@@ -83,9 +83,10 @@ def test_provenance_only_change_keeps_digest(builtin_document):
     [
         lambda d: d["socs"]["soc_a"]["memories"]["tcm"].update(size="256K"),
         lambda d: d["socs"]["soc_a"]["peripherals"].append("iom3"),
+        lambda d: d["socs"]["soc_a"]["npus"][0].update(axi_ports={"sram": {"count": 2}}),
         lambda d: d["parts"]["PART-A"].update(aliases=["part_a_alias"]),
     ],
-    ids=["value", "value-list-member", "alias"],
+    ids=["value", "value-list-member", "keyed-mapping", "alias"],
 )
 def test_data_change_changes_digest(builtin_document, change):
     before = digest_of(copy.deepcopy(builtin_document))

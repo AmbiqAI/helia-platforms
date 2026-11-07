@@ -366,12 +366,15 @@ def _load_documents(
     base = base or _EMPTY
     documents = list(documents)  # read twice: checked, then recorded
     problems: list[str] = []
+    noted: list[str] = []  # structural warnings, emitted by the loader after any problems
     merged: dict[str, dict[str, tuple[Any, str]]] = {}
     compositions: dict[str, tuple[Any, str]] = {}
     shorthands: dict[str, tuple[Any, str]] = {}
     register: dict[str, Any] = {"documents": {}, "repositories": {}, "unverified_allowed": []}
     for data, origin in documents:
-        found = _structural.check_document(data, origin, require_version=require_version)
+        found = _structural.check_document(
+            data, origin, require_version=require_version, warnings=noted
+        )
         if found:
             problems += found
             continue
@@ -411,6 +414,7 @@ def _load_documents(
             for data, origin in documents
         )
     loader = _Loader(base, builtin, source, applied)
+    loader.warnings.extend(noted)
     loader.register = _provenance.Register(
         register["documents"], register["repositories"], tuple(register["unverified_allowed"])
     )

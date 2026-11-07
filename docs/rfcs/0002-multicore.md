@@ -74,7 +74,7 @@ those also in `memory_controllers` may be targets):
 | `requires_awake` | Power domains that must be on for the access |
 | `guidance` | `preferred`, `allowed` or `discouraged`, with `reason` |
 | `address` | Optional per-master address, for a part where a master sees the region at a different address |
-| `port` | Optional NPU AXI port class: `0` (Vela `Sram`, Arm `AXI_SRAM`) or `1` (Vela `Dram`, `AXI_EXT`), the estimator's vocabulary per [research/queries-helia-estimator.md](../research/queries-helia-estimator.md); replaces `NpuInstance.memory_ports` |
+| `port` | Removed on #93 (2026-11-06): which memory a compiler serves over which NPU port is the consumer's choice. The IP's port classes and per-port limits are `NpuInstance.axi_ports`. The key is read, warned about and ignored until #159 removes it |
 | `characterization` | Optional latency, bandwidth and port facts, each with provenance (no energy data); for this master it overrides the region's characterization |
 | `provenance` | Required on built-ins |
 
@@ -205,7 +205,7 @@ socs:
     access:
       - {master: app_0, target: dsp_tcm, access: none}
       - {master: npu_0, target: dtcm, access: direct, requires_awake: [app_power], guidance: discouraged, reason: keeps the app core domain awake}
-      - {master: npu_0, target: ssram, access: direct, guidance: preferred, port: 0}
-      - {master: npu_0, target: mspi0, access: direct, guidance: allowed, port: 1}
+      - {master: npu_0, target: ssram, access: direct, guidance: preferred}
+      - {master: npu_0, target: mspi0, access: direct, guidance: allowed}
       - {master: dsp_0, target: dsp_tcm, access: direct}
 ```

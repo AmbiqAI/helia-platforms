@@ -25,6 +25,7 @@ class _Checker:
     def __init__(self, origin: str) -> None:
         self.origin = origin
         self.problems: list[str] = []
+        self.warnings: list[str] = []
 
     def fail(self, path: str, message: str) -> None:
         where = f"{self.origin}: {path}" if path else self.origin
@@ -87,6 +88,19 @@ class _Checker:
                 self.fail(path, f"key {key!r} is not a string")
             elif key not in declared:
                 self.fail(_join(path, key), _unknown_key(key, declared))
+        # A deprecated key is reported and otherwise ignored: its value must be JSON data
+        # (the source hash encodes the document) but is not checked against the format, and
+        # the normalizer drops it, so the entry loads as if the key were absent.
+        ignored = {
+            key
+            for key in value
+            if isinstance(key, str) and key in declared and _deprecated(declared[key].type)
+        }
+        for key in sorted(ignored):
+            note = _deprecated(declared[key].type)
+            assert note is not None
+            self.warnings.append(f"{self.origin}: {_join(path, key)}: {note}; ignored")
+            self.check_json(value[key], _join(path, key), ())  # ignored, but still JSON data
         inherits = _walk.is_inheritable(obj) and "based_on" in value
         if not inherits:
             for name, field in declared.items():
@@ -94,7 +108,7 @@ class _Checker:
                     self.fail(path, f"missing required key {name!r}")
         facts = _walk.carries_facts(obj)
         for key, item in value.items():
-            if isinstance(key, str) and key in declared:
+            if isinstance(key, str) and key in declared and key not in ignored:
                 self.check(item, declared[key].type, _join(path, key), facts)
 
     def check_mapping(self, value: Any, tp: Any, path: str, facts: bool) -> None:
@@ -239,9 +253,23 @@ def conforms(value: Any, tp: Any, *, facts: bool) -> bool:
     return not checker.problems
 
 
-def check_document(data: Any, origin: str, *, require_version: bool = True) -> list[str]:
-    """Return every structural problem in a parsed document (empty when it conforms)."""
+def _deprecated(tp: Any) -> str | None:
+    """The note of a deprecated key's marker, or None."""
+    marker = _walk.marker(_walk.unwrap(tp)[1], fmt.Deprecated)
+    return None if marker is None else marker.note
+
+
+def check_document(
+    data: Any, origin: str, *, require_version: bool = True, warnings: list[str] | None = None
+) -> list[str]:
+    """Return every structural problem in a parsed document (empty when it conforms).
+
+    Warnings (a deprecated key) are appended to ``warnings`` when a list is given, so the
+    loader can emit them after the problems, through its own channel.
+    """
     checker = _Checker(origin)
+    if warnings is not None:
+        checker.warnings = warnings
     if not isinstance(data, dict):
         checker.fail("", f"expected a mapping at the top level, got {_describe(data)}")
         return checker.problems
