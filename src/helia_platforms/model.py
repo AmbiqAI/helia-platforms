@@ -361,7 +361,9 @@ class AddressRange(_Carrier):
 
     The addresses are in the region's own space (its ``base``); a core that sees the
     region at its own ``Access.address`` offsets them. ``provenance`` is a ``derived``
-    record whose sources name the facts the range came from.
+    record whose sources name the facts the range came from; it is computed when asked
+    for, so it has no ``verified_on`` or ``verified_by`` (ADR 0003's rule covers stored
+    records).
     """
 
     start: int

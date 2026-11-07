@@ -566,6 +566,7 @@ def test_application_ranges_stay_in_the_regions_address_space_and_skip_zero_size
         "fact:soc:soc_a:memories.nvm.size",
         "fact:soc:soc_a:boot_configs.sbl.reserved.sbl.offset",
         "fact:soc:soc_a:boot_configs.sbl.reserved.sbl.size",
+        "fact:soc:soc_a:boot_configs.sbl.reserved.sbl.region",
     )
     assert ranges["empty"] == ()
 
@@ -670,6 +671,11 @@ def test_application_ranges_credit_each_input_to_the_entry_that_states_it(docume
         "fact:soc:soc_a:memories.nvm.base" not in fpga.provenance.source
     )  # the rebase supplies it
     assert not any(s.startswith("fact:soc:soc_a:boot_configs") for s in fpga.provenance.source)
+    assert (
+        "fact:soc:soc_a:memories.nvm.size" not in fpga.provenance.source
+    )  # the resize supplies it
+    assert "fact:part:PART-A:image_slots.radio.core" in board.provenance.source
+    assert "fact:part:PART-A:image_slots.radio.region" in board.provenance.source
     # programmable_by is not applied: the vendor-only radio core still gets its ranges.
     radio = catalog.resolve("board_a").application_ranges("radio_0")["nvm"]
     assert radio and catalog.resolve("board_a").usable_nvm("radio_0") == {}

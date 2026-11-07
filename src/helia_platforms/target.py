@@ -369,13 +369,17 @@ class Target:
         selected (``boot`` is None) gives an empty mapping, since its reservations are
         unknown: unknown and empty are told apart. Whether a customer may program the core
         is ``programmable_by``, which this does not apply. Each range's ``derived`` record
-        names the facts it came from.
+        names the catalog facts it came from: the region's base and size, and each
+        subtracted reservation's or slot's offset, size, region and (for a slot) core. The
+        selected boot is the range's ``boot``, since an explicit ``boot=`` is an argument,
+        not a fact. The record is computed at query time, so it carries no
+        ``verified_on`` or ``verified_by``: ADR 0003's verifier rule is for stored records.
         """
         instance = self._core(core)
         boot = self.boot
         if boot is None:
             return MappingProxyType({})
-        taken: dict[str, list[tuple[int, int, str]]] = {}
+        taken: dict[str, list[tuple[int, int, str, tuple[str, ...]]]] = {}
         impl = self.implementation
         owned = (
             impl is not None and impl.boot_configs is not None and boot.name in impl.boot_configs
@@ -386,7 +390,9 @@ class Target:
                 continue
             where = f"{owner}:boot_configs.{boot.name}.reserved.{reservation.purpose}"
             end = reservation.offset + reservation.size
-            taken.setdefault(reservation.region, []).append((reservation.offset, end, where))
+            taken.setdefault(reservation.region, []).append(
+                (reservation.offset, end, where, (f"{where}.region",))
+            )
         own_slots = self.part.image_slots if self.part else {}
         for name, slot in self.image_slots.items():
             if slot.core != instance.id and slot.size > 0:
@@ -397,7 +403,12 @@ class Target:
                 )
                 end = slot.offset + slot.size
                 taken.setdefault(slot.region, []).append(
-                    (slot.offset, end, f"{owner}:image_slots.{name}")
+                    (
+                        slot.offset,
+                        end,
+                        f"{owner}:image_slots.{name}",
+                        (f"{owner}:image_slots.{name}.region", f"{owner}:image_slots.{name}.core"),
+                    )
                 )
         result: dict[str, tuple[model.AddressRange, ...]] = {}
         for region in self.memories(core, include_discouraged=include_discouraged):
@@ -407,9 +418,9 @@ class Target:
             base = region.base
             free = [(0, region.size)] if region.size > 0 else []
             sources = list(self._region_sources(region))
-            for low, high, where in taken.get(region.name, ()):
+            for low, high, where, placement in taken.get(region.name, ()):
                 free = _subtract(free, low, high)
-                sources += [f"{where}.offset", f"{where}.size"]
+                sources += [f"{where}.offset", f"{where}.size", *placement]
             provenance = model.Provenance(
                 status="derived",
                 source=tuple(sources),
@@ -459,9 +470,10 @@ class Target:
             return (f"{at}.base", f"{at}.size")
         at = f"fact:soc:{self.soc.id}:memories.{region.name}"
         rebased = impl is not None and region.name in impl.subset.memories_rebased
-        # The Soc states the base unless the implementation rebases the region.
+        resized = impl is not None and region.name in impl.subset.memories_resized
+        # The Soc states the base and size unless the implementation rebases or resizes it.
         sources = [] if rebased else [f"{at}.base"]
-        sources.append(f"{at}.size")
+        sources += [] if resized else [f"{at}.size"]
         if impl is not None:
             if rebased:
                 sources.append(
