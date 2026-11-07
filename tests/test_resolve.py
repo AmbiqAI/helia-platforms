@@ -561,7 +561,12 @@ def test_application_ranges_stay_in_the_regions_address_space_and_skip_zero_size
     # The region's base, as flash_load_address() uses it, not the core's own address.
     assert [(r.start, r.end) for r in ranges["nvm"]] == [(0x00410000, 0x00800000)]
     assert ranges["nvm"][0].start == target.flash_load_address()
-    assert not any("address" in s for s in ranges["nvm"][0].provenance.source)
+    assert ranges["nvm"][0].provenance.source == (
+        "fact:soc:soc_a:memories.nvm.base",
+        "fact:soc:soc_a:memories.nvm.size",
+        "fact:soc:soc_a:boot_configs.sbl.reserved.sbl.offset",
+        "fact:soc:soc_a:boot_configs.sbl.reserved.sbl.size",
+    )
     assert ranges["empty"] == ()
 
 

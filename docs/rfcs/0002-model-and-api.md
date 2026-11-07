@@ -896,7 +896,7 @@ one of them.
 @dataclass(frozen=True) class AddOn:      id, fits_boards, occupies, population: Mapping[str, str], modes: Mapping[str, tuple[str, ...]], revision, aliases, release_status, extensions, provenance
 @dataclass(frozen=True) class Board:      id, category, revision, part: str | None, implementation: str | None, interfaces, population: Mapping[str, str], provisioning, jlink_device, trace_clock_mhz, aliases, release_status, extensions, provenance
 @dataclass(frozen=True) class Composition: alias, board, addons; release_status (property, effective from what it references)
-@dataclass(frozen=True) class AddressRange: start, end, region, core, boot: str | None, access: Access | None, provenance, field_provenance; size (property)   # [start, end) as the core addresses it, from Target.application_ranges() (#73)
+@dataclass(frozen=True) class AddressRange: start, end, region, core, boot: str | None, access: Access | None, provenance, field_provenance; size (property)   # [start, end) in the region's base address space, from Target.application_ranges() (#73)
 ```
 
 A class that has `provenance` also has `field_provenance`: the records of
