@@ -190,6 +190,24 @@ class Catalog:
 
         return export.document(self)
 
+    def lineage(self, kind: str, entry_id: str) -> tuple[str, ...]:
+        """The entry's id, then each ``based_on`` base in turn, ending at the first entry
+        that names none: a built-in, or a self-contained overlay entry.
+
+        ``kind`` is a table name (``cores``, ``socs``, ``implementations``, ``parts``,
+        ``boards``, ``addons``, ``memory_devices``). A consumer that keys its own policy by id looks
+        it up along this chain, so a derived entry finds the policy of its base (#134).
+        Raises ``KeyError`` for an unknown table or id.
+        """
+        if kind not in _KINDS:
+            raise KeyError(f"no entity table {kind!r}")
+        chain = [entry_id]
+        entry = self._entry(kind, entry_id)
+        while (base := entry.based_on) is not None:
+            chain.append(base)
+            entry = self._entry(kind, base)
+        return tuple(chain)
+
     def _entry(self, kind: str, entry_id: str) -> Any:
         """One entry by table name and exact id; raises KeyError when absent."""
         return self._tables[kind][entry_id]
@@ -398,6 +416,12 @@ def _load_documents(
     return loader.load(merged, compositions, shorthands)
 
 
+def _with_base(tree: Tree, based_on: str) -> Tree:
+    """``tree`` with the entry's own ``based_on``, which the merge leaves out (#134)."""
+    tree.values["based_on"] = based_on
+    return tree
+
+
 def _add_to_register(register: dict[str, Any], key: str, table: Any, origin: str) -> list[str]:
     """Merge one file's register or allow-list into the load's; a key defined twice is a problem."""
     if key == "unverified_allowed":
@@ -597,7 +621,7 @@ class _Loader:
             else:
                 try:
                     expanded = self.expand(kind, own, merge(base_tree, own, decl), origin, where)
-                    result = merge(base_tree, own, decl) if expanded else None
+                    result = _with_base(merge(base_tree, own, decl), based_on) if expanded else None
                 except MergeError as exc:
                     for problem in exc.problems:
                         self.fail(origin, where, problem)

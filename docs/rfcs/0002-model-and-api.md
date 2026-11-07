@@ -689,6 +689,11 @@ This is the one definition of both relations.
   `release_status` (the entry's own, default `embargoed`). Unchanged values
   keep the base entry's provenance; changed values take the overlay's
   provenance as declared, or status `unverified` where none is declared.
+  The loaded entry keeps `based_on`, the name of its own base, as a
+  non-fact field (not in `catalog_digest`), and `Catalog.lineage()` or
+  `Target.lineage()` walks it to the first entry that names none, so a
+  consumer that keys its own policy by id looks the entry up first and
+  then its bases (#134, 2026-11-06).
 - `derives_from` is a relation between built-in Socs: a variant that
   shares another Soc's SDK headers (apollo510b derives from apollo510;
   apollo5b, which also reads apollo510's headers, is not in the catalog,
@@ -813,6 +818,7 @@ class Catalog:
     def resolve(self, name: str, *, addons: Sequence[str] = (), boot: str | None = None) -> Target
     def suggest(self, name: str) -> tuple[str, ...]
     def identity(self) -> CatalogIdentity       # package and schema versions, digest, sources (ADR 0004)
+    def lineage(self, kind: str, entry_id: str) -> tuple[str, ...]   # the id, then each based_on base, to the first entry without one (#134)
     def to_dict(self) -> dict                   # the JSON export (RFC 0003)
 
 class CatalogIdentity:                          # frozen; to_dict() has these keys
@@ -867,7 +873,7 @@ one of them.
 
 ```python
 @dataclass(frozen=True) class Provenance: status, source, verified_on, verified_by, notes
-@dataclass(frozen=True) class Core:       id, arch, pmu, has_dsp_extension, provenance   # arch may be a non-Arm ISA
+@dataclass(frozen=True) class Core:       id, arch, pmu, has_dsp_extension, based_on: str | None, provenance   # arch may be a non-Arm ISA
 @dataclass(frozen=True) class CoreOptions: fpu, fpu_dp, mve, icache_kb, dcache_kb
 @dataclass(frozen=True) class CoreInstance: id, role, core, options: CoreOptions, clock_domain, programmable_by: str | None
 @dataclass(frozen=True) class Npu:        vendor, family, model, macs_per_cycle; accelerator_config (property)
@@ -881,17 +887,17 @@ one of them.
 @dataclass(frozen=True) class OperatingPoint: name, domains: Mapping[str, str], hal_mode, provenance   # domain id -> point name
 @dataclass(frozen=True) class SdkFacts:   c_define, cmsis_header, trace_clock_mhz, jlink_cpufreq_mhz, hal_enums: Mapping[str, str], build: BuildFacts
 @dataclass(frozen=True) class BuildFacts: abi, float_abi
-@dataclass(frozen=True) class Soc:        id, series, aliases, cores, npus, accelerators, memories, access, default_access: DefaultAccess | None, peripherals, memory_controllers, clock_domains, operating_points, default_operating_point: str | None, boot_configs, default_boot, image_slots, sdk, derives_from, default_board: str | None, revision, release_status, extensions, provenance
-@dataclass(frozen=True) class Implementation: id, soc, kind, model: str | None, subset: Subset, memories: tuple | None, access: tuple | None, clock_domains: tuple | None, operating_points: tuple | None, boot_configs: Mapping | None, default_boot: str | None, provisioning: str | None, jlink_device, trace_clock_mhz, interfaces, population, aliases, release_status, extensions, provenance   # None: inherit the Soc's (after clock caps); memories: kind fvp only (ADR 0007)
+@dataclass(frozen=True) class Soc:        id, series, based_on: str | None, aliases, cores, npus, accelerators, memories, access, default_access: DefaultAccess | None, peripherals, memory_controllers, clock_domains, operating_points, default_operating_point: str | None, boot_configs, default_boot, image_slots, sdk, derives_from, default_board: str | None, revision, release_status, extensions, provenance
+@dataclass(frozen=True) class Implementation: id, soc, kind, model: str | None, subset: Subset, memories: tuple | None, access: tuple | None, clock_domains: tuple | None, operating_points: tuple | None, boot_configs: Mapping | None, default_boot: str | None, provisioning: str | None, jlink_device, trace_clock_mhz, interfaces, population, based_on: str | None, aliases, release_status, extensions, provenance   # None: inherit the Soc's (after clock caps); memories: kind fvp only (ADR 0007)
 @dataclass(frozen=True) class Subset:     memories_removed, memories_resized, memories_rebased, peripherals_removed, memory_controllers_removed, cores_removed, npus_removed, accelerators_removed, clock_domains_removed, boot_configs_removed, operating_points_removed, image_slots_removed, access_removed, max_cpu_mhz, max_npu_mhz, max_domain_mhz
 @dataclass(frozen=True) class BootConfig: name, reserved: tuple[Reservation, ...], app_start: Mapping[str, AppStart], requires, provenance   # AppStart: region, offset; reserved in written key order
 @dataclass(frozen=True) class Reservation: region, offset, size, purpose, provenance
-@dataclass(frozen=True) class Part:       id, soc, implementation: str | None, silicon_revision, package, radio, jlink_device, image_slots, aliases, release_status, provenance
+@dataclass(frozen=True) class Part:       id, soc, implementation: str | None, silicon_revision, package, radio, jlink_device, image_slots, based_on: str | None, aliases, release_status, provenance
 @dataclass(frozen=True) class ImageSlot:  name, core, region, offset, size, supplier, provenance
 @dataclass(frozen=True) class MemoryInterface: name, controller, modes, aperture_base, alternate_bases, aperture_max
-@dataclass(frozen=True) class MemoryDevice: id, technology, capacity, driver_family, modes, characterization, aliases, release_status, provenance
-@dataclass(frozen=True) class AddOn:      id, fits_boards, occupies, population: Mapping[str, str], modes: Mapping[str, tuple[str, ...]], revision, aliases, release_status, extensions, provenance
-@dataclass(frozen=True) class Board:      id, category, revision, part: str | None, implementation: str | None, interfaces, population: Mapping[str, str], provisioning, jlink_device, trace_clock_mhz, aliases, release_status, extensions, provenance
+@dataclass(frozen=True) class MemoryDevice: id, technology, capacity, driver_family, modes, characterization, based_on: str | None, aliases, release_status, provenance
+@dataclass(frozen=True) class AddOn:      id, fits_boards, occupies, population: Mapping[str, str], modes: Mapping[str, tuple[str, ...]], revision, based_on: str | None, aliases, release_status, extensions, provenance
+@dataclass(frozen=True) class Board:      id, category, revision, part: str | None, implementation: str | None, interfaces, population: Mapping[str, str], provisioning, jlink_device, trace_clock_mhz, based_on: str | None, aliases, release_status, extensions, provenance
 @dataclass(frozen=True) class Composition: alias, board, addons; release_status (property, effective from what it references)
 @dataclass(frozen=True) class LinkEnvironment: owner, link_family, profile, applies_to: tuple[str, ...], regions: Mapping[str, WindowRegion], source, revision; release_status (property, effective)
 @dataclass(frozen=True) class WindowRegion: start, length, app_window, section_names
@@ -915,6 +921,7 @@ class Target:
     soc: Soc; implementation: Implementation | None; part: Part | None; board: Board | None
     origin: Literal["builtin", "overlay"]
     release_status: Literal["public", "embargoed"]            # effective: most restrictive along the reference chain
+    def lineage(self, kind: Literal["soc", "implementation", "part", "board"] = "soc") -> tuple[str, ...]   # ids to look a tool's own policy up by, most specific first (#134)
     # structure
     core: Core; core_options: CoreOptions; npu: NpuInstance | None   # core-0 and npu-0 conveniences
     def cores(self, role: str | None = None) -> tuple[CoreInstance, ...]

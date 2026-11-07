@@ -293,3 +293,11 @@ def test_an_add_on_that_reorders_an_interface_s_modes_does_not_narrow_them():
     (psram,) = row_texts(target, "psram1")
     assert "modes hex octal, aperture_base" in psram and "(add-on shield)" not in psram
     assert _show.stated_facts(target) <= printed(target)
+
+
+def test_an_overlay_entry_shows_its_base():
+    document = full_document()
+    document["socs"]["soc_b"] = {"based_on": "soc_a"}
+    target = load_overlay(document, base=builtin(include_plugins=False)).resolve("soc_b")
+    rows = [r for _, rs in _show.sections(target) for r in rs]
+    assert any(r.label == "based_on" and r.text == "soc_a" for r in rows)

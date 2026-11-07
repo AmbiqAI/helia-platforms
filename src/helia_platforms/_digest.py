@@ -49,7 +49,9 @@ def project(value: Any) -> Any:
         return {
             f.name: _field(cls, f.name, getattr(value, f.name))
             for f in dataclasses.fields(value)
-            if f.name not in model.RECORD_FIELDS  # records are not data (ADR 0004 point 1)
+            # Records are not data (ADR 0004 point 1); based_on names where an overlay
+            # entry came from, not a fact of it (#134), and built-ins never carry it.
+            if f.name not in model.RECORD_FIELDS and f.name != "based_on"
         }
     if isinstance(value, Mapping):
         return _keyed(value)

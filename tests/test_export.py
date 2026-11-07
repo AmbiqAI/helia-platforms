@@ -134,8 +134,20 @@ def test_an_entry_is_written_after_its_based_on_merge(document):
         "series": "other",
     }
     written = overlay(document).to_dict()["catalog"]["socs"]["soc_b"]
-    assert "based_on" not in written and "memories_removed" not in written
+    assert written["based_on"] == "soc_a" and "memories_removed" not in written  # #134
     assert set(written["memories"]) == {"tcm", "nvm"} and written["series"] == "other"
+
+
+def test_the_filter_drops_a_based_on_whose_base_is_not_shipped(document):
+    public(document)
+    document["socs"]["soc_a"]["release_status"] = "embargoed"
+    document["socs"]["soc_b"] = {"based_on": "soc_a", "release_status": "public"}
+    catalog = overlay(document)
+    assert catalog._entry("socs", "soc_b").based_on == "soc_a"
+    written = catalog.to_dict()["catalog"]["socs"]
+    assert "soc_a" not in written and "based_on" not in written["soc_b"]
+    unfiltered = export._document(catalog, filtered=False, provenance=False)
+    assert unfiltered["catalog"]["socs"]["soc_b"]["based_on"] == "soc_a"
 
 
 def test_an_implementation_keeps_its_subset(document):

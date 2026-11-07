@@ -106,6 +106,8 @@ def _scrub(kind: str, values: dict[str, Any], kept: Mapping[str, set[str]]) -> d
         for key, table in (("default_board", "boards"), ("derives_from", "socs")):
             if key in values and values[key] not in kept[table]:
                 del values[key]
+    if "based_on" in values and values["based_on"] not in kept[kind]:
+        del values["based_on"]
     if kind == "addons":
         values["fits_boards"] = [b for b in values["fits_boards"] if b in kept["boards"]]
     return values

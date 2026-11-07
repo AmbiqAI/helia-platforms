@@ -218,6 +218,12 @@ over its `based_on` entry and to an Implementation over its Soc:
 4. `memories_resized: {<name>: <size>}` and
    `memories_rebased: {<name>: <address>}` change one field of a region.
 
+Amendment (2026-11-06, #134): the merged entry keeps `based_on` as a
+non-fact runtime field naming its own base (a chain does not pass the
+base's on), so `Catalog.lineage()` can walk an overlay entry to the first
+entry that names none; `based_on` is not inherited, not in the digest, and
+is written by the export for overlay entries.
+
 A delta that names a key the base lacks is an error. References, such
 as an operating point that names a removed point, are checked after the
 merge. An Implementation writes its removals, resizes, rebases and clock

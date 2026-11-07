@@ -2035,3 +2035,31 @@ def test_default_board_must_carry_the_soc(document):
     )
     soc(document)["default_board"] = "board_a"
     load_quietly(document)
+
+
+def test_based_on_is_kept_on_the_entry_and_not_inherited(document):
+    """The loaded entry names its own base; a chain does not pass the base's on (#134)."""
+    document["socs"]["soc_b"] = {"based_on": "soc_a"}
+    document["socs"]["soc_c"] = {"based_on": "soc_b"}
+    catalog = load_overlay(document)
+    assert catalog._entry("socs", "soc_a").based_on is None
+    assert catalog._entry("socs", "soc_b").based_on == "soc_a"
+    assert catalog._entry("socs", "soc_c").based_on == "soc_b"
+
+
+def test_lineage_walks_based_on_to_the_first_entry_without_one(document):
+    document["socs"]["soc_b"] = {"based_on": "soc_a"}
+    document["socs"]["soc_c"] = {"based_on": "soc_b"}
+    document["boards"]["board_b"] = {"based_on": "board_a"}
+    catalog = load_overlay(document)
+    assert catalog.lineage("socs", "soc_c") == ("soc_c", "soc_b", "soc_a")
+    assert catalog.lineage("socs", "soc_a") == ("soc_a",)
+    assert catalog.lineage("boards", "board_b") == ("board_b", "board_a")
+    with pytest.raises(KeyError):
+        catalog.lineage("socs", "nowhere")
+    with pytest.raises(KeyError):
+        catalog.lineage("nothing", "soc_a")
+
+
+def test_a_built_in_entry_has_no_based_on():
+    assert all(soc.based_on is None for soc in builtin(include_plugins=False).socs())

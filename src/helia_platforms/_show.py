@@ -338,7 +338,8 @@ def _identity(target: Target, at: _Entries, sources: bool) -> list[_Row]:
         _Row("id", f"{target.id} ({target.kind}, {target.origin}, {target.release_status})"),
         _row("soc", _soc(target, at), soc, ["series", "revision"], lead=soc.id),
     ]
-    rows += [_Row(n, getattr(soc, n)) for n in ("derives_from", "default_board") if getattr(soc, n)]
+    names = ("based_on", "derives_from", "default_board")
+    rows += [_Row(n, getattr(soc, n)) for n in names if getattr(soc, n)]
     if impl is not None:
         impl_at = at.at("implementations", impl.id, impl)
         rows.append(_row("implementation", impl_at, impl, ["soc", "kind", "model"], lead=impl.id))

@@ -89,7 +89,10 @@ that tells the user to upgrade `helia-platforms`.
 `builtin(include_plugins=False)`: every entity's model fields, including
 ids, aliases and `release_status`, and the `compositions` and `shorthands`
 tables, with every `provenance` and `field_provenance` value (ADR 0002
-(#7) section 4; records per ADR 0003 (#6)) removed. The projection is
+(#7) section 4; records per ADR 0003 (#6)) removed. Amendment
+(2026-11-06, #134): `based_on`, the non-fact field that names an overlay
+entry's base, is also left out of the projection; a built-in entry never
+carries it. The projection is
 built from the model, not from `to_dict()`, so a field added only to the
 export does not change it. Each collection is projected according to its
 kind in ADR 0002 (#7) section 2.4, whatever its runtime type, so that an

@@ -378,6 +378,22 @@ class Target:
     def sdk(self) -> model.SdkFacts | None:
         return self.soc.sdk
 
+    # -- lineage ----------------------------------------------------------------------------
+
+    def lineage(
+        self, kind: Literal["soc", "implementation", "part", "board"] = "soc"
+    ) -> tuple[str, ...]:
+        """The ids to look a consumer's own policy up by, most specific first.
+
+        The named entry's id, then each ``based_on`` base in turn, ending at the first
+        entry with none (``Catalog.lineage``). Empty when the target has no entry of that
+        kind. A derived Soc from an overlay thus finds the policy of its built-in base.
+        """
+        entry = getattr(self, kind)
+        if entry is None:
+            return ()
+        return self._catalog.lineage(f"{kind}s", entry.id)
+
     # -- helpers --------------------------------------------------------------------------
 
     def _core(self, core: int | str) -> model.CoreInstance:
