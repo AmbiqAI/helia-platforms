@@ -123,12 +123,11 @@ def test_the_atomiq110_fpga_board_answers_the_consumer_queries(catalog):
         ("npu", "hp"): "AM_HAL_PWRCTRL_NPU_MODE_HIGH_PERFORMANCE",
     }
     assert {"iom2", "iom11", "hblram"} & set(target.soc.peripherals) == {"hblram"}
+    # The FPGA inherits the Soc's NPU reach, less the HBLRAM it lacks, and states no timing
+    # of its own: the scaled-down FIFO limits were helia-npu's fit, not a cited capture (#93).
     npu = {a.target: a.characterization for a in target.soc.access if a.master == "npu_0"}
-    assert npu["rram"] is None  # block RAM on the FPGA, so not the Soc's RRAM timing
-    timing = npu["ssram"]  # the FPGA gives cycle counts, so it states no latency
-    assert timing is not None and (timing.read_latency_ns, timing.write_latency_ns) == (None, None)
-    assert (timing.max_outstanding_reads, timing.max_outstanding_writes) == (8, 4)
-    assert (timing.max_beats, timing.axi_clock_hz) == (128, 25_000_000)
+    assert set(npu) == {"itcm", "dtcm", "ssram", "rram", "xspimc0", "xspimc1", "xspimc2"}
+    assert all(timing is None for timing in npu.values())
 
 
 def test_the_atomiq110_soc_answers_the_consumer_queries(catalog):
@@ -145,19 +144,20 @@ def test_the_atomiq110_soc_answers_the_consumer_queries(catalog):
     assert target.default_operating_point.name == "lp_ulp"
     assert (target.cpu_mhz(), target.npu_mhz()) == (250, 100)
     assert (target.jlink_device, target.trace_clock_mhz) == (None, None)
-    npu_reach = [(a.target, a.port) for a in target.soc.access if a.master == "npu_0"]
-    assert npu_reach == [("ssram", 0), ("hblram", 1), ("rram", 1)]
-    timing = {a.target: a.characterization for a in target.soc.access if a.master == "npu_0"}
-    ssram = timing["ssram"]
-    assert (ssram.read_latency_ns, ssram.max_outstanding_reads, ssram.max_outstanding_writes) == (
-        64,
-        12,
-        16,
-    )
-    assert (timing["ssram"].max_beats, timing["ssram"].axi_clock_hz) == (128, 250_000_000)
-    rram = timing["rram"]  # silicon's latency only; helia-npu's outstanding limit is fitted
-    assert rram is not None and (rram.read_latency_ns, rram.max_outstanding_reads) == (240, None)
-    assert target.soc.npus[0].sram_port_hash == 0x80
+    # The NPU reaches every memory over a crossbar; no entry names a port or carries timing,
+    # and the IP's per-port limits sit on the instance (#93).
+    npu_reach = [a.target for a in target.soc.access if a.master == "npu_0"]
+    assert npu_reach == ["itcm", "dtcm", "ssram", "hblram", "rram", "xspimc0", "xspimc1", "xspimc2"]
+    assert all(a.characterization is None for a in target.soc.access if a.master == "npu_0")
+    assert target.reachable("npu_0", "dtcm") is not None
+    npu = target.soc.npus[0]
+    assert npu.sram_port_hash == 0x80
+    ports = {
+        name: (p.count, p.max_outstanding_reads, p.max_outstanding_writes)
+        for name, p in npu.axi_ports.items()
+    }
+    assert ports == {"sram": (2, 12, 16), "ext": (1, 32, 32)}
+    assert npu.axi_ports["sram"].provenance.status == "datasheet"
 
 
 def test_apollo510b_evb_answers_the_consumer_queries(catalog):

@@ -223,7 +223,7 @@ def test_show_gives_each_access_field_its_own_status(overlay):
     document = copy.deepcopy(BASE_DOCUMENT)
     sdk = {**RECORD, "status": "sdk", "source": [SDK_SOURCE]}
     access = document["socs"]["soc_a"]["access"]
-    access[0]["port"] = {"value": 0, "provenance": sdk}
+    access[0]["reason"] = {"value": "fast path", "provenance": sdk}
     access[1]["guidance"] = {"value": "discouraged", "provenance": sdk}
     access.append(
         {
@@ -237,7 +237,7 @@ def test_show_gives_each_access_field_its_own_status(overlay):
     assert result.exit_code == 0, result.output
     entries = rows(result.output, "entry")
     for start, end in (
-        ("entry master npu_0, target ssram", "[datasheet; port: sdk]"),
+        ("entry master npu_0, target ssram", "[datasheet; reason: sdk]"),
         ("entry master npu_0, target tcm", "[datasheet; guidance: sdk]"),
         ("entry master cm55_0, target nvm", "[datasheet; address: sdk]"),
     ):

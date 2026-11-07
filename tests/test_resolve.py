@@ -186,7 +186,7 @@ def test_memories_are_what_the_core_reaches_plus_populated_devices(catalog):
         target.reachable("npu_0", "ssram"),
         target.reachable("cm55_0", "psram0"),
     )
-    assert npu_entry is not None and npu_entry.port == 0
+    assert npu_entry is not None and npu_entry.access == "direct"
     assert psram_entry is not None and psram_entry.target == "mspi0"
     assert target.has_external_memory("psram") and not target.has_external_memory("flash")
     assert target.has_region(technology="mram") and not target.has_region("itcm")

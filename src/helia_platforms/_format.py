@@ -34,6 +34,13 @@ class Keyed:
     fields: tuple[str, ...]
 
 
+@dataclass(frozen=True)
+class Deprecated:
+    """A key the format still reads but ignores; the loader warns with ``note``."""
+
+    note: str
+
+
 class _Flag:
     def __init__(self, name: str) -> None:
         self.name = name
@@ -54,6 +61,7 @@ DATE_RE = r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
 
 Id = Annotated[str, Pattern(r"^[A-Za-z][A-Za-z0-9_-]{0,63}$", "an id")]
 Name = Annotated[str, Pattern(r"^(?!(?:value|provenance)$)[a-z][a-z0-9_]*$", "a lowercase name")]
+PortClass = Annotated[str, Pattern(r"^(?:sram|ext)$", "an NPU port class, sram or ext")]
 DomainPointRef = Annotated[
     str,
     Pattern(
@@ -150,6 +158,17 @@ class Access(_Facts):
     guidance: NotRequired[Literal["preferred", "allowed", "discouraged"]]
     reason: NotRequired[str]
     address: NotRequired[Address]
+    # Removed on #93 (2026-11-06): which memory a compiler serves over which NPU port is the
+    # consumer's choice, not a fact. Read and ignored for one minor release, so data written
+    # before the change still loads.
+    port: NotRequired[
+        Annotated[
+            Literal[0, 1],
+            NOT_FACT,
+            FILE_ONLY,
+            Deprecated("removed on #93; a memory's NPU port is the consumer's choice, not a fact"),
+        ]
+    ]
     characterization: NotRequired[MemoryCharacterization]
 
 
@@ -198,6 +217,19 @@ class Npu(_Facts):
     macs_per_cycle: Required[Count]
 
 
+class NpuPortClass(_Facts):
+    """One class of the NPU's AXI manager ports (``sram`` or ``ext``), as the IP documents it.
+
+    ``count`` is how many ports of the class the configuration has; the outstanding limits
+    are the IP's per-port ceilings. Which memory a compiler routes over which port is the
+    consumer's choice (#93).
+    """
+
+    count: Required[Count]
+    max_outstanding_reads: NotRequired[Count]
+    max_outstanding_writes: NotRequired[Count]
+
+
 class NpuInstance(_Facts):
     id: Required[Annotated[Name, NOT_FACT]]
     npu: Required[Npu]
@@ -207,6 +239,7 @@ class NpuInstance(_Facts):
     base_address: NotRequired[Address]
     irq: NotRequired[Count]
     sram_port_hash: NotRequired[Count]
+    axi_ports: NotRequired[dict[PortClass, NpuPortClass]]
 
 
 class AcceleratorInstance(_Facts):

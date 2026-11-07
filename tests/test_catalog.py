@@ -527,13 +527,13 @@ def test_fvp_access_keeps_drops_adds_and_overrides_soc_entries(document):
     assert [(a.target, a.guidance) for a in realized.access] == [("tcm", "discouraged")]
     assert realized.default_access is not None
     access = [
-        {"master": "npu_0", "target": "ram", "access": "direct", "port": 1},
+        {"master": "npu_0", "target": "ram", "access": "direct", "address": 0x60000000},
         {"master": "npu_0", "target": "tcm", "access": "direct", "guidance": "preferred"},
     ]
     realized = implementation(document, "fvp", memories=fvp_memories(), access=access)
-    assert [(a.target, a.guidance, a.port) for a in realized.access] == [
+    assert [(a.target, a.guidance, a.address) for a in realized.access] == [
         ("tcm", "preferred", None),  # the Soc's entry, overridden in place
-        ("ram", None, 1),
+        ("ram", None, 0x60000000),
     ]
     assert realized.access[1].provenance == model.UNVERIFIED
 
@@ -577,7 +577,6 @@ def test_an_fpga_access_entry_replaces_the_socs_for_its_pair(document):
         "master": "npu_0",
         "target": "ssram",
         "access": "direct",
-        "port": 0,
         "characterization": {"max_outstanding_reads": 8, "max_outstanding_writes": 4},
     }
     realized = implementation(document, access=[entry])
@@ -2035,3 +2034,26 @@ def test_default_board_must_carry_the_soc(document):
     )
     soc(document)["default_board"] = "board_a"
     load_quietly(document)
+
+
+def test_a_removed_access_port_key_still_loads_with_a_warning(document):
+    """port left the format on #93; data written before then loads, warns and drops it."""
+    document["socs"]["soc_a"]["access"][0]["port"] = 0
+    with pytest.warns(PlatformWarning, match=r"access\[0\]\.port: removed on #93"):
+        catalog = load_overlay(document)
+    entry = catalog.resolve("soc_a").reachable("npu_0", "ssram")
+    assert entry is not None and not hasattr(entry, "port")
+
+
+def test_an_npu_instance_states_its_port_classes(document):
+    document["socs"]["soc_a"]["npus"][0]["axi_ports"] = {
+        "sram": {"count": 2, "max_outstanding_reads": 12, "max_outstanding_writes": 16},
+        "ext": {"count": 1},
+    }
+    npu = load_overlay(document)._entry("socs", "soc_a").npus[0]
+    assert [(p.name, p.count, p.max_outstanding_reads) for p in npu.axi_ports.values()] == [
+        ("sram", 2, 12),
+        ("ext", 1, None),
+    ]
+    document["socs"]["soc_a"]["npus"][0]["axi_ports"] = {"dsp": {"count": 1}}
+    assert "'dsp' is not an NPU port class, sram or ext" in problems_of(document)

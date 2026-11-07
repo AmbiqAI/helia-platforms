@@ -94,7 +94,8 @@ of them that describe substitutions.
    follow ADR 0003 section 2:
    `fact:implementation:<id>:memories.<name>.size`,
    `memories.<name>.stands_in_for.<Soc region>` (the item ends the path)
-   and `access.<master>@<target>.port`.
+   and `access.<master>@<target>.guidance` (`.port` until #93 removed the
+   field, 2026-11-06).
 6. **`dram` technology.** `MemoryRegion.technology` and
    `MemoryDevice.technology` gain the value `dram`, so a model's DDR region
    can say what it is. The owner chose this on 2026-10-07; the other values

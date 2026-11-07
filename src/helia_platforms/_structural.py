@@ -10,10 +10,12 @@ from __future__ import annotations
 import difflib
 import math
 import re
+import warnings
 from typing import Any, get_args
 
 from helia_platforms import _format as fmt
 from helia_platforms import _walk
+from helia_platforms.errors import PlatformWarning
 
 SIZE_HINT = (
     "write a size as an integer number of bytes or as <integer>K, M or G "
@@ -87,6 +89,11 @@ class _Checker:
                 self.fail(path, f"key {key!r} is not a string")
             elif key not in declared:
                 self.fail(_join(path, key), _unknown_key(key, declared))
+        for key in value:
+            if isinstance(key, str) and key in declared:
+                gone = _walk.marker(_walk.unwrap(declared[key].type)[1], fmt.Deprecated)
+                if gone is not None:
+                    warnings.warn(f"{_join(path, key)}: {gone.note}; ignored", PlatformWarning, 2)
         inherits = _walk.is_inheritable(obj) and "based_on" in value
         if not inherits:
             for name, field in declared.items():

@@ -112,6 +112,30 @@ socs:
             notes: >-
               helia-npu socs/atomiq110.yaml:31-45 (helia-estimator 3312025): the NPU picks
               the SRAM port by address bit 7, measured with FPGA PMU captures on 2026-10-01.
+        # The IP's AXI manager ports for the 256 MACs/cycle configuration: two SRAM ports and
+        # one EXT port, all on the SoC's crossbar (#93). Which memory a compiler serves over
+        # which port is the consumer's choice, so no access entry names a port.
+        axi_ports:
+          sram:
+            count: 2
+            max_outstanding_reads: 12
+            max_outstanding_writes: 16
+            provenance:
+              status: datasheet
+              source: ["doc:TRM-U85@05:p67"]
+              verified_on: 2026-11-06
+              verified_by: apage224
+              notes: Table 3-21, 256 MACs/CC row, 2 SRAM ports; 12 reads and 16 writes per port.
+          ext:
+            count: 1
+            max_outstanding_reads: 32
+            max_outstanding_writes: 32
+            provenance:
+              status: datasheet
+              source: ["doc:TRM-U85@05:p68"]
+              verified_on: 2026-11-06
+              verified_by: apage224
+              notes: Table 3-23, 256 MACs/CC row, 1 EXT port; 32 reads and 32 writes per port.
         irq: 117
         axi_width_bits:
           value: 128
@@ -269,71 +293,58 @@ socs:
           notes: >-
             No SDK script links HBLRAM. helia-estimator says the CPU shares the HBLRAM ports,
             and heliaAOT calls it on-chip (#68 item 2, #19).
-      # The NPU's reach and port classes (#68 item 4), and the hardware timing of each path
-      # (#131). rram keeps only its latency; helia-npu's 2 outstanding reads are fitted.
+      # The NPU's reach (#93, owner decision 2026-11-06): the Ethos-U85's three AXI manager
+      # ports sit on a full crossbar, so the NPU reaches every memory the Soc has, the TCMs
+      # and the XSPI apertures included. No entry names a port: which memory Vela serves over
+      # which port is helia-npu's choice. No entry carries timing: the 64, 88 and 240 ns
+      # latencies, the bursts and the 250 MHz fabric clock the catalog held until #93 were
+      # helia-npu's model inputs with no citable source; they return with a document page or
+      # a dated capture. The IP's per-port limits are on the instance (axi_ports).
+      - master: npu_0
+        target: itcm
+        access: direct
+        provenance: &npu_reach
+          status: unverified
+          notes: >-
+            The owner (#93, 2026-11-06): the U85's three AXI manager ports connect to a full
+            crossbar and reach every memory. helia-estimator docs/at110_system_architecture.md:36
+            (helia-estimator db95eef) says the same. No Ambiq integration document is cited
+            yet (#144); the port assignment helia-npu used to record here was Vela's memory
+            class, not a hardware constraint.
+      - master: npu_0
+        target: dtcm
+        access: direct
+        provenance: *npu_reach
       - master: npu_0
         target: ssram
         access: direct
-        port: 0
-        characterization:
-          read_latency_ns: 64
-          max_outstanding_reads:
-            value: 12
-            provenance: &u85_sram_outstanding
-              status: datasheet
-              source: ["doc:TRM-U85@05:p67"]
-              verified_on: 2026-10-29
-              verified_by: evanchen11
-              notes: Table 3-21, 256 MACs/CC, 2 SRAM ports; 12 reads and 16 writes per port.
-          max_outstanding_writes: {value: 16, provenance: *u85_sram_outstanding}
-          max_beats: 128
-          axi_clock_hz: 250000000
-          provenance:
-            status: unverified
-            notes: >-
-              helia-npu socs/atomiq110.yaml:49-87 (helia-estimator 3312025): an internal Ambiq
-              specification gives 64 ns and the 250 MHz fabric clock. The outstanding limits
-              are the NPU's per-port ceilings; the path's FIFO depth on silicon is unsourced,
-              and atomiq110_fpga states its scaled-down FIFO's (review of #133). Bursts are
-              128 B, the stripe size: sram_port_hash 0x80 picks the SRAM port by addr[7]
-              (TRM-U85 Table 2-1, p24), per the review of #133. helia-npu's write latency is
-              assumed, so it is not recorded.
-        provenance:
-          status: unverified
-          notes: &npu_reach >-
-            helia-npu socs/atomiq110.yaml:48-138 (helia-estimator 785dfe42): ssram on AXI
-            port 0, hblram and rram on port 1, one port-1 memory at a time. No SDK source
-            states NPU reach (#19).
+        provenance: *npu_reach
       - master: npu_0
         target: hblram
         access: direct
-        port: 1
-        characterization:
-          read_latency_ns: 88
-          max_outstanding_reads: 12
-          max_beats: 256
-          axi_clock_hz: 250000000
-          provenance:
-            status: unverified
-            notes: >-
-              helia-npu socs/atomiq110.yaml:88-110 (helia-estimator 3312025): 12 outstanding reads
-              and 256 B bursts from the HBLRAM controller documentation, the 250 MHz fabric
-              clock, and an 88 ns read latency that is an architect estimate, not measured.
-        provenance: {status: unverified, notes: *npu_reach}
+        provenance: *npu_reach
       - master: npu_0
         target: rram
         access: direct
-        port: 1
-        characterization:
-          read_latency_ns: 240
-          provenance:
-            status: unverified
-            notes: >-
-              The review of #133: 240 ns is silicon's latency, as 64 ns is SSRAM's.
-              helia-npu socs/atomiq110.yaml:125-138 (helia-estimator 3312025) fits it, with 2
-              reads in flight, to an RTL run; the 2 is a stand-in for the path's rate, so it
-              is not recorded. AXI writes to RRAM return an error.
-        provenance: {status: unverified, notes: *npu_reach}
+        provenance:
+          status: unverified
+          notes: >-
+            Reach as for the other entries (#93). AXI writes to RRAM return an error
+            (helia-npu socs/atomiq110.yaml:125-138, helia-estimator 3312025), so the path is
+            read-only for the NPU in practice; the catalog records no write limit until a
+            document states one.
+      - master: npu_0
+        target: xspimc0
+        access: direct
+        provenance: *npu_reach
+      - master: npu_0
+        target: xspimc1
+        access: direct
+        provenance: *npu_reach
+      - master: npu_0
+        target: xspimc2
+        access: direct
+        provenance: *npu_reach
 
     clock_domains:
       cpu:
@@ -598,38 +609,6 @@ implementations:
             value: AM_HAL_PWRCTRL_NPU_MODE_HIGH_PERFORMANCE
             provenance: *fpga_npu_mode
           provenance: *fpga_npu_clocks
-    access:
-      # The FPGA's own path facts. It gives cycle counts; silicon's latencies give performance
-      # (review of #133), so no latency is stated. Each entry replaces the Soc's whole.
-      - master: npu_0
-        target: ssram
-        access: direct
-        port: 0
-        characterization:
-          max_outstanding_reads: 8
-          max_outstanding_writes: 4
-          max_beats: 128
-          axi_clock_hz: 25000000
-          provenance:
-            status: unverified
-            notes: >-
-              The review of #133: the outstanding limit is a FIFO's depth, scaled down on the
-              FPGA, and the AXI clock is 25 MHz. helia-npu socs/atomiq110.yaml:49-87
-              (helia-estimator 3312025) matches FPGA PMU captures with 8 reads and 4 writes
-              (fitted). Bursts split at the 128 B stripe. helia-npu's FPGA target has
-              zero-wait SSRAM at the FPGA clock (targets/atomiq110-fpga-turbo-npu.yaml:32,
-              helia-estimator e2b9300), so silicon's 64 ns does not apply.
-        provenance: {status: unverified, notes: *npu_reach}
-      - master: npu_0
-        target: rram
-        access: direct
-        port: 1
-        provenance:
-          status: unverified
-          notes: >-
-            Restated without the Soc's timing: on the FPGA, RRAM is "FPGA block RAM; not RRAM
-            timing" (helia-npu targets/atomiq110-fpga-turbo-npu.yaml:25, helia-estimator
-            e2b9300). Reach and port class as on the Soc (#19).
     trace_clock_mhz:
       value: 50
       provenance:

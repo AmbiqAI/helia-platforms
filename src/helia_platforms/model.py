@@ -95,6 +95,17 @@ class Npu:
 
 
 @_frozen
+class NpuPortClass(_Carrier):
+    """One class of the NPU's AXI manager ports: ``sram`` or ``ext`` (#93)."""
+
+    KEY: ClassVar[str] = "name"
+    name: str
+    count: int
+    max_outstanding_reads: int | None = None
+    max_outstanding_writes: int | None = None
+
+
+@_frozen
 class NpuInstance:
     id: str
     npu: Npu
@@ -104,6 +115,7 @@ class NpuInstance:
     base_address: int | None = None
     irq: int | None = None
     sram_port_hash: int | None = None
+    axi_ports: Mapping[str, NpuPortClass] = field(default_factory=_empty)
 
 
 @_frozen
