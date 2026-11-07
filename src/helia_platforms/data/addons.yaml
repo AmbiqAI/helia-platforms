@@ -68,9 +68,9 @@ addons:
         provenance:
           status: sdk
           source:
-            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/boards/apollo3p_evb_cygnus/bsp/am_bsp_pins.h:966-1011"
-            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/boards/apollo3p_evb_cygnus/bsp/am_bsp.h:118"
-            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-psram/CMakeLists.txt:21-29"
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/boards/apollo3p_evb_cygnus/bsp/am_bsp_pins.h:966-1011"
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/boards/apollo3p_evb_cygnus/bsp/am_bsp.h:118"
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-psram/CMakeLists.txt:21-29"
             - "repo:zephyrproject-rtos/zephyr@8f62a4ab82b5c2121c088842d3233f75b603ce35:samples/drivers/memc/boards/apollo3p_evb.overlay:34-35"
             - "repo:zephyrproject-rtos/zephyr@8f62a4ab82b5c2121c088842d3233f75b603ce35:samples/drivers/memc/boards/apollo3p_evb.overlay:73-105"
           verified_on: 2026-10-28
@@ -83,10 +83,10 @@ addons:
     provenance:
       status: sdk
       source:
-        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/boards/apollo3p_evb_cygnus/bsp/am_bsp_pins.h:223"
-        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/boards/apollo3p_evb_cygnus/bsp/am_bsp_pins.h:917-941"
-        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/boards/apollo3p_evb_cygnus/bsp/am_bsp_pins.h:966"
-        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.26:modules/nsx-ambiqsuite/sdk/boards/apollo3p_evb_cygnus/bsp/am_bsp.h:118"
+        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/boards/apollo3p_evb_cygnus/bsp/am_bsp_pins.h:223"
+        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/boards/apollo3p_evb_cygnus/bsp/am_bsp_pins.h:917-941"
+        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/boards/apollo3p_evb_cygnus/bsp/am_bsp_pins.h:966"
+        - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/boards/apollo3p_evb_cygnus/bsp/am_bsp.h:118"
       verified_on: 2026-10-26
       verified_by: evanchen11
       notes: >-
