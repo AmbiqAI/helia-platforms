@@ -6,14 +6,19 @@ except this header and the appendix link. The review that lists the open
 weaknesses and proposed revisions is 0001-platform-catalogue-review.md.
 Status here: Draft, under revision. Not yet accepted.
 Superseded in part by RFC 0002, accepted 2026-10-21; see its Changes relative to RFC 0001 table.
+Appendix section C (facts and policy, by symbol) signed off by helia-profiler and the owner on #15, 2026-11-07, as amended by the note that opens it.
 -->
 
 # RFC: `helia-platforms`, a single source of truth for SoC and board facts
 
 ## Status
 
-Proposed, 2026-09-30. Not yet reviewed by the helia-profiler maintainers,
-nor by neuralspotx's for the facts read from their repository.
+Proposed, 2026-09-30. Superseded in part by RFC 0002 (accepted 2026-10-21).
+Appendix section C, the facts-versus-policy map of helia-profiler's
+symbols, was signed off by helia-profiler and the owner on #15 on
+2026-11-07, as amended by the dated note that opens it. The rest of the
+appendix and this body remain unreviewed by the helia-profiler maintainers
+and by neuralspotx's, for the facts read from their repository.
 Implementation detail, verified line by line, is in the
 [appendix](0001-platform-catalogue-appendix.md).
 

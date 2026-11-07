@@ -6,7 +6,7 @@ repository (ADR 0001).
 | Document | Status | Reading order |
 | --- | --- | --- |
 | [0001-platform-catalogue.md](0001-platform-catalogue.md): the catalog, its data and the rollout plan | Draft; superseded in part by RFC 0002 | 1 |
-| [0001-platform-catalogue-appendix.md](0001-platform-catalogue-appendix.md): data, sources and line-level detail for RFC 0001 | Under revision | Reference, as needed |
+| [0001-platform-catalogue-appendix.md](0001-platform-catalogue-appendix.md): data, sources and line-level detail for RFC 0001 | Under revision; section C signed off 2026-11-07 (#15), as amended | Reference, as needed |
 | [0001-platform-catalogue-review.md](0001-platform-catalogue-review.md): weaknesses of RFC 0001 and proposed revisions, with the owner direction | Review | 2 |
 | [0002-model-and-api.md](0002-model-and-api.md): the platform model and the API the package exposes | Accepted, 2026-10-21 | 3 |
 | [0002-multicore.md](0002-multicore.md): multiple cores and accelerators, the access matrix, image slots and clock domains (part of RFC 0002) | Accepted, 2026-10-21 | 4 |
