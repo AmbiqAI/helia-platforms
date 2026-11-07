@@ -153,16 +153,24 @@ def test_a_derived_entry_round_trips_without_a_second_merge(document):
         "release_status": "public",
         "peripherals_removed": ["iom1"],
     }
+    document["boards"]["board_b"] = {"based_on": "board_a", "release_status": "public"}
     catalog = overlay(document)
     assert catalog._entry("socs", "soc_c").based_on == "soc_b"
-    back = overlay(catalog.to_dict()["catalog"])
-    for soc in ("soc_b", "soc_c"):
-        assert _digest.project(back._entry("socs", soc)) == _digest.project(
-            catalog._entry("socs", soc)
-        )
-        assert back._entry("socs", soc).based_on is None
-    assert [m.name for m in back._entry("socs", "soc_c").memories] == ["tcm", "nvm"]
-    assert back._entry("socs", "soc_c").peripherals == ("mspi0", "iom0")
+    exports = [
+        catalog.to_dict()["catalog"],
+        export._document(catalog, filtered=False, provenance=False)["catalog"],
+        export._document(catalog, filtered=False, provenance=True)["catalog"],
+    ]
+    for written in exports:
+        back = overlay(written)
+        for kind, entry_id in (("socs", "soc_b"), ("socs", "soc_c"), ("boards", "board_b")):
+            assert "based_on" not in written[kind][entry_id]
+            assert _digest.project(back._entry(kind, entry_id)) == _digest.project(
+                catalog._entry(kind, entry_id)
+            )
+            assert back._entry(kind, entry_id).based_on is None
+        assert [m.name for m in back._entry("socs", "soc_c").memories] == ["tcm", "nvm"]
+        assert back._entry("socs", "soc_c").peripherals == ("mspi0", "iom0")
 
 
 def test_an_implementation_keeps_its_subset(document):

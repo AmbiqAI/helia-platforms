@@ -818,7 +818,7 @@ class Catalog:
     def resolve(self, name: str, *, addons: Sequence[str] = (), boot: str | None = None) -> Target
     def suggest(self, name: str) -> tuple[str, ...]
     def identity(self) -> CatalogIdentity       # package and schema versions, digest, sources (ADR 0004)
-    def lineage(self, kind: str, entry_id: str) -> tuple[str, ...]   # the id, then each based_on base, to the first entry without one (#134)
+    def lineage(self, kind: str, entry_id: str) -> tuple[str, ...]   # the id, then each based_on base, to the first entry without one (#134); ValueError for a kind that is not a table, KeyError for an unknown id
     def to_dict(self) -> dict                   # the JSON export (RFC 0003)
 
 class CatalogIdentity:                          # frozen; to_dict() has these keys
@@ -921,7 +921,7 @@ class Target:
     soc: Soc; implementation: Implementation | None; part: Part | None; board: Board | None
     origin: Literal["builtin", "overlay"]
     release_status: Literal["public", "embargoed"]            # effective: most restrictive along the reference chain
-    def lineage(self, kind: Literal["soc", "implementation", "part", "board"] = "soc") -> tuple[str, ...]   # ids to look a tool's own policy up by, most specific first (#134)
+    def lineage(self, kind: Literal["soc", "implementation", "part", "board"] = "soc") -> tuple[str, ...]   # ids to look a tool's own policy up by, most specific first (#134); ValueError for another kind
     # structure
     core: Core; core_options: CoreOptions; npu: NpuInstance | None   # core-0 and npu-0 conveniences
     def cores(self, role: str | None = None) -> tuple[CoreInstance, ...]

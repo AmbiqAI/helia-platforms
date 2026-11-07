@@ -197,10 +197,11 @@ class Catalog:
         ``kind`` is a table name (``cores``, ``socs``, ``implementations``, ``parts``,
         ``boards``, ``addons``, ``memory_devices``). A consumer that keys its own policy by id looks
         it up along this chain, so a derived entry finds the policy of its base (#134).
-        Raises ``KeyError`` for an unknown table or id.
+        Raises ``ValueError`` for a name that is not a table and ``KeyError`` for an id the
+        table lacks.
         """
         if kind not in _KINDS:
-            raise KeyError(f"no entity table {kind!r}")
+            raise ValueError(f"lineage kind must be one of {tuple(_KINDS)}, not {kind!r}")
         chain = [entry_id]
         entry = self._entry(kind, entry_id)
         while (base := entry.based_on) is not None:

@@ -2057,7 +2057,7 @@ def test_lineage_walks_based_on_to_the_first_entry_without_one(document):
     assert catalog.lineage("boards", "board_b") == ("board_b", "board_a")
     with pytest.raises(KeyError):
         catalog.lineage("socs", "nowhere")
-    with pytest.raises(KeyError):
+    with pytest.raises(ValueError, match="lineage kind"):
         catalog.lineage("nothing", "soc_a")
 
 
