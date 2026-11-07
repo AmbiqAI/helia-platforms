@@ -24,6 +24,10 @@ def full_document() -> dict:
     soc = document["socs"]["soc_a"]
     soc["revision"] = "B0"
     soc["npus"][0].update(axi_width_bits=64, base_address=0x40020000, irq=12, sram_port_hash=0x80)
+    soc["npus"][0]["axi_ports"] = {
+        "sram": {"count": 2, "max_outstanding_reads": 12},
+        "ext": {"count": 1},
+    }
     soc["accelerators"] = [
         {
             "id": "gpu_0",

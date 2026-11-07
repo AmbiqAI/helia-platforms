@@ -558,3 +558,13 @@ def test_apollo510_ssram_edges_are_offsets_from_its_base(catalog):
     edges = [ssram.base + k * ssram.dma_boundary for k in (1, 2)]
     assert edges == [0x20180000, 0x20280000]
     assert all(edge % ssram.dma_boundary != 0 for edge in edges)
+
+
+def test_the_atomiq110_fpga_inherits_the_npus_port_classes(catalog):
+    """The FPGA states no port facts of its own (its scaled FIFOs had no cited capture, #93)."""
+    npu = catalog.resolve("atomiq110_fpga_turbo").npu
+    assert npu is not None
+    assert {n: (p.count, p.max_outstanding_reads) for n, p in npu.axi_ports.items()} == {
+        "sram": (2, 12),
+        "ext": (1, 32),
+    }

@@ -2096,3 +2096,17 @@ def test_a_deprecated_key_does_not_reach_the_source_hash(document):
     wrapped["socs"]["soc_a"]["access"][0]["port"] = {"value": 1, "provenance": {"status": "sdk"}}
     hashes = {_digest.source_sha256(d) for d in (document, plain, wrapped)}
     assert len(hashes) == 1
+
+
+def test_every_deprecated_key_warns_once_with_its_own_path(document):
+    access = document["socs"]["soc_a"]["access"]
+    access[0]["port"] = 0
+    access[1]["port"] = {"value": 1, "provenance": {"status": "sdk"}}
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        load_overlay(document)
+    messages = sorted(str(w.message) for w in caught if "port" in str(w.message))
+    assert [m.split(": ")[1] for m in messages] == [
+        "socs.soc_a.access[0].port",
+        "socs.soc_a.access[1].port",
+    ]
