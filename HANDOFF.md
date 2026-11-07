@@ -38,8 +38,13 @@ neuralspotx as a possible later consumer. The model and API are RFC 0002
   apage224 reviews and merges. No tool attribution in commits or PRs.
 - Before starting an issue, check that the issues it depends on are merged
   (`gh pr list`, #79).
-- Accepted ADRs are never edited. A change to an accepted decision is a new
-  ADR that supersedes the affected part (ADR 0007 and ADR 0008 do this).
+- Accepted ADRs are not rewritten. A small change to an accepted decision
+  is a dated `## Amendment, <date>: <what> (#issue)` section under the
+  status line, which the status line lists (ADR 0004, 0005, 0006 and 0007
+  do this); a larger one is a new ADR that supersedes the affected part
+  (ADR 0007 and ADR 0008).
+- Hosted Copilot reviews a PR only when it is requested as a reviewer;
+  request it when the PR opens.
 - Every built-in value carries an ADR 0003 provenance record; a value with
   no source of record is `unverified` with an allow-list entry and an
   issue. Where sources disagree, ask the owner before writing the value.
@@ -49,8 +54,21 @@ neuralspotx as a possible later consumer. The model and API are RFC 0002
 - Unreleased hardware never enters this repository; private silicon is
   side-loaded (entry points, `HELIA_PLATFORMS_PATH`). The export filter is
   defence in depth.
-- No tool policy, no energy data in the package. Tools key their policy by
-  canonical id.
+- The package states facts with their sources; what to do with them is
+  the consumer's (ADR 0010). The loader rejects only data that cannot be
+  parsed, references what does not exist or contradicts itself; a query
+  that applies a filter takes it as a named parameter. No tool policy, no
+  energy data. Tools key their policy by canonical id, and
+  `Catalog.lineage()` walks an overlay entry's `based_on` chain so a
+  derived Soc finds its base's policy (#134).
+- Linker windows are the consumers' (#73). The package gives
+  `Target.application_ranges()`, each region less boot reservations and
+  other cores' image slots; helia-profiler intersects it with its own
+  windows. No `LinkEnvironment`, `budget()` or `windows` command.
+- Which memory an NPU serves over which port is the compiler's choice
+  (#93): `NpuInstance.axi_ports` gives the IP's port classes and per-port
+  limits, and access entries carry no port. Values fitted to make a model
+  match captures stay in the tool that fits them (#131).
 - Capabilities are derived from structural facts, never declared.
 - A Soc is a specification; an FPGA or FVP is an Implementation, not a
   board. An FVP declares its own memory map (ADR 0007).
@@ -58,7 +76,10 @@ neuralspotx as a possible later consumer. The model and API are RFC 0002
   reservations and other cores' image slots (#28).
 - heliaAOT keeps the alias the user passed and records the canonical id.
 - RFC 0003 defers the resolved `targets` export; publishable outputs come
-  only from `builtin(include_plugins=False)` with no overlays.
+  only from `builtin(include_plugins=False)` with no overlays. The export
+  writes entries already merged, so it carries no `based_on` (#162).
+- Releases go to PyPI from this private repository; the owner's data audit
+  is the only review before upload (ADR 0005, amended 2026-10-29).
 
 ## Gotchas
 
@@ -66,11 +87,13 @@ neuralspotx as a possible later consumer. The model and API are RFC 0002
   revisions the docs cite (`git show <rev>:<path>`), never a working tree.
 - Line references in RFC 0001's appendix are to moving branches; re-verify
   before citing. `docs/research/` notes mark what was and was not read.
-- The repository is private; a PyPI release before ADR 0005's audit could
-  ship material that is not cleared (ADR 0005 points 2 and 3).
-- release-please bumps the version in `pyproject.toml` but not the
-  project's own entry in `uv.lock`, so `uv sync --locked` (CI) and the
-  uv-lock hook fail on a release PR until `uv lock` is run on its branch.
+- Merging the release-please PR tags the release and publishes to PyPI at
+  once; the `pypi` environment has no manual gate. A PyPI version cannot
+  be replaced.
+- A key the format reads but ignores is marked `Deprecated` in
+  `_format.py` (`Access.port` until #159): the loader warns, drops it and
+  keeps it out of the source hash, so the fact-change gate can load the
+  merge base's data with the head's loader.
 - Datasheets are the source of record and contradict consumer data in
   several places (`docs/rfcs/0002-migration.md`, "Pending data
   corrections"); each difference needs a row in the parity allow-lists of
@@ -82,4 +105,5 @@ neuralspotx as a possible later consumer. The model and API are RFC 0002
 
 - Repository: https://github.com/AmbiqAI/helia-platforms (private)
 - Project board: https://github.com/orgs/AmbiqAI/projects/49
-- Related: helia-aot#278, helia-profiler#459, helia-profiler#465
+- Related: helia-aot#278, helia-profiler#459, helia-profiler#465,
+  helia-estimator#190 (the first consumer, on a git pin)
