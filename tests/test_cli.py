@@ -172,6 +172,12 @@ def test_show_on_the_built_in_data():
     assert "psram0" in result.output and "capacity: measured" in result.output
 
 
+def test_show_prints_a_dma_boundary_as_a_size():
+    result = run("show", "apollo510_evb")
+    assert result.exit_code == 0, result.output
+    assert any("dma_boundary 4K" in r for r in rows(result.output, "dtcm")), result.output
+
+
 def test_show_gives_the_vendor_programmed_radio_core_no_usable_nvm():
     result = run("show", "apollo510dL_evb")
     assert result.exit_code == 0, result.output

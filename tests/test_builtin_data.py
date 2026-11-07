@@ -531,3 +531,30 @@ def test_apollo330p_has_no_display_or_gpu(catalog):
     peripherals = set(catalog.resolve("apollo330P").soc.peripherals)
     assert not peripherals & {"dc", "dsi", "gpu", "i2s1"}
     assert {"dc", "dsi", "gpu"} <= set(catalog.resolve("apollo510L").soc.peripherals)
+
+
+@pytest.mark.parametrize(
+    ("soc", "boundaries"),
+    [
+        ("apollo510", {"dtcm": 4096, "ssram": 1 << 20, "mram": 2 << 20}),
+        ("apollo510b", {"dtcm": 4096, "ssram": 1 << 20, "mram": 2 << 20}),
+        ("apollo510L", {"dtcm": 4096}),
+        ("apollo330P", {"dtcm": 4096}),
+    ],
+)
+def test_apollo5_records_its_dma_boundaries(catalog, soc, boundaries):
+    """ADR 0011: the datasheet's DMA boundaries, as offsets from each region's base."""
+    target = catalog.resolve(soc)
+    stated = {r.name: r.dma_boundary for r in target.memories() if r.dma_boundary is not None}
+    assert stated == boundaries
+    for name in boundaries:
+        record = target.region(name).field_provenance["dma_boundary"]
+        assert record.status == "datasheet" and record.source, name
+
+
+def test_apollo510_ssram_edges_are_offsets_from_its_base(catalog):
+    """ERR018's edges, 0x20180000 and 0x20280000, are not multiples of 1M (ADR 0011)."""
+    ssram = catalog.resolve("apollo510").region("ssram")
+    edges = [ssram.base + k * ssram.dma_boundary for k in (1, 2)]
+    assert edges == [0x20180000, 0x20280000]
+    assert all(edge % ssram.dma_boundary != 0 for edge in edges)

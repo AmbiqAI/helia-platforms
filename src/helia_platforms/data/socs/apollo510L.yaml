@@ -149,6 +149,18 @@ socs:
             p33 Table 4 "Instruction/Data TCM (256 kB)", Executable Y, aliased at 0x30000000
             ("accessible only from Secure SW when TrustZone is enabled"). p254 gives the
             technology ("SRAM (SSRAM and TCM)"). There is no ITCM.
+        dma_boundary:
+          value: 4K
+          provenance:
+            status: datasheet
+            source: ["doc:DS-A510LS@0.9.0:p21"]
+            verified_on: 2026-11-06
+            verified_by: apage224
+            notes: >-
+              p21 "A DMA transfer must not cross a TCM 4 kB boundary". p21 also forbids DMA to or
+              from TCM "when the CPU is in deep sleep or the TCM location is powered down". The
+              note is in the SoC overview and does not name the radio core's rs_tcm, which
+              carries no boundary. This revision states no SSRAM or MRAM boundary.
       ssram:
         technology: sram
         attachment: system

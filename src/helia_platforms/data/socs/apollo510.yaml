@@ -96,6 +96,18 @@ socs:
         executable: true
         alternate_bases: [0x30000000]
         provenance: *ds_tcm
+        dma_boundary:
+          value: 4K
+          provenance:
+            status: datasheet
+            source: ["doc:DS-A510@1.1.0:p22", "doc:DS-A510@1.1.0:p29", "doc:DS-A510@1.1.0:p96"]
+            verified_on: 2026-11-06
+            verified_by: apage224
+            notes: >-
+              p22 "A DMA transfer must not cross a DTCM 4 kB boundary"; p29 "A DMA transfer cannot
+              cross a DTCM 4 kB boundary" (ERR014); p96: an MSPI DMA that "crosses a 4 kB boundary in
+              DTCM" hangs the device (ERR018). p22 also forbids DMA to or from DTCM "when the CPU is
+              in deep sleep or the DTCM location is powered down".
       ssram:
         technology: sram
         attachment: system
@@ -110,6 +122,18 @@ socs:
           notes: >-
             p35 "System SRAM (3 MB)"; p96 splits it into SSRAM0-2 of 1 MB each, which the
             catalog keeps as one region.
+        dma_boundary:
+          value: 1M
+          provenance:
+            status: datasheet
+            source: ["doc:DS-A510@1.1.0:p96"]
+            verified_on: 2026-11-06
+            verified_by: apage224
+            notes: >-
+              ERR018 (p96): an MSPI DMA that crosses the DTCM-SSRAM0, SSRAM0-SSRAM1 or SSRAM1-SSRAM2
+              boundary hangs the device. SSRAM0-2 are 1 MB each from 0x20080000, so the boundaries
+              fall at 1M and 2M from the region's base. ERR018 is stated for MSPI DMA; no
+              source states the rule for another master.
       mram:
         technology: mram
         attachment: system
@@ -124,6 +148,16 @@ socs:
           notes: >-
             p35 gives NVM-SBL, NVM0-APPL and NVM1-APPL across 0x00400000-0x007FFFFF. p298
             is cited for the technology ("NVM (MRAM)"); p22, p29 and p36-37 also call it MRAM.
+        dma_boundary:
+          value: 2M
+          provenance:
+            status: datasheet
+            source: ["doc:DS-A510@1.1.0:p22"]
+            verified_on: 2026-11-06
+            verified_by: apage224
+            notes: >-
+              "A DMA transfer must not cross the MRAM0-MRAM1 boundary at address 0x600000 on devices
+              with two MRAM partitions": 0x600000 - 0x400000 (the base) = 2M.
 
     default_access:
       master: cm55_0
