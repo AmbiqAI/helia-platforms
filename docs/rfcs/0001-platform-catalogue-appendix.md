@@ -150,9 +150,11 @@ still describe the dataset; #73 amends them.
   the ranges an application may occupy in each region after the boot
   reservations and other cores' image slots (`application_ranges()`, #73),
   which keep the gaps and tell an unknown region from an empty one. On the
-  Apollo330 Plus and Apollo510 Lite EVB parts MRAM is
-  `[0x00410000, 0x00594000)`: the physical range intersected with the nsx
-  window would wrongly include the 432 KB radio firmware slot. The profiler
+  `apollo330mP_evb` and `apollo510dL_evb` boards, whose fitted parts carry
+  a 432 KB radio firmware slot, MRAM is `[0x00410000, 0x00594000)`: the
+  physical range intersected with the nsx window would wrongly include
+  the slot. Other parts of those Socs carry a 16 KB or 288 KB slot and give
+  their own end. The profiler
   keeps its logical-placement mapping. No family, FPGA or script-derived
   address is copied wholesale, and no window enters the catalog.
 - *`memory_map.py`.* Stays in the profiler in full: `LinkFamily`,
@@ -188,10 +190,12 @@ still describe the dataset; #73 amends them.
   (`Target.isa().has_pmu` and `pmu_kind`; the cache sizes are per core
   instance, `CoreInstance.options.icache_kb` and `dcache_kb`, which
   `Target.core_options` gives for core 0 and `Target.cores()` for each
-  core. The sizes are sourced today on apollo510, apollo510b, apollo510L
-  and apollo330P, absent by decision on the Cortex-M4 parts (#66), and
-  outstanding on atomiq110 under #158) rather than inferring them from
-  the Soc family.
+  core. The application core's sizes are sourced on apollo510, apollo510b,
+  apollo510L and apollo330P, and recorded but unverified on atomiq110
+  (#68); the Lite parts' radio core records an 8 KB I-cache. They are
+  absent on purpose elsewhere: apollo4p and apollo4l's 64 KB cache is an
+  NVM cache (#66), and apollo3 and apollo3p's 16 KB cache is the flash
+  cache) rather than inferring them from the Soc family.
 - *Symbols the table omits.* `CoreArch`, `PmuTier`, `ClockDomain.speed`
   and `speed_names`, `SocDef.clock_domain` and `cpu_clock` map to catalog
   queries. `PlatformRegistry`, `_freeze_registry`, `_SOCS`, `_BOARDS` and
