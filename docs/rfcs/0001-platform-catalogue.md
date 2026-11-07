@@ -6,6 +6,7 @@ except this header and the appendix link. The review that lists the open
 weaknesses and proposed revisions is 0001-platform-catalogue-review.md.
 Status here: Draft, under revision. Not yet accepted.
 Superseded in part by RFC 0002, accepted 2026-10-21; see its Changes relative to RFC 0001 table.
+Appendix section C (facts and policy, by symbol) signed off by the owner and helia-profiler on #15, 2026-11-06, as amended by the note that opens it.
 -->
 
 # RFC: `helia-platforms`, a single source of truth for SoC and board facts
