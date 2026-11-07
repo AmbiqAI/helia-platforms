@@ -14,7 +14,9 @@ plans DMA transfers into these regions, such as heliaAOT's weight-prefetch
 schedule (helia-aot RFC 0005), produces code that hangs if it does not
 know them. RFC 0002's `MemoryRegion` has no transfer constraint, and
 `MemoryCharacterization.max_beats` is the Ethos-U burst split, not a DMA
-rule. The Apollo3, Apollo4 and atomiq110 sources state no such rule.
+rule. The Apollo3 Blue, Apollo3 Blue Plus and Apollo4 Plus datasheets
+(DS-A3 1.3.0, DS-A3P 1.3.0, DS-A4P 1.6.0) state no such rule; atomiq110's
+sources were not read for one.
 
 Two neighbouring questions stay outside the catalog under ADR 0010. Which
 engine moves bytes between two memories is a consumer's rule over facts
@@ -38,8 +40,9 @@ provenance record.
   aligned addresses to 1M instead would plan transfers across those
   edges. A boundary the datasheet gives as an absolute address is written
   as its offset: the MRAM0-MRAM1 boundary at 0x600000 is `mram`
-  `dma_boundary: 2M`. A region's own ends are always edges, so a transfer
-  never spans two regions; the field does not say so.
+  `dma_boundary: 2M`. The field says nothing about a transfer that runs
+  from one region into the next; where a source states such an edge (ERR018
+  names DTCM-SSRAM0), the record's notes carry it.
 - **Masters.** The value is stated for the DMA masters the source names;
   the record's `notes` say which, and a consumer with another master reads
   them. A rule the source states for one master is not inferred for
@@ -59,7 +62,9 @@ provenance record.
   `dma_boundary: 4K`, and apollo510 and apollo510b also `ssram` 1M and
   `mram` 2M. The 510L and 330P 0.9.0 datasheets state the TCM rule in the
   SoC overview without naming the radio core's `rs_tcm`, which carries
-  none. Apollo3, Apollo4 and atomiq110 regions carry none.
+  none. Apollo3, Apollo4 and atomiq110 regions carry none, the first two
+  because their datasheets state no rule and atomiq110 because none was
+  looked for.
 - heliaAOT reads `target.region("dtcm").dma_boundary` instead of a table
   of its own and computes edges from the base; its engine rule and
   helia-profiler's transfer-cost calibration stay where they are.
