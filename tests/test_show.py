@@ -318,3 +318,20 @@ def test_a_derived_implementation_shows_its_base():
     target = load_overlay(document, base=builtin(include_plugins=False)).resolve("soc_a_fpga2")
     rows = [r.text for _, rs in _show.sections(target) for r in rs if r.label == "based_on"]
     assert rows == ["soc_a_fpga (implementation)"]
+
+
+def test_a_derived_add_on_core_and_memory_device_show_their_bases():
+    """Every kind a target holds can be derived; each prints its base with its own id."""
+    document = full_document()
+    document["memory_devices"]["psram_b"] = {"based_on": "psram_8m"}
+    document["addons"]["shield_b"] = {"based_on": "shield", "population": {"mspi1": "psram_b"}}
+    document["cores"] = {"m55_b": {"based_on": "cortex-m55"}}
+    document["socs"]["soc_a"]["cores"][0]["core"] = "m55_b"
+    catalog = load_overlay(document, base=builtin(include_plugins=False))
+    target = catalog.resolve("board_a", addons=["shield_b"])
+    rows = [r.text for _, rs in _show.sections(target) for r in rs if r.label == "based_on"]
+    assert set(rows) == {
+        "shield (add-on shield_b)",
+        "cortex-m55 (core m55_b)",
+        "psram_8m (memory device psram_b)",
+    }

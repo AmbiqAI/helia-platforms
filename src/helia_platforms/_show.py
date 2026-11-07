@@ -332,9 +332,13 @@ def _soc(target: Target, at: _Entries) -> _At:
     return at.at("socs", target.soc.id, target.soc)
 
 
-def _based_on(kind: str, entry: Any) -> list[_Row]:
-    """The row naming a derived implementation's, part's or board's base (#134)."""
-    return [_Row("based_on", f"{entry.based_on} ({kind})")] if entry.based_on else []
+def _based_on(kind: str, entry: Any, *, named: bool = False) -> list[_Row]:
+    """The row naming a derived entry's base (#134); ``named`` adds the entry's id, for the
+    kinds a target can hold several of (add-ons, core IPs, memory devices)."""
+    if not entry.based_on:
+        return []
+    owner = f"{kind} {entry.id}" if named else kind
+    return [_Row("based_on", f"{entry.based_on} ({owner})")]
 
 
 def _identity(target: Target, at: _Entries, sources: bool) -> list[_Row]:
@@ -361,6 +365,7 @@ def _identity(target: Target, at: _Entries, sources: bool) -> list[_Row]:
     for addon in target.addons:
         names = ["fits_boards", "occupies", "modes", "revision"]
         rows.append(_row("add-on", at.at("addons", addon.id, addon), addon, names, lead=addon.id))
+        rows += _based_on("add-on", addon, named=True)
     for alias in target.aliases:
         composition = target._catalog.compositions.get(alias)
         if composition is not None:
@@ -389,6 +394,7 @@ def _cores(target: Target, at: _Entries) -> list[_Row]:
         ip = target._catalog._entry("cores", ip_id)
         names = ["arch", "pmu", "has_dsp_extension"]
         rows.append(_row(ip_id, at.at("cores", ip_id, ip), ip, names))
+        rows += _based_on("core", ip, named=True)
     return rows
 
 
@@ -451,6 +457,7 @@ def _memories(target: Target, at: _Entries) -> list[_Row]:
         device = target._catalog._entry("memory_devices", device_id)
         device_at = at.at("memory_devices", device_id, device)
         rows.append(_row(f"device {device_id}", device_at, device, _DEVICE))
+        rows += _based_on("memory device", device, named=True)
     for index in range(len(target.soc.cores)):
         for name, free in target.usable_nvm(index).items():
             text = f"{size(free)} ({free} bytes; core {index}, computed)"
