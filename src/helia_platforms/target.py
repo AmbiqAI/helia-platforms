@@ -34,6 +34,10 @@ class IsaFeatures:
     pmu_kind: str
 
 
+#: The entries a target has a lineage for (``Target.lineage``).
+_LINEAGE_KINDS = ("soc", "implementation", "part", "board")
+
+
 @dataclass(frozen=True)
 class Target:
     """One name resolved: the Soc as realized, plus what the part, board and add-ons add.
@@ -389,6 +393,8 @@ class Target:
         entry with none (``Catalog.lineage``). Empty when the target has no entry of that
         kind. A derived Soc from an overlay thus finds the policy of its built-in base.
         """
+        if kind not in _LINEAGE_KINDS:
+            raise ValueError(f"lineage kind must be one of {_LINEAGE_KINDS}, not {kind!r}")
         entry = getattr(self, kind)
         if entry is None:
             return ()

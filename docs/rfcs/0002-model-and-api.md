@@ -690,7 +690,7 @@ This is the one definition of both relations.
   keep the base entry's provenance; changed values take the overlay's
   provenance as declared, or status `unverified` where none is declared.
   The loaded entry keeps `based_on`, the name of its own base, as a
-  non-fact field (not in `catalog_digest`), and `Catalog.lineage()` or
+  non-fact field (not in `catalog_digest`, not in the export), and `Catalog.lineage()` or
   `Target.lineage()` walks it to the first entry that names none, so a
   consumer that keys its own policy by id looks the entry up first and
   then its bases (#134, 2026-11-06).

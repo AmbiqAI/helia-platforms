@@ -476,3 +476,9 @@ def test_a_target_lineage_follows_each_entry_to_its_base(document):
     assert board.lineage() == ("soc_a",)
     assert board.lineage("implementation") == ()
     assert catalog.resolve("soc_b").lineage() == ("soc_b", "soc_a")
+
+
+@pytest.mark.parametrize("kind", ["sdk", "core", "npu", "origin", "socs"])
+def test_a_target_lineage_rejects_an_unknown_kind(catalog, kind):
+    with pytest.raises(ValueError, match="lineage kind"):
+        catalog.resolve("board_a").lineage(kind)

@@ -106,8 +106,6 @@ def _scrub(kind: str, values: dict[str, Any], kept: Mapping[str, set[str]]) -> d
         for key, table in (("default_board", "boards"), ("derives_from", "socs")):
             if key in values and values[key] not in kept[table]:
                 del values[key]
-    if "based_on" in values and values["based_on"] not in kept[kind]:
-        del values["based_on"]
     if kind == "addons":
         values["fits_boards"] = [b for b in values["fits_boards"] if b in kept["boards"]]
     return values
@@ -125,9 +123,14 @@ def _entry(
     *,
     provenance: bool,
 ) -> dict[str, Any]:
-    """One entry after its ``based_on`` merge, written as the file format writes it."""
+    """One entry after its ``based_on`` merge, written as the file format writes it.
+
+    ``based_on`` is left out: the entry is already merged, and the file format reads the
+    key as an instruction to merge over the base again (#134).
+    """
     tree = catalog._trees[(kind, entry_id)]
     values = _scrub(kind, copy.deepcopy(tree.values), kept)
+    values.pop("based_on", None)
     if not provenance:
         return values
     return _with_records(values, decl, (), tree.records, inherited=None)
