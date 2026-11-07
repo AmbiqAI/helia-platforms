@@ -16,9 +16,9 @@ Appendix section C (facts and policy, by symbol) signed off by helia-profiler an
 Proposed, 2026-09-30. Superseded in part by RFC 0002 (accepted 2026-10-21).
 Appendix section C, the facts-versus-policy map of helia-profiler's
 symbols, was signed off by helia-profiler and the owner on #15 on
-2026-11-07, as amended by the dated note that opens it; the rest of the
-appendix and this body are not reviewed by the helia-profiler maintainers,
-nor by neuralspotx's for the facts read from their repository.
+2026-11-07, as amended by the dated note that opens it. The rest of the
+appendix and this body remain unreviewed by the helia-profiler maintainers
+and by neuralspotx's, for the facts read from their repository.
 Implementation detail, verified line by line, is in the
 [appendix](0001-platform-catalogue-appendix.md).
 

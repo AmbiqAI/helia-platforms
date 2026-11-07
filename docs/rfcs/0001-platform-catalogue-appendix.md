@@ -177,10 +177,12 @@ still describe the dataset; #73 amends them.
 - *Counters and capabilities.* Capture decisions, pass planning and the
   capability wrappers stay in the profiler. Arm PMU event ids are sourced
   facts of the core IP and move to the catalog once sourced (#158). The
-  profiler reads PMU and cache presence from the catalog (`isa().has_pmu`,
-  `pmu_kind`, `icache_kb` and `dcache_kb`, sourced today on apollo510,
-  apollo510b and apollo330P and to be completed under #158) rather than
-  inferring them from the Soc family.
+  profiler will read PMU and cache presence from the catalog
+  (`isa().has_pmu`, `pmu_kind`, `icache_kb` and `dcache_kb`; the cache
+  sizes are sourced today on apollo510, apollo510b, apollo510L and
+  apollo330P, absent by decision on the Cortex-M4 parts (#66), and
+  outstanding on atomiq110 under #158) rather than inferring them from
+  the Soc family.
 - *Symbols the table omits.* `CoreArch`, `PmuTier`, `ClockDomain.speed`
   and `speed_names`, `SocDef.clock_domain` and `cpu_clock` map to catalog
   queries. `PlatformRegistry`, `_freeze_registry`, `_SOCS`, `_BOARDS` and
