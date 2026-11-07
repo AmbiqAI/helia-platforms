@@ -150,7 +150,6 @@ class Access(_Facts):
     guidance: NotRequired[Literal["preferred", "allowed", "discouraged"]]
     reason: NotRequired[str]
     address: NotRequired[Address]
-    port: NotRequired[Literal[0, 1]]
     characterization: NotRequired[MemoryCharacterization]
 
 

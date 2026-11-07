@@ -522,7 +522,6 @@ def _access(target: Target, at: _Entries) -> list[_Row]:
         "guidance",
         "reason",
         "address",
-        "port",
         "characterization",
     ]
     for entry in target.soc.access:

@@ -158,7 +158,6 @@ class Access(_Carrier):
     guidance: Literal["preferred", "allowed", "discouraged"] | None = None
     reason: str | None = None
     address: int | None = None
-    port: Literal[0, 1] | None = None
     characterization: MemoryCharacterization | None = None
 
 
