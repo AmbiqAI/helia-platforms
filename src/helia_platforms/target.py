@@ -366,9 +366,10 @@ class Target:
         (#73). A region every byte of which is taken, or of size 0, maps to ``()``; a
         region with no base (a populated device on an interface with no aperture, or an
         overlay region that omits it) is left out, and a target with no boot configuration
-        gives an empty mapping, since its reservations are unknown: unknown and empty are
-        told apart. Whether a customer may program the core is ``programmable_by``, which
-        this does not apply. Each range's ``derived`` record names the facts it came from.
+        selected (``boot`` is None) gives an empty mapping, since its reservations are
+        unknown: unknown and empty are told apart. Whether a customer may program the core
+        is ``programmable_by``, which this does not apply. Each range's ``derived`` record
+        names the facts it came from.
         """
         instance = self._core(core)
         boot = self.boot
@@ -457,13 +458,12 @@ class Target:
             at = f"fact:implementation:{impl.id}:memories.{region.name}"
             return (f"{at}.base", f"{at}.size")
         at = f"fact:soc:{self.soc.id}:memories.{region.name}"
-        declared = self._catalog._entry("socs", self.soc.id)
-        stated = next((m for m in declared.memories if m.name == region.name), None)
-        # The Soc states the base unless an implementation's rebase supplies it.
-        sources = [f"{at}.base"] if stated is None or stated.base is not None else []
+        rebased = impl is not None and region.name in impl.subset.memories_rebased
+        # The Soc states the base unless the implementation rebases the region.
+        sources = [] if rebased else [f"{at}.base"]
         sources.append(f"{at}.size")
         if impl is not None:
-            if region.name in impl.subset.memories_rebased:
+            if rebased:
                 sources.append(
                     f"fact:implementation:{impl.id}:subset.memories_rebased.{region.name}"
                 )

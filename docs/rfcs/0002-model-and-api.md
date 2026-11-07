@@ -377,8 +377,8 @@ BootConfig: name, reserved: {purpose: (region, offset, size)},
   boot, the core's access entry and a `derived` record naming the facts
   it came from. A region every byte of which is taken maps to an empty
   tuple; a region with no base is left out, and a target with no boot
-  configuration gives an empty mapping, so unknown and empty are told
-  apart.
+  configuration selected gives an empty mapping, so unknown and empty
+  are told apart.
   It applies no `programmable_by` view. A consumer that links intersects
   these with its own linker windows; on the Apollo330 Plus and Apollo510
   Lite EVB parts the MRAM range is `[0x00410000, 0x00594000)`.
@@ -946,7 +946,7 @@ class Target:
     def flash_load_address(self, core: int | str = 0) -> int   # from boot; raises if there is none
     image_slots: Mapping[str, ImageSlot]                      # the Soc's, each replaced by the part's slot of that name
     def usable_nvm(self, core: int | str = 0, *, include_discouraged: bool = False) -> Mapping[str, int]   # the customer's view: after reservations and other cores' slots; empty for a core only the vendor programs or with no loadable image
-    def application_ranges(self, core: int | str = 0, *, include_discouraged: bool = False) -> Mapping[str, tuple[AddressRange, ...]]   # per region with a base: disjoint [start, end) in the region's base address space, less reservations and other cores' slots; () when all taken; a region with no base is left out; {} with no boot configuration (#73)
+    def application_ranges(self, core: int | str = 0, *, include_discouraged: bool = False) -> Mapping[str, tuple[AddressRange, ...]]   # per region with a base: disjoint [start, end) in the region's base address space, less reservations and other cores' slots; () when all taken; a region with no base is left out; {} with no boot configuration selected (#73)
     # external memory
     def external_memories(self) -> tuple[MemoryRegion, ...]   # population plus add-ons, at aperture bases
     def classify_address(self, address: int, master: int | str = 0) -> str | None   # alternate_bases classify to the same region; per-master Access addresses resolved for master

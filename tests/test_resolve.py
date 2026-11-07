@@ -657,6 +657,8 @@ def test_application_ranges_credit_each_input_to_the_entry_that_states_it(docume
     )  # the part's slot, not the Soc's
     assert "fact:soc:soc_a:image_slots.radio.size" not in board.provenance.source
     assert board.end == 0x00400000 + KB * KB  # up to the part's slot at 1M
+    second = catalog.resolve("board_a").application_ranges()["nvm"][1]
+    assert second.start == 0x00400000 + KB * KB + 512 * KB  # the part's 512K, not the Soc's 256K
     fpga = catalog.resolve("soc_a_fpga").application_ranges()["nvm"][0]
     assert fpga.target == "soc_a_fpga" and fpga.boot == "fpga"
     assert {
@@ -664,6 +666,9 @@ def test_application_ranges_credit_each_input_to_the_entry_that_states_it(docume
         "fact:implementation:soc_a_fpga:subset.memories_resized.nvm",
         "fact:implementation:soc_a_fpga:boot_configs.fpga.reserved.rom.size",
     } <= set(fpga.provenance.source)
+    assert (
+        "fact:soc:soc_a:memories.nvm.base" not in fpga.provenance.source
+    )  # the rebase supplies it
     assert not any(s.startswith("fact:soc:soc_a:boot_configs") for s in fpga.provenance.source)
     # programmable_by is not applied: the vendor-only radio core still gets its ranges.
     radio = catalog.resolve("board_a").application_ranges("radio_0")["nvm"]
@@ -678,3 +683,23 @@ def test_application_ranges_total_what_usable_nvm_gives():
             ranges = target.application_ranges(core.id)
             for region, size in target.usable_nvm(core.id).items():
                 assert sum(r.size for r in ranges[region]) == size, (board.id, core.id, region)
+
+
+def test_a_rebase_that_gives_a_baseless_region_its_base_is_the_cited_source(document):
+    soc = document["socs"]["soc_a"]
+    del soc["memories"]["ssram"]["base"]
+    document["implementations"] = {
+        "soc_a_fpga": {
+            "soc": "soc_a",
+            "kind": "fpga",
+            "subset": {"memories_rebased": {"ssram": 0x30000000}},
+        }
+    }
+    catalog = quiet(document)
+    assert "ssram" not in catalog.resolve("soc_a").application_ranges()  # no base: unknown
+    rng = catalog.resolve("soc_a_fpga").application_ranges()["ssram"][0]
+    assert rng.start == 0x30000000
+    assert "fact:implementation:soc_a_fpga:subset.memories_rebased.ssram" in rng.provenance.source
+    assert "fact:soc:soc_a:memories.ssram.base" not in rng.provenance.source
+    facts = _provenance.Facts(catalog._trees, lambda _: True)
+    assert all(facts.exists(k) for s in rng.provenance.source if (k := facts.parse(s)))
