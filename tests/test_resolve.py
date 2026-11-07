@@ -462,3 +462,80 @@ def test_external_region_names_skip_the_socs_own_names(document):
     assert [r.name for r in target.external_memories()] == ["psram1"]
     assert target.region("psram1").base == 0x60000000
     assert target.region("psram0").base == 0x70000000
+
+
+# ---- application_ranges (#73) -----------------------------------------------------------
+
+
+def test_application_ranges_subtract_reservations_and_other_cores_slots(document):
+    """The region less the selected boot's reservations and other cores' slots, in order."""
+    soc = document["socs"]["soc_a"]
+    soc["cores"].append({**soc["cores"][0], "id": "radio_0", "role": "radio"})
+    soc["access"] += [
+        {"master": "radio_0", "target": "nvm", "access": "direct"},
+        {"master": "cm55_0", "target": "nvm", "access": "direct"},
+    ]
+    soc["image_slots"] = {
+        "radio": {
+            "core": "radio_0",
+            "region": "nvm",
+            "offset": "3M",
+            "size": "512K",
+            "supplier": "vendor",
+        },
+        "app": {
+            "core": "cm55_0",
+            "region": "nvm",
+            "offset": "64K",
+            "size": "1M",
+            "supplier": "customer",
+        },
+    }
+    target = quiet(document).resolve("board_a")
+    ranges = target.application_ranges()
+    nvm = [(r.start, r.end) for r in ranges["nvm"]]
+    base = 0x00400000
+    assert nvm == [
+        (base + 64 * KB, base + 3 * KB * KB),
+        (base + 3 * KB * KB + 512 * KB, base + 4 * KB * KB),
+    ]
+    first = ranges["nvm"][0]
+    assert (first.region, first.core, first.boot, first.size) == (
+        "nvm",
+        "cm55_0",
+        "sbl",
+        3 * KB * KB - 64 * KB,
+    )
+    assert first.access is not None and first.access.master == "cm55_0"
+    assert first.provenance.status == "derived"
+    assert "fact:soc:soc_a:boot_configs.sbl.reserved.sbl.size" in first.provenance.source
+    assert "fact:soc:soc_a:image_slots.radio.offset" in first.provenance.source
+    assert [(r.start, r.end) for r in ranges["ssram"]] == [(0x20080000, 0x20080000 + 3 * KB * KB)]
+    # The radio core keeps its own slot and loses the application's.
+    radio = target.application_ranges("radio_0")["nvm"]
+    assert [(r.start, r.end) for r in radio] == [(base + 64 * KB + KB * KB, base + 4 * KB * KB)]
+
+
+def test_application_ranges_follow_the_selected_boot_and_the_discouraged_filter(document):
+    soc = document["socs"]["soc_a"]
+    soc["access"].append(
+        {"master": "cm55_0", "target": "tcm", "access": "direct", "guidance": "discouraged"}
+    )
+    catalog = quiet(document)
+    sbl = catalog.resolve("board_a").application_ranges()
+    nbl = catalog.resolve("board_a", boot="nbl").application_ranges()
+    assert sbl["nvm"][0].start == 0x00410000 and nbl["nvm"][0].start == 0x00400000
+    assert nbl["nvm"][0].boot == "nbl"
+    assert "tcm" not in sbl and "tcm" in catalog.resolve("board_a").application_ranges(
+        include_discouraged=True
+    )
+
+
+def test_application_ranges_tell_an_unknown_region_from_an_empty_one(document):
+    soc = document["socs"]["soc_a"]
+    soc["boot_configs"]["sbl"]["reserved"] = {"all": {"region": "nvm", "offset": 0, "size": "4M"}}
+    soc["memories"]["extra"] = {"technology": "sram", "attachment": "system", "size": "1M"}
+    soc["access"].append({"master": "cm55_0", "target": "extra", "access": "direct"})
+    ranges = quiet(document).resolve("board_a").application_ranges()
+    assert ranges["nvm"] == ()  # every byte reserved: empty
+    assert "extra" not in ranges  # no base: unknown, not empty

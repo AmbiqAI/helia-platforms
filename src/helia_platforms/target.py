@@ -353,6 +353,65 @@ class Target:
             }
         )
 
+    def application_ranges(
+        self, core: int | str = 0, *, include_discouraged: bool = False
+    ) -> Mapping[str, tuple[model.AddressRange, ...]]:
+        """Per region of ``memories()`` with a base, the disjoint half-open byte ranges an
+        application for ``core`` may occupy: the region less the selected boot's
+        reservations and other cores' image slots, in address order.
+
+        No linker knowledge: a consumer intersects these with its own linker windows
+        (#73). A region every byte of which is taken maps to ``()``; a region with no base
+        (a populated device on an interface with no aperture, or an overlay region that
+        omits it) is left out, so unknown and empty are told apart. Whether a customer may
+        program the core is ``programmable_by``, which this does not apply.
+        """
+        instance = self._core(core)
+        boot = self.boot
+        taken: dict[str, list[tuple[int, int, str]]] = {}
+        soc = f"fact:soc:{self.soc.id}"
+        for reservation in boot.reserved if boot else ():
+            assert boot is not None
+            where = f"{soc}:boot_configs.{boot.name}.reserved.{reservation.purpose}"
+            end = reservation.offset + reservation.size
+            taken.setdefault(reservation.region, []).append((reservation.offset, end, where))
+        own_slots = self.part.image_slots if self.part else {}
+        for name, slot in self.image_slots.items():
+            if slot.core != instance.id:
+                owner = f"fact:part:{self.part.id}" if self.part and name in own_slots else soc
+                end = slot.offset + slot.size
+                taken.setdefault(slot.region, []).append(
+                    (slot.offset, end, f"{owner}:image_slots.{name}")
+                )
+        result: dict[str, tuple[model.AddressRange, ...]] = {}
+        for region in self.memories(core, include_discouraged=include_discouraged):
+            if region.base is None:
+                continue
+            free = [(0, region.size)]
+            sources = [f"{soc}:memories.{region.name}.base", f"{soc}:memories.{region.name}.size"]
+            for low, high, where in taken.get(region.name, ()):
+                free = _subtract(free, low, high)
+                sources += [f"{where}.offset", f"{where}.size"]
+            provenance = model.Provenance(
+                status="derived",
+                source=tuple(sources),
+                notes=f"{region.name} less the boot reservations and other cores' image slots",
+            )
+            access = self.reachable(instance.id, region.name)
+            result[region.name] = tuple(
+                model.AddressRange(
+                    start=region.base + low,
+                    end=region.base + high,
+                    region=region.name,
+                    core=instance.id,
+                    boot=boot.name if boot else None,
+                    access=access,
+                    provenance=provenance,
+                )
+                for low, high in free
+            )
+        return MappingProxyType(result)
+
     # -- debug and SDK ----------------------------------------------------------------------
 
     @property
@@ -435,6 +494,20 @@ class Target:
                 f"{self.id}: boot {self.boot.name!r} has no app_start for {instance.id!r}"
             )
         return start
+
+
+def _subtract(free: list[tuple[int, int]], low: int, high: int) -> list[tuple[int, int]]:
+    """``free`` (sorted, disjoint half-open intervals) less ``[low, high)``."""
+    out: list[tuple[int, int]] = []
+    for start, end in free:
+        if high <= start or low >= end:
+            out.append((start, end))
+            continue
+        if low > start:
+            out.append((start, low))
+        if high < end:
+            out.append((high, end))
+    return out
 
 
 _Unit = TypeVar("_Unit", model.CoreInstance, model.NpuInstance)

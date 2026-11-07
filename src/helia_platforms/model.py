@@ -354,6 +354,24 @@ class ImageSlot(_Carrier):
 
 
 @_frozen
+class AddressRange:
+    """A half-open byte interval ``[start, end)`` of ``region`` an application for ``core``
+    may occupy under ``boot``: the region less reservations and other cores' slots (#73)."""
+
+    start: int
+    end: int
+    region: str
+    core: str
+    boot: str | None
+    access: Access | None
+    provenance: Provenance
+
+    @property
+    def size(self) -> int:
+        return self.end - self.start
+
+
+@_frozen
 class Part(_Carrier):
     id: str
     soc: str

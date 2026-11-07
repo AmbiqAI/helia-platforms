@@ -558,3 +558,11 @@ def test_apollo510_ssram_edges_are_offsets_from_its_base(catalog):
     edges = [ssram.base + k * ssram.dma_boundary for k in (1, 2)]
     assert edges == [0x20180000, 0x20280000]
     assert all(edge % ssram.dma_boundary != 0 for edge in edges)
+
+
+@pytest.mark.parametrize("board", ["apollo330mP_evb", "apollo510dL_evb"])
+def test_the_lite_evbs_application_mram_ends_at_the_radio_slot(catalog, board):
+    """helia-profiler's check case for #73: 0x00410000 to 0x00594000, 1552 KiB."""
+    ranges = catalog.resolve(board).application_ranges()["mram"]
+    assert [(r.start, r.end, r.size) for r in ranges] == [(0x00410000, 0x00594000, 1552 * 1024)]
+    assert ranges[0].boot == "sbl"
