@@ -529,10 +529,7 @@
           ]
         },
         "port": {
-          "enum": [
-            0,
-            1
-          ]
+          "deprecated": true
         },
         "characterization": {
           "$ref": "#/$defs/MemoryCharacterization"

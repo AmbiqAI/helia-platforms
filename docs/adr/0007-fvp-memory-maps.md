@@ -1,7 +1,18 @@
 # 0007. Model an FVP's memories as its own list, not as substitutions
 
 Date: 2026-10-07
-Status: Accepted; amended 2026-10-29 (#68)
+Status: Accepted; amended 2026-10-29 (#68) and 2026-11-06 (#93)
+
+## Amendment, 2026-11-06: no port on an access entry (#93)
+
+`Access.port` left the model on #93: which memory a compiler serves over
+which NPU port is the consumer's choice, and the IP's port classes with
+their per-port limits are `NpuInstance.axi_ports`. So the field-path
+example in point 5 reads `access.<master>@<target>.guidance`, and the
+example in point 3 of an FPGA stating its own path limits
+(`atomiq110_fpga`'s scaled-down NPU-to-SSRAM FIFO) no longer exists in
+the data: those limits were a fit, not a cited capture, and came out
+with #93. Point 3's rule itself, that any kind may write `access`, stands.
 
 ## Context
 
@@ -94,8 +105,7 @@ of them that describe substitutions.
    follow ADR 0003 section 2:
    `fact:implementation:<id>:memories.<name>.size`,
    `memories.<name>.stands_in_for.<Soc region>` (the item ends the path)
-   and `access.<master>@<target>.guidance` (`.port` until #93 removed the
-   field, 2026-11-06).
+   and `access.<master>@<target>.port`.
 6. **`dram` technology.** `MemoryRegion.technology` and
    `MemoryDevice.technology` gain the value `dram`, so a model's DDR region
    can say what it is. The owner chose this on 2026-10-07; the other values

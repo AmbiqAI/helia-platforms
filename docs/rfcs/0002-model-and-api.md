@@ -198,12 +198,13 @@ single DMA transfer does not cross an address that is a whole multiple of
 it from the region's base, so the edges are `base + k * dma_boundary`, not
 aligned addresses ([ADR 0011](../adr/0011-dma-boundary.md)). The package carries no energy data; the estimator's energy
 coefficients stay in helia-estimator. Characterization is hardware: the
-path's limits, as the SoC or IP documentation states them or as measured,
-such as the Ethos-U85's per-port outstanding reads and writes. `max_beats`
-is the burst split in bytes (64, 128 or 256) the path calls for, named after
-the Ethos-U `AXI_SRAM` and `AXI_EXT` field, such as atomiq110's 128-byte SRAM
-stripe. Values fitted to make a model match captures are the fit of the tool
-that owns them, such as helia-npu, not facts here.
+path's limits, as the SoC or IP documentation states them or as measured.
+An NPU's own per-port limits (the Ethos-U85's outstanding reads and writes
+per SRAM or EXT port) are not a path's: they live on `NpuInstance.axi_ports`
+(#93). `max_beats` is the burst split in bytes (64, 128 or 256) the path
+calls for, named after the Ethos-U `AXI_SRAM` and `AXI_EXT` field. Values
+fitted to make a model match captures, and a driver's programmed burst
+split, are the tool's, such as helia-npu's, not facts here.
 
 An overlay region may omit `base` (size only, no `based_on`, as RFC 0001
 appendix E allowed). Such a region is excluded from the bounds and overlap
@@ -878,7 +879,7 @@ one of them.
 @dataclass(frozen=True) class NpuInstance: id, npu, axi_width_bits, base_address, irq, sram_port_hash, axi_ports: Mapping[str, NpuPortClass], driven_by, clock_domain   # NpuPortClass: name (sram, ext), count, max_outstanding_reads, max_outstanding_writes, provenance
 @dataclass(frozen=True) class AcceleratorInstance: id, kind, ip, driven_by, clock_domain, base_address, irq
 @dataclass(frozen=True) class MemoryRegion: name, technology, attachment, size, base, alternate_bases, executable, writeable, cacheable, characterization, dma_boundary: int | None, stands_in_for: tuple[str, ...], provenance   # stands_in_for: FVP regions only (ADR 0007)
-@dataclass(frozen=True) class Access:     master, target, access, requires_awake, guidance, reason, address: int | None, characterization, provenance   # target: region or memory_controllers name; a file's port key (removed on #93) is read, warned about and ignored until the next minor release
+@dataclass(frozen=True) class Access:     master, target, access, requires_awake, guidance, reason, address: int | None, characterization, provenance   # target: region or memory_controllers name; a file's port key (removed on #93) is read, warned about and ignored until #159 removes it
 @dataclass(frozen=True) class DefaultAccess: master, access, scope, provenance   # scope: on_die
 @dataclass(frozen=True) class MemoryCharacterization: read_latency_ns, write_latency_ns, max_outstanding_reads, max_outstanding_writes, max_beats, ports, axi_clock_hz, bandwidth_fraction  (each value may carry its own Provenance)
 @dataclass(frozen=True) class ClockDomain: id, points: tuple[DomainPoint, ...]   # DomainPoint: name, mhz, hal_mode, provenance

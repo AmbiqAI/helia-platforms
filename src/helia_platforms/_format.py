@@ -159,7 +159,7 @@ class Access(_Facts):
     reason: NotRequired[str]
     address: NotRequired[Address]
     # Removed on #93 (2026-11-06): which memory a compiler serves over which NPU port is the
-    # consumer's choice, not a fact. Read and ignored for one minor release, so data written
+    # consumer's choice, not a fact. Read and ignored until #159 removes it, so data written
     # before the change still loads.
     port: NotRequired[
         Annotated[

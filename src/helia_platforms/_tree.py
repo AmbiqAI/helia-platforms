@@ -94,7 +94,7 @@ def _normalize(  # noqa: PLR0911, PLR0912 (one branch per declared kind)
                 item, declared[key].type, (*path, key), record, out=out, facts=facts and carries
             )
             for key, item in value.items()
-            if key != "provenance"
+            if key != "provenance" and not _is_deprecated(declared[key].type)
         }
     origin = getattr(bare, "__origin__", None)
     if origin is dict:
@@ -211,6 +211,11 @@ def merge(base: Tree, delta: Tree, obj: type, *, inherit_all: bool = False) -> T
         else:
             records[path] = base.records.get(path)
     return Tree(values, records)
+
+
+def _is_deprecated(tp: Any) -> bool:
+    """True for a key the format reads and ignores (``fmt.Deprecated``)."""
+    return _walk.marker(_walk.unwrap(tp)[1], fmt.Deprecated) is not None
 
 
 def _is_delta_key(key: str, declared: dict) -> bool:
