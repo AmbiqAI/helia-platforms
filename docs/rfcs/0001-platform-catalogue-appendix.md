@@ -126,11 +126,16 @@ BoardDef     soc -> SocDef, tier (evb|fpga|custom), is_fpga,
 
 ## C. Facts and policy, by symbol
 
-**Amendments (2026-11-06).** The owner signed the table off on #15 as
-amended by helia-profiler's position of 2026-11-07, read against profiler
+**Amendments (2026-11-07).** The owner signed the table off on #15 as
+amended by helia-profiler's position of the same day, read against profiler
 main `6231cd2e` under [ADR 0010](../adr/0010-facts-not-policy.md) and the
 owner decision on #73 (linker windows stay in the consumers). The table
-below is kept as written; these amendments take precedence over it:
+below is kept as written; these amendments take precedence over it, and
+over every other passage of this appendix (sections B, D, E, F, G and I)
+and of RFC 0001 that puts `LinkWindow`, `linked_memory_map`, a `windows`
+command or `app_flash_load_addr(board, profile)` over a windows table into
+the package. RFC 0002's "Link environments" text and ADR 0006 section 4
+still describe the dataset; #73 amends them.
 
 - *Flash address row.* `_FAMILY_APP_FLASH_LOAD_ADDR` and
   `_SOC_APP_FLASH_LOAD_ADDR` no longer exist; `capabilities.py` reads
@@ -146,9 +151,10 @@ below is kept as written; these amendments take precedence over it:
   copied wholesale, and no window enters the catalog.
 - *`memory_map.py`.* Stays in the profiler in full: `LinkFamily`,
   `LinkedRegionWindow`, `_MAPS`, `_window`, `linked_memory_map`,
-  `classify_address`, the family window constants and `mram_app_origin`,
-  regenerated from the nsx-ambiq-sdk the profiler resolves, with source
-  hashes and a drift check (#73). `classify_address` consumes those windows.
+  `classify_address`, the family window constants and `mram_app_origin`.
+  The profiler will regenerate the windows from the nsx-ambiq-sdk it
+  resolves, with source hashes and a drift check; that generator is not
+  written yet (#73). `classify_address` consumes those windows.
 - *Placement enums.* Physical region kinds may map to catalog regions;
   `Placement`, `ArenaRole`, `Placement.region` and `_PLACEMENT_REGION` stay
   in the profiler as tool choices ("TCM means DTCM; ITCM never holds
@@ -156,20 +162,25 @@ below is kept as written; these amendments take precedence over it:
 - *`MemoryLayout`.* Still present; it is replaced by catalog facts
   intersected with the profiler's windows, not by catalog windows.
 - *SoC facts and clocks.* As the table says. `ClockDomain.default` is the
-  profiler's choice for an omitted option. `has_mve` exists; explicit FPU
-  fields do not.
+  profiler's choice for an omitted option. The profiler's `SocDef` has
+  `has_mve` and no explicit FPU field; the catalog answers both through
+  `Target.isa()`.
 - *Board facts.* `starter_profile_board` and `profile_source_board` select
   NSX metadata and stay in the profiler. `ble_reset_gpio_pin` is BSP wiring
-  and moves to the catalog once sourced; whether the profiler holds it low
-  stays with the profiler. Channel and measurement GPIO defaults stay.
+  and moves to the catalog once sourced (#157); whether the profiler holds
+  it low stays with the profiler. Channel and measurement GPIO defaults
+  stay.
 - *Custom builders and registry.* Only factual overlay loading migrates;
   the profiler's config keys, policy parsing, hints and
   `_reject_unknown_keys` stay in its compatibility adapter. No mixed
   builder moves wholesale.
 - *Counters and capabilities.* Capture decisions, pass planning and the
   capability wrappers stay in the profiler. Arm PMU event ids are sourced
-  facts of the core IP and move to the catalog once sourced; cache and PMU
-  presence come from catalog facts rather than family inference.
+  facts of the core IP and move to the catalog once sourced (#158). The
+  profiler reads PMU and cache presence from the catalog (`isa().has_pmu`,
+  `pmu_kind`, `icache_kb` and `dcache_kb`, sourced today on apollo510,
+  apollo510b and apollo330P and to be completed under #158) rather than
+  inferring them from the Soc family.
 - *Symbols the table omits.* `CoreArch`, `PmuTier`, `ClockDomain.speed`
   and `speed_names`, `SocDef.clock_domain` and `cpu_clock` map to catalog
   queries. `PlatformRegistry`, `_freeze_registry`, `_SOCS`, `_BOARDS` and
@@ -180,8 +191,8 @@ below is kept as written; these amendments take precedence over it:
   constants stay in the profiler. The `platform/__init__.py` exports remain
   the profiler's compatibility surface.
 
-The three facts named above that move once sourced (`ble_reset_gpio_pin`,
-PMU event ids, cache and PMU presence) are data issues, not rules.
+The facts named above that move once sourced are data issues, not rules:
+#157 (the BLE reset pin) and #158 (PMU event ids and cache presence).
 
 | Symbol (today) | Where it goes | Why |
 |---|---|---|
