@@ -373,9 +373,9 @@ BootConfig: name, reserved: {purpose: (region, offset, size)},
   region of `memories()` with a base, the disjoint half-open byte ranges
   `[start, end)` an application for that core may occupy under the
   selected boot configuration, in the region's own address space (its
-  `base`, as `flash_load_address()` uses it), each with the region, core,
-  boot, the core's access entry and a `derived` record naming the facts
-  it came from. A region every byte of which is taken maps to an empty
+  `base`, as `flash_load_address()` uses it), each with the region, the
+  target id, core, boot, the core's access entry and a `derived` record
+  naming the facts it came from. A region every byte of which is taken maps to an empty
   tuple; a region with no base is left out, and a target with no boot
   configuration selected gives an empty mapping, so unknown and empty
   are told apart.
