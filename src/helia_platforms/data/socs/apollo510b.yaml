@@ -63,7 +63,7 @@ socs:
               verified_by: evanchen11
               notes: >-
                 The gcc -mfpu the SDK passes for every Cortex-M55 build. The comment in
-                facts/apollo510b.cmake:23-25 says no -mfpu is passed, which :221
+                facts/apollo510b.cmake:23-25 says no -mfpu is passed, which :254
                 contradicts. Double precision is fpu_dp.
           fpu_dp: true
           mve: fp

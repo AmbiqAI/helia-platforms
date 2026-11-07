@@ -56,7 +56,7 @@ socs:
               notes: >-
                 The gcc -mfpu the SDK passes for every Cortex-M55 build, as for apollo510.
                 NSX_FPU is empty (facts :32) and facts :28-31 say no -mfpu is emitted, which
-                :221 contradicts. Double precision is fpu_dp.
+                :254 contradicts. Double precision is fpu_dp.
           fpu_dp:
             value: true
             provenance:
@@ -82,7 +82,7 @@ socs:
               notes: >-
                 mbhssain (review of #133): "64kB Instruction Cache / 64kB Data Cache", from the
                 internal Cortex-M55 subsystem page. atomiq110.h:228-229 at nsx-ambiq-sdk
-                v5.2.26 say only that both caches are present.
+                v5.2.27 say only that both caches are present.
           dcache_kb: {value: 64, provenance: *cm55_caches}
 
     npus:
@@ -569,7 +569,7 @@ implementations:
             verified_on: 2026-10-30
             verified_by: evanchen11
             notes: >-
-              Measured with cpu.ulp. It disagrees with nsx-ambiq-sdk v5.2.26
+              Measured with cpu.ulp. It disagrees with nsx-ambiq-sdk v5.2.27
               (atomiq110/nsx_system_platform.c:66-69), which says the FPGA's HFRC "is fixed at
               the ATOMIQ11X_FPGA emulation frequency (25 MHz ...), independent of CPU perf mode".
       npu:

@@ -233,7 +233,7 @@ socs:
           platform files for every APOLLO3 Soc (CMakeLists.txt:14). Since v5.2.27
           nsx_platform_set_perf_mode selects normal or burst mode: NSX_PERF_LOW keeps normal
           mode, 48 MHz, and MEDIUM or HIGH enables burst, 96 MHz (nsx_performance.c:11, :36-38,
-          :48). v5.2.26's apollo3 file made it a no-op.
+          :48). v5.2.26 made it a no-op.
 
     boot_configs:
       sbl:

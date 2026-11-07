@@ -56,7 +56,7 @@ socs:
               verified_by: evanchen11
               notes: >-
                 The gcc -mfpu the SDK passes for every Cortex-M55 build. The facts file
-                comment (apollo330P.cmake:23-26) says no -mfpu is passed, which :221
+                comment (apollo330P.cmake:23-26) says no -mfpu is passed, which :254
                 contradicts. Double precision is fpu_dp.
           fpu_dp: true
           mve: fp
@@ -504,7 +504,8 @@ socs:
           status: sdk
           source:
             - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:cmake/socs/facts/apollo330P.cmake:53"
-            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-core/src/apollo510/nsx_system_platform.c:99-104"
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-core/src/apollo510/nsx_system_platform.c:77-79"
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-core/src/apollo510/nsx_system_platform.c:99-106"
             - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/lib/gcc/apollo330P/libam_hal.a"
             - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/CMSIS/AmbiqMicro/Include/apollo330P.h:63088"
           verified_on: 2026-11-06
