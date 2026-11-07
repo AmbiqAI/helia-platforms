@@ -685,8 +685,9 @@ This is the one definition of both relations.
 - `based_on` is overlay inheritance and applies to any entity kind. The
   new entry copies the facts of the named entry, then applies its own
   deltas and removals. The result is an independent entry with its own id.
-  Not inherited: `aliases`, `default_board`, `derives_from`, and
-  `release_status` (the entry's own, default `embargoed`). Unchanged values
+  Not inherited: `aliases`, `based_on` (each entry keeps its own),
+  `default_board`, `derives_from`, and `release_status` (the entry's own,
+  default `embargoed`). Unchanged values
   keep the base entry's provenance; changed values take the overlay's
   provenance as declared, or status `unverified` where none is declared.
   The loaded entry keeps `based_on`, the name of its own base, as a

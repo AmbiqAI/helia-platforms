@@ -2063,3 +2063,23 @@ def test_lineage_walks_based_on_to_the_first_entry_without_one(document):
 
 def test_a_built_in_entry_has_no_based_on():
     assert all(soc.based_on is None for soc in builtin(include_plugins=False).socs())
+
+
+def test_every_kind_an_overlay_can_derive_keeps_its_base(document):
+    """based_on survives loading on every entity kind, not only Socs (#134)."""
+    base = load_overlay(document)
+    overlay: dict = {}
+    for kind in fmt.ENTITY_TABLES:
+        ids = (
+            [e.id for e in getattr(base, kind)()]
+            if kind != "cores"
+            else [c.id for c in base.cores()]
+        )
+        if ids:
+            overlay[kind] = {f"{kind}_derived": {"based_on": ids[0]}}
+    derived = load_overlay(overlay, base=base)
+    assert len(overlay) >= 4
+    for kind, entries in overlay.items():
+        for entry_id, entry in entries.items():
+            assert derived._entry(kind, entry_id).based_on == entry["based_on"]
+            assert derived.lineage(kind, entry_id) == (entry_id, entry["based_on"])

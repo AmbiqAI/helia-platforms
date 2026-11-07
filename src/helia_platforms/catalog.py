@@ -200,7 +200,7 @@ class Catalog:
         Raises ``ValueError`` for a name that is not a table and ``KeyError`` for an id the
         table lacks.
         """
-        if kind not in _KINDS:
+        if not isinstance(kind, str) or kind not in _KINDS:
             raise ValueError(f"lineage kind must be one of {tuple(_KINDS)}, not {kind!r}")
         chain = [entry_id]
         entry = self._entry(kind, entry_id)

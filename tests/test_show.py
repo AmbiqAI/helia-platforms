@@ -301,3 +301,12 @@ def test_an_overlay_entry_shows_its_base():
     target = load_overlay(document, base=builtin(include_plugins=False)).resolve("soc_b")
     rows = [r for _, rs in _show.sections(target) for r in rs]
     assert any(r.label == "based_on" and r.text == "soc_a" for r in rows)
+
+
+def test_a_derived_board_and_part_show_their_bases():
+    document = full_document()
+    document["parts"]["PART-B"] = {"based_on": "PART-A"}
+    document["boards"]["board_b"] = {"based_on": "board_a", "part": "PART-B"}
+    target = load_overlay(document, base=builtin(include_plugins=False)).resolve("board_b")
+    rows = [r.text for _, rs in _show.sections(target) for r in rs if r.label == "based_on"]
+    assert rows == ["PART-A (part)", "board_a (board)"]

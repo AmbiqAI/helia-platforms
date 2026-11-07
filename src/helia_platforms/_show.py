@@ -332,6 +332,11 @@ def _soc(target: Target, at: _Entries) -> _At:
     return at.at("socs", target.soc.id, target.soc)
 
 
+def _based_on(kind: str, entry: Any) -> list[_Row]:
+    """The row naming a derived implementation's, part's or board's base (#134)."""
+    return [_Row("based_on", f"{entry.based_on} ({kind})")] if entry.based_on else []
+
+
 def _identity(target: Target, at: _Entries, sources: bool) -> list[_Row]:
     soc, impl, part, board = target.soc, target.implementation, target.part, target.board
     rows = [
@@ -344,12 +349,15 @@ def _identity(target: Target, at: _Entries, sources: bool) -> list[_Row]:
         impl_at = at.at("implementations", impl.id, impl)
         rows.append(_row("implementation", impl_at, impl, ["soc", "kind", "model"], lead=impl.id))
         rows.append(_row("subset", impl_at, impl, ["subset"]))
+        rows += _based_on("implementation", impl)
     if part is not None:
         names = ["soc", "implementation", "silicon_revision", "package", "radio"]
         rows.append(_row("part", at.at("parts", part.id, part), part, names, lead=part.id))
+        rows += _based_on("part", part)
     if board is not None:
         names = ["part", "implementation", "category", "revision"]
         rows.append(_row("board", at.at("boards", board.id, board), board, names, lead=board.id))
+        rows += _based_on("board", board)
     for addon in target.addons:
         names = ["fits_boards", "occupies", "modes", "revision"]
         rows.append(_row("add-on", at.at("addons", addon.id, addon), addon, names, lead=addon.id))
