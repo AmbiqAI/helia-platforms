@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.2.0](https://github.com/AmbiqAI/helia-platforms/compare/v0.1.0...v0.2.0) (2026-11-08)
+
+
+### ⚠ BREAKING CHANGES
+
+* record the NPU's AXI port classes and its crossbar reach, and drop Access.port ([#163](https://github.com/AmbiqAI/helia-platforms/issues/163))
+
+### Features
+
+* answer where an application may go with Target.application_ranges(), and keep linker windows with the consumers ([#164](https://github.com/AmbiqAI/helia-platforms/issues/164)) ([da5519b](https://github.com/AmbiqAI/helia-platforms/commit/da5519b8a420df1c63c16875c9e2ccd7d6da79b2))
+* **data:** record the Apollo5 DMA boundaries ([#155](https://github.com/AmbiqAI/helia-platforms/issues/155)) ([f9eb648](https://github.com/AmbiqAI/helia-platforms/commit/f9eb648452651ff6629eceadd808bed2bcd74429)), closes [#153](https://github.com/AmbiqAI/helia-platforms/issues/153)
+* keep based_on on loaded entries and walk it with Catalog.lineage() ([#162](https://github.com/AmbiqAI/helia-platforms/issues/162)) ([19ce920](https://github.com/AmbiqAI/helia-platforms/commit/19ce920ac8ece5da6d7cc999a6fb7982d5a82b09)), closes [#134](https://github.com/AmbiqAI/helia-platforms/issues/134)
+* record the DMA boundary of a memory region (ADR 0011) ([#154](https://github.com/AmbiqAI/helia-platforms/issues/154)) ([0977344](https://github.com/AmbiqAI/helia-platforms/commit/0977344e9bf87e1986c2c8f4452037b58907f9a5)), closes [#153](https://github.com/AmbiqAI/helia-platforms/issues/153)
+* record the NPU's AXI port classes and its crossbar reach, and drop Access.port ([#163](https://github.com/AmbiqAI/helia-platforms/issues/163)) ([4276cfc](https://github.com/AmbiqAI/helia-platforms/commit/4276cfcda08552ff0a68725d7dfdb8032f339746))
+
 ## 0.1.0 (2026-11-02)
 
 
