@@ -1,6 +1,6 @@
 [project]
 name = "helia-platforms"
-version = "0.1.0"
+version = "0.2.0"
 description = "Shared catalog of Ambiq SoC and board facts (cores, memories, clocks, NPU, debug-probe identifiers) consumed by heliaAOT, helia-profiler and helia-estimator."
 readme = "README.md"
 license-files = ["LICENSE.md"]
