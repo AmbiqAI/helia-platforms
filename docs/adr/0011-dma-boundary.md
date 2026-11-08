@@ -1,7 +1,7 @@
 # 0011. Record the DMA boundary of a memory region
 
 Date: 2026-11-06
-Status: Proposed
+Status: Accepted
 
 ## Context
 
