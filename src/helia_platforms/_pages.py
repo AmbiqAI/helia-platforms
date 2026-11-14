@@ -303,6 +303,7 @@ def _board(
         f"- J-Link device: {target.jlink_device or 'not stated'}",
         f"- Trace clock: {_mhz(target.trace_clock_mhz)}",
         *_cpufreq(target),
+        *_ble_reset(target),
         "",
     ]
     lines += ["## Derived values", ""]
@@ -339,6 +340,12 @@ def _cpufreq(target: Target) -> list[str]:
     return [
         f"- J-Link's `-cpufreq`: {_mhz(mhz)}, not the {_mhz(target.trace_clock_mhz)} trace clock"
     ]
+
+
+def _ble_reset(target: Target) -> list[str]:
+    """The BLE controller's reset pad, on a board whose BSP defines one."""
+    pad = target.ble_reset_gpio
+    return [] if pad is None else [f"- BLE controller reset: GPIO {pad}"]
 
 
 def _set_aside(target: Target, usable: Mapping[str, int]) -> str:

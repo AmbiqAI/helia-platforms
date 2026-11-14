@@ -765,7 +765,8 @@ below is the resolved object returned by `resolve()`.
 | RTT scan ranges | profiler rule over `target.region("dtcm")` or the M4 aperture | profiler |
 | Reset strategy, clean-window timer, debug-domain gating, probe-attached cycle reads | profiler policy keyed by `target.soc.series` or id | profiler |
 | USB transport support | profiler driver-support table | profiler |
-| Sync, state, go, BLE-reset GPIO pins; channel; starter profile board | profiler board policy keyed by id, or `extensions.helia_profiler` in an overlay | profiler |
+| BLE controller reset pad | `target.ble_reset_gpio` (board, else part; `None` when neither records one). On the Apollo4 Blue parts the controller is a co-packaged die, so the part states it; the pad number comes from the SDK BSP. Whether to hold it during a measurement is profiler policy (#157, 2026-11-13) | package |
+| Sync, state, go GPIO pins; channel; starter profile board | profiler board policy keyed by id, or `extensions.helia_profiler` in an overlay | profiler |
 | Built-in or custom | `target.origin` (builtin, overlay) | package |
 | Which heliaAOT target name | the same resolver; the private name map is deleted (see [0002-migration.md](0002-migration.md)) | package |
 
@@ -905,12 +906,12 @@ one of them.
 @dataclass(frozen=True) class Subset:     memories_removed, memories_resized, memories_rebased, peripherals_removed, memory_controllers_removed, cores_removed, npus_removed, accelerators_removed, clock_domains_removed, boot_configs_removed, operating_points_removed, image_slots_removed, access_removed, max_cpu_mhz, max_npu_mhz, max_domain_mhz
 @dataclass(frozen=True) class BootConfig: name, reserved: tuple[Reservation, ...], app_start: Mapping[str, AppStart], requires, provenance   # AppStart: region, offset; reserved in written key order
 @dataclass(frozen=True) class Reservation: region, offset, size, purpose, provenance
-@dataclass(frozen=True) class Part:       id, soc, implementation: str | None, silicon_revision, package, radio, jlink_device, image_slots, based_on: str | None, aliases, release_status, provenance
+@dataclass(frozen=True) class Part:       id, soc, implementation: str | None, silicon_revision, package, radio, jlink_device, ble_reset_gpio: int | None, image_slots, based_on: str | None, aliases, release_status, provenance
 @dataclass(frozen=True) class ImageSlot:  name, core, region, offset, size, supplier, provenance
 @dataclass(frozen=True) class MemoryInterface: name, controller, modes, aperture_base, alternate_bases, aperture_max
 @dataclass(frozen=True) class MemoryDevice: id, technology, capacity, driver_family, modes, characterization, based_on: str | None, aliases, release_status, provenance
 @dataclass(frozen=True) class AddOn:      id, fits_boards, occupies, population: Mapping[str, str], modes: Mapping[str, tuple[str, ...]], revision, based_on: str | None, aliases, release_status, extensions, provenance
-@dataclass(frozen=True) class Board:      id, category, revision, part: str | None, implementation: str | None, interfaces, population: Mapping[str, str], provisioning, jlink_device, trace_clock_mhz, based_on: str | None, aliases, release_status, extensions, provenance
+@dataclass(frozen=True) class Board:      id, category, revision, part: str | None, implementation: str | None, interfaces, population: Mapping[str, str], provisioning, jlink_device, trace_clock_mhz, ble_reset_gpio: int | None, based_on: str | None, aliases, release_status, extensions, provenance
 @dataclass(frozen=True) class Composition: alias, board, addons; release_status (property, effective from what it references)
 @dataclass(frozen=True) class AddressRange: start, end, region, target, core, boot, access: Access | None, provenance, field_provenance; size (property)   # [start, end) in the region's base address space, from Target.application_ranges() (#73)
 ```
@@ -967,6 +968,7 @@ class Target:
     def classify_address(self, address: int, master: int | str = 0) -> str | None   # alternate_bases classify to the same region; per-master Access addresses resolved for master
     # debug and SDK
     jlink_device: str | None; trace_clock_mhz: int | float | None; sdk: SdkFacts   # board, else implementation, else part / SDK; trace_clock_mhz is an int when whole, a measured fraction kept
+    ble_reset_gpio: int | None                                # the BLE controller's reset pad, board else part (#157); None: not recorded
     aliases: tuple[str, ...]
     # provenance(): deferred until the estimator adapter defines the roll-up it needs (#58)
 ```

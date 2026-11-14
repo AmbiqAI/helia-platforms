@@ -438,6 +438,16 @@ def test_debug_facts_fall_back_from_board_to_part(document):
     assert resolve("board_a", catalog=quiet(document)).jlink_device == "BOARD-JLINK"
 
 
+def test_ble_reset_gpio_falls_back_from_board_to_part(document):
+    assert resolve("board_a", catalog=quiet(document)).ble_reset_gpio is None
+    document["parts"]["PART-A"]["ble_reset_gpio"] = 55
+    catalog = quiet(document)
+    assert resolve("PART-A", catalog=catalog).ble_reset_gpio == 55
+    assert resolve("board_a", catalog=catalog).ble_reset_gpio == 55
+    document["boards"]["board_a"]["ble_reset_gpio"] = 0  # pad 0 is a pad, not an absence
+    assert resolve("board_a", catalog=quiet(document)).ble_reset_gpio == 0
+
+
 def test_release_status_and_origin(document):
     for kind in ("socs", "parts", "boards", "memory_devices"):
         for entry in document[kind].values():

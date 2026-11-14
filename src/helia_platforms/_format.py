@@ -432,6 +432,8 @@ class Part(_Entity):
     package: NotRequired[str]
     radio: NotRequired[str]
     jlink_device: NotRequired[str]
+    # The pad that resets a co-packaged BLE controller (#157).
+    ble_reset_gpio: NotRequired[Count]
     image_slots: NotRequired[dict[Name, ImageSlot]]
     image_slots_removed: NotRequired[Annotated[Names, NOT_FACT, FILE_ONLY]]
 
@@ -447,6 +449,8 @@ class Board(_Entity):
     provisioning: NotRequired[Name]
     jlink_device: NotRequired[str]
     trace_clock_mhz: NotRequired[Mhz]
+    # The pad that resets the BLE controller, where the board differs from its part (#157).
+    ble_reset_gpio: NotRequired[Count]
     extensions: NotRequired[Extensions]
 
 

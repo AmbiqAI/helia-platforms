@@ -515,6 +515,17 @@ class Target:
         return None
 
     @property
+    def ble_reset_gpio(self) -> int | None:
+        """The pad that resets the BLE controller: the board's, else the part's.
+
+        ``None`` means neither records one, which is not the same as having no such pad.
+        """
+        for owner in (self.board, self.part):
+            if owner is not None and owner.ble_reset_gpio is not None:
+                return owner.ble_reset_gpio
+        return None
+
+    @property
     def sdk(self) -> model.SdkFacts | None:
         return self.soc.sdk
 
