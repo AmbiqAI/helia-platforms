@@ -427,6 +427,21 @@ parts:
           The ordering number (p186), which SEGGER's Ambiq device list names as a J-Link
           device; J-Link V9.60's stock database has it too. The SDK default,
           NSX_SEGGER_DEVICE "AMAP42KL-KBR" (facts/apollo4l.cmake:49), is the KBR part's.
+    ble_reset_gpio:
+      value: 55
+      provenance:
+        status: sdk
+        source:
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/boards/apollo4l_blue_evb/bsp/am_bsp.h:64"
+          - "doc:DS-A4BL@0.9.0:p162"
+          - "doc:DS-A4BP@1.8.0:p204"
+        verified_on: 2026-11-13
+        verified_by: evanchen11
+        notes: >-
+          apollo4l_blue_evb's BSP: "#define AM_DEVICES_BLECTRLR_RESET_PIN   55". The BLE
+          controller is "a separate die co-packaged with Apollo4" (DS-A4BL p162), so the pad is
+          the part's, not the board's. DS-A4BP p204 gives GPIO52-55 as its internal pads on
+          Apollo4 Blue Lite but does not say which one is the reset.
     provenance:
       status: datasheet
       source: ["doc:DS-A4BL@0.9.0:p186"]

@@ -291,6 +291,20 @@ def test_the_cygnus_composition_adds_its_psram_on_mspi1(catalog):
     assert "psram" in target.capabilities
 
 
+def test_blue_boards_carry_their_bsp_ble_reset_pad(catalog):
+    pads = {b.id: catalog.resolve(b.id).ble_reset_gpio for b in catalog.boards()}
+    recorded = {board: pad for board, pad in pads.items() if pad is not None}
+    assert recorded == {
+        "apollo4l_blue_evb": 55,
+        "apollo4p_blue_kbr_evb": 42,
+        "apollo4p_blue_kxr_evb": 55,
+    }
+    # The controller is co-packaged, so the part states the pad, not the board.
+    assert {b: catalog.resolve(b).board.ble_reset_gpio for b in recorded} == dict.fromkeys(recorded)
+    parts = {"AMA4B2KL-KXR": 55, "AMA4B2KP-KBR": 42, "AMA4B2KP-KXR": 55}
+    assert {p: catalog.resolve(p).ble_reset_gpio for p in parts} == parts
+
+
 def test_apollo3_parts_carry_their_radio_and_jlink_device(catalog):
     assert catalog.resolve("apollo3_evb").jlink_device == "AMA3B1KK-KBR"
     assert catalog.resolve("apollo3p_evb").jlink_device == "AMA3B2KK-KBR"

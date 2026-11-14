@@ -67,6 +67,7 @@ def full_document() -> dict:
         package="BGA",
         radio="none",
         jlink_device="PART-A",
+        ble_reset_gpio=42,
         image_slots={
             "app": {
                 "core": "cm55_0",
@@ -78,7 +79,7 @@ def full_document() -> dict:
         },
     )
     board = document["boards"]["board_a"]
-    board.update(revision="2.0", jlink_device="BOARD-A", trace_clock_mhz=48)
+    board.update(revision="2.0", jlink_device="BOARD-A", trace_clock_mhz=48, ble_reset_gpio=55)
     board["interfaces"]["mspi0"]["modes"] = ["octal"]
     board["interfaces"]["iom0"] = {"controller": "iom0"}  # left unpopulated
     soc["peripherals"].append("mspi1")
@@ -150,7 +151,14 @@ def test_every_stated_fact_is_printed(catalog, name):
 
 def test_the_built_in_targets_print_every_stated_fact():
     catalog = builtin(include_plugins=False)
-    for name in ("apollo510_evb", "AP510NFA-IBR", "apollo510", "apollo3_evb", "apollo3p_evb"):
+    for name in (
+        "apollo510_evb",
+        "AP510NFA-IBR",
+        "apollo510",
+        "apollo3_evb",
+        "apollo3p_evb",
+        "apollo4p_blue_kbr_evb",
+    ):
         target = catalog.resolve(name)
         assert _show.stated_facts(target) - printed(target) == set(), name
 
