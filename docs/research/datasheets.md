@@ -58,11 +58,17 @@ Duplicates, checked by comparing SHA256 lines and by diffing the extracted text 
 
 That leaves 23 distinct documents. DS-A510LS and DS-A330PS are revision 0.9.0 (preliminary); DS-A4L and DS-A4BL are also pre-1.0.
 
-One public Arm document, outside the Ambiq library, is also in the source register:
+Two public Arm documents, outside the Ambiq library, are also in the source register:
 
 | Key | URL | Document id, revision, date | Pages | SHA256 (16) |
 | --- | --- | --- | --- | --- |
+| TRM-M55 | https://documentation-service.arm.com/static/63190fc5ce77a54a32db3ac2 (Arm Cortex-M55 Processor Technical Reference Manual, r1p1, Non-Confidential) | 101051_0101_02_en, Issue 02, 2022-08-18 (p2) | 418 | f36223ace5d5b8df |
 | TRM-U85 | https://documentation-service.arm.com/static/67b5ba01ce2747241fce860f (Arm Ethos-U85 NPU Technical Reference Manual, r0p0, Non-Confidential) | 102685_0000_05_en, Issue 05, 2025-01-31 (p2) | 362 | 3fc6287d861b482e |
+
+An unrecorded bench check, which no fact record cites: on 2026-11-13, J-Link `mem32` reads on
+apollo510_evb and apollo330mP_evb returned CPUID (0xE000ED00) = 0x411FD221 and PMU_TYPE
+(0xE0003E00) = 0x00A05F08, the r1p1 reset values (TRM-M55 p53, p271; PMU_TYPE.N = 8 counters).
+No capture was kept. Apollo510B, Apollo510 Lite and atomiq110 were not read.
 
 ## 2. Boot and NVM partitioning by family
 

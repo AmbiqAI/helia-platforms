@@ -416,6 +416,24 @@ def test_a_core_with_no_pmu_tier_reports_no_pmu(document, pmu):
     assert "pmu" not in target.capabilities
 
 
+def test_pmu_extension_is_read_from_the_named_core_s_ip(document):
+    document["cores"]["cortex-m55"]["pmu_extension"] = {
+        "event_counters": 8,
+        "event_counter_bits": 16,
+        "cycle_counter_bits": 32,
+        "odd_counters_chain": True,
+        "events": {"SW_INCR": 0, "CPU_CYCLES": 0x11},
+    }
+    target = resolve("board_a", catalog=quiet(document))
+    pmu = target.pmu_extension("cm55_0")
+    assert pmu is not None and pmu == target.pmu_extension()
+    assert (pmu.event_counters, pmu.event_counter_bits, pmu.odd_counters_chain) == (8, 16, True)
+    assert dict(pmu.events) == {"SW_INCR": 0, "CPU_CYCLES": 0x11}
+    document["socs"]["soc_a"]["cores"][0]["core"] = "cortex-m4"
+    document["socs"]["soc_a"]["cores"][0]["options"] = {"fpu": "fpv4-sp-d16", "mve": "none"}
+    assert resolve("board_a", catalog=quiet(document)).pmu_extension() is None
+
+
 @pytest.mark.parametrize(
     ("programmable_by", "free"), [("either", 4032), ("vendor", None), (None, None)]
 )

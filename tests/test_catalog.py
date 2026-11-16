@@ -1103,6 +1103,28 @@ def test_access_to_a_peripheral_that_is_not_a_memory_controller_is_an_error(docu
     ) in problems_of(document)
 
 
+_PMU_EXTENSION = {
+    "event_counters": 8,
+    "event_counter_bits": 16,
+    "cycle_counter_bits": 32,
+    "odd_counters_chain": True,
+    "events": {"CPU_CYCLES": 0x11},
+}
+
+
+@pytest.mark.parametrize("pmu", ["dwt", "none"])
+def test_a_pmu_extension_needs_the_armv8m_pmu(document, pmu):
+    document["cores"]["cortex-m55"].update(pmu=pmu, pmu_extension=_PMU_EXTENSION)
+    message = f"cores.cortex-m55.pmu_extension: pmu_extension needs pmu 'armv8m', not {pmu!r}"
+    assert message in problems_of(document)
+
+
+def test_a_pmu_extension_loads_on_the_armv8m_pmu(document):
+    document["cores"]["cortex-m55"]["pmu_extension"] = _PMU_EXTENSION
+    core = load_quietly(document)._entry("cores", "cortex-m55")
+    assert core.pmu_extension is not None and core.pmu_extension.event_counters == 8
+
+
 def test_a_dma_boundary_is_a_size_on_a_region(document):
     soc(document)["memories"]["tcm"]["dma_boundary"] = "4K"
     catalog = load_quietly(document)

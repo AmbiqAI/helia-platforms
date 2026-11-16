@@ -108,6 +108,10 @@ class Target:
             pmu_kind=ip.pmu,
         )
 
+    def pmu_extension(self, core: int | str = 0) -> model.PmuExtension | None:
+        """The core's Armv8.1-M PMU counters and event numbers; ``None`` where none is recorded."""
+        return self._core_ip(self._core(core)).pmu_extension
+
     @functools.cached_property
     def capabilities(self) -> frozenset[str]:
         """Derived capability names (core 0 and the board's memories), lowercase and stable."""

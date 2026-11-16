@@ -128,10 +128,18 @@ Resolved target: Board + AddOns | Part | Implementation | Soc -> one flattened, 
 
 `Core` holds architecture facts the IP vendor fixes: `id` (cortex-m4,
 cortex-m55), `arch` (armv7e-m, armv8.1-m, or a non-Arm ISA such as an
-Xtensa DSP core's), `pmu` (dwt, armv8m), `has_dsp_extension`. Options the
-vendor leaves to the implementer live on each core instance's `options`
-(`CoreOptions`): `fpu` (none, fpv4-sp-d16, fpv5-sp-d16), `fpu_dp`, `mve`
-(none, int, fp), `icache_kb`, `dcache_kb`.
+Xtensa DSP core's), `pmu` (dwt, armv8m), `has_dsp_extension`, and
+`pmu_extension` where the core has the Armv8.1-M PMU (`pmu: armv8m`, which
+the loader enforces): the event counter count the TRM documents (an
+implementation's debug configuration can change it), the counter width, the
+cycle counter width, whether odd counters chain, and every event the core's
+TRM lists, as Arm mnemonic to event number (#158). Which events a tool
+selects and how it groups them is the tool's policy.
+Options the vendor leaves to the implementer live on each core instance's
+`options` (`CoreOptions`): `fpu` (none, fpv4-sp-d16, fpv5-sp-d16),
+`fpu_dp`, `mve` (none, int, fp), `icache_kb`, `dcache_kb`. A cache size of
+0 means a source states the core has no such cache; an absent size means
+none is recorded.
 
 `Npu` is structured, as #278 proposes and the owner direction requires:
 `vendor` (arm), `family` (ethos-u), `model` (u55, u65, u85),
@@ -531,6 +539,7 @@ stable string set (`Target.capabilities`) for tools that want one:
 | `isa().supports_fp32` | `CoreOptions.fpu != none` |
 | `isa().supports_fp64` | `CoreOptions.fpu_dp` |
 | `isa().has_pmu`, `isa().pmu_kind` | `Core.pmu` (`has_pmu` is false for `none` and `dwt`) |
+| `pmu_extension(core)` | `Core.pmu_extension` of that core's IP; `None` where none is recorded |
 | `npu` (npu 0, `None` when absent), `npus()` | `Soc.npus` after the implementation subset |
 | `has_external_memory(technology)` | board population plus selected add-ons |
 
@@ -757,7 +766,8 @@ below is the resolved object returned by `resolve()`.
 | App flash load address | `target.flash_load_address()` from the selected boot configuration (explicit `boot=`, else board provisioning, else default) | package |
 | Placement base addresses | `target.region(name).base` | package |
 | Is PSRAM fitted | `target.has_external_memory("psram")` | package |
-| D-cache present | `target.core_options.dcache_kb` | package |
+| PMU event numbers and counter limits | `target.pmu_extension(core)` (#158) | package; the event selection and grouping stay profiler policy |
+| D-cache present | `target.core_options.dcache_kb` (0: a source states none; `None`: not recorded) | package |
 | Shared SSRAM power domain, HAL enum names, C define, CMSIS header | `target.sdk` | package |
 | Radio present | `target.part.radio` (`target.part` is `None` on Soc and implementation targets) | package |
 | Trace clock | `target.trace_clock_mhz` (board, else implementation, else SDK default; `None` means core-clocked). On Apollo3 it is the 6 MHz TPIU clock, and J-Link's `-cpufreq` takes 48 MHz (the HFRC) instead, which J-Link divides by 8 itself (#67); that value is `target.sdk.jlink_cpufreq_mhz` | package |
@@ -887,7 +897,8 @@ one of them.
 
 ```python
 @dataclass(frozen=True) class Provenance: status, source, verified_on, verified_by, notes
-@dataclass(frozen=True) class Core:       id, arch, pmu, has_dsp_extension, based_on: str | None, provenance   # arch may be a non-Arm ISA
+@dataclass(frozen=True) class Core:       id, arch, pmu, has_dsp_extension, pmu_extension: PmuExtension | None, based_on: str | None, provenance   # arch may be a non-Arm ISA
+@dataclass(frozen=True) class PmuExtension: event_counters, event_counter_bits, cycle_counter_bits, odd_counters_chain, events: Mapping[str, int], provenance   # events: Arm mnemonic -> event number
 @dataclass(frozen=True) class CoreOptions: fpu, fpu_dp, mve, icache_kb, dcache_kb
 @dataclass(frozen=True) class CoreInstance: id, role, core, options: CoreOptions, clock_domain, programmable_by: str | None
 @dataclass(frozen=True) class Npu:        vendor, family, model, macs_per_cycle; accelerator_config (property)
@@ -941,6 +952,7 @@ class Target:
     def npus(self) -> tuple[NpuInstance, ...]
     def accelerators(self) -> tuple[AcceleratorInstance, ...]
     def isa(self, core: int | str = 0) -> IsaFeatures
+    def pmu_extension(self, core: int | str = 0) -> PmuExtension | None   # the core IP's; None where none is recorded (#158)
     def reachable(self, master: str, target: str) -> Access | None   # a region's own entry, else its controller's
     def npu_clocks(self, npu: int | str = 0) -> Mapping[str, int]   # derived from system operating points
     def memories(self, core: int | str = 0, *, include_discouraged: bool = False) -> tuple[MemoryRegion, ...]   # regions that core reaches, after subset, plus external regions whose interface it has an entry for; a discouraged entry is left out unless include_discouraged

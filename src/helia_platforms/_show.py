@@ -30,7 +30,8 @@ _WIDTH = 100
 _LABEL = 26
 _ADDRESSES = frozenset({"base", "address", "aperture_base", "base_address", "alternate_bases"})
 _SIZES = frozenset({"size", "capacity", "aperture_max", "memories_resized", "dma_boundary"})
-_OFFSETS = frozenset({"offset", "memories_rebased"})
+#: Hex formats by field name; PMU event numbers print as Arm's tables print them.
+_HEX = {"offset": "#x", "memories_rebased": "#x", "events": "#06x"}
 
 #: A fact's place: its entry's table and id, and its path in that entry.
 Where = tuple[str, str, Path]
@@ -148,8 +149,8 @@ def _text(name: str, value: Any) -> str:
         return f"{value:#010x}"
     if isinstance(value, int) and name in _SIZES:
         return size(value)
-    if isinstance(value, int) and name in _OFFSETS:
-        return f"{value:#x}"
+    if isinstance(value, int) and name in _HEX:
+        return format(value, _HEX[name])
     if isinstance(value, float):  # in full, so 0.9999999 and 1.0 stay distinct
         return str(int(value)) if value.is_integer() else repr(value)
     return str(value)
@@ -392,7 +393,7 @@ def _cores(target: Target, at: _Entries) -> list[_Row]:
     rows = [_row(c.id, soc.inner("cores", c.id), c, names) for c in target.soc.cores]
     for ip_id in dict.fromkeys(c.core for c in target.soc.cores):
         ip = target._catalog._entry("cores", ip_id)
-        names = ["arch", "pmu", "has_dsp_extension"]
+        names = ["arch", "pmu", "has_dsp_extension", "pmu_extension"]
         rows.append(_row(ip_id, at.at("cores", ip_id, ip), ip, names))
         rows += _based_on("core", ip, named=True)
     return rows

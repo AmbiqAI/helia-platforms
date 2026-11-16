@@ -71,6 +71,7 @@ DomainPointRef = Annotated[
     ),
 ]
 ToolName = Annotated[str, Pattern(r"^[a-z][a-z0-9_]*$", "a tool name")]
+PmuEventName = Annotated[str, Pattern(r"^[A-Z][A-Z0-9_]*$", "an Arm PMU event mnemonic")]
 Size = Annotated[int | str, SIZE]
 Address = Annotated[int, Minimum(0)]
 Count = Annotated[int, Minimum(0)]
@@ -201,6 +202,8 @@ class CoreOptions(_Facts):
     fpu: Required[Literal["none", "fpv4-sp-d16", "fpv5-sp-d16"]]
     mve: Required[Literal["none", "int", "fp"]]
     fpu_dp: NotRequired[bool]
+    # 0 means a source states the core has no such cache; absent means none is recorded
+    # (#158).
     icache_kb: NotRequired[Count]
     dcache_kb: NotRequired[Count]
 
@@ -326,10 +329,26 @@ class SdkFacts(_Facts, total=False):
 # ---- entities -----------------------------------------------------------------
 
 
+class PmuExtension(_Facts):
+    """The core's Armv8.1-M PMU as its reference manual documents it (#158).
+
+    ``event_counters`` is the count the TRM documents; an implementation's debug
+    configuration can change it. ``events`` maps each Arm mnemonic to its event number.
+    Where ``odd_counters_chain`` is true, an odd counter chains with the even one below it.
+    """
+
+    event_counters: Required[Count]
+    event_counter_bits: Required[Count]
+    cycle_counter_bits: Required[Count]
+    odd_counters_chain: Required[bool]
+    events: Required[dict[PmuEventName, Count]]
+
+
 class Core(_Inheritable):
     arch: Required[str]
     pmu: Required[str]
     has_dsp_extension: Required[bool]
+    pmu_extension: NotRequired[PmuExtension]
 
 
 class Soc(_Entity):

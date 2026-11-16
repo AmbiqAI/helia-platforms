@@ -52,6 +52,17 @@ class _Carrier:
 
 
 @_frozen
+class PmuExtension(_Carrier):
+    """The core's Armv8.1-M PMU: counters and event numbers by Arm mnemonic (#158)."""
+
+    event_counters: int
+    event_counter_bits: int
+    cycle_counter_bits: int
+    odd_counters_chain: bool
+    events: Mapping[str, int] = field(default_factory=_empty)
+
+
+@_frozen
 class Core(_Carrier):
     """A core IP block (RFC 0002 "Core and Npu")."""
 
@@ -59,6 +70,7 @@ class Core(_Carrier):
     arch: str
     pmu: str
     has_dsp_extension: bool
+    pmu_extension: PmuExtension | None = None
     based_on: str | None = None  # the overlay entry it was based on; not a fact (#134)
 
 
@@ -467,7 +479,7 @@ class Composition:
 BY_NAME: dict[str, type] = {
     cls.__name__: cls
     for cls in (
-        Provenance, Core, CoreOptions, CoreInstance, Npu, NpuPortClass, NpuInstance,
+        Provenance, PmuExtension, Core, CoreOptions, CoreInstance, Npu, NpuPortClass, NpuInstance,
         AcceleratorInstance,
         MemoryCharacterization, MemoryRegion, Access, DefaultAccess, DomainPoint, ClockDomain,
         OperatingPoint, AppStart, Reservation, BootConfig, BuildFacts, SdkFacts, Soc,
