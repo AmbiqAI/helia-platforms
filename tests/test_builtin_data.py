@@ -576,3 +576,34 @@ def test_the_atomiq110_fpga_inherits_the_npus_port_classes(catalog):
         "sram": (2, 12),
         "ext": (1, 32),
     }
+
+
+# Arm Cortex-M55 TRM r1p1 issue 02, Table 17-1 (#158).
+M55_SOCS = ("apollo510", "apollo510b", "apollo510L", "apollo330P", "atomiq110")
+
+
+@pytest.mark.parametrize("soc", M55_SOCS)
+def test_every_cortex_m55_soc_reads_the_trm_pmu(catalog, soc):
+    target = catalog.resolve(soc)
+    pmu = target.pmu_extension()
+    assert pmu is not None
+    assert (pmu.event_counters, pmu.event_counter_bits, pmu.cycle_counter_bits) == (8, 16, 32)
+    assert pmu.odd_counters_chain
+    assert len(pmu.events) == 132 and len(set(pmu.events.values())) == 132
+
+
+def test_the_m55_events_follow_the_trm_not_the_cmsis_header(catalog):
+    events = catalog.resolve("apollo510").pmu_extension().events
+    # CMSIS armv8m_pmu.h gives 0x0261, its own MVE_LD_MULTI_SPEC; Table 17-1 gives 0x0264.
+    assert events["MVE_ST_MULTI_RETIRED"] == 0x0264
+    assert 0x0261 not in events.values()
+    # CMSIS defines L1D_CACHE_ALLOCATE (0x001F); the r1p1 table does not list it.
+    assert "L1D_CACHE_ALLOCATE" not in events
+    assert (events["SW_INCR"], events["CHAIN"], events["CPU_CYCLES"]) == (0, 0x001E, 0x0011)
+
+
+@pytest.mark.parametrize("soc", ["apollo3", "apollo4p", "apollo510L"])
+def test_cores_without_the_pmu_extension_record_none(catalog, soc):
+    target = catalog.resolve(soc)
+    m4 = next(c for c in target.cores() if c.core == "cortex-m4")
+    assert target.pmu_extension(m4.id) is None

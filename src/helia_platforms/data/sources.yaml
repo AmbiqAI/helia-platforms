@@ -110,6 +110,12 @@ documents:
       date: 2023-03
       pages: 19
       sha256: c304d267be2116694491c88193ca5414ba5b08eb85230b418cee5c41976b724b
+  TRM-M55:
+    r1p1-02:
+      document_id: 101051_0101_02_en
+      date: 2022-08-18
+      pages: 418
+      sha256: f36223ace5d5b8dfbb8c3152f0dd47a94790688f7659e7d2ba7df19720eef37d
   TRM-U85:
     "05":
       document_id: 102685_0000_05_en

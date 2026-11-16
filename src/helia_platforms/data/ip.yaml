@@ -15,14 +15,166 @@ cores:
           NSX_SOC_PMU_TIER "armv8m". DS-A510 p27 describes the PMU but names no tier;
           the tier names are ADR 0006's.
     has_dsp_extension: true
+    pmu_extension:
+      event_counters: 8
+      event_counter_bits: 16
+      cycle_counter_bits: 32
+      odd_counters_chain: true
+      events:  # Table 17-1, in the table's order
+        SW_INCR: 0x0000
+        L1I_CACHE_REFILL: 0x0001
+        L1D_CACHE_REFILL: 0x0003
+        L1D_CACHE: 0x0004
+        LD_RETIRED: 0x0006
+        ST_RETIRED: 0x0007
+        INST_RETIRED: 0x0008
+        EXC_TAKEN: 0x0009
+        EXC_RETURN: 0x000A
+        PC_WRITE_RETIRED: 0x000C
+        BR_IMMED_RETIRED: 0x000D
+        BR_RETURN_RETIRED: 0x000E
+        UNALIGNED_LDST_RETIRED: 0x000F
+        CPU_CYCLES: 0x0011
+        MEM_ACCESS: 0x0013
+        L1I_CACHE: 0x0014
+        L1D_CACHE_WB: 0x0015
+        BUS_ACCESS: 0x0019
+        MEMORY_ERROR: 0x001A
+        BUS_CYCLES: 0x001D
+        CHAIN: 0x001E
+        BR_RETIRED: 0x0021
+        BR_MIS_PRED_RETIRED: 0x0022
+        STALL_FRONTEND: 0x0023
+        STALL_BACKEND: 0x0024
+        LL_CACHE_RD: 0x0036
+        LL_CACHE_MISS_RD: 0x0037
+        L1D_CACHE_MISS_RD: 0x0039
+        STALL: 0x003C
+        L1D_CACHE_RD: 0x0040
+        LE_RETIRED: 0x0100
+        LE_CANCEL: 0x0108
+        SE_CALL_S: 0x0114
+        SE_CALL_NS: 0x0115
+        DWT_CMPMATCH0: 0x0118
+        DWT_CMPMATCH1: 0x0119
+        DWT_CMPMATCH2: 0x011A
+        DWT_CMPMATCH3: 0x011B
+        DWT_CMPMATCH4: 0x011C
+        DWT_CMPMATCH5: 0x011D
+        DWT_CMPMATCH6: 0x011E
+        DWT_CMPMATCH7: 0x011F
+        MVE_INST_RETIRED: 0x0200
+        MVE_FP_RETIRED: 0x0204
+        MVE_FP_HP_RETIRED: 0x0208
+        MVE_FP_SP_RETIRED: 0x020C
+        MVE_FP_MAC_RETIRED: 0x0214
+        MVE_INT_RETIRED: 0x0224
+        MVE_INT_MAC_RETIRED: 0x0228
+        MVE_LDST_RETIRED: 0x0238
+        MVE_LD_RETIRED: 0x023C
+        MVE_ST_RETIRED: 0x0240
+        MVE_LDST_CONTIG_RETIRED: 0x0244
+        MVE_LD_CONTIG_RETIRED: 0x0248
+        MVE_ST_CONTIG_RETIRED: 0x024C
+        MVE_LDST_NONCONTIG_RETIRED: 0x0250
+        MVE_LD_NONCONTIG_RETIRED: 0x0254
+        MVE_ST_NONCONTIG_RETIRED: 0x0258
+        MVE_LDST_MULTI_RETIRED: 0x025C
+        MVE_LD_MULTI_RETIRED: 0x0260
+        MVE_ST_MULTI_RETIRED: 0x0264
+        MVE_LDST_UNALIGNED_RETIRED: 0x028C
+        MVE_LD_UNALIGNED_RETIRED: 0x0290
+        MVE_ST_UNALIGNED_RETIRED: 0x0294
+        MVE_LDST_UNALIGNED_NONCONTIG_RETIRED: 0x0298
+        MVE_VREDUCE_RETIRED: 0x02A0
+        MVE_VREDUCE_FP_RETIRED: 0x02A4
+        MVE_VREDUCE_INT_RETIRED: 0x02A8
+        MVE_PRED: 0x02B8
+        MVE_STALL: 0x02CC
+        MVE_STALL_RESOURCE: 0x02CD
+        MVE_STALL_RESOURCE_MEM: 0x02CE
+        MVE_STALL_RESOURCE_FP: 0x02CF
+        MVE_STALL_RESOURCE_INT: 0x02D0
+        MVE_STALL_BREAK: 0x02D3
+        MVE_STALL_DEPENDENCY: 0x02D4
+        ITCM_ACCESS: 0x4007
+        DTCM_ACCESS: 0x4008
+        TRCEXTOUT0: 0x4010
+        TRCEXTOUT1: 0x4011
+        TRCEXTOUT2: 0x4012
+        TRCEXTOUT3: 0x4013
+        CTI_TRIGOUT4: 0x4018
+        CTI_TRIGOUT5: 0x4019
+        CTI_TRIGOUT6: 0x401A
+        CTI_TRIGOUT7: 0x401B
+        ECC_ERR: 0xC000
+        ECC_ERR_MBIT: 0xC001
+        ECC_ERR_DCACHE: 0xC010
+        ECC_ERR_ICACHE: 0xC011
+        ECC_ERR_MBIT_DCACHE: 0xC012
+        ECC_ERR_MBIT_ICACHE: 0xC013
+        ECC_ERR_DTCM: 0xC020
+        ECC_ERR_ITCM: 0xC021
+        ECC_ERR_MBIT_DTCM: 0xC022
+        ECC_ERR_MBIT_ITCM: 0xC023
+        PF_LINEFILL: 0xC100
+        PF_CANCEL: 0xC101
+        PF_DROP_LINEFILL: 0xC102
+        NWAMODE_ENTER: 0xC200
+        NWAMODE: 0xC201
+        SAHB_ACCESS: 0xC300
+        PAHB_ACCESS: 0xC301
+        AXI_WRITE_ACCESS: 0xC302
+        AXI_READ_ACCESS: 0xC303
+        DOSTIMEOUT_DOUBLE: 0xC400
+        DOSTIMEOUT_TRIPLE: 0xC401
+        CDE_INST_RETIRED: 0xC402
+        CDE_CX1_INST_RETIRED: 0xC404
+        CDE_CX2_INST_RETIRED: 0xC406
+        CDE_CX3_INST_RETIRED: 0xC408
+        CDE_VCX1_INST_RETIRED: 0xC40A
+        CDE_VCX2_INST_RETIRED: 0xC40C
+        CDE_VCX3_INST_RETIRED: 0xC40E
+        CDE_VCX1_VEC_INST_RETIRED: 0xC410
+        CDE_VCX2_VEC_INST_RETIRED: 0xC412
+        CDE_VCX3_VEC_INST_RETIRED: 0xC414
+        CDE_PRED: 0xC416
+        CDE_STALL: 0xC417
+        CDE_STALL_RESOURCE: 0xC418
+        CDE_STALL_DEPENDENCY: 0xC419
+        CDE_STALL_CUSTOM: 0xC41A
+        CDE_STALL_OTHER: 0xC41B
+        PF_LF_LA_1: 0xC41C
+        PF_LF_LA_2: 0xC41D
+        PF_LF_LA_3: 0xC41E
+        PF_LF_LA_4: 0xC41F
+        PF_LF_LA_5: 0xC420
+        PF_LF_LA_6: 0xC421
+        PF_BUFFER_FULL: 0xC422
+        PF_BUFFER_MISS: 0xC423
+        PF_BUFFER_HIT: 0xC424
+      provenance:
+        status: datasheet
+        source:
+          - "doc:TRM-M55@r1p1-02:p265"
+          - "doc:TRM-M55@r1p1-02:p266-270"
+          - "doc:TRM-M55@r1p1-02:p44"
+        verified_on: 2026-11-13
+        verified_by: evanchen11
+        notes: >-
+          p265: "eight 16-bit event counters and one 32-bit cycle counter"; "Only odd event
+          counters support the chain feature", which cascades two 16-bit counters into one
+          32-bit counter. p266: the PMU is present when the DWT is. event_counters is the
+          count the TRM documents; p44 says the implementer's debug configuration controls
+          how many counters are present, and the TRM gives no other count.
     provenance:
       status: datasheet
       source: ["doc:DS-A510@1.1.0:p21"]
       verified_on: 2026-10-13
       verified_by: evanchen11
       notes: >-
-        "Armv8.1-M ISA with DSP and Security Extensions". The Arm Cortex-M55 TRM is not in
-        the register. nsx-ambiq-sdk facts/apollo510.cmake:13 and :15 agree.
+        "Armv8.1-M ISA with DSP and Security Extensions". nsx-ambiq-sdk
+        facts/apollo510.cmake:13 and :15 agree.
   cortex-m4:
     arch:
       value: armv7e-m

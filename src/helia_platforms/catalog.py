@@ -699,6 +699,7 @@ class _Loader:
         self, catalog: Catalog, entries: dict, compositions: dict, shorthands: dict
     ) -> None:
         checks = {
+            "cores": self.check_core,
             "socs": self.check_soc,
             "implementations": self.check_implementation,
             "parts": self.check_part,
@@ -727,6 +728,11 @@ class _Loader:
             for member in members:
                 if member not in resolvable:
                     self.fail(origin, f"shorthands.{name}", f"no entry {member!r}")
+
+    def check_core(self, catalog: Catalog, core: model.Core, origin: str) -> None:
+        if core.pmu_extension is not None and core.pmu != "armv8m":
+            message = f"pmu_extension needs pmu 'armv8m', not {core.pmu!r}"
+            self.fail(origin, f"cores.{core.id}.pmu_extension", message)
 
     def check_soc(self, catalog: Catalog, soc: model.Soc, origin: str) -> None:
         where = f"socs.{soc.id}"

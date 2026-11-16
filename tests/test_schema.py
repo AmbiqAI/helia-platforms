@@ -98,6 +98,13 @@ def _edit(path: str, value):
 _DELETE = object()
 SOC = "socs.soc_a"
 SDK = {"status": "sdk"}
+PMU = {
+    "event_counters": 8,
+    "event_counter_bits": 16,
+    "cycle_counter_bits": 32,
+    "odd_counters_chain": True,
+    "events": {"SW_INCR": 0, "CPU_CYCLES": 0x11},
+}
 CORPUS = {
     "base": (BASE_DOCUMENT, True),
     "size suffix": (_edit(f"{SOC}.memories.tcm.size", "1G"), True),
@@ -128,6 +135,19 @@ CORPUS = {
     "deprecated port, any value": (_edit(f"{SOC}.access.0.port", "whatever"), True),
     "dma_boundary suffix": (_edit(f"{SOC}.memories.tcm.dma_boundary", "4K"), True),
     "dma_boundary bool": (_edit(f"{SOC}.memories.tcm.dma_boundary", True), False),
+    "pmu_extension": (_edit("cores.cortex-m55.pmu_extension", PMU), True),
+    "pmu event lowercase": (
+        _edit("cores.cortex-m55.pmu_extension", {**PMU, "events": {"sw_incr": 0}}),
+        False,
+    ),
+    "pmu event negative": (
+        _edit("cores.cortex-m55.pmu_extension", {**PMU, "events": {"SW_INCR": -1}}),
+        False,
+    ),
+    "pmu without events": (
+        _edit("cores.cortex-m55.pmu_extension", {k: v for k, v in PMU.items() if k != "events"}),
+        False,
+    ),
     "missing required": (_edit(f"{SOC}.series", _DELETE), False),
     "based_on lifts required": (_edit("socs.soc_b", {"based_on": "soc_a"}), True),
     "wrapper": (
