@@ -619,6 +619,7 @@ def _debug(target: Target, at: _Entries) -> list[_Row]:
     for name, tables in (
         ("jlink_device", ("boards", "implementations", "parts")),
         ("trace_clock_mhz", ("boards", "implementations")),
+        ("ble_reset_gpio", ("boards", "parts")),
     ):
         found = [(t, o) for t, o in owners if t in tables and o and getattr(o, name) is not None]
         for i, (table, owner) in enumerate(found):

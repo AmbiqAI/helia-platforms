@@ -402,6 +402,7 @@ class Part(_Carrier):
     package: str | None = None
     radio: str | None = None
     jlink_device: str | None = None
+    ble_reset_gpio: int | None = None
     image_slots: Mapping[str, ImageSlot] = field(default_factory=_empty)
     based_on: str | None = None  # the overlay entry it was based on; not a fact (#134)
     aliases: tuple[str, ...] = ()
@@ -420,6 +421,7 @@ class Board(_Carrier):
     provisioning: str | None = None
     jlink_device: str | None = None
     trace_clock_mhz: float | None = None
+    ble_reset_gpio: int | None = None
     based_on: str | None = None  # the overlay entry it was based on; not a fact (#134)
     aliases: tuple[str, ...] = ()
     release_status: ReleaseStatus = "embargoed"

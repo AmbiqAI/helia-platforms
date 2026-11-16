@@ -1176,6 +1176,31 @@
             }
           ]
         },
+        "ble_reset_gpio": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "object",
+              "properties": {
+                "value": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "provenance": {
+                  "$ref": "#/$defs/Provenance"
+                }
+              },
+              "required": [
+                "value",
+                "provenance"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        },
         "extensions": {
           "type": "object",
           "propertyNames": {
@@ -4061,6 +4086,31 @@
               "properties": {
                 "value": {
                   "type": "string"
+                },
+                "provenance": {
+                  "$ref": "#/$defs/Provenance"
+                }
+              },
+              "required": [
+                "value",
+                "provenance"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        },
+        "ble_reset_gpio": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "object",
+              "properties": {
+                "value": {
+                  "type": "integer",
+                  "minimum": 0
                 },
                 "provenance": {
                   "$ref": "#/$defs/Provenance"

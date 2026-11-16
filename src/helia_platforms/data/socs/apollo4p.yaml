@@ -478,6 +478,21 @@ parts:
         notes: >-
           'select "AMA4B2KP-KBR"' in J-Link SWO Viewer. SEGGER's Ambiq device list and
           J-Link V9.60's stock database both name it.
+    ble_reset_gpio:
+      value: 42
+      provenance:
+        status: sdk
+        source:
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/boards/apollo4p_blue_kbr_evb/bsp/am_bsp.h:66"
+          - "doc:DS-A4BP@1.8.0:p204"
+        verified_on: 2026-11-13
+        verified_by: evanchen11
+        notes: >-
+          apollo4p_blue_kbr_evb's BSP: "#define AM_DEVICES_BLECTRLR_RESET_PIN   42". The BLE
+          controller is "a separate die co-packaged with Apollo4" (DS-A4BP p204), so the pad is
+          the part's, not the board's.
+          No Ambiq document names the KBR package's controller pads; p204 says GPIO52-55 are
+          exposed on it.
     provenance: &ds_order_blue
       status: datasheet
       source: ["doc:DS-A4BP@1.8.0:p252"]
@@ -505,6 +520,21 @@ parts:
           The ordering number (p252), which SEGGER's Ambiq device list names as a J-Link
           device; J-Link V9.60's stock database has it too. Zephyr's apollo4p_blue_kxr_evb
           board.cmake passes AMAP42KK-KBR.
+    ble_reset_gpio:
+      value: 55
+      provenance:
+        status: sdk
+        source:
+          - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/boards/apollo4p_blue_kxr_evb/bsp/am_bsp.h:68"
+          - "doc:DS-A4BP@1.8.0:p204"
+        verified_on: 2026-11-13
+        verified_by: evanchen11
+        notes: >-
+          apollo4p_blue_kxr_evb's BSP: "#define AM_DEVICES_BLECTRLR_RESET_PIN   55". The BLE
+          controller is "a separate die co-packaged with Apollo4" (DS-A4BP p204), so the pad is
+          the part's, not the board's.
+          p204 gives GPIO52-55 as the controller's internal pads on the KXR package but does not
+          say which one is the reset.
     provenance: *ds_order_blue
 
 boards:
