@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.1](https://github.com/AmbiqAI/helia-platforms/compare/v0.2.0...v0.2.1) (2026-11-16)
+
+
+### Features
+
+* **data:** record the BLE controller's reset pad on the Apollo4 Blue parts ([#170](https://github.com/AmbiqAI/helia-platforms/issues/170)) ([35ce183](https://github.com/AmbiqAI/helia-platforms/commit/35ce18342d5d080b2f3cd1cf99a73a1e5f17a107)), closes [#157](https://github.com/AmbiqAI/helia-platforms/issues/157)
+* **data:** record the Cortex-M55 PMU's counters and events, and define what a missing cache size means ([#171](https://github.com/AmbiqAI/helia-platforms/issues/171)) ([34da346](https://github.com/AmbiqAI/helia-platforms/commit/34da346fd3abeaaed54312b0ecd51c0011b12f6b)), closes [#158](https://github.com/AmbiqAI/helia-platforms/issues/158)
+
 ## [0.2.0](https://github.com/AmbiqAI/helia-platforms/compare/v0.1.0...v0.2.0) (2026-11-08)
 
 
