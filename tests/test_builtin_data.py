@@ -566,6 +566,40 @@ def test_apollo5_records_its_dma_boundaries(catalog, soc, boundaries):
         assert record.status == "datasheet" and record.source, name
 
 
+@pytest.mark.parametrize(
+    ("soc", "pages"),
+    [
+        ("apollo510", {"doc:DS-A510@1.1.0:p22", "doc:DS-A510@1.1.0:p29"}),
+        ("apollo510b", {"doc:DS-A510B@1.1.0:p21", "doc:DS-A510B@1.1.0:p28"}),
+        ("apollo510L", {"doc:DS-A510LS@0.9.0:p21"}),
+        ("apollo330P", {"doc:DS-A330PS@0.9.0:p21"}),
+    ],
+)
+def test_apollo5_records_no_dma_to_dtcm_in_deep_sleep(catalog, soc, pages):
+    """ADR 0012: only the region each datasheet names carries the restriction."""
+    target = catalog.resolve(soc)
+    blocked = {r.name: r.dma_blocked_when for r in target.memories() if r.dma_blocked_when}
+    assert blocked == {"dtcm": ("cpu_deep_sleep",)}
+    record = target.region("dtcm").field_provenance["dma_blocked_when.cpu_deep_sleep"]
+    assert record.status == "datasheet" and set(record.source) == pages
+
+
+@pytest.mark.parametrize(
+    ("board", "alignments"),
+    [
+        ("apollo510_evb", {"psram0": 4}),
+        ("apollo510b_evb", {"psram0": 4}),
+        ("apollo510dL_evb", {}),  # no MSPI device is populated
+        ("apollo330mP_evb", {}),
+    ],
+)
+def test_apollo5_evbs_psram_takes_the_hex_ddr_dma_alignment(catalog, board, alignments):
+    """ADR 0012: the MSPI HAL's word-aligned device address in hex DDR mode."""
+    target = catalog.resolve(board)
+    found = {r.name: target.dma_address_alignment(r.name) for r in target.external_memories()}
+    assert found == alignments
+
+
 def test_apollo510_ssram_edges_are_offsets_from_its_base(catalog):
     """ERR018's edges, 0x20180000 and 0x20280000, are not multiples of 1M (ADR 0011)."""
     ssram = catalog.resolve("apollo510").region("ssram")
@@ -614,6 +648,21 @@ def test_the_m55_events_follow_the_trm_not_the_cmsis_header(catalog):
     # CMSIS defines L1D_CACHE_ALLOCATE (0x001F); the r1p1 table does not list it.
     assert "L1D_CACHE_ALLOCATE" not in events
     assert (events["SW_INCR"], events["CHAIN"], events["CPU_CYCLES"]) == (0, 0x001E, 0x0011)
+
+
+@pytest.mark.parametrize("soc", M55_SOCS)
+def test_every_cortex_m55_soc_reads_the_trm_dcache_line(catalog, soc):
+    target = catalog.resolve(soc)
+    assert target.dcache_line() == 32
+    record = target.core.field_provenance["dcache_line"]
+    assert "doc:TRM-M55@r1p1-02:p198" in record.source
+
+
+@pytest.mark.parametrize("soc", ["apollo3", "apollo4p", "apollo510L"])
+def test_cortex_m4_records_no_dcache_line(catalog, soc):
+    target = catalog.resolve(soc)
+    m4 = next(c for c in target.cores() if c.core == "cortex-m4")
+    assert target.dcache_line(m4.id) is None
 
 
 @pytest.mark.parametrize("soc", ["apollo3", "apollo4p", "apollo510L"])
