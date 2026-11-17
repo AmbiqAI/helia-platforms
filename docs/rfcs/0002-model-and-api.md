@@ -905,7 +905,7 @@ one of them.
 @dataclass(frozen=True) class NpuInstance: id, npu, axi_width_bits, base_address, irq, sram_port_hash, axi_ports: Mapping[str, NpuPortClass], driven_by, clock_domain   # NpuPortClass: name (sram, ext), count, max_outstanding_reads, max_outstanding_writes, provenance
 @dataclass(frozen=True) class AcceleratorInstance: id, kind, ip, driven_by, clock_domain, base_address, irq
 @dataclass(frozen=True) class MemoryRegion: name, technology, attachment, size, base, alternate_bases, executable, writeable, cacheable, characterization, dma_boundary: int | None, stands_in_for: tuple[str, ...], provenance   # stands_in_for: FVP regions only (ADR 0007)
-@dataclass(frozen=True) class Access:     master, target, access, requires_awake, guidance, reason, address: int | None, characterization, provenance   # target: region or memory_controllers name; a file's port key (removed on #93) is read, warned about and ignored until #159 removes it
+@dataclass(frozen=True) class Access:     master, target, access, requires_awake, guidance, reason, address: int | None, characterization, provenance   # target: region or memory_controllers name; a file's port key (removed from the model on #93) is an unknown key since #159
 @dataclass(frozen=True) class DefaultAccess: master, access, scope, provenance   # scope: on_die
 @dataclass(frozen=True) class MemoryCharacterization: read_latency_ns, write_latency_ns, max_outstanding_reads, max_outstanding_writes, max_beats, ports, axi_clock_hz, bandwidth_fraction  (each value may carry its own Provenance)
 @dataclass(frozen=True) class ClockDomain: id, points: tuple[DomainPoint, ...]   # DomainPoint: name, mhz, hal_mode, provenance

@@ -2059,27 +2059,11 @@ def test_default_board_must_carry_the_soc(document):
 
 
 @pytest.mark.parametrize("written", [0, {"value": 1, "provenance": {"status": "sdk"}}])
-def test_a_removed_access_port_key_still_loads_with_a_warning(document, written):
-    """port left the format on #93; data written before then, plain or wrapped, loads with
-    a warning, and the key is dropped: no field, no record, nothing in the export."""
+def test_an_access_port_key_is_unknown(document, written):
+    """port left the model on #93 and the format on #159, so an overlay that writes it,
+    plain or wrapped, fails like any other unknown key."""
     document["socs"]["soc_a"]["access"][0]["port"] = written
-    with pytest.warns(PlatformWarning, match=r"<mapping>: socs\.soc_a\.access\[0\]\.port: removed"):
-        catalog = load_overlay(document)
-    entry = catalog.resolve("soc_a").reachable("npu_0", "ssram")
-    assert entry is not None and not hasattr(entry, "port")
-    assert "port" not in catalog._trees[("socs", "soc_a")].values["access"][0]
-    assert all("port" not in p for p in catalog._trees[("socs", "soc_a")].records)
-
-
-def test_a_deprecated_key_does_not_hide_problems_when_warnings_are_errors(document):
-    """The warning goes through the loader, after the problems (catalog.py's rule)."""
-    document["socs"]["soc_a"]["access"][0]["port"] = 0
-    document["socs"]["soc_a"]["memories"]["tcm"]["size"] = "nonsense"
-    with warnings.catch_warnings():
-        warnings.simplefilter("error")
-        with pytest.raises(FormatError, match="nonsense") as caught:
-            load_overlay(document)
-    assert not any("port" in p for p in caught.value.problems)
+    assert "socs.soc_a.access[0].port: unknown key 'port'" in problems_of(document)
 
 
 def test_an_npu_instance_states_its_port_classes(document):
@@ -2096,42 +2080,6 @@ def test_an_npu_instance_states_its_port_classes(document):
     assert "'dsp' is not an NPU port class, sram or ext" in problems_of(document)
     document["socs"]["soc_a"]["npus"][0]["axi_ports"] = {"sram": {"count": 0}}
     assert "axi_ports.sram.count" in problems_of(document)
-
-
-@pytest.mark.parametrize("value", [float("nan"), {1: "a"}, {"self": None}, b"bytes"])
-def test_a_deprecated_keys_value_must_still_be_json_data(document, value):
-    """Ignored, but not unchecked: a value the source hash cannot encode is a problem."""
-    if isinstance(value, dict) and "self" in value:
-        value = {"self": None}
-        value["self"] = value  # a cycle, built fresh so the shared parameter stays as is
-    document["socs"]["soc_a"]["access"][0]["port"] = value
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        with pytest.raises(FormatError, match=r"access\[0\]\.port"):
-            load_overlay(document)
-
-
-def test_a_deprecated_key_does_not_reach_the_source_hash(document):
-    plain = copy.deepcopy(document)
-    plain["socs"]["soc_a"]["access"][0]["port"] = 1
-    wrapped = copy.deepcopy(document)
-    wrapped["socs"]["soc_a"]["access"][0]["port"] = {"value": 1, "provenance": {"status": "sdk"}}
-    hashes = {_digest.source_sha256(d) for d in (document, plain, wrapped)}
-    assert len(hashes) == 1
-
-
-def test_every_deprecated_key_warns_once_with_its_own_path(document):
-    access = document["socs"]["soc_a"]["access"]
-    access[0]["port"] = 0
-    access[1]["port"] = {"value": 1, "provenance": {"status": "sdk"}}
-    with warnings.catch_warnings(record=True) as caught:
-        warnings.simplefilter("always")
-        load_overlay(document)
-    messages = sorted(str(w.message) for w in caught if "port" in str(w.message))
-    assert [m.split(": ")[1] for m in messages] == [
-        "socs.soc_a.access[0].port",
-        "socs.soc_a.access[1].port",
-    ]
 
 
 def test_an_npu_port_class_owns_its_records(document):

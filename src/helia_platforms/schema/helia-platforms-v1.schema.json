@@ -528,9 +528,6 @@
             }
           ]
         },
-        "port": {
-          "deprecated": true
-        },
         "characterization": {
           "$ref": "#/$defs/MemoryCharacterization"
         }
