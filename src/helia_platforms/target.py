@@ -112,6 +112,17 @@ class Target:
         """The core's Armv8.1-M PMU counters and event numbers; ``None`` where none is recorded."""
         return self._core_ip(self._core(core)).pmu_extension
 
+    def dcache_line(self, core: int | str = 0) -> int | None:
+        """The core's L1 D-cache line in bytes, from its IP (ADR 0012).
+
+        ``None`` where the IP records none, or where the instance's ``dcache_kb`` is 0
+        (a source states that instance has no D-cache).
+        """
+        instance = self._core(core)
+        if instance.options.dcache_kb == 0:
+            return None
+        return self._core_ip(instance).dcache_line
+
     @functools.cached_property
     def capabilities(self) -> frozenset[str]:
         """Derived capability names (core 0 and the board's memories), lowercase and stable."""
@@ -242,6 +253,24 @@ class Target:
             if name in region.stands_in_for:
                 return region
         raise PlatformError(f"{self.id} has no region {name!r}")
+
+    def dma_address_alignment(self, region: str) -> int | None:
+        """The multiple a DMA through external ``region``'s controller starts its device address at.
+
+        The Soc's alignment for the one mode the region's interface and device share (ADR
+        0012). ``None`` for an on-die region, for no or several shared modes, and where the
+        Soc states none for that mode. Raises ``PlatformError`` for a name that is no region.
+        """
+        name = self.region(region).name
+        for (found, _), (interface, device) in zip(self._external, self._devices, strict=True):
+            if found.name == name:
+                both = set(interface.modes) & set(device.modes)
+                modes = (
+                    both if interface.modes and device.modes else {*interface.modes, *device.modes}
+                )
+                if len(modes) == 1:
+                    return self.soc.dma_address_alignment.get(modes.pop())
+        return None
 
     def has_region(
         self,

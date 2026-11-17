@@ -733,6 +733,11 @@ class _Loader:
         if core.pmu_extension is not None and core.pmu != "armv8m":
             message = f"pmu_extension needs pmu 'armv8m', not {core.pmu!r}"
             self.fail(origin, f"cores.{core.id}.pmu_extension", message)
+        line = core.dcache_line
+        if line is not None and (line == 0 or line & (line - 1)):
+            # Armv8-M encodes a line as a power of two words (CCSIDR.LineSize, ADR 0012).
+            message = f"{line} is not a power of two"
+            self.fail(origin, f"cores.{core.id}.dcache_line", message)
 
     def check_soc(self, catalog: Catalog, soc: model.Soc, origin: str) -> None:
         where = f"socs.{soc.id}"
@@ -1185,10 +1190,16 @@ def _layout_problems(soc: model.Soc) -> list[str]:
     """Regions that overlap at their bases or alternate bases, and a DMA boundary of 0.
 
     Overlap is checked at every base (only the alternate bases if base is None). A
-    boundary of 0 names no address, so it is rejected like a slot of size 0 (ADR 0011).
+    boundary of 0 names no address, so it is rejected like a slot of size 0 (ADR 0011);
+    so is a DMA address alignment of 0 (ADR 0012).
     """
     problems = [
         f"memories.{r.name}.dma_boundary: is 0" for r in soc.memories if r.dma_boundary == 0
+    ]
+    problems += [
+        f"dma_address_alignment.{mode}: is 0"
+        for mode, alignment in soc.dma_address_alignment.items()
+        if alignment == 0
     ]
     spans: list[tuple[str, int, int]] = []
     for region in soc.memories:

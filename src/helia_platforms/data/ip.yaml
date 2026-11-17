@@ -167,6 +167,21 @@ cores:
           32-bit counter. p266: the PMU is present when the DWT is. event_counters is the
           count the TRM documents; p44 says the implementer's debug configuration controls
           how many counters are present, and the TRM gives no other count.
+    dcache_line:
+      value: 32
+      provenance:
+        status: datasheet
+        source:
+          - "doc:TRM-M55@r1p1-02:p198"
+          - "doc:TRM-M55@r1p1-02:p69"
+          - "doc:TRM-M55@r1p1-02:p197"
+        verified_on: 2026-11-17
+        verified_by: evanchen11
+        notes: >-
+          p198, section 10.9.1 L1 data cache: "It has a cache line size of 32 bytes". p69,
+          Table 5-10: CCSIDR.LineSize "0b1 Represents 32 bytes". p197 speaks of the case "When
+          either an L1 data cache or an instruction cache is included"; whether an instance
+          has a D-cache is its CoreOptions.dcache_kb.
     provenance:
       status: datasheet
       source: ["doc:DS-A510@1.1.0:p21"]

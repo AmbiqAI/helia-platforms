@@ -28,3 +28,4 @@ NNNN, Rejected.
 | 0009 | Spell catalog in American English in every name and document | Accepted |
 | 0010 | State facts with their sources; leave what to do with them to consumers | Accepted |
 | 0011 | Record the DMA boundary of a memory region | Accepted |
+| 0012 | Record the D-cache line, the DMA address alignment of a controller mode, and the power states that block DMA | Proposed |
