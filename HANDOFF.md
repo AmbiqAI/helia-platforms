@@ -95,10 +95,11 @@ neuralspotx as a possible later consumer. The model and API are RFC 0002
   once: the `pypi` environment has no manual gate, and the repository
   variable `HELIA_PLATFORMS_PYPI_PUBLISH` (`true`) is the only switch. A
   PyPI version cannot be replaced.
-- A key the format reads but ignores is marked `Deprecated` in
-  `_format.py` (`Access.port` until #159): the loader warns, drops it and
-  keeps it out of the source hash, so the fact-change gate can load the
-  merge base's data with the head's loader.
+- The format has no deprecated keys. `Access.port`, the last one, was read,
+  warned about and ignored in 0.2.0 and is an unknown key since
+  #159; the `Deprecated` marker that did this went with it. A later key
+  removal that needs a release of grace can restore the marker from the
+  commit that removed it.
 - Datasheets are the source of record and contradict consumer data in
   several places (`docs/rfcs/0002-migration.md`, "Pending data
   corrections"); each difference needs a row in the parity allow-lists of

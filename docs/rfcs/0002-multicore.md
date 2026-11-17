@@ -74,7 +74,7 @@ those also in `memory_controllers` may be targets):
 | `requires_awake` | Power domains that must be on for the access |
 | `guidance` | `preferred`, `allowed` or `discouraged`, with `reason` |
 | `address` | Optional per-master address, for a part where a master sees the region at a different address |
-| `port` | Removed on #93 (2026-11-06): which memory a compiler serves over which NPU port is the consumer's choice. The IP's port classes and per-port limits are `NpuInstance.axi_ports`. The key is read, warned about and ignored until #159 removes it |
+| `port` | Removed on #93 (2026-11-06): which memory a compiler serves over which NPU port is the consumer's choice. The IP's port classes and per-port limits are `NpuInstance.axi_ports`. The file format read the key, warned and ignored it until #159 removed it; it is now an unknown key |
 | `characterization` | Optional latency, bandwidth and port facts, each with provenance (no energy data); for this master it overrides the region's characterization |
 | `provenance` | Required on built-ins |
 
