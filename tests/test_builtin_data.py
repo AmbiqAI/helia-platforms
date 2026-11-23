@@ -137,7 +137,7 @@ def test_the_atomiq110_soc_answers_the_consumer_queries(catalog):
     assert target.npu is not None and target.npu.npu.accelerator_config == "ethos-u85-256"
     assert {m.name: (m.base, m.size) for m in target.memories()} == {
         **_ATOMIQ110_ON_DIE,
-        "hblram": (0x60000000, 13312 * 1024),
+        "hblram": (0x60000000, 32 * 1024 * 1024),
     }
     assert sorted({target.cpu_mhz(p.name) for p in target.operating_points()}) == [100, 250, 500]
     assert target.default_operating_point is not None
@@ -158,6 +158,24 @@ def test_the_atomiq110_soc_answers_the_consumer_queries(catalog):
     }
     assert ports == {"sram": (2, 12, 16), "ext": (1, 32, 32)}
     assert npu.axi_ports["sram"].provenance.status == "datasheet"
+
+
+@pytest.mark.parametrize("name", ["atomiq110", "at110"])
+def test_the_atomiq110_soc_plans_32_mib_of_hblram(catalog, name):
+    """#167: the owner's 32 MB planning capacity, kept apart from a sourced value."""
+    hblram = catalog.resolve(name).region("hblram")
+    assert (hblram.base, hblram.size) == (0x60000000, 33_554_432)
+    assert hblram.provenance.status == "sdk"  # the base, from HBLRAM_BASEADDR
+    size = hblram.field_provenance["size"]
+    assert size.status == "unverified"
+    assert size.source == ("url:https://github.com/AmbiqAI/helia-platforms/issues/167",)
+
+
+@pytest.mark.parametrize("name", ["atomiq110_fpga", "atomiq110_fpga_turbo"])
+def test_the_atomiq110_fpga_still_has_no_hblram(catalog, name):
+    target = catalog.resolve(name)
+    assert target.kind in {"implementation", "board"}
+    assert {m.name: (m.base, m.size) for m in target.memories()} == _ATOMIQ110_ON_DIE
 
 
 def test_apollo510b_evb_answers_the_consumer_queries(catalog):

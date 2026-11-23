@@ -189,8 +189,11 @@ def test_atomiq110_compares_its_register_defines(snapshots, define):
         data["socs"]["atomiq110"]["registers"]["values"][define] += 0x1000
 
     edit(snapshots, _check_sources.SDK, change)
-    (found,) = [f for f in findings(snapshots) if f.rule == "register"]
-    assert found.at[1:2] + found.at[-1:] == ("atomiq110", define)
+    # HBLRAM_MAX_SIZE's finding is excepted (the owner's planning size, #167), so look there too.
+    result = _check_sources.check(builtin(include_plugins=False), snapshots)
+    seen = [*result.findings, *(f for f, _ in result.excepted)]
+    (found,) = [f for f in seen if f.rule == "register" and f.at[-1] == define]
+    assert found.at[1] == "atomiq110"
 
 
 @pytest.mark.parametrize("soc", ["apollo510", "apollo510b"])

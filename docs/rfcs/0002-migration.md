@@ -135,13 +135,14 @@ only atomiq110 board is the FPGA, and keeps sbl scripts for future silicon
 
 `atomiq110` SRAM does not change either: it stays 3145728 (3072 KB of
 SSRAM, `platforms.py:592` at `ea5cd6c0`). The catalog records HBLRAM on
-atomiq110 as a physical region of 13312 KB at 0x60000000 (nsx-ambiq-sdk
-`v5.2.24`
-`modules/nsx-ambiqsuite/sdk/mcu/atomiq110/regs/am_reg_base_addresses.h:41-42`),
-but the heliaAOT adapter leaves it out of the default budget (the
-`memories` of `SocPlatform`) until its technology and CPU reach are
+atomiq110 as a physical region at 0x60000000 (nsx-ambiq-sdk `v5.2.24`
+`modules/nsx-ambiqsuite/sdk/mcu/atomiq110/regs/am_reg_base_addresses.h:41`)
+of 32 MiB (33554432 bytes), the owner's planning capacity (#167); the
+SDK's `HBLRAM_MAX_SIZE` of 13312 KB (`:42`) is kept as a documented
+discrepancy. The heliaAOT adapter leaves HBLRAM out of the default budget
+(the `memories` of `SocPlatform`) until its technology and CPU reach are
 confirmed (#19). The FPGA has no HBLRAM, so `atomiq110_fpga` removes it.
-Counting it as SRAM would raise the budget from 3 MB to 16 MB, which this
+Counting it as SRAM would raise the budget from 3 MB to 35 MB, which this
 table does not allow-list.
 
 ### Custom definitions (`platform.*`)

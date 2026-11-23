@@ -59,6 +59,13 @@ exceptions:
       atomiq110's NSX_SEGGER_CPUFREQ (25 MHz) is the FPGA image's clock, not a trace clock,
       so the Soc records none. The FPGA's measured 50 MHz is on atomiq110_fpga (RFC 0002).
     issue: "#68"
+  - snapshot: nsx-ambiq-sdk.json
+    at: [socs, atomiq110, registers, values, HBLRAM_MAX_SIZE]
+    rule: register
+    reason: >-
+      The catalog's HBLRAM size is the owner's 32 MB planning capacity (#167). Where the
+      SDK's 13312 KiB comes from is unknown; it is a question for the memory map's owner.
+    issue: "#19"
 
   # These stay as long as the catalog leaves apollo2 and apollo5b out.
   - snapshot: nsx-ambiq-sdk.json
