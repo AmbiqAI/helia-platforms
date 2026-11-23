@@ -814,6 +814,13 @@ def test_an_interface_without_an_aperture_is_skipped_with_a_warning(document):
         load_overlay(document)
 
 
+def test_an_interface_with_no_aperture_at_all_has_nothing_to_check(document):
+    """A block device such as an eMMC has no window, so no size to check (#137)."""
+    del document["boards"]["board_a"]["interfaces"]["mspi0"]["aperture_base"]
+    del document["boards"]["board_a"]["interfaces"]["mspi0"]["aperture_max"]
+    load_quietly(document)
+
+
 def test_an_escalated_warning_does_not_hide_the_problems(document):
     del document["boards"]["board_a"]["interfaces"]["mspi0"]["aperture_max"]
     document["parts"]["PART-B"] = {"soc": "nope"}

@@ -160,3 +160,53 @@ memory_devices:
         verified_on: 2026-10-26
         verified_by: evanchen11
         notes: AM_HAL_MSPI_FLASH_QUAD_CE0; Zephyr's MSPI_IO_MODE_QUAD and MSPI_DATA_RATE_SINGLE.
+  IS21EF08G:
+    release_status: public
+    technology: emmc
+    provenance:
+      status: datasheet
+      source:
+        - "doc:QS-A510@2.1:p8"
+        - "doc:QS-A510@2.1:p10"
+        - "doc:QS-A510B@1.1:p8"
+        - "doc:QS-A510B@1.1:p10"
+      verified_on: 2026-11-23
+      verified_by: evanchen11
+      notes: >-
+        "SDIO 8 GB eMMC (ISSI IS21EF08G-JCLI)" on both EVBs (QS-A510 p8, QS-A510B p8), labelled
+        "eMMC0 - IS21EF08G-JCLI" (QS-A510 p10, QS-A510B p10). The id is the marking's stem. A
+        block-addressed device: it has no memory-mapped window (#137).
+    capacity:
+      value: 8000000000
+      provenance:
+        status: datasheet
+        source: ["doc:QS-A510@2.1:p8", "doc:QS-A510B@1.1:p8"]
+        verified_on: 2026-11-23
+        verified_by: evanchen11
+        notes: >-
+          "8 GB", read as 8 x 10^9 bytes. It is the guides' nominal size: neither guide says
+          whether GB is decimal, and no registered source states the user area firmware can
+          address, which may be smaller.
+  THGBMNG5D1LBAIT:
+    release_status: public
+    technology: emmc
+    provenance:
+      status: datasheet
+      source: ["doc:QS-A4PDK@1.2:p10", "doc:QS-A4PDK@1.2:p11", "doc:QS-A4PDK@1.2:p12"]
+      verified_on: 2026-11-23
+      verified_by: evanchen11
+      notes: >-
+        "4 GB x1/x4/x8 e-MMC module - THGBMNG5D1LBAIT" on the Display Kit's shield (p12); both
+        block diagrams wire it to the EVB over SDIF (p10, p11). A block-addressed device: it
+        has no memory-mapped window (#137).
+    capacity:
+      value: 4000000000
+      provenance:
+        status: datasheet
+        source: ["doc:QS-A4PDK@1.2:p12"]
+        verified_on: 2026-11-23
+        verified_by: evanchen11
+        notes: >-
+          "4 GB", read as 4 x 10^9 bytes. It is the guide's nominal size: the guide does not
+          say whether GB is decimal, and no registered source states the user area firmware
+          can address, which may be smaller.

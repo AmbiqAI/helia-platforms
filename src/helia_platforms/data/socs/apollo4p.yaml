@@ -211,16 +211,23 @@ socs:
           AmbiqSuite drives over IOM 4 (devices/am_devices_cooper.h:199-213), and has no
           pins (no IOM4 signal in DS-A4BP p107-110). DS-A4BP p126's "seven" IOMs leave it out.
     memory_controllers:
-      value: [mspi0, mspi1, mspi2]
+      value: [mspi0, mspi1, mspi2, sdio]
       provenance:
         status: datasheet
-        source: ["doc:DS-A4P@1.6.0:p115"]
-        verified_on: 2026-10-08
+        source:
+          - "doc:DS-A4P@1.6.0:p115"
+          - "doc:DS-A4P@1.6.0:p52"
+          - "doc:DS-A4P@1.6.0:p108"
+          - "doc:DS-A4BP@1.8.0:p108"
+          - "doc:DS-A4BP@1.8.0:p110"
+        verified_on: 2026-11-23
         verified_by: evanchen11
         notes: >-
           The three MSPI modules are "memory mapped ... at address 0x14000000 (MSPI0),
-          0x18000000 (MSPI1) and 0x1C000000 (MSPI2)". IOMs and SDIO are left off until a
-          board wires memory to one.
+          0x18000000 (MSPI1) and 0x1C000000 (MSPI2)" (p115). SDIO, "SDIO (SD3.0) / eMMC
+          (v4.51)" (p52) with SDIF_DAT4-7 on GPIO79-82 (p108; DS-A4BP p108 KBR, p110 KXR),
+          hosts the Display Kit's eMMC; it has no aperture. IOMs are left off until a board
+          wires memory to one.
 
     clock_domains:
       cpu:
@@ -613,6 +620,23 @@ boards:
         aperture_base: 0x1C000000
         aperture_max: 64M
         provenance: *ds_aperture
+      sdio:
+        controller: sdio
+        provenance:
+          status: datasheet
+          source:
+            - "doc:QS-A4PDK@1.2:p10"
+            - "doc:QS-A4PDK@1.2:p11"
+            - "doc:QS-A4PDK@1.2:p17"
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/boards/apollo4p_evb/bsp/am_bsp.h:119"
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/boards/apollo4p_evb/bsp/am_bsp_pins.h:1443-1518"
+          verified_on: 2026-11-23
+          verified_by: evanchen11
+          notes: >-
+            Both Display Kit block diagrams wire the EVB to the shield's e-MMC over SDIF (p10,
+            p11), and GPIO79 goes to eMMC_D4 by default (p17). The EVB's BSP sets an 8-bit
+            bus (AM_BSP_SDIO_BUS_WIDTH, am_bsp.h:119) on its SDIO pins (am_bsp_pins.h). The
+            SDIO has no aperture, so the eMMC has no base (#137).
     provisioning:
       value: sbl
       provenance:

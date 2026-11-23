@@ -61,20 +61,30 @@ def test_the_packaged_data_loads(catalog):
         "APS256XXN",
         "IS25WX064",
         "APS6404L",
+        "IS21EF08G",
+        "THGBMNG5D1LBAIT",
     }
+
+
+_APOLLO510_EVB_CAPABILITIES = {
+    *("dsp", "fp16", "fp32", "fp64", "mve", "mve_fp", "pmu"),
+    *("psram", "emmc"),
+}
+_APOLLO510_EVB_MEMORIES = {
+    "itcm": (0x00000000, 256 * 1024),
+    "dtcm": (0x20000000, 512 * 1024),
+    "ssram": (0x20080000, 3 * 1024 * 1024),
+    "mram": (0x00400000, 4 * 1024 * 1024),
+    "psram0": (0x60000000, 64 * 1024 * 1024),
+    "emmc0": (None, 8_000_000_000),  # block-addressed, no window (#137)
+}
 
 
 def test_apollo510_evb_answers_the_consumer_queries(catalog):
     """RFC 0002's heliaAOT and profiler questions, against #63's proposal section 1.6."""
     target = catalog.resolve("apollo510_evb")
-    assert target.capabilities == {"dsp", "fp16", "fp32", "fp64", "mve", "mve_fp", "pmu", "psram"}
-    assert {m.name: (m.base, m.size) for m in target.memories()} == {
-        "itcm": (0x00000000, 256 * 1024),
-        "dtcm": (0x20000000, 512 * 1024),
-        "ssram": (0x20080000, 3 * 1024 * 1024),
-        "mram": (0x00400000, 4 * 1024 * 1024),
-        "psram0": (0x60000000, 64 * 1024 * 1024),
-    }
+    assert target.capabilities == _APOLLO510_EVB_CAPABILITIES
+    assert {m.name: (m.base, m.size) for m in target.memories()} == _APOLLO510_EVB_MEMORIES
     assert dict(target.usable_nvm()) == {"mram": 4 * 1024 * 1024 - 64 * 1024}
     assert target.flash_load_address() == 0x00410000
     assert (target.cpu_mhz(), target.cpu_mhz("hp")) == (96, 250)
@@ -163,20 +173,38 @@ def test_the_atomiq110_soc_answers_the_consumer_queries(catalog):
 def test_apollo510b_evb_answers_the_consumer_queries(catalog):
     """The same questions on #64's data: apollo510's memory map, its own part and J-Link."""
     target = catalog.resolve("apollo510b_evb")
-    assert target.capabilities == {"dsp", "fp16", "fp32", "fp64", "mve", "mve_fp", "pmu", "psram"}
-    assert {m.name: (m.base, m.size) for m in target.memories()} == {
-        "itcm": (0x00000000, 256 * 1024),
-        "dtcm": (0x20000000, 512 * 1024),
-        "ssram": (0x20080000, 3 * 1024 * 1024),
-        "mram": (0x00400000, 4 * 1024 * 1024),
-        "psram0": (0x60000000, 64 * 1024 * 1024),
-    }
+    assert target.capabilities == _APOLLO510_EVB_CAPABILITIES
+    assert {m.name: (m.base, m.size) for m in target.memories()} == _APOLLO510_EVB_MEMORIES
     assert dict(target.usable_nvm()) == {"mram": 4 * 1024 * 1024 - 64 * 1024}
     assert target.flash_load_address() == 0x00410000
     assert (target.cpu_mhz(), target.cpu_mhz("hp")) == (96, 250)
     assert target.default_operating_point.name == "lp"
     assert target.jlink_device == "AP510BFA-CBR"
     assert target.trace_clock_mhz == 96
+
+
+@pytest.mark.parametrize(
+    ("name", "controller", "size", "guide"),
+    [
+        ("apollo510_evb", "sdio0", 8_000_000_000, "doc:QS-A510@2.1:p8"),
+        ("apollo510b_evb", "sdio0", 8_000_000_000, "doc:QS-A510B@1.1:p8"),
+        ("AMAP4PDISP", "sdio", 4_000_000_000, "doc:QS-A4PDK@1.2:p12"),
+    ],
+)
+def test_each_fitted_emmc_is_an_external_memory_with_no_base(
+    catalog, name, controller, size, guide
+):
+    """#137: a block-addressed eMMC on an SDIO interface with no aperture."""
+    target = catalog.resolve(name)
+    (emmc,) = [r for r in target.external_memories() if r.technology == "emmc"]
+    assert (emmc.name, emmc.attachment, emmc.base, emmc.size) == ("emmc0", "external", None, size)
+    assert target.has_external_memory("emmc") and "emmc" in target.capabilities
+    assert target.interfaces[controller].aperture_base is None
+    assert target.reachable("cm55_0" if "510" in name else "cm4_0", "emmc0").target == controller
+    assert emmc.provenance.status == "datasheet" and guide in emmc.provenance.source
+    assert guide in emmc.field_provenance["size"].source
+    assert "emmc0" not in target.placement_ranges()
+    assert "emmc0" not in target.application_ranges()
 
 
 def test_apollo510b_derives_from_apollo510_with_its_own_peripherals(catalog):
@@ -195,7 +223,7 @@ def test_apollo510b_derives_from_apollo510_with_its_own_peripherals(catalog):
     assert set(apollo510.peripherals) - set(soc.peripherals) == {"ioslave", "mspi2", "mspi3"}
     assert "iom6" in soc.peripherals
     assert set(soc.peripherals) <= set(apollo510.peripherals)
-    assert soc.memory_controllers == ("mspi0", "mspi1")
+    assert soc.memory_controllers == ("mspi0", "mspi1", "sdio0")
 
 
 def test_the_soc_and_part_names_resolve(catalog):
@@ -375,13 +403,17 @@ def test_the_display_kit_compositions_add_psram_and_flash(catalog, name):
     assert [a.id for a in target.addons] == ["apollo4p_disp_shield"]
     fitted = {name: i.modes for name, i in target.interfaces.items()}
     octal = ("serial-sdr", "dual-sdr", "quad-sdr", "octal-sdr", "octal-ddr")
-    assert fitted == {"mspi0": ("octal-ddr",), "mspi1": ("octal-ddr",), "mspi2": octal}
+    assert fitted == {"mspi0": ("octal-ddr",), "mspi1": ("octal-ddr",), "mspi2": octal, "sdio": ()}
     evb_modes = ("serial-sdr", "dual-sdr", "quad-sdr", "octal-sdr", "octal-ddr", "hex-ddr")
     assert target.board.interfaces["mspi0"].modes == evb_modes
     assert catalog.resolve("apollo4p_evb").interfaces["mspi0"].modes == evb_modes
     assert catalog.resolve("apollo4p_evb").interfaces["mspi2"].modes == octal
     external = {(r.technology, r.base, r.size) for r in target.external_memories()}
-    assert external == {("psram", 0x14000000, 32 * 1024 * 1024), ("flash", 0x18000000, 8 << 20)}
+    assert external == {
+        ("psram", 0x14000000, 32 * 1024 * 1024),
+        ("flash", 0x18000000, 8 << 20),
+        ("emmc", None, 4_000_000_000),
+    }
     assert target.has_external_memory("psram")
     assert catalog.resolve("apollo4p_evb").addons == ()
 
@@ -418,8 +450,8 @@ def test_the_blue_parts_record_their_radio(catalog):
 @pytest.mark.parametrize(
     ("board", "cores", "removed", "controllers"),
     [
-        ("apollo4p_evb", ["cm4_0"], set(), ["mspi0", "mspi1", "mspi2"]),
-        ("apollo4p_blue_kbr_evb", ["cm4_0", "ble_m0"], set(), ["mspi0", "mspi2"]),
+        ("apollo4p_evb", ["cm4_0"], set(), ["mspi0", "mspi1", "mspi2", "sdio"]),
+        ("apollo4p_blue_kbr_evb", ["cm4_0", "ble_m0"], set(), ["mspi0", "mspi2", "sdio"]),
         ("apollo4p_blue_kxr_evb", ["cm4_0", "ble_m0"], {"pdm1", "pdm2"}, None),
         ("apollo4l_evb", ["cm4_0"], set(), ["mspi0", "mspi1", "mspi2"]),
         ("apollo4l_blue_evb", ["cm4_0", "ble_m0"], set(), ["mspi0", "mspi1", "mspi2"]),
@@ -434,7 +466,9 @@ def test_each_apollo4_part_keeps_what_its_datasheet_gives(
     # The radio domain goes with ble_m0 (clock_domains_removed on the plain parts).
     assert [d.id for d in target.soc.clock_domains] == ["cpu", "radio"][: len(cores)]
     assert set(soc.peripherals) - set(target.soc.peripherals) == removed
-    assert list(target.soc.memory_controllers) == (controllers or ["mspi0", "mspi1", "mspi2"])
+    assert list(target.soc.memory_controllers) == (
+        controllers or ["mspi0", "mspi1", "mspi2", "sdio"]
+    )
     ble = [c for c in target.soc.cores if c.id == "ble_m0"]
     assert [(c.core, c.programmable_by, c.clock_domain) for c in ble] == [
         ("cortex-m0", "vendor", "radio")
@@ -587,8 +621,8 @@ def test_apollo5_records_no_dma_to_dtcm_in_deep_sleep(catalog, soc, pages):
 @pytest.mark.parametrize(
     ("board", "alignments"),
     [
-        ("apollo510_evb", {"psram0": 4}),
-        ("apollo510b_evb", {"psram0": 4}),
+        ("apollo510_evb", {"psram0": 4, "emmc0": None}),  # the eMMC's interface has no modes
+        ("apollo510b_evb", {"psram0": 4, "emmc0": None}),
         ("apollo510dL_evb", {}),  # no MSPI device is populated
         ("apollo330mP_evb", {}),
     ],

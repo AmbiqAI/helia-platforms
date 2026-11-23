@@ -196,7 +196,7 @@ Definitions, queries and an example are in [0002-multicore.md](0002-multicore.md
 | `extensions` | per-tool, proposal | Overlay entries only; see Overlays. |
 
 `MemoryRegion`: `name` (dtcm, ssram, mram, hblram, psram0), `technology`
-(sram, mram, rram, psram, flash, nvm, dram), `attachment` (tcm, system, external),
+(sram, mram, rram, psram, flash, nvm, dram, emmc), `attachment` (tcm, system, external),
 `size`, `base`, optional `alternate_bases` where the silicon aliases the
 region, `executable`, `writeable`, `cacheable`, optional
 `characterization` (read and write latency, ports, max outstanding reads
@@ -437,8 +437,10 @@ customers add daughter boards.
   without aperture fields yields devices with no base: they are not
   addressable, `external_memories()` reports them without a base,
   `placement_ranges()` leaves them out, and the aperture validator skips
-  them with a warning. A PSRAM on an IOM, which has no XIP aperture, is
-  one: firmware reaches it only through its driver.
+  them. A PSRAM on an IOM, which has no XIP aperture, is one: firmware
+  reaches it only through its driver. A block-addressed eMMC on an SDIO
+  controller is another: its device has technology `emmc`, and the SDIO is
+  a memory controller of the Soc (#137).
 - `MemoryDevice`: an external part with technology, capacity,
   `driver_family`, supported modes and optional characterization, each
   value with provenance. Capacity and driver family are separate facts.
@@ -1086,8 +1088,9 @@ This is the one list; 0002-multicore.md refers to it.
   unreachable (an error for built-ins). `alternate_bases` needs an
   `aperture_base`. An interface window (each base, `aperture_max` long)
   overlaps no on-chip region and no other window. A device is no larger
-  than its aperture; an interface with no `aperture_max` draws a warning
-  that its device is unchecked.
+  than its aperture; an interface with an `aperture_base` but no
+  `aperture_max` draws a warning that its device is unchecked, and one
+  with neither has no window to check.
 - **Add-ons and compositions.** `fits_boards` names boards. `population`
   and `modes` keys are interfaces the add-on occupies, and each exists on
   every board it fits. Its devices exist and fit the aperture. Its modes

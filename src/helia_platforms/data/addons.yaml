@@ -15,10 +15,23 @@ addons:
           "AMAP4PDISP EVB Rev. 2 / Shield Rev. 1". The _rev2 in the legacy board id
           apollo4p_evb_disp_shield_rev2 is the EVB revision, not the shield's (decided on #66).
     fits_boards: [apollo4p_evb]
-    occupies: [mspi0, mspi1, mspi2]
+    occupies:
+      - mspi0
+      - mspi1
+      - mspi2
+      - value: sdio
+        provenance: &shield_emmc
+          status: datasheet
+          source: ["doc:QS-A4PDK@1.2:p10", "doc:QS-A4PDK@1.2:p11", "doc:QS-A4PDK@1.2:p12"]
+          verified_on: 2026-11-23
+          verified_by: evanchen11
+          notes: >-
+            The shield carries a "4 GB x1/x4/x8 e-MMC module - THGBMNG5D1LBAIT" (p12), wired to
+            the EVB over SDIF in both block diagrams (p10, p11).
     population:
       mspi0: APS256XXN
       mspi1: IS25WX064
+      sdio: {value: THGBMNG5D1LBAIT, provenance: *shield_emmc}
     modes:
       mspi0:
         value: [octal-ddr]
@@ -57,7 +70,7 @@ addons:
         selects MSPI0 hex to the PSRAM only (p10), or MSPI0 and MSPI1 octal to the PSRAM and
         the flash (p11); the population is the octal setting, and #139 tracks the hex one.
         Both figures wire the display to Quad-MSPI2, a figure label only. The 4 GB eMMC
-        THGBMNG5D1LBAIT (p12) is not modelled (#137).
+        THGBMNG5D1LBAIT (p12) is on SDIO (#137).
   cygnus:
     release_status: public
     fits_boards: [apollo3p_evb]
