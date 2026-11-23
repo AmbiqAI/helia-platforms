@@ -626,6 +626,40 @@ def test_the_atomiq110_fpga_inherits_the_npus_port_classes(catalog):
     }
 
 
+@pytest.mark.parametrize("name", ["atomiq110", "atomiq110_fpga_turbo"])
+def test_atomiq110_npu_access_to_either_tcm_keeps_the_cm55_awake(catalog, name):
+    """The owner's rule on AmbiqAI/helia-aot#1023 (#177): only the two TCM rows carry it."""
+    target = catalog.resolve(name)
+    awake = {a.target: a.requires_awake for a in target.soc.access if a.requires_awake}
+    assert awake == {"itcm": ("cm55_0",), "dtcm": ("cm55_0",)}
+    assert {a.target for a in target.soc.access if a.master == "npu_0"} > {"itcm", "dtcm", "ssram"}
+    for tcm in ("itcm", "dtcm"):
+        access = target.reachable("npu_0", tcm)
+        assert access is not None and access.requires_awake == ("cm55_0",)
+        record = access.field_provenance["requires_awake.cm55_0"]
+        assert record.status == "unverified"
+        assert record.source == (
+            "url:https://github.com/AmbiqAI/helia-aot/issues/1023#issuecomment-7041469123",
+        )
+
+
+APOLLO5_SOCS = ("apollo510", "apollo510b", "apollo510L", "apollo330P")
+
+
+def test_apollo5_parts_have_no_npu(catalog):
+    """#177 records the TCM rule for Atomiq only; no Apollo5 Soc, part or board has an NPU."""
+    names = [
+        *APOLLO5_SOCS,
+        *(p.id for p in catalog.parts() if p.soc in APOLLO5_SOCS),
+        *(b.id for b in catalog.boards() if catalog.resolve(b.id).soc.id in APOLLO5_SOCS),
+    ]
+    assert len(names) > len(APOLLO5_SOCS)
+    for name in names:
+        target = catalog.resolve(name)
+        assert target.npus() == () and target.npu is None, name
+        assert all(a.requires_awake == () for a in target.soc.access), name
+
+
 # Arm Cortex-M55 TRM r1p1 issue 02, Table 17-1 (#158).
 M55_SOCS = ("apollo510", "apollo510b", "apollo510L", "apollo330P", "atomiq110")
 
