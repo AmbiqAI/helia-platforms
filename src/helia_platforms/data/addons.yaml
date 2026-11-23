@@ -15,6 +15,18 @@ addons:
           "AMAP4PDISP EVB Rev. 2 / Shield Rev. 1". The _rev2 in the legacy board id
           apollo4p_evb_disp_shield_rev2 is the EVB revision, not the shield's (decided on #66).
     fits_boards: [apollo4p_evb]
+    fits_revisions:
+      apollo4p_evb:
+        value: ["2", "3"]
+        provenance:
+          status: datasheet
+          source: ["doc:QS-A4PDK@1.2:p10", "doc:QS-A4P@1.5:p6"]
+          verified_on: 2026-11-23
+          verified_by: evanchen11
+          notes: >-
+            The kit is "The Apollo4 Plus EVB (AMAP4PEVB), revision 2 or later" with the shield
+            (QS-A4PDK p10). QS-A4P's revision history names board revisions 1, 2 and 3 (p6), so
+            2 and 3 are the revisions that fit.
     occupies: [mspi0, mspi1, mspi2]
     population:
       mspi0: APS256XXN
@@ -53,7 +65,7 @@ addons:
       notes: >-
         The Apollo4 Plus Display Kit's shield; the kit, "part number AMAP4PDISP" (p6), is the
         EVB with the shield (names.yaml). It is "only compatible with the (non-blue) Apollo4
-        Plus EVB", revision 2 or later (p10), which fits_boards cannot say (#138). GPIO34
+        Plus EVB", revision 2 or later (p10; fits_revisions). GPIO34
         selects MSPI0 hex to the PSRAM only (p10), or MSPI0 and MSPI1 octal to the PSRAM and
         the flash (p11); the population is the octal setting, and #139 tracks the hex one.
         Both figures wire the display to Quad-MSPI2, a figure label only. The 4 GB eMMC

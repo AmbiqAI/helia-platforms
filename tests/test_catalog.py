@@ -901,6 +901,18 @@ def test_a_composition_puts_add_ons_only_on_boards_they_fit(document):
     assert "compositions.bad: add-on 'shield' does not fit board 'board_b'" in problems_of(document)
 
 
+def test_an_add_on_s_fits_revisions_name_boards_it_fits_at_revisions_they_have(document):
+    document["boards"]["board_b"] = {"category": "custom", "part": "PART-A", "revision": "1"}
+    document["addons"] = {"shield": {**shield({}), "fits_revisions": {"board_b": ["2"]}}}
+    assert "addons.shield.fits_revisions: 'board_b' is not in fits_boards" in problems_of(document)
+    document["addons"]["shield"]["fits_boards"].append("board_b")
+    assert (
+        "addons.shield: add-on 'shield' fits board 'board_b' only at revision 2, not '1'"
+    ) in problems_of(document)
+    document["boards"]["board_b"]["revision"] = "2"
+    load_quietly(document)
+
+
 def test_a_composition_puts_one_device_on_each_interface(document):
     with_mspi1(document)
     document["addons"] = {

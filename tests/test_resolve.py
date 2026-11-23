@@ -140,6 +140,27 @@ def test_add_ons_apply_only_to_a_board(catalog):
         resolve("soc_a", addons=["shield"], catalog=catalog)
 
 
+def test_a_board_revision_selects_the_add_ons_that_fit(document):
+    shield = {"fits_boards": ["board_a"], "occupies": [], "population": {}}
+    document["addons"] = {"shield": {**shield, "fits_revisions": {"board_a": ["2", "3"]}}}
+    catalog = quiet(document)
+    assert resolve("board_a", addons=["shield"], catalog=catalog).addons  # revision not stated
+    assert resolve("board_a", addons=["shield"], board_revision="2", catalog=catalog).addons
+    with pytest.raises(PlatformError, match="fits board 'board_a' only at revision 2, 3, not '1'"):
+        catalog.resolve("board_a", addons=["shield"], board_revision="1")
+    with pytest.raises(PlatformError, match="board_revision= applies only to a board target"):
+        resolve("soc_a", board_revision="1", catalog=catalog)
+
+
+def test_a_board_revision_may_not_contradict_the_board_s_own(document):
+    document["boards"]["board_a"]["revision"] = "2"
+    catalog = quiet(document)
+    board = resolve("board_a", board_revision="2", catalog=catalog).board
+    assert board is not None and board.revision == "2"
+    with pytest.raises(PlatformError, match="board 'board_a' is revision '2', not '1'"):
+        resolve("board_a", board_revision="1", catalog=catalog)
+
+
 def test_find_filters_every_kind_of_target(catalog):
     assert [t.id for t in catalog.find(core="cortex-m55")] == ["board_a", "PART-A", "soc_a"]
     assert [t.id for t in catalog.find(npu_model="u85", kind="soc")] == ["soc_a"]

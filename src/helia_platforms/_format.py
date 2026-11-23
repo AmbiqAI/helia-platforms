@@ -467,6 +467,8 @@ class Board(_Entity):
 
 class AddOn(_Entity):
     fits_boards: Required[Ids]
+    # The board revisions it fits, for a board of fits_boards that it does not fit at every one.
+    fits_revisions: NotRequired[dict[Id, Annotated[list[str], BY_VALUE, Minimum(1)]]]
     occupies: Required[Names]
     population: Required[dict[Name, Id]]
     # Modes of an occupied interface while the add-on is fitted, narrowing the board's.
