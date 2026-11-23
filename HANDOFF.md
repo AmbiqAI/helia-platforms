@@ -82,6 +82,11 @@ neuralspotx as a possible later consumer. The model and API are RFC 0002
   owner decision 2026-11-07).
 - A region's optional `dma_boundary` says a single DMA transfer does not
   cross a whole multiple of it from the region's base (ADR 0011, #153).
+- `Core.dcache_line`, `Soc.dma_address_alignment` (per interface mode) and
+  `MemoryRegion.dma_blocked_when` record the D-cache line, the MSPI HAL's
+  hex DDR device-address rule and the deep-sleep DMA restriction; read them
+  through `Target.dcache_line()`, `Target.dma_address_alignment(region)`
+  and the region (ADR 0012, #175).
 - Releases go to PyPI from this private repository; the owner's data audit
   is the only review before upload (ADR 0005, amended 2026-10-29).
 

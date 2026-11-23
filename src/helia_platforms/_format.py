@@ -65,6 +65,9 @@ DomainPointRef = Annotated[
 ]
 ToolName = Annotated[str, Pattern(r"^[a-z][a-z0-9_]*$", "a tool name")]
 PmuEventName = Annotated[str, Pattern(r"^[A-Z][A-Z0-9_]*$", "an Arm PMU event mnemonic")]
+Mode = Annotated[
+    str, Pattern(r"^(?!(?:value|provenance)$)[a-z][a-z0-9-]*$", "an interface mode such as hex-ddr")
+]
 Size = Annotated[int | str, SIZE]
 Address = Annotated[int, Minimum(0)]
 Count = Annotated[int, Minimum(0)]
@@ -145,6 +148,8 @@ class MemoryRegion(_Facts):
     cacheable: NotRequired[bool]
     characterization: NotRequired[MemoryCharacterization]
     dma_boundary: NotRequired[Size]  # no DMA crosses a multiple of it from base (ADR 0011)
+    # Power states in which no DMA to or from the region can be performed (ADR 0012).
+    dma_blocked_when: NotRequired[Annotated[list[Literal["cpu_deep_sleep"]], BY_VALUE, Minimum(1)]]
     stands_in_for: NotRequired[Names]  # on an FVP Implementation's regions only (ADR 0007)
 
 
@@ -331,6 +336,8 @@ class Core(_Inheritable):
     pmu: Required[str]
     has_dsp_extension: Required[bool]
     pmu_extension: NotRequired[PmuExtension]
+    # The L1 data cache line in bytes, where the IP has a D-cache (ADR 0012).
+    dcache_line: NotRequired[Count]
 
 
 class Soc(_Entity):
@@ -350,6 +357,9 @@ class Soc(_Entity):
     boot_configs: NotRequired[dict[Name, BootConfig]]
     default_boot: NotRequired[Name]
     image_slots: NotRequired[dict[Name, ImageSlot]]  # every Part's, unless it writes the name
+    # Per interface mode, the multiple a DMA through a memory controller in that mode
+    # starts its device address at (ADR 0012).
+    dma_address_alignment: NotRequired[dict[Mode, Count]]
     sdk: NotRequired[SdkFacts]
     derives_from: NotRequired[Annotated[Id, NOT_FACT]]
     default_board: NotRequired[Annotated[Id, NOT_FACT]]

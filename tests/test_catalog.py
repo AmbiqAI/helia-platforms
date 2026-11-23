@@ -1137,6 +1137,48 @@ def test_a_dma_boundary_of_zero_is_rejected(document):
     assert "socs.soc_a: memories.tcm.dma_boundary: is 0" in problems_of(document)
 
 
+def test_a_core_ip_states_its_dcache_line(document):
+    document["cores"]["cortex-m55"]["dcache_line"] = 32
+    assert load_quietly(document)._entry("cores", "cortex-m55").dcache_line == 32
+
+
+@pytest.mark.parametrize("line", [0, 24])
+def test_a_dcache_line_that_is_not_a_power_of_two_is_rejected(document, line):
+    """CCSIDR.LineSize encodes a line as a power of two words (ADR 0012)."""
+    document["cores"]["cortex-m55"]["dcache_line"] = line
+    message = f"cores.cortex-m55.dcache_line: {line} is not a power of two"
+    assert message in problems_of(document)
+
+
+def test_a_region_states_the_power_states_that_block_dma(document):
+    soc(document)["memories"]["tcm"]["dma_blocked_when"] = ["cpu_deep_sleep"]
+    catalog = load_quietly(document)
+    region = next(r for r in catalog._entry("socs", "soc_a").memories if r.name == "tcm")
+    assert region.dma_blocked_when == ("cpu_deep_sleep",)
+
+
+@pytest.mark.parametrize("states", [[], ["deep_sleep"], ["cpu_deep_sleep", "cpu_deep_sleep"]])
+def test_an_empty_unknown_or_repeated_power_state_is_rejected(document, states):
+    soc(document)["memories"]["tcm"]["dma_blocked_when"] = states
+    assert "memories.tcm.dma_blocked_when" in problems_of(document)
+
+
+def test_a_soc_states_a_dma_address_alignment_per_mode(document):
+    soc(document)["dma_address_alignment"] = {"hex-ddr": 4}
+    entry = load_quietly(document)._entry("socs", "soc_a")
+    assert dict(entry.dma_address_alignment) == {"hex-ddr": 4}
+
+
+def test_a_dma_address_alignment_of_zero_is_rejected(document):
+    soc(document)["dma_address_alignment"] = {"hex-ddr": 0}
+    assert "socs.soc_a: dma_address_alignment.hex-ddr: is 0" in problems_of(document)
+
+
+def test_a_dma_address_alignment_is_keyed_by_a_mode(document):
+    soc(document)["dma_address_alignment"] = {"Hex DDR": 4}
+    assert "is not an interface mode such as hex-ddr" in problems_of(document)
+
+
 def test_removing_a_peripheral_removes_the_memory_controller_and_its_access(document):
     soc(document)["access"].append({"master": "npu_0", "target": "mspi0", "access": "direct"})
     soc(document)["memory_controllers"] = [

@@ -393,7 +393,7 @@ def _cores(target: Target, at: _Entries) -> list[_Row]:
     rows = [_row(c.id, soc.inner("cores", c.id), c, names) for c in target.soc.cores]
     for ip_id in dict.fromkeys(c.core for c in target.soc.cores):
         ip = target._catalog._entry("cores", ip_id)
-        names = ["arch", "pmu", "has_dsp_extension", "pmu_extension"]
+        names = ["arch", "pmu", "has_dsp_extension", "pmu_extension", "dcache_line"]
         rows.append(_row(ip_id, at.at("cores", ip_id, ip), ip, names))
         rows += _based_on("core", ip, named=True)
     return rows
@@ -424,6 +424,7 @@ _REGION = (
     "cacheable",
     "characterization",
     "dma_boundary",
+    "dma_blocked_when",
     "stands_in_for",
 )
 _INTERFACE = ("controller", "modes", "aperture_base", "alternate_bases", "aperture_max")
@@ -433,6 +434,8 @@ _DEVICE = ("technology", "capacity", "driver_family", "modes", "characterization
 def _memories(target: Target, at: _Entries) -> list[_Row]:
     soc = _soc(target, at)
     rows = [_row(r.name, soc.child(r, "memories", r.name), r, _REGION) for r in target.soc.memories]
+    alignment = _row("dma alignment", soc, target.soc, ["dma_address_alignment"])
+    rows += [alignment] if alignment.facts else []
     populated = set()
     for (region, _), (owner, populator, interface, device) in zip(
         target._external, _populations(target, at), strict=True
@@ -443,6 +446,8 @@ def _memories(target: Target, at: _Entries) -> list[_Row]:
         iface = _interface(target, at, owner, interface)
         base = "no base" if region.base is None else f"at {region.base:#010x}"
         computed = f"{size(region.size)} {base}, computed"
+        aligned = target.dma_address_alignment(region.name)
+        computed += "" if aligned is None else f"; dma_address_alignment {aligned}, computed"
         row.text = f"population.{interface} {device.id}, {iface.text} ({computed})"
         rows.append(_Row(row.label, row.text, row.facts + iface.facts))
     # A fitted add-on uses every interface it occupies, with a device there or not.

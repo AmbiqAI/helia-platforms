@@ -1498,6 +1498,31 @@
         },
         "pmu_extension": {
           "$ref": "#/$defs/PmuExtension"
+        },
+        "dcache_line": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "object",
+              "properties": {
+                "value": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "provenance": {
+                  "$ref": "#/$defs/Provenance"
+                }
+              },
+              "required": [
+                "value",
+                "provenance"
+              ],
+              "additionalProperties": false
+            }
+          ]
         }
       },
       "additionalProperties": false,
@@ -3379,6 +3404,65 @@
             }
           ]
         },
+        "dma_blocked_when": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "cpu_deep_sleep"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "value": {
+                        "enum": [
+                          "cpu_deep_sleep"
+                        ]
+                      },
+                      "provenance": {
+                        "$ref": "#/$defs/Provenance"
+                      }
+                    },
+                    "required": [
+                      "value",
+                      "provenance"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              "uniqueItems": true,
+              "minItems": 1
+            },
+            {
+              "type": "object",
+              "properties": {
+                "value": {
+                  "type": "array",
+                  "items": {
+                    "enum": [
+                      "cpu_deep_sleep"
+                    ]
+                  },
+                  "uniqueItems": true,
+                  "minItems": 1
+                },
+                "provenance": {
+                  "$ref": "#/$defs/Provenance"
+                }
+              },
+              "required": [
+                "value",
+                "provenance"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        },
         "stands_in_for": {
           "anyOf": [
             {
@@ -5021,6 +5105,38 @@
           },
           "additionalProperties": {
             "$ref": "#/$defs/ImageSlot"
+          }
+        },
+        "dma_address_alignment": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "pattern": "^(?!(?:value|provenance)$)[a-z][a-z0-9-]*$"
+          },
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "value": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "provenance": {
+                    "$ref": "#/$defs/Provenance"
+                  }
+                },
+                "required": [
+                  "value",
+                  "provenance"
+                ],
+                "additionalProperties": false
+              }
+            ]
           }
         },
         "sdk": {

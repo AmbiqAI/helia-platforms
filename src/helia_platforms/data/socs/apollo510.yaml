@@ -108,6 +108,18 @@ socs:
               cross a DTCM 4 kB boundary" (ERR014); p96: an MSPI DMA that "crosses a 4 kB boundary in
               DTCM" hangs the device (ERR018). p22 also forbids DMA to or from DTCM "when the CPU is
               in deep sleep or the DTCM location is powered down".
+        dma_blocked_when:
+          value: [cpu_deep_sleep]
+          provenance:
+            status: datasheet
+            source: ["doc:DS-A510@1.1.0:p22", "doc:DS-A510@1.1.0:p29"]
+            verified_on: 2026-11-17
+            verified_by: evanchen11
+            notes: >-
+              p22, "Limitations of DMA operations": "A DMA operation cannot be performed to or from
+              DTCM when the CPU is in deep sleep or the DTCM location is powered down"; p29 repeats it
+              (ERR014). The note names no DMA master. The powered-down case holds for any memory and
+              is not recorded; ITCM is not named and carries nothing.
       ssram:
         technology: sram
         attachment: system
@@ -248,6 +260,24 @@ socs:
         notes: >-
           The four MSPI controllers have external memory apertures in Table 3. IOMs and
           SDIOs are left off until a board wires memory to one.
+
+    dma_address_alignment:
+      hex-ddr:
+        value: 4
+        provenance:
+          status: sdk
+          source:
+            - "repo:zephyrproject-rtos/hal_ambiq@3d7044ea240fc8dcb7b4c843b76f70cae5db736b:mcu/apollo510/hal/mcu/am_hal_mspi.c:3886-3894"
+            - "repo:zephyrproject-rtos/hal_ambiq@3d7044ea240fc8dcb7b4c843b76f70cae5db736b:mcu/apollo510/hal/mcu/am_hal_mspi.c:4689-4697"
+          verified_on: 2026-11-17
+          verified_by: evanchen11
+          notes: >-
+            am_hal_mspi_nonblocking_transfer (:3886-3894) and am_hal_mspi_highprio_transfer
+            (:4689-4697) return AM_HAL_STATUS_INVALID_OPERATION when the MSPI's device
+            configuration is AM_HAL_MSPI_FLASH_HEX_DDR_CE0 or _CE1 and the transfer's
+            ui32DeviceAddress & 0x3 is nonzero: "Device address must be word-aligned in HEX DMA
+            mode". The check is per MSPI instance, under #ifndef AM_HAL_DISABLE_API_VALIDATION,
+            and the HAL states no alignment rule for the transfer count.
 
     clock_domains:
       cpu:

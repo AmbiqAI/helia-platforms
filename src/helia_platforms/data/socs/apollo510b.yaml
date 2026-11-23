@@ -117,6 +117,18 @@ socs:
               cross a DTCM 4 kB boundary" (ERR014); p101: an MSPI DMA that "crosses a 4 kB boundary
               in DTCM" hangs the device (ERR018). p21 also forbids DMA to or from DTCM "when the CPU
               is in deep sleep or the DTCM location is powered down".
+        dma_blocked_when:
+          value: [cpu_deep_sleep]
+          provenance:
+            status: datasheet
+            source: ["doc:DS-A510B@1.1.0:p21", "doc:DS-A510B@1.1.0:p28"]
+            verified_on: 2026-11-17
+            verified_by: evanchen11
+            notes: >-
+              p21, "Limitations of DMA operations": "A DMA operation cannot be performed to or from
+              DTCM when the CPU is in deep sleep or the DTCM location is powered down"; p28 repeats it
+              (ERR014). The note names no DMA master. The powered-down case holds for any memory and
+              is not recorded; ITCM is not named and carries nothing.
       ssram:
         technology: sram
         attachment: system
@@ -273,6 +285,31 @@ socs:
           The two MSPI controllers have external memory apertures in Table 4's
           continuation, which lists no others. p105: "both of the MSPI modules, MSPI0
           and MSPI1"; p94: MSPI2 and MSPI3 "are not pinned out".
+
+    dma_address_alignment:
+      hex-ddr:
+        value: 4
+        provenance:
+          status: sdk
+          source:
+            - "repo:zephyrproject-rtos/hal_ambiq@3d7044ea240fc8dcb7b4c843b76f70cae5db736b:mcu/apollo510/hal/mcu/am_hal_mspi.c:3886-3894"
+            - "repo:zephyrproject-rtos/hal_ambiq@3d7044ea240fc8dcb7b4c843b76f70cae5db736b:mcu/apollo510/hal/mcu/am_hal_mspi.c:4689-4697"
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:cmake/socs/apollo510b.cmake:12-13"
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/lib/gcc/apollo510/libam_hal.a"
+            - "repo:zephyrproject-rtos/zephyr@8f62a4ab82b5c2121c088842d3233f75b603ce35:soc/ambiq/soc.yml"
+          verified_on: 2026-11-17
+          verified_by: evanchen11
+          notes: >-
+            am_hal_mspi_nonblocking_transfer (:3886-3894) and am_hal_mspi_highprio_transfer
+            (:4689-4697) return AM_HAL_STATUS_INVALID_OPERATION when the MSPI's device
+            configuration is AM_HAL_MSPI_FLASH_HEX_DDR_CE0 or _CE1 and the transfer's
+            ui32DeviceAddress & 0x3 is nonzero: "Device address must be word-aligned in HEX DMA
+            mode". The check is per MSPI instance, under #ifndef AM_HAL_DISABLE_API_VALIDATION,
+            and the HAL states no alignment rule for the transfer count. Zephyr's soc.yml lists no
+            apollo510b; nsx-ambiq-sdk builds apollo510b against mcu/apollo510's HAL (apollo510b.cmake:12-13),
+            shipped as libam_hal.a, whose am_hal_mspi_nonblocking_transfer makes the same check
+            on device configurations 10 and 11 (the two HEX_DDR enumerators), read by
+            disassembly with arm-none-eabi-objdump.
 
     clock_domains:
       cpu:

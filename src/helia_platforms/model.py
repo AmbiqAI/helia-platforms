@@ -71,6 +71,7 @@ class Core(_Carrier):
     pmu: str
     has_dsp_extension: bool
     pmu_extension: PmuExtension | None = None
+    dcache_line: int | None = None  # L1 D-cache line in bytes (ADR 0012)
     based_on: str | None = None  # the overlay entry it was based on; not a fact (#134)
 
 
@@ -171,6 +172,7 @@ class MemoryRegion(_Carrier):
     cacheable: bool | None = None
     characterization: MemoryCharacterization | None = None
     dma_boundary: int | None = None  # a DMA transfer does not cross a multiple of it from base
+    dma_blocked_when: tuple[Literal["cpu_deep_sleep"], ...] = ()  # ADR 0012
     stands_in_for: tuple[str, ...] = ()  # Soc regions an FVP region emulates (ADR 0007)
 
 
@@ -290,6 +292,7 @@ class Soc(_Carrier):
     boot_configs: Mapping[str, BootConfig] = field(default_factory=_empty)
     default_boot: str | None = None
     image_slots: Mapping[str, ImageSlot] = field(default_factory=_empty)
+    dma_address_alignment: Mapping[str, int] = field(default_factory=_empty)  # ADR 0012
     sdk: SdkFacts | None = None
     derives_from: str | None = None
     default_board: str | None = None
