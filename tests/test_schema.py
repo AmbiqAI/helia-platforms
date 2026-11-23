@@ -135,6 +135,13 @@ CORPUS = {
     "deprecated port, any value": (_edit(f"{SOC}.access.0.port", "whatever"), True),
     "dma_boundary suffix": (_edit(f"{SOC}.memories.tcm.dma_boundary", "4K"), True),
     "dma_boundary bool": (_edit(f"{SOC}.memories.tcm.dma_boundary", True), False),
+    "dma_blocked_when": (_edit(f"{SOC}.memories.tcm.dma_blocked_when", ["cpu_deep_sleep"]), True),
+    "dma_blocked_when empty": (_edit(f"{SOC}.memories.tcm.dma_blocked_when", []), False),
+    "dma_blocked_when state": (_edit(f"{SOC}.memories.tcm.dma_blocked_when", ["sleep"]), False),
+    "dma_address_alignment": (_edit(f"{SOC}.dma_address_alignment", {"hex-ddr": 4}), True),
+    "dma_address_alignment mode": (_edit(f"{SOC}.dma_address_alignment", {"Hex": 4}), False),
+    "dcache_line": (_edit("cores.cortex-m55.dcache_line", 32), True),
+    "dcache_line suffix": (_edit("cores.cortex-m55.dcache_line", "32K"), False),
     "pmu_extension": (_edit("cores.cortex-m55.pmu_extension", PMU), True),
     "pmu event lowercase": (
         _edit("cores.cortex-m55.pmu_extension", {**PMU, "events": {"sw_incr": 0}}),

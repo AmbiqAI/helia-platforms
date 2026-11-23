@@ -161,6 +161,19 @@ socs:
               from TCM "when the CPU is in deep sleep or the TCM location is powered down". The
               note is in the SoC overview and does not name the radio core's rs_tcm, which
               carries no boundary. This revision states no SSRAM or MRAM boundary.
+        dma_blocked_when:
+          value: [cpu_deep_sleep]
+          provenance:
+            status: datasheet
+            source: ["doc:DS-A510LS@0.9.0:p21"]
+            verified_on: 2026-11-17
+            verified_by: evanchen11
+            notes: >-
+              p21, "Limitations of DMA operations": "A DMA operation cannot be performed to or from
+              TCM when the CPU is in deep sleep or the TCM location is powered down". The note follows
+              the Cortex-M55 subsystem's features and names no DMA master. It does not name the radio
+              core's rs_tcm, which carries nothing. The powered-down case holds for any memory and is
+              not recorded.
       ssram:
         technology: sram
         attachment: system

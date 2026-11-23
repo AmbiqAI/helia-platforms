@@ -133,3 +133,5 @@ repositories:
       neuralspotx-v0.9.0: ffb7339b14b00134b4ed2834a1640d61042c0962
   zephyrproject-rtos/zephyr:
     url: https://github.com/zephyrproject-rtos/zephyr
+  zephyrproject-rtos/hal_ambiq:
+    url: https://github.com/zephyrproject-rtos/hal_ambiq

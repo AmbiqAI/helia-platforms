@@ -134,7 +134,9 @@ the loader enforces): the event counter count the TRM documents (an
 implementation's debug configuration can change it), the counter width, the
 cycle counter width, whether odd counters chain, and every event the core's
 TRM lists, as Arm mnemonic to event number (#158). Which events a tool
-selects and how it groups them is the tool's policy.
+selects and how it groups them is the tool's policy. An optional
+`dcache_line` gives the IP's L1 data cache line in bytes, a power of two
+([ADR 0012](../adr/0012-transfer-facts.md)).
 Options the vendor leaves to the implementer live on each core instance's
 `options` (`CoreOptions`): `fpu` (none, fpv4-sp-d16, fpv5-sp-d16),
 `fpu_dp`, `mve` (none, int, fp), `icache_kb`, `dcache_kb`. A cache size of
@@ -186,6 +188,7 @@ Definitions, queries and an example are in [0002-multicore.md](0002-multicore.md
 | `operating_points: [OperatingPoint]` | structural | System points: name, one point per clock domain, system HAL mode where the HAL has one; `target.cpu_mhz()` and `target.npu_mhz()` read the core-0 and npu-0 domains. heliaAOT `speeds` and the profiler `ClockDomain` are views. |
 | `default_operating_point` | SDK fact, optional | Set where the SDK names a default; otherwise absent and the choice is tool policy. |
 | `boot_configs: {name: BootConfig}`, `default_boot` | structural or SDK fact | The boot layouts the SDKs support, and the default. See Boot configurations. |
+| `dma_address_alignment: {mode: bytes}` | SDK fact, optional | Per interface mode, the multiple a DMA through a memory controller in that mode starts its device address at (the Apollo510 MSPI HAL's word-aligned hex DDR rule); 0 is rejected ([ADR 0012](../adr/0012-transfer-facts.md)). |
 | `sdk: SdkFacts` | SDK fact | `c_define`, `cmsis_header`, default trace clock, J-Link's `-cpufreq` where it differs from the trace clock, HAL enums the SDK exposes per SoC, `build` (abi, float ABI). Supported toolchains are neuralspotx policy, not a catalog fact (#18). |
 | `derives_from: Soc \| None` | structural | See [Inheritance and derivation](#inheritance-and-derivation). |
 | `default_board: Board \| None` | convenience | Used only by an explicit `resolve_board(soc_id)`. Never used by `resolve()`. |
@@ -201,7 +204,10 @@ and writes per port, `max_beats`, bandwidth) each value with provenance: latency
 ports only. Optional `dma_boundary`, its own fact with its own record: a
 single DMA transfer does not cross an address that is a whole multiple of
 it from the region's base, so the edges are `base + k * dma_boundary`, not
-aligned addresses ([ADR 0011](../adr/0011-dma-boundary.md)). The package carries no energy data; the estimator's energy
+aligned addresses ([ADR 0011](../adr/0011-dma-boundary.md)). Optional
+`dma_blocked_when`, a non-empty list from `cpu_deep_sleep`, names the power
+states in which no DMA to or from the region can be performed
+([ADR 0012](../adr/0012-transfer-facts.md)). The package carries no energy data; the estimator's energy
 coefficients stay in helia-estimator. Characterization is hardware: the
 path's limits, as the SoC or IP documentation states them or as measured.
 An NPU's own per-port limits (the Ethos-U85's outstanding reads and writes
@@ -540,6 +546,7 @@ stable string set (`Target.capabilities`) for tools that want one:
 | `isa().supports_fp64` | `CoreOptions.fpu_dp` |
 | `isa().has_pmu`, `isa().pmu_kind` | `Core.pmu` (`has_pmu` is false for `none` and `dwt`) |
 | `pmu_extension(core)` | `Core.pmu_extension` of that core's IP; `None` where none is recorded |
+| `dcache_line(core)` | `Core.dcache_line` of that core's IP; `None` where none is recorded or the instance's `dcache_kb` is 0 |
 | `npu` (npu 0, `None` when absent), `npus()` | `Soc.npus` after the implementation subset |
 | `has_external_memory(technology)` | board population plus selected add-ons |
 
@@ -768,6 +775,9 @@ below is the resolved object returned by `resolve()`.
 | Is PSRAM fitted | `target.has_external_memory("psram")` | package |
 | PMU event numbers and counter limits | `target.pmu_extension(core)` (#158) | package; the event selection and grouping stay profiler policy |
 | D-cache present | `target.core_options.dcache_kb` (0: a source states none; `None`: not recorded) | package |
+| D-cache line for cache maintenance | `target.dcache_line(core)` (ADR 0012) | package |
+| DMA device-address alignment of an external region | `target.dma_address_alignment(region)` over `Soc.dma_address_alignment` (ADR 0012) | package; rounding a transfer is the tool's policy |
+| Power states that block DMA to a region | `target.region(name).dma_blocked_when` (ADR 0012) | package |
 | Shared SSRAM power domain, HAL enum names, C define, CMSIS header | `target.sdk` | package |
 | Radio present | `target.part.radio` (`target.part` is `None` on Soc and implementation targets) | package |
 | Trace clock | `target.trace_clock_mhz` (board, else implementation, else SDK default; `None` means core-clocked). On Apollo3 it is the 6 MHz TPIU clock, and J-Link's `-cpufreq` takes 48 MHz (the HFRC) instead, which J-Link divides by 8 itself (#67); that value is `target.sdk.jlink_cpufreq_mhz` | package |
@@ -897,14 +907,14 @@ one of them.
 
 ```python
 @dataclass(frozen=True) class Provenance: status, source, verified_on, verified_by, notes
-@dataclass(frozen=True) class Core:       id, arch, pmu, has_dsp_extension, pmu_extension: PmuExtension | None, based_on: str | None, provenance   # arch may be a non-Arm ISA
+@dataclass(frozen=True) class Core:       id, arch, pmu, has_dsp_extension, pmu_extension: PmuExtension | None, dcache_line: int | None, based_on: str | None, provenance   # arch may be a non-Arm ISA
 @dataclass(frozen=True) class PmuExtension: event_counters, event_counter_bits, cycle_counter_bits, odd_counters_chain, events: Mapping[str, int], provenance   # events: Arm mnemonic -> event number
 @dataclass(frozen=True) class CoreOptions: fpu, fpu_dp, mve, icache_kb, dcache_kb
 @dataclass(frozen=True) class CoreInstance: id, role, core, options: CoreOptions, clock_domain, programmable_by: str | None
 @dataclass(frozen=True) class Npu:        vendor, family, model, macs_per_cycle; accelerator_config (property)
 @dataclass(frozen=True) class NpuInstance: id, npu, axi_width_bits, base_address, irq, sram_port_hash, axi_ports: Mapping[str, NpuPortClass], driven_by, clock_domain   # NpuPortClass: name (sram, ext), count, max_outstanding_reads, max_outstanding_writes, provenance
 @dataclass(frozen=True) class AcceleratorInstance: id, kind, ip, driven_by, clock_domain, base_address, irq
-@dataclass(frozen=True) class MemoryRegion: name, technology, attachment, size, base, alternate_bases, executable, writeable, cacheable, characterization, dma_boundary: int | None, stands_in_for: tuple[str, ...], provenance   # stands_in_for: FVP regions only (ADR 0007)
+@dataclass(frozen=True) class MemoryRegion: name, technology, attachment, size, base, alternate_bases, executable, writeable, cacheable, characterization, dma_boundary: int | None, dma_blocked_when: tuple[str, ...], stands_in_for: tuple[str, ...], provenance   # stands_in_for: FVP regions only (ADR 0007)
 @dataclass(frozen=True) class Access:     master, target, access, requires_awake, guidance, reason, address: int | None, characterization, provenance   # target: region or memory_controllers name; a file's port key (removed on #93) is read, warned about and ignored until #159 removes it
 @dataclass(frozen=True) class DefaultAccess: master, access, scope, provenance   # scope: on_die
 @dataclass(frozen=True) class MemoryCharacterization: read_latency_ns, write_latency_ns, max_outstanding_reads, max_outstanding_writes, max_beats, ports, axi_clock_hz, bandwidth_fraction  (each value may carry its own Provenance)
@@ -912,7 +922,7 @@ one of them.
 @dataclass(frozen=True) class OperatingPoint: name, domains: Mapping[str, str], hal_mode, provenance   # domain id -> point name
 @dataclass(frozen=True) class SdkFacts:   c_define, cmsis_header, trace_clock_mhz, jlink_cpufreq_mhz, hal_enums: Mapping[str, str], build: BuildFacts
 @dataclass(frozen=True) class BuildFacts: abi, float_abi
-@dataclass(frozen=True) class Soc:        id, series, based_on: str | None, aliases, cores, npus, accelerators, memories, access, default_access: DefaultAccess | None, peripherals, memory_controllers, clock_domains, operating_points, default_operating_point: str | None, boot_configs, default_boot, image_slots, sdk, derives_from, default_board: str | None, revision, release_status, extensions, provenance
+@dataclass(frozen=True) class Soc:        id, series, based_on: str | None, aliases, cores, npus, accelerators, memories, access, default_access: DefaultAccess | None, peripherals, memory_controllers, clock_domains, operating_points, default_operating_point: str | None, boot_configs, default_boot, image_slots, dma_address_alignment: Mapping[str, int], sdk, derives_from, default_board: str | None, revision, release_status, extensions, provenance
 @dataclass(frozen=True) class Implementation: id, soc, kind, model: str | None, subset: Subset, memories: tuple | None, access: tuple | None, clock_domains: tuple | None, operating_points: tuple | None, boot_configs: Mapping | None, default_boot: str | None, provisioning: str | None, jlink_device, trace_clock_mhz, interfaces, population, based_on: str | None, aliases, release_status, extensions, provenance   # None: inherit the Soc's (after clock caps); memories: kind fvp only (ADR 0007)
 @dataclass(frozen=True) class Subset:     memories_removed, memories_resized, memories_rebased, peripherals_removed, memory_controllers_removed, cores_removed, npus_removed, accelerators_removed, clock_domains_removed, boot_configs_removed, operating_points_removed, image_slots_removed, access_removed, max_cpu_mhz, max_npu_mhz, max_domain_mhz
 @dataclass(frozen=True) class BootConfig: name, reserved: tuple[Reservation, ...], app_start: Mapping[str, AppStart], requires, provenance   # AppStart: region, offset; reserved in written key order
@@ -953,6 +963,8 @@ class Target:
     def accelerators(self) -> tuple[AcceleratorInstance, ...]
     def isa(self, core: int | str = 0) -> IsaFeatures
     def pmu_extension(self, core: int | str = 0) -> PmuExtension | None   # the core IP's; None where none is recorded (#158)
+    def dcache_line(self, core: int | str = 0) -> int | None   # the core IP's; None where none is recorded or dcache_kb is 0 (ADR 0012)
+    def dma_address_alignment(self, region: str) -> int | None   # the Soc's for the one mode an external region's interface and device share (ADR 0012)
     def reachable(self, master: str, target: str) -> Access | None   # a region's own entry, else its controller's
     def npu_clocks(self, npu: int | str = 0) -> Mapping[str, int]   # derived from system operating points
     def memories(self, core: int | str = 0, *, include_discouraged: bool = False) -> tuple[MemoryRegion, ...]   # regions that core reaches, after subset, plus external regions whose interface it has an entry for; a discouraged entry is left out unless include_discouraged
@@ -1044,7 +1056,9 @@ This is the one list; 0002-multicore.md refers to it.
   peripherals. An `Access` master is a core, NPU or accelerator id, and a
   target is a region or memory controller; `default_access` names core 0.
 - **Regions.** Regions do not overlap, at their bases or any alternate
-  base. `derives_from` requires the same regions with equal technology,
+  base. A `dma_boundary` and a `dma_address_alignment` value are not 0
+  (ADR 0011, ADR 0012); a core IP's `dcache_line` is a power of two, and
+  its `pmu_extension` needs `pmu: armv8m`. `derives_from` requires the same regions with equal technology,
   attachment, size, base and alternate bases.
 - **Boot.** `app_start` keys name programmable cores (`programmable_by`
   set) and its regions exist. A reservation's region exists, the

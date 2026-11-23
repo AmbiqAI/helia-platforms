@@ -434,6 +434,46 @@ def test_pmu_extension_is_read_from_the_named_core_s_ip(document):
     assert resolve("board_a", catalog=quiet(document)).pmu_extension() is None
 
 
+def test_dcache_line_is_the_ip_s_unless_the_instance_states_no_dcache(document):
+    document["cores"]["cortex-m55"]["dcache_line"] = 32
+    assert resolve("board_a", catalog=quiet(document)).dcache_line("cm55_0") == 32
+    document["socs"]["soc_a"]["cores"][0]["options"]["dcache_kb"] = 0
+    assert resolve("board_a", catalog=quiet(document)).dcache_line() is None
+    del document["cores"]["cortex-m55"]["dcache_line"]
+    document["socs"]["soc_a"]["cores"][0]["options"]["dcache_kb"] = 64
+    assert resolve("board_a", catalog=quiet(document)).dcache_line() is None
+
+
+@pytest.mark.parametrize(
+    ("interface", "device", "expected"),
+    [
+        (["hex-ddr"], ["hex-ddr"], 4),
+        (["hex-ddr", "octal-ddr"], ["hex-ddr"], 4),
+        ([], ["hex-ddr"], 4),
+        (["hex-ddr", "octal-ddr"], ["hex-ddr", "octal-ddr"], None),  # the driver's choice
+        (["octal-ddr"], ["octal-ddr"], None),  # the Soc states none for the mode
+        ([], [], None),
+    ],
+)
+def test_dma_address_alignment_reads_the_one_shared_mode(document, interface, device, expected):
+    document["socs"]["soc_a"]["dma_address_alignment"] = {"hex-ddr": 4}
+    if interface:
+        document["boards"]["board_a"]["interfaces"]["mspi0"]["modes"] = interface
+    if device:
+        document["memory_devices"]["psram_8m"]["modes"] = device
+    target = resolve("board_a", catalog=quiet(document))
+    (psram,) = target.external_memories()
+    assert target.dma_address_alignment(psram.name) == expected
+
+
+def test_dma_address_alignment_is_none_on_die_and_raises_for_no_region(document):
+    document["socs"]["soc_a"]["dma_address_alignment"] = {"hex-ddr": 4}
+    target = resolve("board_a", catalog=quiet(document))
+    assert target.dma_address_alignment("ssram") is None
+    with pytest.raises(PlatformError, match="no region 'hblram'"):
+        target.dma_address_alignment("hblram")
+
+
 @pytest.mark.parametrize(
     ("programmable_by", "free"), [("either", 4032), ("vendor", None), (None, None)]
 )

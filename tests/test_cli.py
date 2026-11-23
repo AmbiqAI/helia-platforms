@@ -178,6 +178,16 @@ def test_show_prints_a_dma_boundary_as_a_size():
     assert any("dma_boundary 4K" in r for r in rows(result.output, "dtcm")), result.output
 
 
+def test_show_prints_the_transfer_facts_of_adr_0012():
+    result = run("show", "apollo510_evb")
+    assert result.exit_code == 0, result.output
+    dtcm = " ".join(rows(result.output, "dtcm"))
+    assert "dma_blocked_when cpu_deep_sleep" in dtcm, result.output
+    assert any("hex-ddr=4" in r for r in rows(result.output, "dma alignment")), result.output
+    assert "dma_address_alignment 4, computed" in " ".join(rows(result.output, "psram0"))
+    assert "dcache_line 32" in " ".join(rows(result.output, "cortex-m55"))
+
+
 def test_show_gives_the_vendor_programmed_radio_core_no_usable_nvm():
     result = run("show", "apollo510dL_evb")
     assert result.exit_code == 0, result.output
