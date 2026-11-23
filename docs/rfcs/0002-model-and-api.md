@@ -449,13 +449,18 @@ customers add daughter boards.
 - `population`: which device sits on which interface as the board ships.
 - `AddOn`: a shield or daughter board that names the boards it fits
   (`fits_boards`), the interfaces it occupies (`occupies`) and its own
-  `population` on those interfaces. Its optional `modes` narrows an
-  occupied interface's modes while it is fitted, each a mode the board's
+  `population` on those interfaces. Its optional `modes` are the modes
+  its wiring uses on an occupied interface, each a mode the board's
   interface lists, keeping at least one mode of the add-on's device there
-  (a device that lists no modes is not checked): the Apollo4 Plus Display
-  Kit's shield runs MSPI0 in `octal-ddr` only, because MSPI1 is unusable
-  while MSPI0 is in hex mode (DS-A4P p115). `Target.interfaces` carries
-  the narrowed modes.
+  (a device that lists no modes is not checked). `Target.interfaces`
+  carries these narrowed modes, and `Target.board.interfaces` the board's.
+  A shield whose wiring is set at run time is one add-on per setting: the
+  Apollo4 Plus Display Kit's GPIO34 selects MSPI0 hex to the PSRAM, with
+  MSPI1 unusable, or MSPI0 and MSPI1 octal to the PSRAM and the flash
+  (QS-A4PDK p10-11, DS-A4P p115). `apollo4p_disp_shield_hex` runs MSPI0
+  in `hex-ddr` and occupies MSPI1 with no device; `apollo4p_disp_shield`
+  runs both in `octal-ddr` and populates the flash. Both occupy MSPI0, so
+  they cannot be fitted together.
 - The resolved target is board plus selected add-ons plus overlay. The
   validator rejects two devices on one interface, an add-on on an
   interface the board or another add-on already uses (an occupied
@@ -467,10 +472,14 @@ AmbiqSuite's per-shield board directories (`apollo4p_evb_disp_shield_rev2`)
 and neuralspotx's matching board id become entries in the catalog's
 `compositions` table: an alias mapped to a board id and add-on ids.
 `resolve("apollo4p_evb_disp_shield_rev2")` returns the `apollo4p_evb`
-board target with the display shield `apollo4p_disp_shield` in
-`Target.addons` (shield revision 1; the `_rev2` is the EVB revision,
-QS-A4PDK p18). The kit's part number, `AMAP4PDISP` (the EVB with the
-shield, QS-A4PDK p18), is a composition of the same board and add-on.
+board target with the display shield in its hex setting,
+`apollo4p_disp_shield_hex`, in `Target.addons` (shield revision 1; the
+`_rev2` is the EVB revision, QS-A4PDK p18). The hex setting is the one
+nsx-psram builds for that board by default
+(`modules/nsx-psram/CMakeLists.txt:42-44` at nsx-ambiq-sdk `v5.2.27`).
+The kit's part number, `AMAP4PDISP` (the EVB with the shield, QS-A4PDK
+p18), is a composition of the same board and add-on. The octal setting
+is `resolve("apollo4p_evb", addons=["apollo4p_disp_shield"])`.
 `Target.id` is the board id, and the legacy id is kept in
 `Target.aliases`. heliaAOT artefact names use `Target.id`, except that
 for a plain alias heliaAOT keeps the name the user passed and records the
