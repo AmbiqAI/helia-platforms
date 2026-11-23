@@ -194,6 +194,10 @@ def test_identity_records_each_overlay_in_order(tmp_path, document):
         "overlay:overlay.yaml",
         "overlay:<mapping>",
     )
+    assert (file_source.full_label, mapping_source.full_label) == (
+        f"overlay:{path}",
+        "overlay:<mapping>",
+    )
     assert mapping_source.schema_version == 1  # omitted, so read at the current version
     assert mapping_source.distribution_version is None
 
