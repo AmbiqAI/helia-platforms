@@ -1,7 +1,13 @@
 # 0004. Version the schema separately and ship data corrections as patches
 
 Date: 2026-10-05
-Status: Accepted; amended 2026-10-28 (#66) and 2026-11-05 (#73)
+Status: Accepted; amended 2026-10-28 (#66), 2026-11-05 (#73) and 2026-11-17 (#159)
+
+## Amendment, 2026-11-17: no deprecated key in the source hash (#159)
+
+`Access.port`, the only key the format read and ignored as deprecated,
+became an unknown key on #159, so point 4's rule that such a key is left
+out of the source hash no longer applies to any key.
 
 ## Amendment, 2026-11-05: no link-environment dataset (#73)
 
@@ -219,7 +225,7 @@ same mapping passed in memory hash alike. Before hashing, each
 `provenance` key is removed and each `{value, provenance}` form is
 unwrapped to its value, but only on keys the format declaration defines
 (ADR 0002 (#7) section 2.7); a key the format reads and ignores as
-deprecated (`Access.port` since #93, 2026-11-06) is left out, in either
+deprecated (`Access.port` from #93 to #159) is left out, in either
 form. `extensions` values are opaque tool data and are hashed unchanged,
 including any key in them named `provenance`.
 heliaAOT writes the record next to the tool version it already

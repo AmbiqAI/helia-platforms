@@ -34,13 +34,6 @@ class Keyed:
     fields: tuple[str, ...]
 
 
-@dataclass(frozen=True)
-class Deprecated:
-    """A key the format still reads but ignores; the loader warns with ``note``."""
-
-    note: str
-
-
 class _Flag:
     def __init__(self, name: str) -> None:
         self.name = name
@@ -168,17 +161,6 @@ class Access(_Facts):
     guidance: NotRequired[Literal["preferred", "allowed", "discouraged"]]
     reason: NotRequired[str]
     address: NotRequired[Address]
-    # Removed on #93 (2026-11-06): which memory a compiler serves over which NPU port is the
-    # consumer's choice, not a fact. Read and ignored until #159 removes it, so data written
-    # before the change still loads.
-    port: NotRequired[
-        Annotated[
-            Literal[0, 1],
-            NOT_FACT,
-            FILE_ONLY,
-            Deprecated("removed on #93; a memory's NPU port is the consumer's choice, not a fact"),
-        ]
-    ]
     characterization: NotRequired[MemoryCharacterization]
 
 
