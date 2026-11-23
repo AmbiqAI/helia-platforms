@@ -305,6 +305,21 @@ def test_blue_boards_carry_their_bsp_ble_reset_pad(catalog):
     assert {p: catalog.resolve(p).ble_reset_gpio for p in parts} == parts
 
 
+def test_rss_power_off_follows_each_socs_sdk_hal_not_its_radio(catalog):
+    found = {s.id: s.sdk.rss_power_off_available for s in catalog.socs() if s.sdk}
+    absent = ("apollo3", "apollo3p", "apollo4l", "apollo4p", "apollo510", "apollo510b")
+    # atomiq110's header declares it, but no prebuilt libam_hal.a defines it.
+    assert found == {
+        **dict.fromkeys(absent, False),
+        "apollo330P": True,
+        "apollo510L": True,
+        "atomiq110": False,
+    }
+    record = catalog.resolve("apollo510L").soc.field_provenance["sdk.rss_power_off_available"]
+    assert record.status == "sdk"
+    assert any(s.endswith("/apollo510L/hal/am_hal_pwrctrl.h:1099") for s in record.source)
+
+
 def test_apollo3_parts_carry_their_radio_and_jlink_device(catalog):
     assert catalog.resolve("apollo3_evb").jlink_device == "AMA3B1KK-KBR"
     assert catalog.resolve("apollo3p_evb").jlink_device == "AMA3B2KK-KBR"

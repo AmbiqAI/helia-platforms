@@ -404,6 +404,17 @@ socs:
             source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/mcu/apollo510/hal/am_hal_pwrctrl.h:380"]
             verified_on: 2026-10-13
             verified_by: evanchen11
+      rss_power_off_available:
+        value: false
+        provenance:
+          status: sdk
+          source:
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/mcu/apollo510/hal/am_hal_pwrctrl.h"
+          verified_on: 2026-11-23
+          verified_by: evanchen11
+          notes: >-
+            apollo510's am_hal_pwrctrl.h does not declare am_hal_pwrctrl_rss_pwroff(), and
+            none of its prebuilt libam_hal.a (gcc, acfe, atfe) defines it.
       build:
         abi: thumbv8.1m-fpv5-hard
         float_abi: hard

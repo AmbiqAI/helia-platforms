@@ -340,6 +340,17 @@ socs:
             apollo4l_blue_evb, J-Link writes HFRC96 and ACPR 95 whatever clock it is given,
             then the firmware selects HFRC48 (#19, 2026-10-28); decoding cannot confirm the
             frequency. An SDK bump that keeps 96 there does not change this value.
+      rss_power_off_available:
+        value: false
+        provenance:
+          status: sdk
+          source:
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/mcu/apollo4l/hal/am_hal_pwrctrl.h"
+          verified_on: 2026-11-23
+          verified_by: evanchen11
+          notes: >-
+            apollo4l's am_hal_pwrctrl.h does not declare am_hal_pwrctrl_rss_pwroff(), and
+            none of its prebuilt libam_hal.a (gcc, acfe, atfe) defines it.
       build:
         abi: thumbv7em-fpv4sp-hard
         float_abi: hard

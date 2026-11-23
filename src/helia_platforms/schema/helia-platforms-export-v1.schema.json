@@ -4883,6 +4883,29 @@
                 ]
               }
             },
+            "rss_power_off_available": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "boolean"
+                    },
+                    "provenance": {
+                      "$ref": "#/$defs/Provenance"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
             "build": {
               "$ref": "#/$defs/BuildFacts"
             }

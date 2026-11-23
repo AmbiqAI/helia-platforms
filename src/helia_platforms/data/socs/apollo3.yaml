@@ -345,6 +345,17 @@ socs:
           notes: >-
             NSX_SEGGER_CPUFREQ, the HFRC. J-Link's Apollo3 support divides it by 8 itself,
             as measured on Apollo3P (#67); no Apollo3 board is on the farm.
+      rss_power_off_available:
+        value: false
+        provenance:
+          status: sdk
+          source:
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/mcu/apollo3/hal/am_hal_pwrctrl.h"
+          verified_on: 2026-11-23
+          verified_by: evanchen11
+          notes: >-
+            apollo3's am_hal_pwrctrl.h does not declare am_hal_pwrctrl_rss_pwroff(), and
+            none of its prebuilt libam_hal.a (gcc, acfe, atfe) defines it.
       build:
         abi: thumbv7em-fpv4sp-hard
         float_abi: hard

@@ -543,6 +543,20 @@ socs:
             source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/mcu/apollo330P/hal/am_hal_pwrctrl.h:399"]
             verified_on: 2026-10-26
             verified_by: evanchen11
+      rss_power_off_available:
+        value: true
+        provenance:
+          status: sdk
+          source:
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/mcu/apollo330P/hal/am_hal_pwrctrl.h:1099"
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/lib/gcc/apollo330P/libam_hal.a"
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/lib/acfe/apollo330P/libam_hal.a"
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/lib/atfe/apollo330P/libam_hal.a"
+          verified_on: 2026-11-23
+          verified_by: evanchen11
+          notes: >-
+            The header declares am_hal_pwrctrl_rss_pwroff() (:1099) and each prebuilt libam_hal.a
+            defines it as a global text symbol (arm-none-eabi-nm).
       build:
         abi: thumbv8.1m-fpv5-hard
         float_abi: hard

@@ -647,7 +647,14 @@ def _sdk(target: Target, at: _Entries) -> list[_Row]:
     if sdk is None:
         return []
     sdk_at = _soc(target, at).inner("sdk")
-    rows = [_row("soc sdk", sdk_at, sdk, ["c_define", "cmsis_header", "hal_enums", "build"])]
+    rows = [
+        _row(
+            "soc sdk",
+            sdk_at,
+            sdk,
+            ["c_define", "cmsis_header", "hal_enums", "rss_power_off_available", "build"],
+        )
+    ]
     return [r for r in rows if r.facts]
 
 

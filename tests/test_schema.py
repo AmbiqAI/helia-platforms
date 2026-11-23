@@ -141,6 +141,11 @@ CORPUS = {
     "dma_address_alignment": (_edit(f"{SOC}.dma_address_alignment", {"hex-ddr": 4}), True),
     "dma_address_alignment mode": (_edit(f"{SOC}.dma_address_alignment", {"Hex": 4}), False),
     "dcache_line": (_edit("cores.cortex-m55.dcache_line", 32), True),
+    "rss_power_off_available": (_edit(f"{SOC}.sdk", {"rss_power_off_available": False}), True),
+    "rss_power_off_available string": (
+        _edit(f"{SOC}.sdk", {"rss_power_off_available": "no"}),
+        False,
+    ),
     "dcache_line suffix": (_edit("cores.cortex-m55.dcache_line", "32K"), False),
     "pmu_extension": (_edit("cores.cortex-m55.pmu_extension", PMU), True),
     "pmu event lowercase": (

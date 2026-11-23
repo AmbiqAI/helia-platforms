@@ -310,6 +310,9 @@ class SdkFacts(_Facts, total=False):
     # J-Link's -cpufreq, where J-Link wants a clock other than the trace clock.
     jlink_cpufreq_mhz: Mhz
     hal_enums: dict[str, str]
+    # Whether the HAL declares and its prebuilt library defines am_hal_pwrctrl_rss_pwroff()
+    # (#168); absent means not recorded, which is not the same as false.
+    rss_power_off_available: bool
     build: BuildFacts
 
 

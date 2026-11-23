@@ -265,6 +265,7 @@ class SdkFacts:
     trace_clock_mhz: float | None = None
     jlink_cpufreq_mhz: float | None = None
     hal_enums: Mapping[str, str] = field(default_factory=_empty)
+    rss_power_off_available: bool | None = None  # None: not recorded (#168)
     build: BuildFacts | None = None
 
 
