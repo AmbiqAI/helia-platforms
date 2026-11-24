@@ -1,6 +1,7 @@
 import copy
 import dataclasses
 import json
+import sys
 from types import MappingProxyType
 
 import pytest
@@ -220,6 +221,7 @@ def test_sources_loaded_by_one_relative_path_share_a_full_label(tmp_path, monkey
     assert [s for s in sources if s.full_label in used] == list(sources)
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="Windows reserves < and > in file names")
 def test_a_file_named_like_the_mapping_label_shares_its_full_label(tmp_path, monkeypatch):
     device = {"technology": "psram", "capacity": "8M"}
     doc = {"schema_version": 1, "memory_devices": {"dev_a": device}}
