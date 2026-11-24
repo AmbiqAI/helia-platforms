@@ -551,7 +551,7 @@ boards:
         p6 "Apollo4 Plus Evaluation Board (EVB), part number AMAP4PEVB"; p10 "Apollo4 Plus
         SoC in the BGA package (AMAP42KP-KBR)". The guide covers EVB revisions 1 to 3, so
         revision is left out; the Display Kit needs revision 2 or later (QS-A4PDK p10),
-        which fits_boards cannot say (#138). No PSRAM, flash or eMMC on the board (p10).
+        which the shield's fits_revisions states. No PSRAM, flash or eMMC on the board (p10).
     # The interfaces host the Display Kit (addons.yaml); the board populates none of them.
     interfaces:
       mspi0:

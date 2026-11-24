@@ -96,6 +96,13 @@ def _edit(path: str, value):
 
 
 _DELETE = object()
+
+
+def _shield(revisions: list[str]) -> dict[str, Any]:
+    fits = {"fits_boards": ["board_a"], "fits_revisions": {"board_a": revisions}}
+    return {"shield": {**fits, "occupies": [], "population": {}}}
+
+
 SOC = "socs.soc_a"
 SDK = {"status": "sdk"}
 PMU = {
@@ -220,6 +227,9 @@ CORPUS = {
         _edit("socs.soc_b", {"based_on": "soc_a", "clock_domains_removed": ["cpu.HP"]}),
         False,
     ),
+    "board revision": (_edit("addons", _shield(["2.2"])), True),
+    "board revision with a colon": (_edit("addons", _shield(["PCB:2.2"])), False),
+    "empty board revision": (_edit("addons", _shield([""])), True),
     "extensions": (
         _edit("boards.board_a.extensions", {"tool": {"anything": [1, {"x": None}]}}),
         True,

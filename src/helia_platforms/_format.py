@@ -68,6 +68,8 @@ PmuEventName = Annotated[str, Pattern(r"^[A-Z][A-Z0-9_]*$", "an Arm PMU event mn
 Mode = Annotated[
     str, Pattern(r"^(?!(?:value|provenance)$)[a-z][a-z0-9-]*$", "an interface mode such as hex-ddr")
 ]
+# A fact: reference can end with one, and a fact: path may not contain ':'.
+BoardRevision = Annotated[str, Pattern(r"^[^:]*$", "a board revision without ':'")]
 Size = Annotated[int | str, SIZE]
 Address = Annotated[int, Minimum(0)]
 Count = Annotated[int, Minimum(0)]
@@ -467,6 +469,8 @@ class Board(_Entity):
 
 class AddOn(_Entity):
     fits_boards: Required[Ids]
+    # The board revisions it fits, for a board of fits_boards that it does not fit at every one.
+    fits_revisions: NotRequired[dict[Id, Annotated[list[BoardRevision], BY_VALUE, Minimum(1)]]]
     occupies: Required[Names]
     population: Required[dict[Name, Id]]
     # Modes of an occupied interface while the add-on is fitted, narrowing the board's.

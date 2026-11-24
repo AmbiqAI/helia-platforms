@@ -222,6 +222,7 @@ def mixed(document):
     document["addons"] = {
         "shield": {
             "fits_boards": ["board_a", "board_b"],
+            "fits_revisions": {"board_b": ["1"]},
             "occupies": ["iom0"],
             "population": {"iom0": "psram_8m"},
             "release_status": "public",
@@ -254,6 +255,7 @@ def test_the_filter_scrubs_references_and_drops_compositions(mixed):
     written = mixed.to_dict()["catalog"]
     assert set(written["addons"]) == {"shield"}  # secret_shield populates an embargoed device
     assert written["addons"]["shield"]["fits_boards"] == ["board_a"]
+    assert "fits_revisions" not in written["addons"]["shield"]  # only board_b's, now dropped
     assert set(written["compositions"]) == {"board_a_shield"}
     assert written["socs"]["soc_a"]["default_board"] == "board_a"
     assert list(EXPORT.iter_errors(mixed.to_dict())) == []
