@@ -153,11 +153,18 @@ class Catalog:
             tables, builtin("compositions", self.compositions), self.shorthands
         )
 
-    def resolve(self, name: str, *, addons: Sequence[str] = (), boot: str | None = None) -> Target:
+    def resolve(
+        self,
+        name: str,
+        *,
+        addons: Sequence[str] = (),
+        boot: str | None = None,
+        board_revision: str | None = None,
+    ) -> Target:
         """``helia_platforms.resolve.resolve`` against this catalog."""
         from helia_platforms.resolve import _resolve  # noqa: PLC0415 (resolve imports this module)
 
-        return _resolve(name, addons, boot, self)
+        return _resolve(name, addons, boot, self, board_revision)
 
     def suggest(self, name: str) -> tuple[str, ...]:
         """Resolvable names close to ``name``, best first."""
@@ -876,6 +883,9 @@ class _Loader:
         for board in addon.fits_boards:
             if board not in boards:
                 self.fail(origin, f"{where}.fits_boards", f"no board {board!r}")
+        for board in addon.fits_revisions:
+            if board not in addon.fits_boards:
+                self.fail(origin, f"{where}.fits_revisions", f"{board!r} is not in fits_boards")
         for key, names in (("population", addon.population), ("modes", addon.modes)):
             for interface in names:
                 if interface not in addon.occupies:
@@ -954,6 +964,9 @@ class _Loader:
     def check_aperture(
         self, interface: model.MemoryInterface, device: model.MemoryDevice, at: str, origin: str
     ) -> None:
+        # No aperture at all: a block device such as an eMMC, with no window to fit (#137).
+        if interface.aperture_base is None and interface.aperture_max is None:
+            return
         if interface.aperture_max is None:
             message = (
                 f"interface {interface.name!r} has no aperture_max; {device.id!r} is unchecked"
@@ -1266,17 +1279,26 @@ def _expanded_access(soc: model.Soc) -> tuple[model.Access, ...]:
     )
 
 
-def _placement_problems(board: model.Board, addons: Iterable[model.AddOn]) -> list[str]:
+def _placement_problems(
+    board: model.Board, addons: Iterable[model.AddOn], revision: str | None = None
+) -> list[str]:
     """Add-ons on ``board`` that do not fit it or use an interface something else uses.
 
     An add-on uses every interface it occupies, populated or not; the board uses the ones it
-    populates.
+    populates. ``revision`` is the board revision in use where the board states none.
     """
     problems: list[str] = []
     holders = {name: f"board {board.id!r}" for name in board.population}
+    revision = board.revision if board.revision is not None else revision
     for addon in addons:
+        allowed = addon.fits_revisions.get(board.id)
         if board.id not in addon.fits_boards:
             problems.append(f"add-on {addon.id!r} does not fit board {board.id!r}")
+        elif allowed is not None and revision is not None and revision not in allowed:
+            problems.append(
+                f"add-on {addon.id!r} fits board {board.id!r} only at revision "
+                f"{', '.join(map(repr, allowed))}, not {revision!r}"
+            )
         for name in addon.occupies:
             if name in holders:
                 problems.append(f"add-on {addon.id!r} and {holders[name]} both use {name!r}")

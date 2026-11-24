@@ -196,7 +196,7 @@ Definitions, queries and an example are in [0002-multicore.md](0002-multicore.md
 | `extensions` | per-tool, proposal | Overlay entries only; see Overlays. |
 
 `MemoryRegion`: `name` (dtcm, ssram, mram, hblram, psram0), `technology`
-(sram, mram, rram, psram, flash, nvm, dram), `attachment` (tcm, system, external),
+(sram, mram, rram, psram, flash, nvm, dram, emmc), `attachment` (tcm, system, external),
 `size`, `base`, optional `alternate_bases` where the silicon aliases the
 region, `executable`, `writeable`, `cacheable`, optional
 `characterization` (read and write latency, ports, max outstanding reads
@@ -223,8 +223,9 @@ check, `classify_address()` returns `None` for it, and `placement_ranges()`
 and `flash_load_address()` raise `PlatformError` when they need its
 address. This holds whatever the region's `attachment`. The exception is
 a device a board populates on an interface with no aperture: it has no
-address, and `placement_ranges()` leaves it out. Built-in regions always
-carry a base.
+address, and `placement_ranges()` leaves it out. Regions a built-in Soc
+declares always carry a base, but a built-in board's eMMC (#137) has
+none, so `target.memories()` can hold a region whose `base` is `None`.
 
 ### Pre-silicon and silicon
 
@@ -437,8 +438,10 @@ customers add daughter boards.
   without aperture fields yields devices with no base: they are not
   addressable, `external_memories()` reports them without a base,
   `placement_ranges()` leaves them out, and the aperture validator skips
-  them with a warning. A PSRAM on an IOM, which has no XIP aperture, is
-  one: firmware reaches it only through its driver.
+  them. A PSRAM on an IOM, which has no XIP aperture, is one: firmware
+  reaches it only through its driver. A block-addressed eMMC on an SDIO
+  controller is another: its device has technology `emmc`, and the SDIO is
+  a memory controller of the Soc (#137).
 - `MemoryDevice`: an external part with technology, capacity,
   `driver_family`, supported modes and optional characterization, each
   value with provenance. Capacity and driver family are separate facts.
@@ -463,13 +466,21 @@ customers add daughter boards.
   MSPI1 unusable, or MSPI0 and MSPI1 octal to the PSRAM and the flash
   (QS-A4PDK p10-11, DS-A4P p115). `apollo4p_disp_shield_hex` runs MSPI0
   in `hex-ddr` and narrows MSPI1 to no mode; `apollo4p_disp_shield`
-  runs both in `octal-ddr` and populates the flash. Both occupy MSPI0, so
-  they cannot be fitted together.
+  runs both in `octal-ddr` and populates the flash. Both carry the
+  shield's eMMC on SDIO. Both occupy MSPI0, so they cannot be fitted
+  together.
+  An add-on's optional `fits_revisions` maps a board of `fits_boards` to the
+  board revisions the add-on fits, where it does not fit them all: both
+  Display Kit settings fit `apollo4p_evb` at revisions 2 and 3 only
+  (QS-A4PDK p10, QS-A4P p6). The revision checked is the board's own
+  `revision`, else the `board_revision=` passed to `resolve`; where
+  neither is stated, the add-on fits.
 - The resolved target is board plus selected add-ons plus overlay. The
   validator rejects two devices on one interface, an add-on on an
   interface the board or another add-on already uses (an occupied
   interface counts even without a device), an add-on on a board it does
-  not fit, a board interface with the same name as one of its
+  not fit (or at a board revision it does not fit), a board interface
+  with the same name as one of its
   Implementation's, and a device larger than its aperture.
 
 AmbiqSuite's per-shield board directories (`apollo4p_evb_disp_shield_rev2`)
@@ -862,7 +873,7 @@ class Catalog:
     def addons(self) -> tuple[AddOn, ...]
     def memory_devices(self) -> tuple[MemoryDevice, ...]
     def find(self, **predicates) -> tuple[Target, ...]   # core="cortex-m55", npu_model="u85", has_region="psram"
-    def resolve(self, name: str, *, addons: Sequence[str] = (), boot: str | None = None) -> Target
+    def resolve(self, name: str, *, addons: Sequence[str] = (), boot: str | None = None, board_revision: str | None = None) -> Target
     def suggest(self, name: str) -> tuple[str, ...]
     def identity(self) -> CatalogIdentity       # package and schema versions, digest, sources (ADR 0004)
     def lineage(self, kind: str, entry_id: str) -> tuple[str, ...]   # the id, then each based_on base, to the first entry without one (#134); ValueError for a kind that is not a table, KeyError for an unknown id
@@ -888,7 +899,7 @@ devices each have their own namespace, so an id can recur across tables.
 
 ```python
 def resolve(name: str, *, addons: Sequence[str] = (), boot: str | None = None,
-            catalog: Catalog | None = None) -> Target
+            board_revision: str | None = None, catalog: Catalog | None = None) -> Target
 def resolve_board(name: str, *, catalog: Catalog | None = None) -> Board   # a board id or alias; a Soc id returns Soc.default_board
 def resolve_soc(name: str, *, catalog: Catalog | None = None) -> Soc
 
@@ -914,7 +925,11 @@ The number of boards carrying a Soc never changes the result.
 `addons=` is valid only for board targets (including a composition, whose
 add-ons it extends) and raises `PlatformError` otherwise. `boot=` is valid
 for any target that has boot configurations and raises if the name is not
-one of them.
+one of them. `board_revision=` names the revision of the board in hand
+where the board entry states none (`apollo4p_evb` covers revisions 1 to 3,
+QS-A4P p6), so that an add-on's `fits_revisions` can be checked. It is
+valid only for board targets, raises `PlatformError` if the board states a
+different revision, and changes nothing else in the target.
 
 ### `helia_platforms.model`
 
@@ -944,7 +959,7 @@ one of them.
 @dataclass(frozen=True) class ImageSlot:  name, core, region, offset, size, supplier, provenance
 @dataclass(frozen=True) class MemoryInterface: name, controller, modes, aperture_base, alternate_bases, aperture_max
 @dataclass(frozen=True) class MemoryDevice: id, technology, capacity, driver_family, modes, characterization, based_on: str | None, aliases, release_status, provenance
-@dataclass(frozen=True) class AddOn:      id, fits_boards, occupies, population: Mapping[str, str], modes: Mapping[str, tuple[str, ...]], revision, based_on: str | None, aliases, release_status, extensions, provenance
+@dataclass(frozen=True) class AddOn:      id, fits_boards, occupies, population: Mapping[str, str], modes: Mapping[str, tuple[str, ...]], fits_revisions: Mapping[str, tuple[str, ...]], revision, based_on: str | None, aliases, release_status, extensions, provenance
 @dataclass(frozen=True) class Board:      id, category, revision, part: str | None, implementation: str | None, interfaces, population: Mapping[str, str], provisioning, jlink_device, trace_clock_mhz, ble_reset_gpio: int | None, based_on: str | None, aliases, release_status, extensions, provenance
 @dataclass(frozen=True) class Composition: alias, board, addons; release_status (property, effective from what it references)
 @dataclass(frozen=True) class AddressRange: start, end, region, target, core, boot, access: Access | None, provenance, field_provenance; size (property)   # [start, end) in the region's base address space, from Target.application_ranges() (#73)
@@ -1099,16 +1114,20 @@ This is the one list; 0002-multicore.md refers to it.
   unreachable (an error for built-ins). `alternate_bases` needs an
   `aperture_base`. An interface window (each base, `aperture_max` long)
   overlaps no on-chip region and no other window. A device is no larger
-  than its aperture; an interface with no `aperture_max` draws a warning
-  that its device is unchecked.
-- **Add-ons and compositions.** `fits_boards` names boards. `population`
+  than its aperture; an interface with an `aperture_base` but no
+  `aperture_max` draws a warning that its device is unchecked, and one
+  with neither has no window to check.
+- **Add-ons and compositions.** `fits_boards` names boards, and each
+  `fits_revisions` key is one of them. A revision it lists holds no `:`,
+  so that a `fact:` reference can name it. `population`
   and `modes` keys are interfaces the add-on occupies, and each exists on
   every board it fits. Its devices exist and fit the aperture. Its modes
   are among the board interface's modes, and leave its own device at least
   one of that device's modes (a device that lists no modes is not checked).
   An add-on that leaves an interface no mode populates no device there.
   A composition's board and add-ons exist; no add-on sits on a board it
-  does not fit or on an interface the board populates or another add-on
+  does not fit (or whose stated revision its `fits_revisions` leaves out)
+  or on an interface the board populates or another add-on
   occupies (an occupied interface counts even without a device). Shorthand
   members are exact ids of Socs, implementations, parts or boards.
 

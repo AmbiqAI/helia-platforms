@@ -729,6 +729,69 @@
                 }
               ]
             },
+            "fits_revisions": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+              },
+              "additionalProperties": {
+                "anyOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "pattern": "^[^:]*$"
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "value": {
+                              "type": "string",
+                              "pattern": "^[^:]*$"
+                            },
+                            "provenance": {
+                              "$ref": "#/$defs/Provenance"
+                            }
+                          },
+                          "required": [
+                            "value",
+                            "provenance"
+                          ],
+                          "additionalProperties": false
+                        }
+                      ]
+                    },
+                    "uniqueItems": true,
+                    "minItems": 1
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "value": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "pattern": "^[^:]*$"
+                        },
+                        "uniqueItems": true,
+                        "minItems": 1
+                      },
+                      "provenance": {
+                        "$ref": "#/$defs/Provenance"
+                      }
+                    },
+                    "required": [
+                      "value",
+                      "provenance"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            },
             "occupies": {
               "anyOf": [
                 {
@@ -2818,7 +2881,8 @@
                     "psram",
                     "flash",
                     "nvm",
-                    "dram"
+                    "dram",
+                    "emmc"
                   ]
                 },
                 {
@@ -2832,7 +2896,8 @@
                         "psram",
                         "flash",
                         "nvm",
-                        "dram"
+                        "dram",
+                        "emmc"
                       ]
                     },
                     "provenance": {
@@ -3203,7 +3268,8 @@
                     "psram",
                     "flash",
                     "nvm",
-                    "dram"
+                    "dram",
+                    "emmc"
                   ]
                 },
                 {
@@ -3217,7 +3283,8 @@
                         "psram",
                         "flash",
                         "nvm",
-                        "dram"
+                        "dram",
+                        "emmc"
                       ]
                     },
                     "provenance": {

@@ -275,16 +275,22 @@ socs:
           verified_by: evanchen11
           notes: FPIO_BASE 0x40011000, which DS-A510B Table 5 shows as Reserved (p36).
     memory_controllers:
-      value: [mspi0, mspi1]
+      value: [mspi0, mspi1, sdio0]
       provenance:
         status: datasheet
-        source: ["doc:DS-A510B@1.1.0:p35", "doc:DS-A510B@1.1.0:p94", "doc:DS-A510B@1.1.0:p105"]
-        verified_on: 2026-10-08
+        source:
+          - "doc:DS-A510B@1.1.0:p35"
+          - "doc:DS-A510B@1.1.0:p94"
+          - "doc:DS-A510B@1.1.0:p105"
+          - "doc:DS-A510B@1.1.0:p138"
+        verified_on: 2026-11-23
         verified_by: evanchen11
         notes: >-
           The two MSPI controllers have external memory apertures in Table 4's
           continuation, which lists no others. p105: "both of the MSPI modules, MSPI0
-          and MSPI1"; p94: MSPI2 and MSPI3 "are not pinned out".
+          and MSPI1"; p94: MSPI2 and MSPI3 "are not pinned out". SDIO0 hosts
+          apollo510b_evb's eMMC: "SDIO0 transfers data in 8-bit eMMC mode" (p138); it has
+          no aperture. IOMs and SDIO1 are left off until a board wires memory to one.
 
     dma_address_alignment:
       hex-ddr:
@@ -532,6 +538,20 @@ boards:
           verified_on: 2026-10-08
           verified_by: evanchen11
           notes: '"0x60000000 - 0x6FFFFFFF MSPI0 Y External Memory (256 MB)".'
+      sdio0:
+        controller: sdio0
+        provenance:
+          status: sdk
+          source:
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/boards/apollo510b_evb/bsp/am_bsp.h:264-265"
+            - "doc:QS-A510B@1.1:p8"
+            - "doc:DS-A510B@1.1.0:p35"
+          verified_on: 2026-11-23
+          verified_by: evanchen11
+          notes: >-
+            AM_BSP_SDIO_INSTANCE (0), with AM_BSP_SDIO_BUS_WIDTH AM_HAL_HOST_BUS_WIDTH_8; the
+            guide says only "SDIO 8 GB eMMC" (p8). No aperture: DS-A510B p35 maps no SDIO
+            window, so the eMMC has no base (#137).
     population:
       mspi0:
         value: APS512XX
@@ -542,8 +562,15 @@ boards:
           verified_by: evanchen11
           notes: >-
             p10 "MSPI0 - APS512XXN-AOB4BI-WBRZ"; p8 lists the PSRAM as AP Memory
-            APS512XXN-AOB4BI-WBRZ. The board has no octal flash (p8, p10). The 8 GB SDIO
-            eMMC (p8, p10) is not modelled yet (#137).
+            APS512XXN-AOB4BI-WBRZ. The board has no octal flash (p8, p10).
+      sdio0:
+        value: IS21EF08G
+        provenance:
+          status: datasheet
+          source: ["doc:QS-A510B@1.1:p8", "doc:QS-A510B@1.1:p10"]
+          verified_on: 2026-11-23
+          verified_by: evanchen11
+          notes: '"SDIO 8 GB eMMC (ISSI IS21EF08G-JCLI)" (p8); "8. eMMC0 - IS21EF08G-JCLI" (p10).'
     provisioning:
       value: sbl
       provenance:

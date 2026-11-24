@@ -251,15 +251,17 @@ socs:
           verified_by: evanchen11
           notes: FPIO_BASE 0x40011000, which DS-A510 Table 4 shows as Reserved (p37).
     memory_controllers:
-      value: [mspi0, mspi1, mspi2, mspi3]
+      value: [mspi0, mspi1, mspi2, mspi3, sdio0]
       provenance:
         status: datasheet
-        source: ["doc:DS-A510@1.1.0:p36"]
-        verified_on: 2026-10-13
+        source: ["doc:DS-A510@1.1.0:p36", "doc:DS-A510@1.1.0:p140"]
+        verified_on: 2026-11-23
         verified_by: evanchen11
         notes: >-
-          The four MSPI controllers have external memory apertures in Table 3. IOMs and
-          SDIOs are left off until a board wires memory to one.
+          The four MSPI controllers have external memory apertures in Table 3 (p36). SDIO0
+          hosts apollo510_evb's eMMC: "SDIO0 and SDIO1 transfer data in 8-bit eMMC mode"
+          (p140); it has no aperture. IOMs and SDIO1 are left off until a board wires memory
+          to one.
 
     dma_address_alignment:
       hex-ddr:
@@ -492,6 +494,20 @@ boards:
           verified_on: 2026-10-08
           verified_by: evanchen11
           notes: '"0x60000000 - 0x6FFFFFFF MSPI0 Y External Memory (256 MB)".'
+      sdio0:
+        controller: sdio0
+        provenance:
+          status: sdk
+          source:
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/boards/apollo510_evb/bsp/am_bsp.h:266-267"
+            - "doc:QS-A510@2.1:p8"
+            - "doc:DS-A510@1.1.0:p36"
+          verified_on: 2026-11-23
+          verified_by: evanchen11
+          notes: >-
+            AM_BSP_SDIO_INSTANCE (0), with AM_BSP_SDIO_BUS_WIDTH AM_HAL_HOST_BUS_WIDTH_8; the
+            guide says only "SDIO 8 GB eMMC" (p8). No aperture: DS-A510 p36 maps no SDIO
+            window, so the eMMC has no base (#137).
     population:
       mspi0:
         value: APS512XX
@@ -503,6 +519,14 @@ boards:
           notes: >-
             p10 "MSPI0 - APS512XXB-AOB5NI-WA"; p8 lists the PSRAM as AP Memory
             APS512XXN-AOB4BI-WBRZ.
+      sdio0:
+        value: IS21EF08G
+        provenance:
+          status: datasheet
+          source: ["doc:QS-A510@2.1:p8", "doc:QS-A510@2.1:p10"]
+          verified_on: 2026-11-23
+          verified_by: evanchen11
+          notes: '"SDIO 8 GB eMMC (ISSI IS21EF08G-JCLI)" (p8); "11. eMMC0 - IS21EF08G-JCLI" (p10).'
     provisioning:
       value: sbl
       provenance:

@@ -1,8 +1,8 @@
 import pytest
 
-from helia_platforms import AmbiguousPlatform, Catalog, builtin, resolve_board
+from helia_platforms import AmbiguousPlatform, Catalog, PlatformError, builtin, resolve_board
 from helia_platforms.catalog import load_overlay
-from helia_platforms.errors import FormatError, PlatformError
+from helia_platforms.errors import FormatError
 
 
 @pytest.fixture(scope="module")
@@ -65,20 +65,30 @@ def test_the_packaged_data_loads(catalog):
         "APS256XXN",
         "IS25WX064",
         "APS6404L",
+        "IS21EF08G",
+        "THGBMNG5D1LBAIT",
     }
+
+
+_APOLLO510_EVB_CAPABILITIES = {
+    *("dsp", "fp16", "fp32", "fp64", "mve", "mve_fp", "pmu"),
+    *("psram", "emmc"),
+}
+_APOLLO510_EVB_MEMORIES = {
+    "itcm": (0x00000000, 256 * 1024),
+    "dtcm": (0x20000000, 512 * 1024),
+    "ssram": (0x20080000, 3 * 1024 * 1024),
+    "mram": (0x00400000, 4 * 1024 * 1024),
+    "psram0": (0x60000000, 64 * 1024 * 1024),
+    "emmc0": (None, 8_000_000_000),  # block-addressed, no window (#137)
+}
 
 
 def test_apollo510_evb_answers_the_consumer_queries(catalog):
     """RFC 0002's heliaAOT and profiler questions, against #63's proposal section 1.6."""
     target = catalog.resolve("apollo510_evb")
-    assert target.capabilities == {"dsp", "fp16", "fp32", "fp64", "mve", "mve_fp", "pmu", "psram"}
-    assert {m.name: (m.base, m.size) for m in target.memories()} == {
-        "itcm": (0x00000000, 256 * 1024),
-        "dtcm": (0x20000000, 512 * 1024),
-        "ssram": (0x20080000, 3 * 1024 * 1024),
-        "mram": (0x00400000, 4 * 1024 * 1024),
-        "psram0": (0x60000000, 64 * 1024 * 1024),
-    }
+    assert target.capabilities == _APOLLO510_EVB_CAPABILITIES
+    assert {m.name: (m.base, m.size) for m in target.memories()} == _APOLLO510_EVB_MEMORIES
     assert dict(target.usable_nvm()) == {"mram": 4 * 1024 * 1024 - 64 * 1024}
     assert target.flash_load_address() == 0x00410000
     assert (target.cpu_mhz(), target.cpu_mhz("hp")) == (96, 250)
@@ -167,20 +177,38 @@ def test_the_atomiq110_soc_answers_the_consumer_queries(catalog):
 def test_apollo510b_evb_answers_the_consumer_queries(catalog):
     """The same questions on #64's data: apollo510's memory map, its own part and J-Link."""
     target = catalog.resolve("apollo510b_evb")
-    assert target.capabilities == {"dsp", "fp16", "fp32", "fp64", "mve", "mve_fp", "pmu", "psram"}
-    assert {m.name: (m.base, m.size) for m in target.memories()} == {
-        "itcm": (0x00000000, 256 * 1024),
-        "dtcm": (0x20000000, 512 * 1024),
-        "ssram": (0x20080000, 3 * 1024 * 1024),
-        "mram": (0x00400000, 4 * 1024 * 1024),
-        "psram0": (0x60000000, 64 * 1024 * 1024),
-    }
+    assert target.capabilities == _APOLLO510_EVB_CAPABILITIES
+    assert {m.name: (m.base, m.size) for m in target.memories()} == _APOLLO510_EVB_MEMORIES
     assert dict(target.usable_nvm()) == {"mram": 4 * 1024 * 1024 - 64 * 1024}
     assert target.flash_load_address() == 0x00410000
     assert (target.cpu_mhz(), target.cpu_mhz("hp")) == (96, 250)
     assert target.default_operating_point.name == "lp"
     assert target.jlink_device == "AP510BFA-CBR"
     assert target.trace_clock_mhz == 96
+
+
+@pytest.mark.parametrize(
+    ("name", "controller", "size", "guide"),
+    [
+        ("apollo510_evb", "sdio0", 8_000_000_000, "doc:QS-A510@2.1:p8"),
+        ("apollo510b_evb", "sdio0", 8_000_000_000, "doc:QS-A510B@1.1:p8"),
+        ("AMAP4PDISP", "sdio", 4_000_000_000, "doc:QS-A4PDK@1.2:p12"),
+    ],
+)
+def test_each_fitted_emmc_is_an_external_memory_with_no_base(
+    catalog, name, controller, size, guide
+):
+    """#137: a block-addressed eMMC on an SDIO interface with no aperture."""
+    target = catalog.resolve(name)
+    (emmc,) = [r for r in target.external_memories() if r.technology == "emmc"]
+    assert (emmc.name, emmc.attachment, emmc.base, emmc.size) == ("emmc0", "external", None, size)
+    assert target.has_external_memory("emmc") and "emmc" in target.capabilities
+    assert target.interfaces[controller].aperture_base is None
+    assert target.reachable("cm55_0" if "510" in name else "cm4_0", "emmc0").target == controller
+    assert emmc.provenance.status == "datasheet" and guide in emmc.provenance.source
+    assert guide in emmc.field_provenance["size"].source
+    assert "emmc0" not in target.placement_ranges()
+    assert "emmc0" not in target.application_ranges()
 
 
 def test_apollo510b_derives_from_apollo510_with_its_own_peripherals(catalog):
@@ -199,7 +227,7 @@ def test_apollo510b_derives_from_apollo510_with_its_own_peripherals(catalog):
     assert set(apollo510.peripherals) - set(soc.peripherals) == {"ioslave", "mspi2", "mspi3"}
     assert "iom6" in soc.peripherals
     assert set(soc.peripherals) <= set(apollo510.peripherals)
-    assert soc.memory_controllers == ("mspi0", "mspi1")
+    assert soc.memory_controllers == ("mspi0", "mspi1", "sdio0")
 
 
 def test_the_soc_and_part_names_resolve(catalog):
@@ -374,6 +402,7 @@ def test_the_apollo4_evbs_answer_the_consumer_queries(catalog, board, regions, j
 
 _PSRAM = ("psram", 0x14000000, 32 * 1024 * 1024)
 _FLASH = ("flash", 0x18000000, 8 << 20)
+_EMMC = ("emmc", None, 4_000_000_000)
 _OCTAL = ("serial-sdr", "dual-sdr", "quad-sdr", "octal-sdr", "octal-ddr")
 _EVB_MSPI0 = (*_OCTAL, "hex-ddr")
 
@@ -395,11 +424,11 @@ def test_the_display_kit_compositions_take_nsx_psram_s_hex_default(catalog, name
 @pytest.mark.parametrize(
     ("addon", "fitted", "external"),
     [
-        ("apollo4p_disp_shield_hex", {"mspi0": ("hex-ddr",), "mspi1": ()}, {_PSRAM}),
+        ("apollo4p_disp_shield_hex", {"mspi0": ("hex-ddr",), "mspi1": ()}, {_PSRAM, _EMMC}),
         (
             "apollo4p_disp_shield",
             {"mspi0": ("octal-ddr",), "mspi1": ("octal-ddr",)},
-            {_PSRAM, _FLASH},
+            {_PSRAM, _FLASH, _EMMC},
         ),
     ],
 )
@@ -409,7 +438,7 @@ def test_each_display_kit_gpio34_setting_offers_only_what_it_wires(
     """QS-A4PDK p10-11 and DS-A4P p115: MSPI0 hex leaves MSPI1 unusable."""
     target = catalog.resolve("apollo4p_evb", addons=[addon])
     assert {n: i.modes for n, i in target.interfaces.items()} == {
-        "mspi0": _EVB_MSPI0, "mspi1": _OCTAL, "mspi2": _OCTAL, **fitted
+        "mspi0": _EVB_MSPI0, "mspi1": _OCTAL, "mspi2": _OCTAL, "sdio": (), **fitted
     }  # fmt: skip
     assert {(r.technology, r.base, r.size) for r in target.external_memories()} == external
     assert target.has_external_memory("psram")
@@ -417,7 +446,7 @@ def test_each_display_kit_gpio34_setting_offers_only_what_it_wires(
     mspi1 = target.interfaces["mspi1"].aperture_base
     on_mspi1 = [r for r in target.external_memories() if r.base == mspi1]
     assert not ("hex-ddr" in target.interfaces["mspi0"].modes and on_mspi1)
-    assert set(target.addons[0].occupies) == {"mspi0", "mspi1", "mspi2"}
+    assert set(target.addons[0].occupies) == {"mspi0", "mspi1", "mspi2", "sdio"}
 
 
 def test_the_display_kit_gpio34_settings_cannot_be_fitted_together(catalog):
@@ -442,6 +471,23 @@ def test_the_display_kit_s_hex_setting_keeps_its_unusable_mspi1_from_other_add_o
         "compositions.both: add-on 'apollo4p_disp_shield_hex' and add-on 'my_flash' both use "
         "'mspi1'"
     ) in "\n".join(exc.value.problems)
+
+
+@pytest.mark.parametrize(
+    ("name", "addons"),
+    [
+        ("apollo4p_evb", ["apollo4p_disp_shield"]),
+        ("apollo4p_evb", ["apollo4p_disp_shield_hex"]),
+        ("apollo4p_evb_disp_shield_rev2", []),
+        ("AMAP4PDISP", []),
+    ],
+)
+def test_the_display_kit_fits_only_evb_revision_2_or_later(catalog, name, addons):
+    """QS-A4PDK p10: the shield needs AMAP4PEVB revision 2 or later; QS-A4P p6 lists 1 to 3."""
+    for revision in ("2", "3"):
+        assert catalog.resolve(name, addons=addons, board_revision=revision).addons
+    with pytest.raises(PlatformError, match="only at revision '2', '3', not '1'"):
+        catalog.resolve(name, addons=addons, board_revision="1")
 
 
 def test_the_display_kit_uses_the_display_s_mspi2_without_a_device_there(catalog):
@@ -476,8 +522,8 @@ def test_the_blue_parts_record_their_radio(catalog):
 @pytest.mark.parametrize(
     ("board", "cores", "removed", "controllers"),
     [
-        ("apollo4p_evb", ["cm4_0"], set(), ["mspi0", "mspi1", "mspi2"]),
-        ("apollo4p_blue_kbr_evb", ["cm4_0", "ble_m0"], set(), ["mspi0", "mspi2"]),
+        ("apollo4p_evb", ["cm4_0"], set(), ["mspi0", "mspi1", "mspi2", "sdio"]),
+        ("apollo4p_blue_kbr_evb", ["cm4_0", "ble_m0"], set(), ["mspi0", "mspi2", "sdio"]),
         ("apollo4p_blue_kxr_evb", ["cm4_0", "ble_m0"], {"pdm1", "pdm2"}, None),
         ("apollo4l_evb", ["cm4_0"], set(), ["mspi0", "mspi1", "mspi2"]),
         ("apollo4l_blue_evb", ["cm4_0", "ble_m0"], set(), ["mspi0", "mspi1", "mspi2"]),
@@ -492,7 +538,9 @@ def test_each_apollo4_part_keeps_what_its_datasheet_gives(
     # The radio domain goes with ble_m0 (clock_domains_removed on the plain parts).
     assert [d.id for d in target.soc.clock_domains] == ["cpu", "radio"][: len(cores)]
     assert set(soc.peripherals) - set(target.soc.peripherals) == removed
-    assert list(target.soc.memory_controllers) == (controllers or ["mspi0", "mspi1", "mspi2"])
+    assert list(target.soc.memory_controllers) == (
+        controllers or ["mspi0", "mspi1", "mspi2", "sdio"]
+    )
     ble = [c for c in target.soc.cores if c.id == "ble_m0"]
     assert [(c.core, c.programmable_by, c.clock_domain) for c in ble] == [
         ("cortex-m0", "vendor", "radio")
@@ -645,8 +693,8 @@ def test_apollo5_records_no_dma_to_dtcm_in_deep_sleep(catalog, soc, pages):
 @pytest.mark.parametrize(
     ("board", "alignments"),
     [
-        ("apollo510_evb", {"psram0": 4}),
-        ("apollo510b_evb", {"psram0": 4}),
+        ("apollo510_evb", {"psram0": 4, "emmc0": None}),  # the eMMC's interface has no modes
+        ("apollo510b_evb", {"psram0": 4, "emmc0": None}),
         ("apollo510dL_evb", {}),  # no MSPI device is populated
         ("apollo330mP_evb", {}),
     ],

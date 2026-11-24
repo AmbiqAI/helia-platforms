@@ -33,17 +33,26 @@ def resolve(
     *,
     addons: Sequence[str] = (),
     boot: str | None = None,
+    board_revision: str | None = None,
     catalog: Catalog | None = None,
 ) -> Target:
     """Resolve a board, part, implementation or Soc id, a composition alias or an alias.
 
     Case-insensitive. A Soc id resolves to the bare Soc, never to a board. A shorthand
     raises ``AmbiguousPlatform``; anything else unknown raises ``UnknownPlatform``.
+    ``board_revision`` is the revision of the board in hand, checked against the add-ons.
     """
-    return _resolve(name, addons, boot, catalog if catalog is not None else builtin())
+    catalog = catalog if catalog is not None else builtin()
+    return _resolve(name, addons, boot, catalog, board_revision)
 
 
-def _resolve(name: str, addons: Sequence[str], boot: str | None, catalog: Catalog) -> Target:
+def _resolve(
+    name: str,
+    addons: Sequence[str],
+    boot: str | None,
+    catalog: Catalog,
+    board_revision: str | None = None,
+) -> Target:
     """``resolve`` for both entry points, so a warning has the same depth from each caller."""
     found = _names(catalog).get(name.casefold())
     if found is None:
@@ -52,10 +61,18 @@ def _resolve(name: str, addons: Sequence[str], boot: str | None, catalog: Catalo
     if table == "shorthands":
         raise AmbiguousPlatform(name, catalog.shorthands[entry_id])
     if table != "compositions":
-        return _target(catalog, table, entry_id, addons, boot)
+        return _target(catalog, table, entry_id, addons, boot, board_revision=board_revision)
     composition = catalog.compositions[entry_id]
     addon_ids = (*composition.addons, *addons)
-    return _target(catalog, "boards", composition.board, addon_ids, boot, composition=entry_id)
+    return _target(
+        catalog,
+        "boards",
+        composition.board,
+        addon_ids,
+        boot,
+        composition=entry_id,
+        board_revision=board_revision,
+    )
 
 
 def resolve_board(name: str, *, catalog: Catalog | None = None) -> model.Board:
@@ -115,6 +132,7 @@ def _target(
     boot: str | None,
     *,
     composition: str | None = None,
+    board_revision: str | None = None,
 ) -> Target:
     """The target of one entry; ``composition`` is the alias it was reached by, as written."""
     kind = _KIND_OF[table]
@@ -135,7 +153,7 @@ def _target(
     implementation = catalog._entry("implementations", impl_id) if impl_id else None
     soc_id = implementation.soc if implementation else part.soc if part else entry_id
     soc = catalog._realized(impl_id) if impl_id else catalog._entry("socs", soc_id)
-    addons = _addons(catalog, board, addon_ids)
+    addons = _addons(catalog, board, addon_ids, _board_revision(board, board_revision))
     fitted = _fitted(board, addons)
     devices = _devices(catalog, fitted, implementation, board, addons)
     chain = [e for e in (board, part, implementation, catalog._entry("socs", soc_id)) if e]
@@ -163,8 +181,22 @@ def _target(
     )
 
 
+def _board_revision(board: model.Board | None, revision: str | None) -> str | None:
+    """``board_revision=``, which applies to a board and may not contradict its own revision."""
+    if revision is None:
+        return None
+    if board is None:
+        raise PlatformError("board_revision= applies only to a board target")
+    if board.revision not in (None, revision):
+        raise PlatformError(f"board {board.id!r} is revision {board.revision!r}, not {revision!r}")
+    return revision
+
+
 def _addons(
-    catalog: Catalog, board: model.Board | None, addon_ids: Sequence[str]
+    catalog: Catalog,
+    board: model.Board | None,
+    addon_ids: Sequence[str],
+    revision: str | None = None,
 ) -> tuple[model.AddOn, ...]:
     if not addon_ids:
         return ()
@@ -177,7 +209,7 @@ def _addons(
     if missing:
         raise PlatformError(f"no add-on {missing[0]!r}")
     addons = tuple({known[a.casefold()].id: known[a.casefold()] for a in addon_ids}.values())
-    problems = _placement_problems(board, addons)
+    problems = _placement_problems(board, addons, revision)
     if problems:
         raise PlatformError("; ".join(problems))
     return addons
