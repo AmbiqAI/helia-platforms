@@ -311,9 +311,20 @@ socs:
             (helia-estimator db95eef) says the same. No Ambiq integration document is cited
             yet (#144); the port assignment helia-npu used to record here was Vela's memory
             class, not a hardware constraint.
+        requires_awake:
+          value: [cm55_0]
+          provenance: &npu_tcm_awake
+            status: unverified
+            source: ["url:https://github.com/AmbiqAI/helia-platforms/issues/177"]
+            notes: >-
+              apage224 (#177, 2026-11-20): "Both ITCM and DTCM require CM55 to stay awake during
+              NPU work." The issue links the same author's comment of that date on the private
+              AmbiqAI/helia-aot#1023, which adds "including the driver wait through completion"
+              and gives the other memories no such condition. No Ambiq document is cited yet (#144).
       - master: npu_0
         target: dtcm
         access: direct
+        requires_awake: {value: [cm55_0], provenance: *npu_tcm_awake}
         provenance: *npu_reach
       - master: npu_0
         target: ssram

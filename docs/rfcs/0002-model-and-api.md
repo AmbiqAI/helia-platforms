@@ -1227,7 +1227,9 @@ parity test (issue #13) that covers each are in
    or the profiler keeps its own sidecar file.
 5. How power-domain names (used in `Access.requires_awake`) are spelled
    and sourced: the SDK HAL's power-control enums, a catalog vocabulary
-   mapped to them, or both.
+   mapped to them, or both. The first built-in value, on atomiq110's
+   `npu_0` access to `itcm` and `dtcm` (#177), names the core that must
+   stay awake, `cm55_0`, until this is settled.
 6. Whether private catalog packages are signed
    ([0002-private-silicon.md](0002-private-silicon.md)). A consumer records
    which private catalog it ran against through `Catalog.identity()`
