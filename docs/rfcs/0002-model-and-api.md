@@ -223,8 +223,9 @@ check, `classify_address()` returns `None` for it, and `placement_ranges()`
 and `flash_load_address()` raise `PlatformError` when they need its
 address. This holds whatever the region's `attachment`. The exception is
 a device a board populates on an interface with no aperture: it has no
-address, and `placement_ranges()` leaves it out. Built-in regions always
-carry a base.
+address, and `placement_ranges()` leaves it out. Regions a built-in Soc
+declares always carry a base, but a built-in board's eMMC (#137) has
+none, so `target.memories()` can hold a region whose `base` is `None`.
 
 ### Pre-silicon and silicon
 
