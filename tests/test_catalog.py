@@ -1209,6 +1209,44 @@ def test_a_dma_address_alignment_is_keyed_by_a_mode(document):
     assert "is not an interface mode such as hex-ddr" in problems_of(document)
 
 
+@pytest.mark.parametrize("stated", [True, False, None])
+def test_a_soc_states_or_leaves_unknown_its_rss_power_off(document, stated):
+    soc(document)["sdk"] = {"c_define": "AM_PART_A"}
+    if stated is not None:
+        soc(document)["sdk"]["rss_power_off_available"] = stated
+    target = load_quietly(document).resolve("soc_a")
+    assert target.sdk is not None and target.sdk.rss_power_off_available is stated
+
+
+def test_the_documented_rss_power_off_query_is_none_without_an_sdk_block(document):
+    soc(document).pop("sdk", None)
+    target = load_quietly(document).resolve("soc_a")
+    # The guarded expression RFC 0002 documents for helia-profiler.
+    assert (target.sdk.rss_power_off_available if target.sdk else None) is None
+
+
+def test_rss_power_off_availability_is_a_bool(document):
+    soc(document)["sdk"] = {"rss_power_off_available": "yes"}
+    assert "sdk.rss_power_off_available" in problems_of(document)
+
+
+def test_rss_power_off_travels_with_the_sdk_block_a_derived_soc_writes(document):
+    record = {**RECORD, "status": "sdk", "source": [SDK_SOURCE]}
+    soc(document)["sdk"] = {
+        "c_define": "AM_PART_A",
+        "rss_power_off_available": {"value": True, "provenance": record},
+    }
+    base = load_overlay(document)
+    kept = {"based_on": "soc_a"}
+    rerouted = {"based_on": "soc_a", "sdk": {"c_define": "AM_PART_B"}}
+    cat = load_overlay({"socs": {"kept": kept, "rerouted": rerouted}}, base=base)
+    a, b = cat._entry("socs", "kept"), cat._entry("socs", "rerouted")
+    assert a.sdk.rss_power_off_available is True
+    assert a.field_provenance["sdk.rss_power_off_available"].status == "sdk"
+    # A written sdk block replaces the base's whole, so another SDK pair starts unknown.
+    assert b.sdk.rss_power_off_available is None
+
+
 def test_removing_a_peripheral_removes_the_memory_controller_and_its_access(document):
     soc(document)["access"].append({"master": "npu_0", "target": "mspi0", "access": "direct"})
     soc(document)["memory_controllers"] = [

@@ -76,6 +76,12 @@ def test_the_export_has_no_records_by_default():
     assert text == export.render(json.loads(text))  # sorted keys, two-space indentation
 
 
+def test_a_known_absent_rss_power_off_is_exported_as_false():
+    socs = builtin(include_plugins=False).to_dict()["catalog"]["socs"]
+    assert socs["apollo510"]["sdk"]["rss_power_off_available"] is False
+    assert socs["apollo510L"]["sdk"]["rss_power_off_available"] is True
+
+
 def test_records_survive_a_round_trip():
     catalog = builtin(include_plugins=False)
     member = export.document(catalog, provenance=True)["catalog"]

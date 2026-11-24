@@ -498,6 +498,26 @@ socs:
             source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/mcu/atomiq110/hal/am_hal_pwrctrl.h:420"]
             verified_on: 2026-10-27
             verified_by: evanchen11
+      rss_power_off_available:
+        value: false
+        provenance:
+          status: sdk
+          source:
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/mcu/atomiq110/hal/am_hal_pwrctrl.h:1083"
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/lib/gcc/atomiq110/libam_hal.a"
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/lib/acfe/atomiq110/libam_hal.a"
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/lib/atfe/atomiq110/libam_hal.a"
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiq-hal/CMakeLists.txt:26"
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiq-hal/CMakeLists.txt:57-58"
+            - "repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiq-hal/CMakeLists.txt:123-126"
+          verified_on: 2026-11-23
+          verified_by: evanchen11
+          notes: >-
+            The header declares am_hal_pwrctrl_rss_pwroff() (:1083), but none of the prebuilt
+            libam_hal.a (gcc, acfe, atfe) defines it. nsx selects lib/<toolchain>/<part>/libam_hal.a
+            as the default HAL library path (CMakeLists.txt:57-58) and links it with
+            target_link_libraries when NSX_AMBIQSUITE_USE_PREBUILT is on (:123-126), which is the
+            default (:26). So a call has no definition there. Not compiled or linked.
       build:
         abi: thumbv8.1m-fpv5-hard
         float_abi: hard

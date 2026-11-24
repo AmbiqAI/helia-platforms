@@ -60,6 +60,7 @@ def full_document() -> dict:
         "cmsis_header": "a.h",
         "trace_clock_mhz": 96,
         "hal_enums": {"sram": "AM_HAL_SRAM"},
+        "rss_power_off_available": False,
         "build": {"abi": "thumbv8.1m", "float_abi": "hard"},
     }
     soc["derives_from"] = "soc_a"
