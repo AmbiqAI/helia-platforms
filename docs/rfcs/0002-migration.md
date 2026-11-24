@@ -142,7 +142,7 @@ SDK's `HBLRAM_MAX_SIZE` of 13312 KB (`:42`) is kept as a documented
 discrepancy. The heliaAOT adapter leaves HBLRAM out of the default budget
 (the `memories` of `SocPlatform`) until its technology and CPU reach are
 confirmed (#19). The FPGA has no HBLRAM, so `atomiq110_fpga` removes it.
-Counting it as SRAM would raise the budget from 3 MB to 35 MB, which this
+Counting it as SRAM would raise the budget from 3 MiB to 35 MiB, which this
 table does not allow-list.
 
 ### Custom definitions (`platform.*`)
