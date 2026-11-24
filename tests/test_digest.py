@@ -202,6 +202,34 @@ def test_identity_records_each_overlay_in_order(tmp_path, document):
     assert mapping_source.distribution_version is None
 
 
+def test_sources_loaded_by_one_relative_path_share_a_full_label(tmp_path, monkeypatch):
+    """Matching by full_label keeps both sources, as RFC 0002 says (#169)."""
+    for name, size in [("a", "8M"), ("b", "4M")]:
+        device = {"technology": "psram", "capacity": size}
+        (tmp_path / name).mkdir()
+        doc = {"schema_version": 1, "memory_devices": {f"dev_{name}": device}}
+        (tmp_path / name / "board.yaml").write_text(yaml.safe_dump(doc), encoding="utf-8")
+    monkeypatch.chdir(tmp_path / "a")
+    first = load_overlay("./board.yaml")
+    monkeypatch.chdir(tmp_path / "b")
+    both = load_overlay("board.yaml", base=first)
+    used = {both.sources[("memory_devices", "dev_a")]}
+    assert used == {"overlay:board.yaml"}  # pathlib drops the "./"
+    sources = both.identity().sources
+    assert sources[0].sha256 != sources[1].sha256
+    assert [s for s in sources if s.full_label in used] == list(sources)
+
+
+def test_a_file_named_like_the_mapping_label_shares_its_full_label(tmp_path, monkeypatch):
+    device = {"technology": "psram", "capacity": "8M"}
+    doc = {"schema_version": 1, "memory_devices": {"dev_a": device}}
+    (tmp_path / "<mapping>").write_text(yaml.safe_dump(doc), encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+    from_file = load_overlay("<mapping>")
+    both = load_overlay({"memory_devices": {"dev_b": device}}, base=from_file)
+    assert [s.full_label for s in both.identity().sources] == ["overlay:<mapping>"] * 2
+
+
 def test_a_file_and_the_same_mapping_record_the_same_hash(tmp_path, document):
     path = tmp_path / "overlay.yaml"
     path.write_text(yaml.safe_dump(document), encoding="utf-8")

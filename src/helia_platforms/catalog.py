@@ -62,6 +62,7 @@ class SourceIdentity:
     at: the one it declares, or the current one for a mapping that omits it.
     ``full_label`` is the label ``Catalog.sources`` gives this source's entries, directory
     included (#169); ``to_dict()`` leaves it out, so a shared record names no local path.
+    Several sources can share one ``full_label``, for example two mappings.
     """
 
     label: str
