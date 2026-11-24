@@ -362,7 +362,7 @@ socs:
         notes: >-
           The three MSPI controllers have external memory apertures in Table 4 (MSPI0
           256 MB, MSPI1 and MSPI2 64 MB). IOMs and SDIOs are left off: the EVB's SDIO
-          eMMC is not modelled, since #137 covered only the Apollo510 and Apollo510B EVBs.
+          eMMC (QS-A330MP p8, p10) is not modelled, because #137 did not cover this EVB.
 
     clock_domains:
       cpu:
@@ -678,8 +678,9 @@ boards:
       notes: >-
         p6 "Evaluation Board (EVB), revision 2.0, part number AP330MPEVB"; p8 the SoC "in
         the BGA package (AP330MPA-CBR)". p8: every revision 2.0 EVB has the PSRAM (U14)
-        de-populated, so the board has no MSPI interface or population. Its SDIO eMMC is
-        not modelled: #137 covered only the Apollo510 and Apollo510B EVBs and the Display Kit.
+        de-populated, so the board has no MSPI interface or population. Its SDIO eMMC (p8,
+        p10) is not modelled: #137 covered only the Apollo510 and Apollo510B EVBs and the
+        Display Kit.
     provisioning:
       value: sbl
       provenance:
