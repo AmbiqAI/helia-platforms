@@ -42,7 +42,11 @@ Discovery reads the environment and entry points once, at the first
 - Every side-loaded entry has origin `overlay` and a source label:
   `env:<path>` or `entry_point:<distribution>`; explicit overlays get
   `overlay:<path>` or `overlay:<mapping>`. `Catalog.sources` maps each
-  entry, keyed by `(table, id)`, to its label.
+  entry, keyed by `(table, id)`, to its label. Each source in
+  `Catalog.identity()` carries the same label as `full_label`, so a
+  consumer can match sources to the entries they supplied. Several
+  sources can share one label (RFC 0002, `helia_platforms.catalog`), and
+  matching keeps all of them (#169, 2026-11-23).
 - Side-loaded entries may not shadow a built-in id, alias, composition or
   shorthand, and may not shadow an entry from an earlier source. A clash
   raises a `PlatformError` naming both sources; there is no silent

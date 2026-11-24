@@ -60,15 +60,21 @@ class SourceIdentity:
 
     ``label`` has no directory. ``schema_version`` is the version the source was read
     at: the one it declares, or the current one for a mapping that omits it.
+    ``full_label`` is the label ``Catalog.sources`` gives this source's entries, directory
+    included (#169); ``to_dict()`` leaves it out, so a shared record names no local path.
+    Several sources can share one ``full_label``, for example two mappings.
     """
 
     label: str
     schema_version: int
     sha256: str
     distribution_version: str | None = None
+    full_label: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
-        return dataclasses.asdict(self)
+        record = dataclasses.asdict(self)
+        del record["full_label"]
+        return record
 
 
 @dataclass(frozen=True)
@@ -414,6 +420,7 @@ def _load_documents(
                 schema_version=_digest.read_version(data),
                 sha256=_digest.source_sha256(data),
                 distribution_version=distribution_version,
+                full_label=source or f"overlay:{origin}",
             )
             for data, origin in documents
         )

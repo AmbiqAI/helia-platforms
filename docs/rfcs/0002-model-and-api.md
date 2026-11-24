@@ -885,15 +885,34 @@ class CatalogIdentity:                          # frozen; to_dict() has these ke
     catalog_digest: str
     sources: tuple[SourceIdentity, ...]         # applied on top of the built-in data, in order
 
-class SourceIdentity:                           # frozen; to_dict() has these keys
+class SourceIdentity:                           # frozen; to_dict() has these keys, full_label excepted
     label: str                                  # entry_point:<distribution>, env:<file> or overlay:<file>, no directory
     schema_version: int                         # as declared; the current one for a mapping that omits it
     sha256: str                                 # the parsed mapping, records removed on declared keys only; schema_version as read
     distribution_version: str | None            # entry points only
+    full_label: str | None                      # the source label Catalog.sources gives its entries, directory included; None when the loader did not set it (#169)
 ```
 
 `sources` is keyed by table and id because cores, add-ons and memory
 devices each have their own namespace, so an id can recur across tables.
+
+A consumer that records only the sources a target is built from collects
+`catalog.sources[(table, id)]` for the target's entries and keeps each
+`SourceIdentity` whose `full_label` is among them. `label` cannot do this:
+two side-loaded files with one name in different directories share it,
+and a source that defines no entry has no value in `sources`. A full
+label need not be unique either, and matching keeps every source with a
+matching label. Sources share one when they are two entry points of one
+distribution, two mappings passed to `load_overlay`, a mapping and a file
+loaded by the relative path `<mapping>`, or two files loaded by one
+relative path from different working directories. The path is kept as
+`pathlib.Path` normalizes it, so `./board.yaml` gives
+`overlay:board.yaml`. A built-in
+entry's label is `builtin` on every machine; its data is in
+`catalog_digest`, not in `sources`. `full_label` is left out of
+`to_dict()`, so a recorded identity still names no local path (ADR 0004
+point 4), and neither `catalog_digest` nor any source's `sha256` changes
+(#169, 2026-11-23).
 
 ### `helia_platforms.resolve`
 

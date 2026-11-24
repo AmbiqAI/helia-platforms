@@ -1876,8 +1876,32 @@ def test_identity_records_each_side_loaded_source_without_its_directory(
         ("entry_point:a-private", "2.0.1"),
         ("env:board.yaml", None),
     ]
+    assert [s.full_label for s in identity.sources] == [
+        builtin().sources[("parts", "PART-A")],
+        builtin().sources[("boards", "board_a")],
+    ]
     assert identity.sources[1].sha256 == _digest.source_sha256(json.loads(env_file.read_text()))
     assert builtin(include_plugins=False).identity().sources == ()
+
+
+def test_full_labels_tell_apart_side_loaded_files_that_share_a_name(plugins, tmp_path, monkeypatch):
+    """A consumer keeps only the sources a target's entries come from (#169)."""
+    used = write(tmp_path / "one" / "board.yaml", {"parts": BASE_DOCUMENT["parts"]})
+    empty = write(tmp_path / "two" / "board.yaml", {})  # defines nothing
+    part_b = {"soc": "soc_a", "silicon_revision": "C0"}
+    other = write(tmp_path / "three" / "board.yaml", {"parts": {"PART-B": part_b}})
+    monkeypatch.setenv("HELIA_PLATFORMS_PATH", os.pathsep.join(map(str, [used, empty, other])))
+    cat = builtin()
+    sources = cat.identity().sources
+    assert [s.label for s in sources] == ["env:board.yaml"] * 3
+    assert [s.full_label for s in sources] == [f"env:{used}", f"env:{empty}", f"env:{other}"]
+    target = cat.resolve("PART-A")
+    entries = [("socs", target.soc.id), *(("parts", p) for p in target.lineage("part"))]
+    labels = {cat.sources[entry] for entry in entries}
+    kept = [s for s in sources if s.full_label in labels]
+    assert kept == [sources[0]]
+    assert kept[0].sha256 == _digest.source_sha256(json.loads(used.read_text()))
+    assert str(tmp_path) not in json.dumps(cat.identity().to_dict())
 
 
 def test_builtin_is_cached_and_discovers_once(plugins, tmp_path, monkeypatch):
