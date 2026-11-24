@@ -667,7 +667,8 @@ def test_exceptions_name_snapshot_values() -> None:
     entries = yaml.safe_load((SNAPSHOTS / "exceptions.yaml").read_text())["exceptions"]
     assert entries
     for entry in entries:
-        assert set(entry) == {"snapshot", "at", "rule", "reason", "issue"}
+        assert set(entry) - {"values"} == {"snapshot", "at", "rule", "reason", "issue"}
+        assert set(entry.get("values", {"catalog", "snapshot"})) == {"catalog", "snapshot"}
         assert re.fullmatch(r"(?:[\w.-]+/[\w.-]+)?#\d+", entry["issue"])
     assert unnamed(SNAPSHOTS) == []
 

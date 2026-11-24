@@ -189,11 +189,36 @@ def test_atomiq110_compares_its_register_defines(snapshots, define):
         data["socs"]["atomiq110"]["registers"]["values"][define] += 0x1000
 
     edit(snapshots, _check_sources.SDK, change)
-    # HBLRAM_MAX_SIZE's finding is excepted (the owner's planning size, #167), so look there too.
+    (found,) = [f for f in findings(snapshots) if f.rule == "register"]
+    assert found.at[1:2] + found.at[-1:] == ("atomiq110", define)
+
+
+HBLRAM_SIZE = ("socs", "atomiq110", "registers", "values", "HBLRAM_MAX_SIZE")
+
+
+def test_the_hblram_size_exception_covers_the_sdk_13312_kib():
+    result = _check_sources.check(builtin(include_plugins=False), ROOT / "snapshots")
+    excepted = [f.values for f, _ in result.excepted if f.at == HBLRAM_SIZE]
+    assert excepted == [(32 * 1024 * 1024, 13312 * 1024)]
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        pytest.param(lambda v: v.pop("HBLRAM_MAX_SIZE"), id="deleted"),
+        pytest.param(lambda v: v.update(HBLRAM_MAX_SIZE=256 * 1024 * 1024), id="another value"),
+    ],
+)
+def test_the_hblram_size_exception_covers_only_its_value_pair(snapshots, change):
+    """#167's exception names the 13312 KiB it accepts; any other SDK size is reported."""
+    edit(
+        snapshots,
+        _check_sources.SDK,
+        lambda d: change(d["socs"]["atomiq110"]["registers"]["values"]),
+    )
     result = _check_sources.check(builtin(include_plugins=False), snapshots)
-    seen = [*result.findings, *(f for f, _ in result.excepted)]
-    (found,) = [f for f in seen if f.rule == "register" and f.at[-1] == define]
-    assert found.at[1] == "atomiq110"
+    assert [(f.at, f.rule) for f in result.findings] == [(HBLRAM_SIZE, "register")]
+    assert [e.at for e in result.stale] == [HBLRAM_SIZE]
 
 
 @pytest.mark.parametrize("soc", ["apollo510", "apollo510b"])

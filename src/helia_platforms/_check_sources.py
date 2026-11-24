@@ -96,6 +96,7 @@ class Finding:
     at: tuple[str, ...]
     rule: str
     message: str
+    values: tuple[Any, Any] | None = None  # (catalog, snapshot) where two values differ
 
 
 @dataclass(frozen=True)
@@ -105,12 +106,14 @@ class Exception_:
     rule: str
     reason: str
     issue: str
+    values: tuple[Any, Any] | None = None  # if set, covers only this (catalog, snapshot) pair
 
     def covers(self, finding: Finding) -> bool:
         return (
             finding.snapshot == self.snapshot
             and finding.at[: len(self.at)] == self.at
             and finding.rule == self.rule
+            and (self.values is None or finding.values == self.values)
         )
 
 
@@ -157,7 +160,14 @@ def load_exceptions(path: Path) -> list[Exception_]:
 
     entries = (yaml.safe_load(path.read_text()) or {}).get("exceptions") or []
     return [
-        Exception_(e["snapshot"], tuple(e["at"]), e["rule"], e["reason"], str(e["issue"]))
+        Exception_(
+            e["snapshot"],
+            tuple(e["at"]),
+            e["rule"],
+            e["reason"],
+            str(e["issue"]),
+            (e["values"]["catalog"], e["values"]["snapshot"]) if "values" in e else None,
+        )
         for e in entries
     ]
 
@@ -386,7 +396,8 @@ def _equal(
     snapshot: str, at: tuple[str, ...], rule: str, ours: Any, theirs: Any
 ) -> Iterator[Finding]:
     if ours != theirs:
-        yield Finding(snapshot, at, rule, f"catalog {_show(ours)}, snapshot {_show(theirs)}")
+        message = f"catalog {_show(ours)}, snapshot {_show(theirs)}"
+        yield Finding(snapshot, at, rule, message, (ours, theirs))
 
 
 def _show(value: Any) -> str:

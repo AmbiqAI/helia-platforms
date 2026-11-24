@@ -240,9 +240,9 @@ socs:
               32 MiB (33554432 bytes), the owner's planning capacity (#167, 2026-11-08): planned
               silicon options are 32 MB and 256 MB; 32 MB stays until SKUs put each on a Part.
               Not measured and in no datasheet. The SDK's HBLRAM_MAX_SIZE is 13312 KiB (register
-              header :42 at v5.2.27, unchanged at v5.2.33), from an unknown source. The
-              HBLRAM_MAX_SIZE_SECURE that v5.2.33 adds (256 MiB at 0x70000000) sizes an address
-              aperture, not capacity.
+              header :42 at v5.2.27, unchanged at v5.2.33), from an unknown source. From v5.2.29
+              the header also defines HBLRAM_MAX_SIZE_SECURE, 256 MiB at 0x70000000 (:73-76,
+              "Secure HBLRAM space"); it does not say whether that is installed capacity.
         provenance:
           status: sdk
           source: ["repo:AmbiqAI/nsx-ambiq-sdk@v5.2.27:modules/nsx-ambiqsuite/sdk/mcu/atomiq110/regs/am_reg_base_addresses.h:41"]
