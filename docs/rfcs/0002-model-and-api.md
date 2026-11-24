@@ -779,7 +779,7 @@ below is the resolved object returned by `resolve()`.
 | DMA device-address alignment of an external region | `target.dma_address_alignment(region)` over `Soc.dma_address_alignment` (ADR 0012) | package; rounding a transfer is the tool's policy |
 | Power states that block DMA to a region | `target.region(name).dma_blocked_when` (ADR 0012) | package |
 | Shared SSRAM power domain, HAL enum names, C define, CMSIS header | `target.sdk` | package |
-| RSS power-off HAL call | `target.sdk.rss_power_off_available`, from the Soc's SDK, not its cores or radio; `None` when not recorded. Whether to call it during a measurement is profiler policy (#168) | package |
+| RSS power-off HAL call | `target.sdk.rss_power_off_available if target.sdk else None`, from the Soc's SDK, not its cores or radio; `None` when not recorded, including on a Soc with no `sdk` block, where `target.sdk` is `None`. Whether to call it during a measurement is profiler policy (#168) | package |
 | Radio present | `target.part.radio` (`target.part` is `None` on Soc and implementation targets) | package |
 | Trace clock | `target.trace_clock_mhz` (board, else implementation, else SDK default; `None` means core-clocked). On Apollo3 it is the 6 MHz TPIU clock, and J-Link's `-cpufreq` takes 48 MHz (the HFRC) instead, which J-Link divides by 8 itself (#67); that value is `target.sdk.jlink_cpufreq_mhz` | package |
 | Is this an FPGA | `target.implementation.kind == "fpga"` (`target.implementation` is `None` on Soc targets and on parts with no non-default implementation) | package |

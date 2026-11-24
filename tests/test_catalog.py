@@ -1188,6 +1188,13 @@ def test_a_soc_states_or_leaves_unknown_its_rss_power_off(document, stated):
     assert target.sdk is not None and target.sdk.rss_power_off_available is stated
 
 
+def test_the_documented_rss_power_off_query_is_none_without_an_sdk_block(document):
+    soc(document).pop("sdk", None)
+    target = load_quietly(document).resolve("soc_a")
+    # The guarded expression RFC 0002 documents for helia-profiler.
+    assert (target.sdk.rss_power_off_available if target.sdk else None) is None
+
+
 def test_rss_power_off_availability_is_a_bool(document):
     soc(document)["sdk"] = {"rss_power_off_available": "yes"}
     assert "sdk.rss_power_off_available" in problems_of(document)
