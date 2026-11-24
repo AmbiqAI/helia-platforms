@@ -162,7 +162,7 @@ class MemoryCharacterization:
 class MemoryRegion(_Carrier):
     KEY: ClassVar[str] = "name"
     name: str
-    technology: Literal["sram", "mram", "rram", "psram", "flash", "nvm", "dram"]
+    technology: Literal["sram", "mram", "rram", "psram", "flash", "nvm", "dram", "emmc"]
     attachment: Literal["tcm", "system", "external"]
     size: int
     base: int | None = None
@@ -461,7 +461,7 @@ class AddOn(_Carrier):
 @_frozen
 class MemoryDevice(_Carrier):
     id: str
-    technology: Literal["sram", "mram", "rram", "psram", "flash", "nvm", "dram"]
+    technology: Literal["sram", "mram", "rram", "psram", "flash", "nvm", "dram", "emmc"]
     capacity: int
     driver_family: str | None = None
     modes: tuple[str, ...] = ()

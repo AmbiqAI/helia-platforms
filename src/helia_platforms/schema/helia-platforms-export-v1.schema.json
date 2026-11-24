@@ -2883,7 +2883,8 @@
                     "psram",
                     "flash",
                     "nvm",
-                    "dram"
+                    "dram",
+                    "emmc"
                   ]
                 },
                 {
@@ -2897,7 +2898,8 @@
                         "psram",
                         "flash",
                         "nvm",
-                        "dram"
+                        "dram",
+                        "emmc"
                       ]
                     },
                     "provenance": {
@@ -3268,7 +3270,8 @@
                     "psram",
                     "flash",
                     "nvm",
-                    "dram"
+                    "dram",
+                    "emmc"
                   ]
                 },
                 {
@@ -3282,7 +3285,8 @@
                         "psram",
                         "flash",
                         "nvm",
-                        "dram"
+                        "dram",
+                        "emmc"
                       ]
                     },
                     "provenance": {

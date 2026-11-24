@@ -964,6 +964,9 @@ class _Loader:
     def check_aperture(
         self, interface: model.MemoryInterface, device: model.MemoryDevice, at: str, origin: str
     ) -> None:
+        # No aperture at all: a block device such as an eMMC, with no window to fit (#137).
+        if interface.aperture_base is None and interface.aperture_max is None:
+            return
         if interface.aperture_max is None:
             message = (
                 f"interface {interface.name!r} has no aperture_max; {device.id!r} is unchecked"
