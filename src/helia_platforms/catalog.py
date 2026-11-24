@@ -1292,7 +1292,7 @@ def _placement_problems(
         elif allowed is not None and revision is not None and revision not in allowed:
             problems.append(
                 f"add-on {addon.id!r} fits board {board.id!r} only at revision "
-                f"{', '.join(allowed)}, not {revision!r}"
+                f"{', '.join(map(repr, allowed))}, not {revision!r}"
             )
         for name in addon.occupies:
             if name in holders:

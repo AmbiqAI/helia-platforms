@@ -338,7 +338,7 @@ def _board(
 
 def _fit(addon_id: str, revisions: Iterable[str] | None) -> str:
     """An add-on that fits the board, with the board revisions it needs where it names them."""
-    return f"{addon_id} (revisions {_list(revisions)})" if revisions else addon_id
+    return f"{addon_id} (revisions {_list(f'`{r}`' for r in revisions)})" if revisions else addon_id
 
 
 def _cpufreq(target: Target) -> list[str]:

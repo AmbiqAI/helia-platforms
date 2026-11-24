@@ -69,7 +69,7 @@ Mode = Annotated[
     str, Pattern(r"^(?!(?:value|provenance)$)[a-z][a-z0-9-]*$", "an interface mode such as hex-ddr")
 ]
 # A fact: reference can end with one, and a fact: path may not contain ':'.
-BoardRevision = Annotated[str, Pattern(r"^[^:]+$", "a board revision without ':'")]
+BoardRevision = Annotated[str, Pattern(r"^[^:]*$", "a board revision without ':'")]
 Size = Annotated[int | str, SIZE]
 Address = Annotated[int, Minimum(0)]
 Count = Annotated[int, Minimum(0)]

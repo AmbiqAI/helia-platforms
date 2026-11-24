@@ -229,6 +229,7 @@ CORPUS = {
     ),
     "board revision": (_edit("addons", _shield(["2.2"])), True),
     "board revision with a colon": (_edit("addons", _shield(["PCB:2.2"])), False),
+    "empty board revision": (_edit("addons", _shield([""])), True),
     "extensions": (
         _edit("boards.board_a.extensions", {"tool": {"anything": [1, {"x": None}]}}),
         True,

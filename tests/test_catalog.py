@@ -907,7 +907,7 @@ def test_an_add_on_s_fits_revisions_name_boards_it_fits_at_revisions_they_have(d
     assert "addons.shield.fits_revisions: 'board_b' is not in fits_boards" in problems_of(document)
     document["addons"]["shield"]["fits_boards"].append("board_b")
     assert (
-        "addons.shield: add-on 'shield' fits board 'board_b' only at revision 2, not '1'"
+        "addons.shield: add-on 'shield' fits board 'board_b' only at revision '2', not '1'"
     ) in problems_of(document)
     document["boards"]["board_b"]["revision"] = "2"
     load_quietly(document)

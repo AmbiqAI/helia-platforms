@@ -146,10 +146,17 @@ def test_a_board_revision_selects_the_add_ons_that_fit(document):
     catalog = quiet(document)
     assert resolve("board_a", addons=["shield"], catalog=catalog).addons  # revision not stated
     assert resolve("board_a", addons=["shield"], board_revision="2", catalog=catalog).addons
-    with pytest.raises(PlatformError, match="fits board 'board_a' only at revision 2, 3, not '1'"):
+    with pytest.raises(PlatformError, match="board 'board_a' only at revision '2', '3', not '1'"):
         catalog.resolve("board_a", addons=["shield"], board_revision="1")
     with pytest.raises(PlatformError, match="board_revision= applies only to a board target"):
         resolve("soc_a", board_revision="1", catalog=catalog)
+
+
+def test_a_revision_holding_a_comma_reads_as_one_revision(document):
+    shield = {"fits_boards": ["board_a"], "occupies": [], "population": {}}
+    document["addons"] = {"shield": {**shield, "fits_revisions": {"board_a": ["2, 3"]}}}
+    with pytest.raises(PlatformError, match="only at revision '2, 3', not '2'"):
+        quiet(document).resolve("board_a", addons=["shield"], board_revision="2")
 
 
 def test_a_board_revision_may_not_contradict_the_board_s_own(document):

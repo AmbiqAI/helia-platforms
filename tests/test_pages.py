@@ -68,7 +68,7 @@ def test_an_apollo3_board_page_gives_j_links_cpufreq_apart_from_the_trace_clock(
 
 def test_a_board_page_names_the_board_revisions_an_add_on_needs():
     page = _pages.render(builtin(include_plugins=False))["boards/apollo4p_evb.md"]
-    assert "Add-ons that fit: apollo4p_disp_shield (revisions 2, 3). " in page
+    assert "Add-ons that fit: apollo4p_disp_shield (revisions `2`, `3`). " in page
 
 
 def test_the_radio_core_pages_name_the_vendor_slot_and_who_programs_the_radio_core():

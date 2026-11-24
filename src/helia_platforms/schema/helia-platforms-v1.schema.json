@@ -649,14 +649,14 @@
                   "anyOf": [
                     {
                       "type": "string",
-                      "pattern": "^[^:]+$"
+                      "pattern": "^[^:]*$"
                     },
                     {
                       "type": "object",
                       "properties": {
                         "value": {
                           "type": "string",
-                          "pattern": "^[^:]+$"
+                          "pattern": "^[^:]*$"
                         },
                         "provenance": {
                           "$ref": "#/$defs/Provenance"
@@ -680,7 +680,7 @@
                     "type": "array",
                     "items": {
                       "type": "string",
-                      "pattern": "^[^:]+$"
+                      "pattern": "^[^:]*$"
                     },
                     "uniqueItems": true,
                     "minItems": 1

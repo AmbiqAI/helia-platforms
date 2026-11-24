@@ -392,7 +392,7 @@ def test_the_display_kit_fits_only_evb_revision_2_or_later(catalog, name):
     shield = ["apollo4p_disp_shield"]
     for revision in ("2", "3"):
         assert catalog.resolve(name, addons=shield, board_revision=revision).addons
-    with pytest.raises(PlatformError, match="only at revision 2, 3, not '1'"):
+    with pytest.raises(PlatformError, match="only at revision '2', '3', not '1'"):
         catalog.resolve(name, addons=shield, board_revision="1")
 
 
