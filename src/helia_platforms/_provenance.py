@@ -78,7 +78,11 @@ class Facts:
         match = _FACT.match(reference)
         if match is None or match["kind"] not in TABLE_OF:
             return None
-        return TABLE_OF[match["kind"]], match["id"], tuple(match["path"].split("."))
+        path = tuple(match["path"].split("."))
+        if match["kind"] == "addon" and path[0] == "fits_revisions" and len(path) > 3:
+            # A board revision may hold dots ("2.2"); the board id before it cannot.
+            path = (*path[:2], ".".join(path[2:]))
+        return TABLE_OF[match["kind"]], match["id"], path
 
     def exists(self, key: FactKey) -> bool:
         table, entry_id, path = key

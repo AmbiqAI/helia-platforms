@@ -295,7 +295,11 @@ def _board(
         )
     else:
         lines += ["None populated.", ""]
-    addons = [a for a, e in member.get("addons", {}).items() if board_id in e["fits_boards"]]
+    addons = [
+        _fit(a, e.get("fits_revisions", {}).get(board_id))
+        for a, e in member.get("addons", {}).items()
+        if board_id in e["fits_boards"]
+    ]
     compositions = [c for c, e in member.get("compositions", {}).items() if e["board"] == board_id]
     lines += [f"Add-ons that fit: {_list(addons)}. Compositions: {_list(compositions)}.", ""]
     lines += ["## Debug", ""]
@@ -330,6 +334,11 @@ def _board(
     ]
     lines += _aliases(board)
     return "\n".join(lines)
+
+
+def _fit(addon_id: str, revisions: Iterable[str] | None) -> str:
+    """An add-on that fits the board, with the board revisions it needs where it names them."""
+    return f"{addon_id} (revisions {_list(revisions)})" if revisions else addon_id
 
 
 def _cpufreq(target: Target) -> list[str]:

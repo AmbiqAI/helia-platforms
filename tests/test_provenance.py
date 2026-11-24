@@ -158,6 +158,13 @@ def test_an_alternate_base_is_addressed_as_an_integer(document):
     )
 
 
+def test_a_dotted_board_revision_is_one_path_segment(document):
+    shield = {"fits_boards": ["board_a"], "occupies": [], "population": {}}
+    document["addons"] = {"shield": {**shield, "fits_revisions": {"board_a": ["2.2"]}}}
+    reference = "fact:addon:shield:fits_revisions.board_a.2.2"
+    load_builtin(with_size_record(document, sourced("derived", reference)))
+
+
 def test_overlay_references_are_checked_for_form_only_and_warn(document):
     with_size_record(document, sourced("datasheet", "doc:DS-PRIVATE@1:p1"))
     load_overlay(document)  # not in the register: a private document is fine
