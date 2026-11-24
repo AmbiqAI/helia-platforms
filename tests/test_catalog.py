@@ -969,7 +969,7 @@ def test_an_add_on_narrows_the_modes_of_an_interface_while_fitted(document):
             "addons.shield.modes.mspi1: quad not among board 'board_a''s 'mspi1' modes",
         ),
         ({"mspi0": ["octal-ddr"]}, "addons.shield.modes: 'mspi0' is not in occupies"),
-        ({"mspi1": []}, "addons.shield.modes.mspi1: must list at least 1 item(s)"),
+        ({"mspi1": []}, "addons.shield.modes.mspi1: lists no mode for its device 'psram_8m'"),
     ],
 )
 def test_an_add_on_narrows_only_the_modes_of_interfaces_it_occupies(document, modes, problem):
@@ -977,6 +977,17 @@ def test_an_add_on_narrows_only_the_modes_of_interfaces_it_occupies(document, mo
     document["boards"]["board_a"]["interfaces"]["mspi1"]["modes"] = ["octal-ddr"]
     document["addons"] = {"shield": {**shield({"mspi1": "psram_8m"}), "modes": modes}}
     assert problem in problems_of(document)
+
+
+def test_an_add_on_may_leave_an_interface_it_occupies_no_usable_mode(document):
+    """The Display Kit's hex setting: MSPI0 hex leaves MSPI1 no mode (DS-A4P p115)."""
+    with_mspi1(document)
+    document["boards"]["board_a"]["interfaces"]["mspi1"]["modes"] = ["octal-ddr"]
+    document["addons"] = {"shield": {**shield({}), "occupies": ["mspi1"], "modes": {"mspi1": []}}}
+    document["compositions"] = {"fitted": {"board": "board_a", "addons": ["shield"]}}
+    fitted = load_quietly(document).resolve("fitted")
+    assert fitted.interfaces["mspi1"].modes == ()
+    assert fitted.board.interfaces["mspi1"].modes == ("octal-ddr",)
 
 
 def test_an_add_on_may_not_narrow_an_interface_past_its_own_device_s_modes(document):

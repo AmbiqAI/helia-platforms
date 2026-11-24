@@ -159,7 +159,7 @@ def _text(name: str, value: Any) -> str:
 def _leaves(path: Path, value: Any) -> Iterator[tuple[str, Path, str]]:
     """``(group, path, text)`` for each leaf under ``value``; a list or map is one group."""
     group = ".".join(path)
-    if value is None or (isinstance(value, tuple | Mapping) and not value):
+    if value is None or (isinstance(value, Mapping) and not value):
         return
     if dataclasses.is_dataclass(value):
         for f in dataclasses.fields(value):
@@ -171,14 +171,29 @@ def _leaves(path: Path, value: Any) -> Iterator[tuple[str, Path, str]]:
             else:
                 yield group, (*path, key), f"{key}={_text(path[-1], item)}"
     elif isinstance(value, tuple):
-        for item in value:
-            if dataclasses.is_dataclass(item):
-                key = "@".join(str(getattr(item, f.name)) for f in dataclasses.fields(item))
-                yield from _leaves((*path, key), item)
-            else:
-                yield group, (*path, segment(item)), _text(path[-1], item)
+        yield from _items(group, path, value)
     else:
         yield group, path, _text(path[-1], value)
+
+
+def _items(group: str, path: Path, value: tuple) -> Iterator[tuple[str, Path, str]]:
+    """A list's leaves; an empty list is one leaf, printed only where a file states it."""
+    if not value:
+        yield group, path, _none(group)
+    for item in value:
+        if dataclasses.is_dataclass(item):
+            key = "@".join(str(getattr(item, f.name)) for f in dataclasses.fields(item))
+            yield from _leaves((*path, key), item)
+        else:
+            yield group, (*path, segment(item)), _text(path[-1], item)
+
+
+def _none(group: str) -> str:
+    """An empty list's text: an interface's or device's empty ``modes`` records none, while
+    an add-on's empty ``modes.<interface>`` leaves that interface no usable mode (RFC 0002)."""
+    if group == "modes":
+        return "none recorded"
+    return "none usable" if group.startswith("modes.") else "none"
 
 
 def _row(
@@ -472,7 +487,10 @@ def _memories(target: Target, at: _Entries) -> list[_Row]:
 
 
 def _narrowings(target: Target) -> dict[str, model.AddOn]:
-    """The fitted add-on that narrows each board interface to a different set of modes."""
+    """The fitted add-on that narrows each board interface to a different set of modes.
+
+    An empty list always narrows: it leaves no usable mode, even where the board records none.
+    """
     if target.board is None:
         return {}
     interfaces = target.board.interfaces
@@ -480,7 +498,7 @@ def _narrowings(target: Target) -> dict[str, model.AddOn]:
         name: addon
         for addon in target.addons
         for name, modes in addon.modes.items()
-        if name in interfaces and set(modes) != set(interfaces[name].modes)
+        if name in interfaces and (not modes or set(modes) != set(interfaces[name].modes))
     }
 
 
@@ -494,9 +512,9 @@ def _interface(target: Target, at: _Entries, owner: _At, name: str) -> _Row:
     tail = _row("", place, interface, ["aperture_base", "alternate_bases", "aperture_max"])
     addon_at = at.at("addons", addon.id, addon)
     modes = addon.modes[name]
-    wheres = [("modes", name, segment(m)) for m in modes]
+    wheres = [("modes", name, segment(m)) for m in modes] or [("modes", name)]
     facts = [_Fact(f"modes.{name}", addon_at.record(w), ("addons", addon.id, w)) for w in wheres]
-    chunk = f"modes {' '.join(modes)} (add-on {addon.id})"
+    chunk = f"modes {' '.join(modes) or _none(f'modes.{name}')} (add-on {addon.id})"
     text = ", ".join(t for t in (head.text, chunk, tail.text) if t)
     return _Row("", text, head.facts + facts + tail.facts)
 

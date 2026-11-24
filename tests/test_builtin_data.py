@@ -55,7 +55,11 @@ def test_the_packaged_data_loads(catalog):
         "apollo3p_evb",
         "atomiq110_fpga_turbo",
     }
-    assert {a.id for a in catalog.addons()} == {"apollo4p_disp_shield", "cygnus"}
+    assert {a.id for a in catalog.addons()} == {
+        "apollo4p_disp_shield",
+        "apollo4p_disp_shield_hex",
+        "cygnus",
+    }
     assert {d.id for d in catalog.memory_devices()} == {
         "APS512XX",
         "APS256XXN",
@@ -396,36 +400,94 @@ def test_the_apollo4_evbs_answer_the_consumer_queries(catalog, board, regions, j
     assert (target.jlink_device, target.trace_clock_mhz) == (jlink, 48)
 
 
+_PSRAM = ("psram", 0x14000000, 32 * 1024 * 1024)
+_FLASH = ("flash", 0x18000000, 8 << 20)
+_EMMC = ("emmc", None, 4_000_000_000)
+_OCTAL = ("serial-sdr", "dual-sdr", "quad-sdr", "octal-sdr", "octal-ddr")
+_EVB_MSPI0 = (*_OCTAL, "hex-ddr")
+
+
 @pytest.mark.parametrize("name", ["apollo4p_evb_disp_shield_rev2", "AMAP4PDISP"])
-def test_the_display_kit_compositions_add_psram_and_flash(catalog, name):
+def test_the_display_kit_compositions_take_nsx_psram_s_hex_default(catalog, name):
+    """nsx-psram builds the shield board MSPI0 hex DDR by default (CMakeLists.txt:42-44)."""
     target = catalog.resolve(name)
     assert (target.id, target.aliases) == ("apollo4p_evb", (name,))
-    assert [a.id for a in target.addons] == ["apollo4p_disp_shield"]
-    fitted = {name: i.modes for name, i in target.interfaces.items()}
-    octal = ("serial-sdr", "dual-sdr", "quad-sdr", "octal-sdr", "octal-ddr")
-    assert fitted == {"mspi0": ("octal-ddr",), "mspi1": ("octal-ddr",), "mspi2": octal, "sdio": ()}
-    evb_modes = ("serial-sdr", "dual-sdr", "quad-sdr", "octal-sdr", "octal-ddr", "hex-ddr")
-    assert target.board.interfaces["mspi0"].modes == evb_modes
-    assert catalog.resolve("apollo4p_evb").interfaces["mspi0"].modes == evb_modes
-    assert catalog.resolve("apollo4p_evb").interfaces["mspi2"].modes == octal
-    external = {(r.technology, r.base, r.size) for r in target.external_memories()}
-    assert external == {
-        ("psram", 0x14000000, 32 * 1024 * 1024),
-        ("flash", 0x18000000, 8 << 20),
-        ("emmc", None, 4_000_000_000),
-    }
-    assert target.has_external_memory("psram")
+    assert [a.id for a in target.addons] == ["apollo4p_disp_shield_hex"]
+    assert target.interfaces["mspi1"].modes == ()
+    assert target.board.interfaces["mspi0"].modes == _EVB_MSPI0
+    assert target.board.interfaces["mspi1"].modes == _OCTAL
+    assert catalog.resolve("apollo4p_evb").interfaces["mspi0"].modes == _EVB_MSPI0
+    assert catalog.resolve("apollo4p_evb").interfaces["mspi2"].modes == _OCTAL
     assert catalog.resolve("apollo4p_evb").addons == ()
 
 
-@pytest.mark.parametrize("name", ["apollo4p_evb", "apollo4p_evb_disp_shield_rev2"])
-def test_the_display_kit_fits_only_evb_revision_2_or_later(catalog, name):
+@pytest.mark.parametrize(
+    ("addon", "fitted", "external"),
+    [
+        ("apollo4p_disp_shield_hex", {"mspi0": ("hex-ddr",), "mspi1": ()}, {_PSRAM, _EMMC}),
+        (
+            "apollo4p_disp_shield",
+            {"mspi0": ("octal-ddr",), "mspi1": ("octal-ddr",)},
+            {_PSRAM, _FLASH, _EMMC},
+        ),
+    ],
+)
+def test_each_display_kit_gpio34_setting_offers_only_what_it_wires(
+    catalog, addon, fitted, external
+):
+    """QS-A4PDK p10-11 and DS-A4P p115: MSPI0 hex leaves MSPI1 unusable."""
+    target = catalog.resolve("apollo4p_evb", addons=[addon])
+    assert {n: i.modes for n, i in target.interfaces.items()} == {
+        "mspi0": _EVB_MSPI0, "mspi1": _OCTAL, "mspi2": _OCTAL, "sdio": (), **fitted
+    }  # fmt: skip
+    assert {(r.technology, r.base, r.size) for r in target.external_memories()} == external
+    assert target.has_external_memory("psram")
+    # Hex mode on MSPI0 and the MSPI1 flash are never offered together.
+    mspi1 = target.interfaces["mspi1"].aperture_base
+    on_mspi1 = [r for r in target.external_memories() if r.base == mspi1]
+    assert not ("hex-ddr" in target.interfaces["mspi0"].modes and on_mspi1)
+    assert set(target.addons[0].occupies) == {"mspi0", "mspi1", "mspi2", "sdio"}
+
+
+def test_the_display_kit_gpio34_settings_cannot_be_fitted_together(catalog):
+    with pytest.raises(PlatformError, match="both use 'mspi0'"):
+        catalog.resolve("apollo4p_evb", addons=["apollo4p_disp_shield", "apollo4p_disp_shield_hex"])
+
+
+@pytest.mark.parametrize("name", ["apollo4p_evb_disp_shield_rev2", "AMAP4PDISP"])
+def test_the_display_kit_s_hex_setting_keeps_its_unusable_mspi1_from_other_add_ons(catalog, name):
+    """QS-A4PDK p10: MSPI1's pins carry MSPI0's upper data lines, so nothing else may use it."""
+    overlay = {
+        "schema_version": 1,
+        "addons": {
+            "my_flash": {"fits_boards": ["apollo4p_evb"], "occupies": ["mspi1"], "population": {}}
+        },
+        "compositions": {"both": {"board": "apollo4p_evb", "addons": ["my_flash"]}},
+    }
+    overlay["compositions"]["both"]["addons"] += catalog.compositions[name].addons
+    with pytest.raises(FormatError) as exc:
+        load_overlay(overlay, base=catalog)
+    assert (
+        "compositions.both: add-on 'apollo4p_disp_shield_hex' and add-on 'my_flash' both use "
+        "'mspi1'"
+    ) in "\n".join(exc.value.problems)
+
+
+@pytest.mark.parametrize(
+    ("name", "addons"),
+    [
+        ("apollo4p_evb", ["apollo4p_disp_shield"]),
+        ("apollo4p_evb", ["apollo4p_disp_shield_hex"]),
+        ("apollo4p_evb_disp_shield_rev2", []),
+        ("AMAP4PDISP", []),
+    ],
+)
+def test_the_display_kit_fits_only_evb_revision_2_or_later(catalog, name, addons):
     """QS-A4PDK p10: the shield needs AMAP4PEVB revision 2 or later; QS-A4P p6 lists 1 to 3."""
-    shield = ["apollo4p_disp_shield"]
     for revision in ("2", "3"):
-        assert catalog.resolve(name, addons=shield, board_revision=revision).addons
+        assert catalog.resolve(name, addons=addons, board_revision=revision).addons
     with pytest.raises(PlatformError, match="only at revision '2', '3', not '1'"):
-        catalog.resolve(name, addons=shield, board_revision="1")
+        catalog.resolve(name, addons=addons, board_revision="1")
 
 
 def test_the_display_kit_uses_the_display_s_mspi2_without_a_device_there(catalog):

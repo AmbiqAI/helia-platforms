@@ -576,7 +576,7 @@ boards:
               serial, dual, quad or octal mode", recorded as <width>-sdr. p115: MSPI0 "hex
               (16-bit) mode for higher DDR throughput". octal-ddr is the Display Kit BSP's PSRAM
               chip select (AM_HAL_MSPI_FLASH_OCTAL_DDR_CE0, am_bsp.h:103-104); p114 does not say
-              which other widths run DDR. The kit narrows MSPI0 to octal-ddr (#139).
+              which other widths run DDR. Each Display Kit add-on narrows MSPI0 to one mode.
         aperture_base: 0x14000000
         aperture_max: 64M
         provenance: &ds_aperture
@@ -588,7 +588,7 @@ boards:
             p115 gives the XIP bases "0x14000000 (MSPI0), 0x18000000 (MSPI1) and 0x1C000000
             (MSPI2)"; p69 "External flash with XiP (via MSPI) ... (up to 64 MB)", the family
             limit used as each aperture's size. QS-A4PDK p10: the Display Kit uses MSPI0 and
-            MSPI1, and "When MSPI0 is used in hex mode ... MSPI1 cannot be used" (#139).
+            MSPI1, and "When MSPI0 is used in hex mode ... MSPI1 cannot be used".
       mspi1:
         controller: mspi1
         modes:

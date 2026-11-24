@@ -473,8 +473,9 @@ class AddOn(_Entity):
     fits_revisions: NotRequired[dict[Id, Annotated[list[BoardRevision], BY_VALUE, Minimum(1)]]]
     occupies: Required[Names]
     population: Required[dict[Name, Id]]
-    # Modes of an occupied interface while the add-on is fitted, narrowing the board's.
-    modes: NotRequired[dict[Name, Annotated[list[str], BY_VALUE, Minimum(1)]]]
+    # Modes of an occupied interface while the add-on is fitted, narrowing the board's;
+    # an empty list: the add-on's wiring leaves that interface no usable mode.
+    modes: NotRequired[dict[Name, Annotated[list[str], BY_VALUE]]]
     revision: NotRequired[str]
     extensions: NotRequired[Extensions]
 
