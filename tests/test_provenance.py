@@ -158,11 +158,24 @@ def test_an_alternate_base_is_addressed_as_an_integer(document):
     )
 
 
-def test_a_dotted_board_revision_is_one_path_segment(document):
+def with_board_revision(document, revision):
     shield = {"fits_boards": ["board_a"], "occupies": [], "population": {}}
-    document["addons"] = {"shield": {**shield, "fits_revisions": {"board_a": ["2.2"]}}}
-    reference = "fact:addon:shield:fits_revisions.board_a.2.2"
+    document["addons"] = {"shield": {**shield, "fits_revisions": {"board_a": [revision]}}}
+    return document
+
+
+@pytest.mark.parametrize("revision", ["2", "2.2", "PCB.2.2"])
+def test_a_dotted_board_revision_is_one_path_segment(document, revision):
+    reference = f"fact:addon:shield:fits_revisions.board_a.{revision}"
+    document = with_board_revision(document, revision)
     load_builtin(with_size_record(document, sourced("derived", reference)))
+
+
+@pytest.mark.parametrize("revision", ["PCB:2.2", ":"])
+def test_a_board_revision_may_not_hold_a_colon(document, revision):
+    # A fact: path may not contain ':', so no reference could name this revision.
+    found = problems(with_board_revision(document, revision))
+    assert f"{revision!r} is not a board revision without ':'" in found
 
 
 def test_overlay_references_are_checked_for_form_only_and_warn(document):

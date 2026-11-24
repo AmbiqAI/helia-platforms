@@ -1099,7 +1099,8 @@ This is the one list; 0002-multicore.md refers to it.
   than its aperture; an interface with no `aperture_max` draws a warning
   that its device is unchecked.
 - **Add-ons and compositions.** `fits_boards` names boards, and each
-  `fits_revisions` key is one of them. `population`
+  `fits_revisions` key is one of them. A revision it lists holds no `:`,
+  so that a `fact:` reference can name it. `population`
   and `modes` keys are interfaces the add-on occupies, and each exists on
   every board it fits. Its devices exist and fit the aperture. Its modes
   are among the board interface's modes, and leave its own device at least
