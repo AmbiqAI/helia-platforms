@@ -1,6 +1,6 @@
 import pytest
 
-from helia_platforms import AmbiguousPlatform, Catalog, builtin, resolve_board
+from helia_platforms import AmbiguousPlatform, Catalog, PlatformError, builtin, resolve_board
 from helia_platforms.catalog import load_overlay
 from helia_platforms.errors import FormatError
 
@@ -416,6 +416,16 @@ def test_the_display_kit_compositions_add_psram_and_flash(catalog, name):
     }
     assert target.has_external_memory("psram")
     assert catalog.resolve("apollo4p_evb").addons == ()
+
+
+@pytest.mark.parametrize("name", ["apollo4p_evb", "apollo4p_evb_disp_shield_rev2"])
+def test_the_display_kit_fits_only_evb_revision_2_or_later(catalog, name):
+    """QS-A4PDK p10: the shield needs AMAP4PEVB revision 2 or later; QS-A4P p6 lists 1 to 3."""
+    shield = ["apollo4p_disp_shield"]
+    for revision in ("2", "3"):
+        assert catalog.resolve(name, addons=shield, board_revision=revision).addons
+    with pytest.raises(PlatformError, match="only at revision '2', '3', not '1'"):
+        catalog.resolve(name, addons=shield, board_revision="1")
 
 
 def test_the_display_kit_uses_the_display_s_mspi2_without_a_device_there(catalog):

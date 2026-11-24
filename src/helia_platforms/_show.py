@@ -364,7 +364,7 @@ def _identity(target: Target, at: _Entries, sources: bool) -> list[_Row]:
         rows.append(_row("board", at.at("boards", board.id, board), board, names, lead=board.id))
         rows += _based_on("board", board)
     for addon in target.addons:
-        names = ["fits_boards", "occupies", "modes", "revision"]
+        names = ["fits_boards", "fits_revisions", "occupies", "modes", "revision"]
         rows.append(_row("add-on", at.at("addons", addon.id, addon), addon, names, lead=addon.id))
         rows += _based_on("add-on", addon, named=True)
     for alias in target.aliases:

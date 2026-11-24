@@ -108,6 +108,11 @@ def _scrub(kind: str, values: dict[str, Any], kept: Mapping[str, set[str]]) -> d
                 del values[key]
     if kind == "addons":
         values["fits_boards"] = [b for b in values["fits_boards"] if b in kept["boards"]]
+        revisions = {
+            b: r for b, r in values.pop("fits_revisions", {}).items() if b in kept["boards"]
+        }
+        if revisions:
+            values["fits_revisions"] = revisions
     return values
 
 

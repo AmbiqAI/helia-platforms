@@ -450,6 +450,7 @@ class AddOn(_Carrier):
     occupies: tuple[str, ...]
     population: Mapping[str, str]
     modes: Mapping[str, tuple[str, ...]] = field(default_factory=_empty)
+    fits_revisions: Mapping[str, tuple[str, ...]] = field(default_factory=_empty)
     revision: str | None = None
     based_on: str | None = None  # the overlay entry it was based on; not a fact (#134)
     aliases: tuple[str, ...] = ()
