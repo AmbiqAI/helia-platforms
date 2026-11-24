@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.3.0](https://github.com/AmbiqAI/helia-platforms/compare/v0.2.0...v0.3.0) (2026-11-24)
+
+
+### ⚠ BREAKING CHANGES
+
+* **data:** resolving apollo4p_evb_disp_shield_rev2 or AMAP4PDISP no longer gives the MSPI1 flash region (flash0) or the flash capability, and its mspi0 offers hex-ddr instead of octal-ddr. Pass addons=["apollo4p_disp_shield"] on apollo4p_evb for the octal setting.
+* an overlay that writes `port` on an access entry no longer loads; remove the key.
+
+### Features
+
+* **data:** model the Display Kit's two GPIO34 settings, with hex as the default ([#182](https://github.com/AmbiqAI/helia-platforms/issues/182)) ([9715cc6](https://github.com/AmbiqAI/helia-platforms/commit/9715cc6199e027f7a6cbeb065bafa7483f9e11cb))
+* **data:** model the fitted eMMC on apollo510_evb, apollo510b_evb and the Apollo4 Plus Display Kit ([#184](https://github.com/AmbiqAI/helia-platforms/issues/184)) ([c40f86e](https://github.com/AmbiqAI/helia-platforms/commit/c40f86ea0e9f60b5ee59343bcc59ac67268748e3))
+* **data:** record the BLE controller's reset pad on the Apollo4 Blue parts ([#170](https://github.com/AmbiqAI/helia-platforms/issues/170)) ([35ce183](https://github.com/AmbiqAI/helia-platforms/commit/35ce18342d5d080b2f3cd1cf99a73a1e5f17a107)), closes [#157](https://github.com/AmbiqAI/helia-platforms/issues/157)
+* **data:** record the Cortex-M55 PMU's counters and events, and define what a missing cache size means ([#171](https://github.com/AmbiqAI/helia-platforms/issues/171)) ([34da346](https://github.com/AmbiqAI/helia-platforms/commit/34da346fd3abeaaed54312b0ecd51c0011b12f6b)), closes [#158](https://github.com/AmbiqAI/helia-platforms/issues/158)
+* **data:** record the D-cache line, the hex DDR DMA address alignment and the deep-sleep DMA restriction ([#176](https://github.com/AmbiqAI/helia-platforms/issues/176)) ([da37de0](https://github.com/AmbiqAI/helia-platforms/commit/da37de0f911cff4b6c3589077b9bce4545c501d4)), closes [#175](https://github.com/AmbiqAI/helia-platforms/issues/175)
+* **data:** record whether each Soc's SDK HAL provides am_hal_pwrctrl_rss_pwroff() ([#183](https://github.com/AmbiqAI/helia-platforms/issues/183)) ([d7f54c1](https://github.com/AmbiqAI/helia-platforms/commit/d7f54c1a57531cf83e9024de19913eadd2b75600))
+* let an add-on require a board revision with fits_revisions ([#181](https://github.com/AmbiqAI/helia-platforms/issues/181)) ([fe4c964](https://github.com/AmbiqAI/helia-platforms/commit/fe4c964eb2d077b7b46082e81690546cfdf1a6bb))
+* name each identity source's full label so a consumer can match it to entries ([#179](https://github.com/AmbiqAI/helia-platforms/issues/179)) ([943f140](https://github.com/AmbiqAI/helia-platforms/commit/943f1400899f5e41181444bded8e7177fc27174f))
+* remove the deprecated Access.port key from the file format ([#174](https://github.com/AmbiqAI/helia-platforms/issues/174)) ([c08793f](https://github.com/AmbiqAI/helia-platforms/commit/c08793fd90f1a98753646c194feafd9cf996deb4)), closes [#159](https://github.com/AmbiqAI/helia-platforms/issues/159)
+
+
+### Bug Fixes
+
+* **data:** record that atomiq110's NPU access to ITCM and DTCM keeps the CM55 awake ([#178](https://github.com/AmbiqAI/helia-platforms/issues/178)) ([3a12877](https://github.com/AmbiqAI/helia-platforms/commit/3a128772153daa01bdf4f033ae04f530fc933247))
+* **data:** use 32 MB HBLRAM for AT110 planning; preserve FPGA exclusion ([#180](https://github.com/AmbiqAI/helia-platforms/issues/180)) ([9b1b30b](https://github.com/AmbiqAI/helia-platforms/commit/9b1b30b41ba03c14e02b42ed37fa8576bf2d9f6f))
+
 ## [0.2.0](https://github.com/AmbiqAI/helia-platforms/compare/v0.1.0...v0.2.0) (2026-11-08)
 
 
