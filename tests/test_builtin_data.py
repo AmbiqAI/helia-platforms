@@ -628,19 +628,17 @@ def test_the_atomiq110_fpga_inherits_the_npus_port_classes(catalog):
 
 @pytest.mark.parametrize("name", ["atomiq110", "atomiq110_fpga_turbo"])
 def test_atomiq110_npu_access_to_either_tcm_keeps_the_cm55_awake(catalog, name):
-    """The owner's rule on AmbiqAI/helia-aot#1023 (#177): only the two TCM rows carry it."""
+    """The owner's rule (#177): only the NPU's two TCM rows carry it."""
     target = catalog.resolve(name)
-    awake = {a.target: a.requires_awake for a in target.soc.access if a.requires_awake}
-    assert awake == {"itcm": ("cm55_0",), "dtcm": ("cm55_0",)}
+    awake = {(a.master, a.target): a.requires_awake for a in target.soc.access if a.requires_awake}
+    assert awake == {("npu_0", "itcm"): ("cm55_0",), ("npu_0", "dtcm"): ("cm55_0",)}
     assert {a.target for a in target.soc.access if a.master == "npu_0"} > {"itcm", "dtcm", "ssram"}
     for tcm in ("itcm", "dtcm"):
         access = target.reachable("npu_0", tcm)
         assert access is not None and access.requires_awake == ("cm55_0",)
         record = access.field_provenance["requires_awake.cm55_0"]
         assert record.status == "unverified"
-        assert record.source == (
-            "url:https://github.com/AmbiqAI/helia-aot/issues/1023#issuecomment-7041469123",
-        )
+        assert record.source == ("url:https://github.com/AmbiqAI/helia-platforms/issues/177",)
 
 
 APOLLO5_SOCS = ("apollo510", "apollo510b", "apollo510L", "apollo330P")
