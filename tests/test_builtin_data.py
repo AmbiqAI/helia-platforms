@@ -384,7 +384,9 @@ def test_the_display_kit_compositions_take_nsx_psram_s_hex_default(catalog, name
     target = catalog.resolve(name)
     assert (target.id, target.aliases) == ("apollo4p_evb", (name,))
     assert [a.id for a in target.addons] == ["apollo4p_disp_shield_hex"]
+    assert target.interfaces["mspi1"].modes == ()
     assert target.board.interfaces["mspi0"].modes == _EVB_MSPI0
+    assert target.board.interfaces["mspi1"].modes == _OCTAL
     assert catalog.resolve("apollo4p_evb").interfaces["mspi0"].modes == _EVB_MSPI0
     assert catalog.resolve("apollo4p_evb").interfaces["mspi2"].modes == _OCTAL
     assert catalog.resolve("apollo4p_evb").addons == ()
@@ -393,7 +395,7 @@ def test_the_display_kit_compositions_take_nsx_psram_s_hex_default(catalog, name
 @pytest.mark.parametrize(
     ("addon", "fitted", "external"),
     [
-        ("apollo4p_disp_shield_hex", {"mspi0": ("hex-ddr",)}, {_PSRAM}),
+        ("apollo4p_disp_shield_hex", {"mspi0": ("hex-ddr",), "mspi1": ()}, {_PSRAM}),
         (
             "apollo4p_disp_shield",
             {"mspi0": ("octal-ddr",), "mspi1": ("octal-ddr",)},
@@ -421,6 +423,25 @@ def test_each_display_kit_gpio34_setting_offers_only_what_it_wires(
 def test_the_display_kit_gpio34_settings_cannot_be_fitted_together(catalog):
     with pytest.raises(PlatformError, match="both use 'mspi0'"):
         catalog.resolve("apollo4p_evb", addons=["apollo4p_disp_shield", "apollo4p_disp_shield_hex"])
+
+
+@pytest.mark.parametrize("name", ["apollo4p_evb_disp_shield_rev2", "AMAP4PDISP"])
+def test_the_display_kit_s_hex_setting_keeps_its_unusable_mspi1_from_other_add_ons(catalog, name):
+    """QS-A4PDK p10: MSPI1's pins carry MSPI0's upper data lines, so nothing else may use it."""
+    overlay = {
+        "schema_version": 1,
+        "addons": {
+            "my_flash": {"fits_boards": ["apollo4p_evb"], "occupies": ["mspi1"], "population": {}}
+        },
+        "compositions": {"both": {"board": "apollo4p_evb", "addons": ["my_flash"]}},
+    }
+    overlay["compositions"]["both"]["addons"] += catalog.compositions[name].addons
+    with pytest.raises(FormatError) as exc:
+        load_overlay(overlay, base=catalog)
+    assert (
+        "compositions.both: add-on 'apollo4p_disp_shield_hex' and add-on 'my_flash' both use "
+        "'mspi1'"
+    ) in "\n".join(exc.value.problems)
 
 
 def test_the_display_kit_uses_the_display_s_mspi2_without_a_device_there(catalog):

@@ -1029,12 +1029,14 @@ def _device_mode_problems(
 ) -> list[tuple[str, str]]:
     """``(interface, problem)`` for each narrowing that leaves the add-on's device no mode.
 
-    A device that lists no modes is not checked.
+    A device that lists no modes is checked only against an empty narrowing.
     """
     problems = []
     for name, modes in addon.modes.items():
         device = devices.get(addon.population.get(name, ""))
-        if device is not None and device.modes and not set(modes) & set(device.modes):
+        if device is not None and not modes:
+            problems.append((name, f"lists no mode for its device {device.id!r}"))
+        elif device is not None and device.modes and not set(modes) & set(device.modes):
             modes_text = " ".join(device.modes)
             problems.append((name, f"leaves {device.id!r} none of its modes ({modes_text})"))
     return problems

@@ -90,11 +90,22 @@ addons:
             (CMakeLists.txt:42-44, the same lines at v5.2.26), which the shield's BSP defines as
             AM_HAL_MSPI_FLASH_HEX_DDR_CE0 (am_bsp.h:104). No source draws MSPI0 octal in this
             setting.
+      mspi1:
+        value: []
+        provenance:
+          status: datasheet
+          source: ["doc:QS-A4PDK@1.2:p10", "doc:DS-A4P@1.6.0:p115"]
+          verified_on: 2026-11-24
+          verified_by: evanchen11
+          notes: >-
+            No usable mode: "when using MSPI0 in hex mode, MSPI1 cannot be used" (DS-A4P p115),
+            and "MSPI1 is not used in this configuration" (QS-A4PDK p10, Figure 2).
     provenance:
       status: datasheet
       source:
         - "doc:QS-A4PDK@1.2:p6"
         - "doc:QS-A4PDK@1.2:p10"
+        - "doc:QS-A4PDK@1.2:p11"
         - "doc:QS-A4PDK@1.2:p12"
         - "doc:DS-A4P@1.6.0:p115"
       verified_on: 2026-11-23
@@ -102,10 +113,10 @@ addons:
       notes: >-
         The Display Kit's shield, apollo4p_disp_shield, with GPIO34 set to hex: the MSPI0 upper
         data lines then use the pins MSPI1 uses (p10, DS-A4P p115), so this add-on occupies
-        mspi1 and populates only the PSRAM. The IS25WX064 flash (p12) is on the shield, but
-        "MSPI1 is not used in this configuration" (p10, Figure 2). The figure wires the display
-        to MSPI2, as Figure 3 does. The EVB revision limit (#138) and the eMMC (#137) are as on
-        apollo4p_disp_shield.
+        mspi1, leaves it no mode, and populates only the PSRAM. The IS25WX064 flash (p12) is on
+        the shield, but "MSPI1 is not used in this configuration" (p10, Figure 2). The figure
+        wires the display to MSPI2, as Figure 3 (p11) does. The EVB revision limit (#138) and
+        the eMMC (#137) are as on apollo4p_disp_shield.
   cygnus:
     release_status: public
     fits_boards: [apollo3p_evb]

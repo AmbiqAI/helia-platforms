@@ -452,13 +452,17 @@ customers add daughter boards.
   `population` on those interfaces. Its optional `modes` are the modes
   its wiring uses on an occupied interface, each a mode the board's
   interface lists, keeping at least one mode of the add-on's device there
-  (a device that lists no modes is not checked). `Target.interfaces`
-  carries these narrowed modes, and `Target.board.interfaces` the board's.
+  (a device that lists no modes is not checked). An empty list means the
+  wiring leaves the interface no usable mode; the add-on still occupies
+  it, and may not populate it. `Target.interfaces` carries these narrowed
+  modes, and `Target.board.interfaces` the board's. A board interface that
+  lists no modes has none recorded, which differs from an add-on's empty
+  list.
   A shield whose wiring is set at run time is one add-on per setting: the
   Apollo4 Plus Display Kit's GPIO34 selects MSPI0 hex to the PSRAM, with
   MSPI1 unusable, or MSPI0 and MSPI1 octal to the PSRAM and the flash
   (QS-A4PDK p10-11, DS-A4P p115). `apollo4p_disp_shield_hex` runs MSPI0
-  in `hex-ddr` and occupies MSPI1 with no device; `apollo4p_disp_shield`
+  in `hex-ddr` and narrows MSPI1 to no mode; `apollo4p_disp_shield`
   runs both in `octal-ddr` and populates the flash. Both occupy MSPI0, so
   they cannot be fitted together.
 - The resolved target is board plus selected add-ons plus overlay. The
@@ -1020,9 +1024,9 @@ target returns its DDR region
 `load_overlay` parses an overlay (syntax per ADR #7), validates it against
 the JSON Schema and the semantic rules, and returns a new `Catalog`. The
 JSON Schema already makes core, NPU and accelerator ids unique within their
-lists, makes (master, target) pairs unique within `access`, and requires an
-add-on's `modes` to list at least one mode. The semantic rules below are the
-loader's (`catalog.py`, `_tree.py`), regenerated from the code on 2026-10-30
+lists, and makes (master, target) pairs unique within `access`. The
+semantic rules below are the loader's (`catalog.py`, `_tree.py`),
+regenerated from the code on 2026-10-30
 (#141); each is an error unless marked as a warning. All errors of a load are
 reported together, and warnings are issued only when a load has no errors.
 They check the entries of the load being made, not those already in its base.
@@ -1102,6 +1106,7 @@ This is the one list; 0002-multicore.md refers to it.
   every board it fits. Its devices exist and fit the aperture. Its modes
   are among the board interface's modes, and leave its own device at least
   one of that device's modes (a device that lists no modes is not checked).
+  An add-on that leaves an interface no mode populates no device there.
   A composition's board and add-ons exist; no add-on sits on a board it
   does not fit or on an interface the board populates or another add-on
   occupies (an occupied interface counts even without a device). Shorthand

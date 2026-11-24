@@ -282,6 +282,20 @@ def test_a_fitted_add_on_prints_the_modes_it_narrows_an_interface_to():
     assert _show.stated_facts(target) <= printed(target)
 
 
+def test_an_add_on_that_leaves_an_interface_no_mode_prints_none():
+    document = full_document()
+    document["boards"]["board_a"]["interfaces"]["iom0"]["modes"] = ["quad"]
+    document["addons"]["shield"]["occupies"].append("iom0")
+    document["addons"]["shield"]["modes"] = {"iom0": []}
+    target = load_overlay(document, base=builtin(include_plugins=False)).resolve("board_a_shield")
+    (addon,) = row_texts(target, "add-on")
+    assert "modes.iom0 none" in addon
+    (iom0,) = row_texts(target, "interface iom0")
+    assert iom0.startswith("controller iom0, modes none (add-on shield)")
+    assert ("addons", "shield", ("modes", "iom0")) in printed(target)
+    assert _show.stated_facts(target) <= printed(target)
+
+
 def test_a_narrowed_interface_keeps_its_alternate_bases():
     document = full_document()
     mspi1 = document["boards"]["board_a"]["interfaces"]["mspi1"]
