@@ -99,7 +99,8 @@ addons:
           verified_by: evanchen11
           notes: >-
             No usable mode: "when using MSPI0 in hex mode, MSPI1 cannot be used" (DS-A4P p115),
-            and "MSPI1 is not used in this configuration" (QS-A4PDK p10, Figure 2).
+            and "MSPI1 is not used in this configuration" (QS-A4PDK p10, in the text above
+            Figure 2, which labels MSPI1 "not used").
     provenance:
       status: datasheet
       source:
@@ -114,9 +115,10 @@ addons:
         The Display Kit's shield, apollo4p_disp_shield, with GPIO34 set to hex: the MSPI0 upper
         data lines then use the pins MSPI1 uses (p10, DS-A4P p115), so this add-on occupies
         mspi1, leaves it no mode, and populates only the PSRAM. The IS25WX064 flash (p12) is on
-        the shield, but "MSPI1 is not used in this configuration" (p10, Figure 2). The figure
-        wires the display to MSPI2, as Figure 3 (p11) does. The EVB revision limit (#138) and
-        the eMMC (#137) are as on apollo4p_disp_shield.
+        the shield, but "MSPI1 is not used in this configuration" (p10, in the text above
+        Figure 2). Figure 2 labels MSPI1 "not used" and wires the display to MSPI2, as Figure 3
+        (p11) does. The EVB revision limit (#138) and the eMMC (#137) are as on
+        apollo4p_disp_shield.
   cygnus:
     release_status: public
     fits_boards: [apollo3p_evb]

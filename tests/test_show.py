@@ -282,17 +282,58 @@ def test_a_fitted_add_on_prints_the_modes_it_narrows_an_interface_to():
     assert _show.stated_facts(target) <= printed(target)
 
 
-def test_an_add_on_that_leaves_an_interface_no_mode_prints_none():
+#: iom0's modes on board_a: omitted, an empty list (none recorded), or one mode.
+BOARD_MODES = [None, [], ["quad"]]
+BOARD_IOM0_MODES = ("boards", "board_a", ("interfaces", "iom0", "modes"))
+
+
+def with_iom0_modes(modes: list[str] | None) -> dict:
     document = full_document()
-    document["boards"]["board_a"]["interfaces"]["iom0"]["modes"] = ["quad"]
-    document["addons"]["shield"]["occupies"].append("iom0")
-    document["addons"]["shield"]["modes"] = {"iom0": []}
-    target = load_overlay(document, base=builtin(include_plugins=False)).resolve("board_a_shield")
-    (addon,) = row_texts(target, "add-on")
-    assert "modes.iom0 none" in addon
+    if modes is not None:
+        document["boards"]["board_a"]["interfaces"]["iom0"]["modes"] = modes
+    return document
+
+
+def provenance_of(target, label: str) -> str:
+    """The rendered ``--provenance`` lines of the row with ``label``, up to the next row."""
+    lines = _show.render_target(target, provenance=True).splitlines()
+    start = next(i for i, line in enumerate(lines) if line.startswith(f"  {label} "))
+    end = next(i for i in range(start + 1, len(lines)) if not lines[i].startswith("     "))
+    return "\n".join(lines[start:end])
+
+
+@pytest.mark.parametrize(
+    ("modes", "text"),
+    [(None, "controller iom0 (unpopulated)"), ([], "controller iom0, modes none recorded")],
+)
+def test_a_board_interface_with_no_modes_prints_none_recorded_where_stated(modes, text):
+    catalog = load_overlay(with_iom0_modes(modes), base=builtin(include_plugins=False))
+    target = catalog.resolve("board_a")
     (iom0,) = row_texts(target, "interface iom0")
-    assert iom0.startswith("controller iom0, modes none (add-on shield)")
+    assert iom0.startswith(text)
+    assert (BOARD_IOM0_MODES in printed(target)) == (modes is not None)
+    assert _show.stated_facts(target) <= printed(target)
+
+
+@pytest.mark.parametrize("modes", BOARD_MODES)
+def test_an_add_on_that_leaves_an_interface_no_mode_prints_none_usable(modes):
+    """An empty add-on list narrows even where the board records no modes (DS-A4P p115)."""
+    document = with_iom0_modes(modes)
+    notes = "The shield's wiring leaves iom0 no mode."
+    document["addons"]["shield"]["occupies"].append("iom0")
+    document["addons"]["shield"]["modes"] = {
+        "iom0": {"value": [], "provenance": {**SDK, "notes": notes}}
+    }
+    target = load_overlay(document, base=builtin(include_plugins=False)).resolve("board_a_shield")
+    assert target.interfaces["iom0"].modes == ()
+    (addon,) = row_texts(target, "add-on")
+    assert "modes.iom0 none usable" in addon
+    (iom0,) = row_texts(target, "interface iom0")
+    assert iom0.startswith("controller iom0, modes none usable (add-on shield)")
+    assert "quad" not in iom0 and "none recorded" not in iom0
+    assert notes in provenance_of(target, "interface iom0")
     assert ("addons", "shield", ("modes", "iom0")) in printed(target)
+    assert BOARD_IOM0_MODES not in printed(target)
     assert _show.stated_facts(target) <= printed(target)
 
 
